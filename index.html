@@ -597,15 +597,15 @@ function _render(){
   const gap=r25T-offT;
   let h='';
   h+=`<div class="hdr"><div style="display:flex;align-items:center;gap:12px"><div><h1>CS Renewal Pipeline</h1><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button></div>
-  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-    <div style="display:flex;gap:8px;align-items:center">
+  <div style="display:flex;gap:8px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px">
       <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
-      <button class="btn-refresh" onclick="refreshData()">↻ Refresh</button>
-      <select onchange="ss('owner',this.value)"><option value="ALL">All CS Owners</option>
-      ${owners.map(o=>`<option value="${o}"${S.owner===o?' selected':''}>${o}</option>`).join('')}
-      </select>
+      ${PREV_TS?`<span style="font-size:10px;color:#475569">Last saved: ${new Date(PREV_TS).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:'<span style="font-size:10px;color:#334155">No snapshot saved</span>'}
     </div>
-    ${PREV_TS?`<span style="font-size:10px;color:#475569">Last saved: ${new Date(PREV_TS).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:'<span style="font-size:10px;color:#334155">No snapshot saved</span>'}
+    <button class="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+    <select onchange="ss('owner',this.value)"><option value="ALL">All CS Owners</option>
+    ${owners.map(o=>`<option value="${o}"${S.owner===o?' selected':''}>${o}</option>`).join('')}
+    </select>
   </div></div>`;
   h+=`<div class="rv" style="grid-template-columns:1fr 1fr">
     <div class="rc" style="border-left:3px solid #fbbf24"><h4>2025 Revenue (Base)</h4><div style="display:flex;align-items:baseline;gap:16px"><div class="rb" style="color:#fbbf24">${fm(r25T)}</div><div style="font-size:28px;font-weight:700;color:#94a3b8">${tot}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px">accounts</span></div></div></div>
