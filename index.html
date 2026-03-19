@@ -246,7 +246,7 @@ function processData(range){
   const data=[];
   for(let i=1;i<rows.length;i++){
     const v=rows[i];
-    const company=g(v,'Platform Company Name')||g(v,'Company Name')||'';
+    const company=g(v,'Contact')||g(v,'Platform Company Name')||g(v,'Company Name')||'';
     if(!company||String(company).trim()==='')continue;
     const stage=g(v,'Stage')||'1. Uncontacted';
     const r25=parseNum(g(v,'2025 Total Revenue'));
@@ -261,7 +261,7 @@ function processData(range){
     row.sg=computeSignals(row);
     data.push(row);
   }
-  if(!data.length)throw new Error('No valid rows found. Check column name "Platform Company Name" exists.');
+  if(!data.length)throw new Error('No valid rows found. Check column "Contact" or "Platform Company Name" exists.');
   return data;
 }
 
