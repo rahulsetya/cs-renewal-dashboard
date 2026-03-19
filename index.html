@@ -416,14 +416,6 @@ function processData(range, engMap={}){
   const offerHit=OFFER_COLS.find(c=>colIdx(c)!==undefined);
   console.log('Offer price col matched:', offerHit, '@ idx', offerHit?colIdx(offerHit):'–');
 
-  // Debug: scan every row for the two missing accounts regardless of column logic
-  const MISSING_SEARCH=['havelet','kadita'];
-  rows.forEach((row,ri)=>{
-    const rowStr=row.map(c=>String(c||'')).join('|').toLowerCase();
-    const hit=MISSING_SEARCH.find(k=>rowStr.includes(k));
-    if(hit)console.log(`[MISSING SEARCH] Found "${hit}" at row ${ri+1}:`,row.slice(0,10));
-  });
-
   const data=[];
   let stageUnmatched=[];
 
