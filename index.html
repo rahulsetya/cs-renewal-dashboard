@@ -294,6 +294,9 @@ async function fetchAllEngagement(token){
 
 // ── SNAPSHOT (Movement tab) ───────────────────────────────────────────────────
 function saveSnapshot(){
+  const pw=prompt('Enter password to save snapshot:');
+  if(pw===null)return;
+  if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
   try{
     const snap={ts:Date.now(),data:{}};
     D.forEach(d=>snap.data[d.c]=d.s);
