@@ -796,7 +796,7 @@ function render(){
     const xStages=ST;
     h+=`<div class="cd" style="padding:20px"><h3 style="margin:0 0 6px;font-size:15px;font-weight:600;color:#f8fafc">Pipeline Stage × Engagement Activity</h3>
     <p style="font-size:12px;color:#64748b;margin-bottom:16px">For each pipeline stage, what engagement has actually happened?</p>
-    <table><thead><tr><th>Stage</th><th style="text-align:center">Accounts</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:center;color:#60a5fa">Outreach</th><th style="text-align:center">Out%</th><th style="text-align:center;color:#60a5fa">GM Sched</th><th style="text-align:center">Sched%</th><th style="text-align:center;color:#a78bfa">GM Done</th><th style="text-align:center">Done%</th><th style="text-align:center;color:#ef4444">Risk</th></tr></thead><tbody>`;
+    <table><thead><tr><th>Stage</th><th style="text-align:center">Accounts</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:center;color:#60a5fa">Outreach</th><th style="text-align:center;color:#60a5fa">GM Sched</th><th style="text-align:center;color:#a78bfa">GM Done</th><th style="text-align:center;color:#ef4444">Risk</th></tr></thead><tbody>`;
     xStages.forEach(s=>{
       const sa=active2.filter(d=>d.s===s),n=sa.length,r=sa.reduce((a,d)=>a+d.r25,0);
       if(!n)return;
@@ -807,12 +807,9 @@ function render(){
         <td style="color:${CL[s]};font-weight:600;font-size:11px">${act?'▾':'▸'} ${SH[s]}</td>
         <td style="text-align:center;font-weight:600">${n}</td>
         <td style="text-align:right;color:#fbbf24;font-weight:600">${fm(r)}</td>
-        <td style="text-align:center;color:#60a5fa;font-weight:600">${o}</td>
-        <td style="text-align:center"><span style="font-weight:600;color:${op>=60?'#34d399':op>=30?'#fbbf24':'#ef4444'}">${op}%</span></td>
-        <td style="text-align:center;color:#60a5fa;font-weight:600">${gms}</td>
-        <td style="text-align:center"><span style="font-weight:600;color:${sp>=60?'#34d399':sp>=30?'#fbbf24':'#ef4444'}">${sp}%</span></td>
-        <td style="text-align:center;color:#a78bfa;font-weight:600">${gm}</td>
-        <td style="text-align:center"><span style="font-weight:600;color:${dp>=60?'#34d399':dp>=30?'#fbbf24':'#ef4444'}">${dp}%</span></td>
+        <td style="text-align:center;font-weight:600;color:${op>=60?'#34d399':op>=30?'#fbbf24':'#ef4444'}">${o} <span style="font-weight:400;color:#475569;font-size:10px">(${op}%)</span></td>
+        <td style="text-align:center;font-weight:600;color:${sp>=60?'#34d399':sp>=30?'#fbbf24':'#ef4444'}">${gms} <span style="font-weight:400;color:#475569;font-size:10px">(${sp}%)</span></td>
+        <td style="text-align:center;font-weight:600;color:${dp>=60?'#34d399':dp>=30?'#fbbf24':'#ef4444'}">${gm} <span style="font-weight:400;color:#475569;font-size:10px">(${dp}%)</span></td>
         <td style="text-align:center;color:${rf>0?'#ef4444':'#334155'};font-weight:600">${rf}</td>
       </tr>`;
       if(act){
@@ -822,11 +819,8 @@ function render(){
             <td style="color:#94a3b8;font-size:11px">${a.ro}</td>
             <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
             <td style="text-align:center"><span style="font-size:11px;color:${a.out?'#34d399':'#ef4444'}">${a.out?'✓':'✗'}</span></td>
-            <td></td>
             <td style="text-align:center"><span style="font-size:11px;color:${a.gms?'#60a5fa':'#475569'}">${a.gms?'✓':'–'}</span></td>
-            <td></td>
             <td style="text-align:center"><span style="font-size:11px;color:${a.gm?'#a78bfa':'#475569'}">${a.gm?'✓':'–'}</span></td>
-            <td></td>
             <td style="text-align:center;color:${a.rsk?'#ef4444':'#334155'};font-weight:700">${a.rsk?'⚠':'–'}</td>
           </tr>`;
         });
