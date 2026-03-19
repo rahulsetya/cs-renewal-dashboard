@@ -159,16 +159,25 @@ async function getToken(){
 
 // ── GRAPH FETCH ──────────────────────────────────────────────────────────────
 async function findFileId(token){
-  // Search shared items for the file
-  const res=await fetch(`https://graph.microsoft.com/v1.0/me/drive/sharedWithMe`,{
+  // Search for the file by name
+  const res=await fetch(`https://graph.microsoft.com/v1.0/me/drive/search(q='2026 renewal master')`,{
     headers:{Authorization:`Bearer ${token}`}
   });
   const j=await res.json();
-  if(!j.value||!j.value.length) throw new Error('No shared files found.');
-  const f=j.value.find(f=>f.id===FILE_ID||f.remoteItem?.id===FILE_ID);
-  if(!f) throw new Error('Could not find the shared Excel file.');
-  const ri=f.remoteItem||f;
-  return {driveId:ri.parentReference?.driveId, itemId:ri.id};
+  if(j.value&&j.value.length){
+    const f=j.value.find(f=>f.name&&f.name.toLowerCase().includes('2026 renewal master'));
+    if(f) return {driveId:f.parentReference?.driveId,itemId:f.id};
+  }
+  // Also check sharedWithMe
+  const res2=await fetch(`https://graph.microsoft.com/v1.0/me/drive/sharedWithMe`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  const j2=await res2.json();
+  if(j2.value&&j2.value.length){
+    const f=j2.value.find(f=>(f.name&&f.name.toLowerCase().includes('2026 renewal master'))||(f.remoteItem?.name&&f.remoteItem.name.toLowerCase().includes('2026 renewal master')));
+    if(f){const ri=f.remoteItem||f;return {driveId:ri.parentReference?.driveId,itemId:ri.id};}
+  }
+  throw new Error('Could not find "2026 renewal master" file. Make sure it has been shared with you.');
 }
 
 async function fetchSheet(token){
