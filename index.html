@@ -598,7 +598,10 @@ function _render(){
   let h='';
   h+=`<div class="hdr"><div><h1>CS Renewal Pipeline</h1><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
+      ${PREV_TS?`<span style="font-size:10px;color:#475569">Last saved: ${new Date(PREV_TS).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:'<span style="font-size:10px;color:#334155">No snapshot saved</span>'}
+    </div>
     <button class="btn-refresh" onclick="refreshData()">↻ Refresh</button>
     <select onchange="ss('owner',this.value)"><option value="ALL">All CS Owners</option>
     ${owners.map(o=>`<option value="${o}"${S.owner===o?' selected':''}>${o}</option>`).join('')}
