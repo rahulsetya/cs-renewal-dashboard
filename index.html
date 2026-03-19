@@ -312,6 +312,9 @@ function processData(range, engMap={}){
   COL={};headers.forEach((h,i)=>COL[h]=i);
   function g(v,name){const i=COL[name];return i!==undefined?v[i]:undefined;}
   const data=[],prevMap={};
+  // Debug: log all headers found
+  console.log('Headers found:', headers.join(' | '));
+  console.log('COL keys:', Object.keys(COL).slice(0,20).join(' | '));
   for(let i=HEADER_ROW+1;i<rows.length;i++){
     const v=rows[i];
     const company=String(g(v,'Contact')||'').trim();
