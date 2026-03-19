@@ -792,10 +792,10 @@ function render(){
 
   // ── PIPELINE × ENGAGEMENT ──
   if(S.tab==='crossref'){
-    const active2=f.filter(d=>!['7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent'].includes(d.s));
-    const xStages=['1. Uncontacted','2. Contacted No Interest','3. Contacted Follow-up Needed','4. Contacted Attempting Again','5. Proposal Made','6. Signature Requested'];
+    const active2=f;
+    const xStages=ST;
     h+=`<div class="cd" style="padding:20px"><h3 style="margin:0 0 6px;font-size:15px;font-weight:600;color:#f8fafc">Pipeline Stage × Engagement Activity</h3>
-    <p style="font-size:12px;color:#64748b;margin-bottom:16px">For each active pipeline stage, what engagement has actually happened?</p>
+    <p style="font-size:12px;color:#64748b;margin-bottom:16px">For each pipeline stage, what engagement has actually happened?</p>
     <table><thead><tr><th>Stage</th><th style="text-align:center">Accounts</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:center;color:#60a5fa">Outreach</th><th style="text-align:center">Out%</th><th style="text-align:center;color:#a78bfa">GM Done</th><th style="text-align:center;color:#ef4444">Risk</th></tr></thead><tbody>`;
     xStages.forEach(s=>{
       const sa=active2.filter(d=>d.s===s),n=sa.length,r=sa.reduce((a,d)=>a+d.r25,0);
