@@ -72,9 +72,10 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const CLIENT_ID  = 'dc704d15-4dc6-47d7-bc4b-143455acfd4d';
 const TENANT     = 'iconnections675.onmicrosoft.com';
-const FILE_ID    = 'cb56a10b-e016-4453-9df6-159035bd5c8c'; // fallback
+const FILE_ID    = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
+const FILE_OWNER = 'cgoggil_iconnections_io';
 const SHEET      = 'master tracker';
-const SCOPES     = 'Files.Read offline_access';
+const SCOPES     = 'Files.Read Files.Read.All offline_access';
 const REDIRECT = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 
 // ── STATE ────────────────────────────────────────────────────────────────────
@@ -158,34 +159,37 @@ async function getToken(){
 
 // ── GRAPH FETCH ──────────────────────────────────────────────────────────────
 async function findFileId(token){
-  // Search for the Excel file by name across the user's OneDrive
-  const res=await fetch(`https://graph.microsoft.com/v1.0/me/drive/search(q='master tracker')`,{
+  // Search shared items for the file
+  const res=await fetch(`https://graph.microsoft.com/v1.0/me/drive/sharedWithMe`,{
     headers:{Authorization:`Bearer ${token}`}
   });
   const j=await res.json();
-  if(!j.value||!j.value.length) throw new Error('Could not find the Excel file. Make sure you have access to it.');
-  // Find the xlsx file
-  const xlsx=j.value.find(f=>f.name&&f.name.toLowerCase().endsWith('.xlsx'));
-  if(!xlsx) throw new Error('No Excel (.xlsx) file found in search results. Check file access.');
-  return xlsx.id;
+  if(!j.value||!j.value.length) throw new Error('No shared files found.');
+  const f=j.value.find(f=>f.id===FILE_ID||f.remoteItem?.id===FILE_ID);
+  if(!f) throw new Error('Could not find the shared Excel file.');
+  const ri=f.remoteItem||f;
+  return {driveId:ri.parentReference?.driveId, itemId:ri.id};
 }
 
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET);
-  // First try with hardcoded FILE_ID, fall back to search
-  let fileId=FILE_ID;
+  // Try via users endpoint first (access another user's drive)
+  const attempts=[
+    `https://graph.microsoft.com/v1.0/users/${FILE_OWNER}/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange`,
+    `https://graph.microsoft.com/v1.0/drives/${FILE_ID}/root/workbook/worksheets/${enc}/usedRange`,
+  ];
+  for(const url of attempts){
+    try{
+      const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+      if(res.ok) return res.json();
+    }catch(e){}
+  }
+  // Fall back to searching shared files
   try{
-    const url=`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets/${enc}/usedRange`;
+    const {driveId,itemId}=await findFileId(token);
+    const url=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook/worksheets/${enc}/usedRange`;
     const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
     if(res.ok) return res.json();
-    // If 404, try searching for the file
-    if(res.status===404){
-      fileId=await findFileId(token);
-      const url2=`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets/${enc}/usedRange`;
-      const res2=await fetch(url2,{headers:{Authorization:`Bearer ${token}`}});
-      if(!res2.ok){const j=await res2.json().catch(()=>({}));throw new Error(j.error?.message||`HTTP ${res2.status}`);}
-      return res2.json();
-    }
     const j=await res.json().catch(()=>({}));
     throw new Error(j.error?.message||`HTTP ${res.status}`);
   }catch(e){throw e;}
