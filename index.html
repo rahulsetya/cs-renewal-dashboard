@@ -170,44 +170,43 @@ async function findFileId(token){
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET), errors=[];
 
+  // Helper — tries to fetch the sheet from a given drive+item combo
+  async function tryWorkbook(driveId, itemId){
+    // Fetch rows 14 to 600 only (header + data, avoids full usedRange timeout)
+    const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}`;
+    // First try a named range / specific rows to avoid timeout
+    const rangeAddr=encodeURIComponent(`A14:CB1035`);
+    const r=await fetch(`${base}/workbook/worksheets/${enc}/range(address='${rangeAddr}')`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r.ok)return r.json();
+    // Fall back to usedRange with valuesOnly
+    const r2=await fetch(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r2.ok)return r2.json();
+    const j=await r2.json().catch(()=>({}));
+    throw new Error(`${r2.status} — ${j.error?.message||'unknown'}`);
+  }
+
   // Attempt 1: me/drive
   try{
-    const r=await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r.ok)return r.json();
+    const r=await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r.ok){
+      const item=await r.json();
+      return await tryWorkbook(item.parentReference.driveId, FILE_ID);
+    }
     const j=await r.json().catch(()=>({}));
     errors.push(`me/drive: ${r.status} — ${j.error?.message||'unknown'}`);
   }catch(e){errors.push(`me/drive: ${e.message}`);}
 
-  // Attempt 2: lookup owner drive ID then access file
+  // Attempt 2: via SharePoint personal site
   try{
-    const driveRes=await fetch(`https://graph.microsoft.com/v1.0/users/${FILE_OWNER}/drive`,{headers:{Authorization:`Bearer ${token}`}});
-    if(driveRes.ok){
-      const driveData=await driveRes.json();
-      const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveData.id}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-      if(r.ok)return r.json();
-      const j=await r.json().catch(()=>({}));
-      errors.push(`owner drive (${driveData.id}): ${r.status} — ${j.error?.message||'unknown'}`);
-    } else {
-      const j=await driveRes.json().catch(()=>({}));
-      errors.push(`owner drive lookup: ${driveRes.status} — ${j.error?.message||'unknown'}`);
-    }
-  }catch(e){errors.push(`owner drive: ${e.message}`);}
-
-  // Attempt 3: via encoded SharePoint path
-  try{
-    const encodedPath=encodeURIComponent(`/personal/${FILE_OWNER}/Documents`);
     const siteRes=await fetch(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${FILE_OWNER}`,{headers:{Authorization:`Bearer ${token}`}});
     if(siteRes.ok){
       const site=await siteRes.json();
-      const r=await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
-      if(r.ok){
-        const drives=await r.json();
+      const drivesRes=await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
+      if(drivesRes.ok){
+        const drives=await drivesRes.json();
         const drive=drives.value&&drives.value[0];
         if(drive){
-          const r2=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-          if(r2.ok)return r2.json();
-          const j2=await r2.json().catch(()=>({}));
-          errors.push(`site drive: ${r2.status} — ${j2.error?.message||'unknown'}`);
+          return await tryWorkbook(drive.id, FILE_ID);
         }
       }
     } else {
@@ -215,6 +214,12 @@ async function fetchSheet(token){
       errors.push(`site lookup: ${siteRes.status} — ${j.error?.message||'unknown'}`);
     }
   }catch(e){errors.push(`site drive: ${e.message}`);}
+
+  // Attempt 3: sharedWithMe
+  try{
+    const {driveId,itemId}=await findFileId(token);
+    return await tryWorkbook(driveId, itemId);
+  }catch(e){errors.push(`shared: ${e.message}`);}
 
   throw new Error(errors.join('<br>'));
 }
