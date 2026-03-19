@@ -70,7 +70,7 @@ const TENANT     = 'iconnections675.onmicrosoft.com';
 const FILE_OWNER  = 'cgoggil_iconnections_io';
 const FILE_ID     = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
 const SHEET       = 'master tracker';
-const HEADER_ROW = 0; // when fetching A14:CB1035, headers are at index 0
+const HEADER_ROW  = 13;
 const ENG_FILE_ID = 'f3908b5a-e17e-420f-b2e6-500c5dbad32c';
 const ENG_OWNER   = 'tfischer_iconnections_io';
 const ENG_SHEETS  = {
@@ -172,17 +172,11 @@ async function fetchSheet(token){
 
   // Helper — tries to fetch the sheet from a given drive+item combo
   async function tryWorkbook(driveId, itemId){
-    // Fetch rows 14 to 600 only (header + data, avoids full usedRange timeout)
     const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}`;
-    // First try a named range / specific rows to avoid timeout
-    const rangeAddr=encodeURIComponent(`A14:CB1035`);
-    const r=await fetch(`${base}/workbook/worksheets/${enc}/range(address='${rangeAddr}')`,{headers:{Authorization:`Bearer ${token}`}});
+    const r=await fetch(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
     if(r.ok)return r.json();
-    // Fall back to usedRange with valuesOnly
-    const r2=await fetch(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r2.ok)return r2.json();
-    const j=await r2.json().catch(()=>({}));
-    throw new Error(`${r2.status} — ${j.error?.message||'unknown'}`);
+    const j=await r.json().catch(()=>({}));
+    throw new Error(`${r.status} — ${j.error?.message||'unknown'}`);
   }
 
   // Attempt 1: me/drive
@@ -320,21 +314,21 @@ function processData(range, engMap={}){
   const data=[],prevMap={};
   for(let i=HEADER_ROW+1;i<rows.length;i++){
     const v=rows[i];
-    const company=String(g(v,'Platform Company Name')||g(v,'Contact')||g(v,'Company Name')||'').trim();
+    const company=String(g(v,'Contact')||'').trim();
     if(!company)continue;
     const rawStage=String(g(v,'Stage')||'').trim();
     const stage=ST.includes(rawStage)?rawStage:'1. Uncontacted';
     if(!ST.includes(rawStage)&&rawStage)console.warn(`Unknown stage: "${rawStage}" for: "${company}"`);
     const r25=parseNum(g(v,'2025 Total Revenue'));
     const r24=parseNum(g(v,'2024 Total Revenue'));
-    const offer=parseNum(g(v,'Offer Price - Total Contract Value'));
-    const subEnd=excelDateToJS(g(v,'Final Sub End Date')||g(v,'Subcription End')||g(v,'Subscription End')||'');
+    const offer=parseNum(g(v,'Offer Price'));
+    const subEnd=excelDateToJS(g(v,'Final Sub End Date')||'');
     const dy=daysDiff(subEnd);
-    const ro=String(g(v,'Renewal Owner ')||g(v,'Renewal Owner')||g(v,'Renewal Owner CS Rep')||'Support iConnections');
+    const ro=String(g(v,'Renewal Owner ')||'Support iConnections');
     if(!VALID_OWNERS.has(ro))continue;
     const or_=String(g(v,'ONSITE REP (iConn + Benchies)')||g(v,'Onsite Rep')||'N/A');
     const eng=engMap[company]||{};
-    const mt=eng.mt||parseNum(g(v,'Count of Miami Schedules')||g(v,'Confirmed Miami Meetings'));
+    const mt=eng.mt||parseNum(g(v,'Confirmed Miami Meetings'));
     const rsk=eng.rsk||(parseNum(g(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0);
     const out=eng.out||0;
     const gm=eng.gm||0;
