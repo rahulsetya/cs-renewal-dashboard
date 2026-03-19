@@ -75,7 +75,7 @@ const HEADER_ROW = 13;
 const SCOPES     = 'Files.Read Files.Read.All offline_access';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
+const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
 let D=[], PREV={}, lastUpdated='', COL={};
 let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev'};
 
@@ -226,6 +226,7 @@ function processData(range){
     const subEnd=excelDateToJS(g(v,'Final Sub End Date')||g(v,'Subcription End')||g(v,'Subscription End')||'');
     const dy=daysDiff(subEnd);
     const ro=String(g(v,'Renewal Owner CS Rep')||g(v,'Renewal Owner')||'Support iConnections');
+    if(!VALID_OWNERS.has(ro))continue;
     const or_=String(g(v,'ONSITE REP (iConn + Benchies)')||g(v,'Onsite Rep')||'N/A');
     const mt=parseNum(g(v,'Count of Miami Schedules')||g(v,'Confirmed Miami Meetings'));
     const rsk=parseNum(g(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0;
