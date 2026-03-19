@@ -596,7 +596,7 @@ function _render(){
   const owners=[...new Set(D.map(d=>d.ro))].sort();
   const gap=r25T-offT;
   let h='';
-  h+=`<div class="hdr"><div style="display:flex;align-items:center;gap:12px"><div><h1>CS Renewal Pipeline</h1><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button></div>
+  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><h1>CS Renewal Pipeline</h1><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button></div><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div>
   <div style="display:flex;gap:8px;align-items:flex-start">
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px">
       <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
