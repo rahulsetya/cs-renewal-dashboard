@@ -91,7 +91,7 @@ const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
 const SNAPSHOT_KEY = 'cs_renewal_snapshot_v1';
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev'};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -492,8 +492,9 @@ function processData(range, engMap={}){
     const ap=eng.ap||0;
     const sentiment=eng.sentiment||'';
     const clr=String(getCell(v,'Notes / Closed Lost Reason')||'');
+    const icn=String(getCell(v,'iConnections Notes')||'').trim();
     const em=subEnd?subEnd.substring(0,7):'';
-    const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,sg:[],ct:'Manager',wow:'same'};
+    const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
     data.push(row);
   }
@@ -650,13 +651,17 @@ function render(){
         <table><thead><tr><th>Account</th><th>Owner</th><th style="text-align:right;color:#fbbf24">2025</th><th style="text-align:right;color:#22d3ee">2026</th><th style="text-align:right">Δ</th><th>Sub End</th><th>Flags</th></tr></thead><tbody>`;
         da.forEach(a=>{
           const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
-          h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${a.ro}</td>
+          const nOpen=S.noteOpen===a.c;
+          h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,'\\\'')}')" title="Click to toggle iCon Notes">
+            <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
+            <td style="color:#94a3b8">${a.ro}</td>
             <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
             <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
             <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
             <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}${a.dy>0?` (${a.dy}d)`:''}</td>
-            <td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td>
-          </tr>`;
+            <td style="display:flex;align-items:center;gap:6px">${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:auto">${nOpen?'▾':'▸'} notes</span>`:''}</td>
+          </tr>
+          ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="7" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
         });
         h+=`</tbody></table></div>`;
       }
