@@ -845,6 +845,37 @@ function render(){
         });
       }
     });
+    // ── Unmatched engagement rows ──
+    const pipelineAccts=new Set(f.map(d=>d.c));
+    const engFiltered=S.owner==='ALL'?ENG_RAW:ENG_RAW.filter(r=>r.ro===S.owner);
+    const unmatched=engFiltered.filter(r=>!pipelineAccts.has(r.acct));
+    if(unmatched.length){
+      const act=S.drill==='__unmatched__';
+      const uo=unmatched.filter(r=>r.out).length,ugms=unmatched.filter(r=>r.gms).length,ugm=unmatched.filter(r=>r.gm).length,urf=unmatched.filter(r=>r.rsk).length;
+      const n=unmatched.length;
+      h+=`<tr class="dr ck" onclick="ss('drill','${act?'':'__unmatched__'}')">
+        <td style="color:#64748b;font-weight:600;font-size:11px;font-style:italic">${act?'▾':'▸'} Not Renewal Owner</td>
+        <td style="text-align:center;font-weight:600;color:#64748b">${n}</td>
+        <td style="text-align:right;color:#475569">–</td>
+        <td style="text-align:center;font-weight:600;color:${pct(uo,n)>=60?'#34d399':pct(uo,n)>=30?'#fbbf24':'#ef4444'}">${uo} <span style="font-weight:400;color:#475569;font-size:10px">(${pct(uo,n)}%)</span></td>
+        <td style="text-align:center;font-weight:600;color:${pct(ugms,n)>=60?'#34d399':pct(ugms,n)>=30?'#fbbf24':'#ef4444'}">${ugms} <span style="font-weight:400;color:#475569;font-size:10px">(${pct(ugms,n)}%)</span></td>
+        <td style="text-align:center;font-weight:600;color:${pct(ugm,n)>=60?'#34d399':pct(ugm,n)>=30?'#fbbf24':'#ef4444'}">${ugm} <span style="font-weight:400;color:#475569;font-size:10px">(${pct(ugm,n)}%)</span></td>
+        <td style="text-align:center;color:${urf>0?'#ef4444':'#334155'};font-weight:600">${urf}</td>
+      </tr>`;
+      if(act){
+        unmatched.sort((a,b)=>a.acct.localeCompare(b.acct)).forEach(a=>{
+          h+=`<tr class="dr" style="background:#0f172a">
+            <td style="padding-left:28px;color:#94a3b8;font-style:italic">${a.acct}</td>
+            <td style="color:#64748b;font-size:11px">${a.ro}</td>
+            <td></td>
+            <td style="text-align:center"><span style="font-size:11px;color:${a.out?'#34d399':'#ef4444'}">${a.out?'✓':'✗'}</span></td>
+            <td style="text-align:center"><span style="font-size:11px;color:${a.gms?'#60a5fa':'#475569'}">${a.gms?'✓':'–'}</span></td>
+            <td style="text-align:center"><span style="font-size:11px;color:${a.gm?'#a78bfa':'#475569'}">${a.gm?'✓':'–'}</span></td>
+            <td style="text-align:center;color:${a.rsk?'#ef4444':'#334155'};font-weight:700">${a.rsk?'⚠':'–'}</td>
+          </tr>`;
+        });
+      }
+    }
     h+=`</tbody></table></div>`;
   }
 
