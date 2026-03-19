@@ -169,7 +169,8 @@ async function findFileId(token){
 
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET), errors=[];
-  // Attempt 1: direct via me/drive (works if personally shared)
+
+  // Attempt 1: me/drive
   try{
     const r=await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
     if(r.ok)return r.json();
@@ -177,27 +178,43 @@ async function fetchSheet(token){
     errors.push(`me/drive: ${r.status} — ${j.error?.message||'unknown'}`);
   }catch(e){errors.push(`me/drive: ${e.message}`);}
 
-  // Attempt 2: via owner's personal OneDrive (works for org-wide shares)
+  // Attempt 2: lookup owner drive ID then access file
   try{
     const driveRes=await fetch(`https://graph.microsoft.com/v1.0/users/${FILE_OWNER}/drive`,{headers:{Authorization:`Bearer ${token}`}});
     if(driveRes.ok){
       const driveData=await driveRes.json();
-      const driveId=driveData.id;
-      const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+      const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveData.id}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
       if(r.ok)return r.json();
       const j=await r.json().catch(()=>({}));
-      errors.push(`owner drive: ${r.status} — ${j.error?.message||'unknown'}`);
+      errors.push(`owner drive (${driveData.id}): ${r.status} — ${j.error?.message||'unknown'}`);
+    } else {
+      const j=await driveRes.json().catch(()=>({}));
+      errors.push(`owner drive lookup: ${driveRes.status} — ${j.error?.message||'unknown'}`);
     }
   }catch(e){errors.push(`owner drive: ${e.message}`);}
 
-  // Attempt 3: via sharedWithMe
+  // Attempt 3: via encoded SharePoint path
   try{
-    const {driveId,itemId}=await findFileId(token);
-    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r.ok)return r.json();
-    const j=await r.json().catch(()=>({}));
-    errors.push(`shared drive: ${r.status} — ${j.error?.message||'unknown'}`);
-  }catch(e){errors.push(`shared: ${e.message}`);}
+    const encodedPath=encodeURIComponent(`/personal/${FILE_OWNER}/Documents`);
+    const siteRes=await fetch(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${FILE_OWNER}`,{headers:{Authorization:`Bearer ${token}`}});
+    if(siteRes.ok){
+      const site=await siteRes.json();
+      const r=await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
+      if(r.ok){
+        const drives=await r.json();
+        const drive=drives.value&&drives.value[0];
+        if(drive){
+          const r2=await fetch(`https://graph.microsoft.com/v1.0/drives/${drive.id}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+          if(r2.ok)return r2.json();
+          const j2=await r2.json().catch(()=>({}));
+          errors.push(`site drive: ${r2.status} — ${j2.error?.message||'unknown'}`);
+        }
+      }
+    } else {
+      const j=await siteRes.json().catch(()=>({}));
+      errors.push(`site lookup: ${siteRes.status} — ${j.error?.message||'unknown'}`);
+    }
+  }catch(e){errors.push(`site drive: ${e.message}`);}
 
   throw new Error(errors.join('<br>'));
 }
