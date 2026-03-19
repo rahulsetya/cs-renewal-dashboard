@@ -891,14 +891,9 @@ function render(){
   }
 
   // ── ALL ENGAGEMENT ──
+  const toQuarter=em=>{if(!em)return'__none__';const[yr,mo]=em.split('-');return`${yr}-Q${Math.ceil(parseInt(mo)/3)}`;};
   if(S.tab==='alleng'){
     const rows=S.owner==='ALL'?ENG_RAW:ENG_RAW.filter(r=>r.ro===S.owner);
-    function toQuarter(endMonth){
-      if(!endMonth)return'__none__';
-      const [yr,mo]=endMonth.split('-');
-      const q=Math.ceil(parseInt(mo)/3);
-      return`${yr}-Q${q}`;
-    }
     // Group by quarter
     const groups={};
     rows.forEach(r=>{
