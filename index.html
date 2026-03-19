@@ -877,6 +877,17 @@ function render(){
       }
     }
     h+=`</tbody></table></div>`;
+    // ── Pipeline accounts missing from engagement tracker ──
+    const engAcctNames=new Set(engFiltered.map(r=>r.acct));
+    const missingFromEng=f.filter(d=>!engAcctNames.has(d.c));
+    if(missingFromEng.length){
+      h+=`<div style="margin-top:12px;background:#1e293b;border-radius:10px;padding:14px 18px;border-left:3px solid #475569">
+        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px">⚠ ${missingFromEng.length} pipeline account${missingFromEng.length>1?'s':''} not found in engagement tracker</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${missingFromEng.sort((a,b)=>a.c.localeCompare(b.c)).map(a=>`<span style="background:#0f172a;border:1px solid #334155;border-radius:5px;padding:3px 10px;font-size:12px;color:#94a3b8">${a.c}</span>`).join('')}
+        </div>
+      </div>`;
+    }
   }
 
   // ── ALL ENGAGEMENT ──
