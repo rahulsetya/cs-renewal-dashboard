@@ -1032,11 +1032,13 @@ function _render(){
       <div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
         <th style="width:30px">#</th><th>Account</th><th>Stage</th><th>Owner</th>
         <th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th>
-        <th style="text-align:center">Cumul %</th><th>Flags</th>
+        <th style="text-align:center">Cumul %</th><th>Flags</th><th></th>
       </tr></thead><tbody>`;
     sorted.slice(0,30).forEach((a,i)=>{
       cumRev+=a.r25;const cp=pct(cumRev,totalActRev);
-      h+=`<tr class="dr"><td style="color:#475569;font-weight:700">${i+1}</td>
+      const nOpen=S.noteOpen===a.c;
+      h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}') " title="${a.icn?'Click to toggle iCon Notes':'No iCon Notes'}">
+        <td style="color:#475569;font-weight:700">${i+1}</td>
         <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
         <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
         <td style="color:#94a3b8">${a.ro}</td>
@@ -1046,7 +1048,9 @@ function _render(){
           <div style="width:40px;height:6px;background:#0f172a;border-radius:3px;overflow:hidden"><div style="width:${Math.min(cp,100)}%;height:100%;background:#a78bfa;border-radius:3px"></div></div>
           <span style="font-size:11px;color:#94a3b8">${cp}%</span></div></td>
         <td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td>
-      </tr>`;
+        <td style="text-align:right;font-size:10px;color:#475569;white-space:nowrap">${a.icn?(nOpen?'▾':'▸')+' notes':''}</td>
+      </tr>
+      ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="9" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
     });
     h+=`</tbody></table></div></div>`;
   }
