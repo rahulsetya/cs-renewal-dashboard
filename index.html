@@ -50,10 +50,13 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .btn-ms:hover{background:#106ebe}
 .btn-refresh{display:flex;align-items:center;gap:6px;background:#1e293b;color:#94a3b8;border:1px solid #334155;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn-refresh:hover{background:#334155;color:#f8fafc}
+.btn-snapshot{display:flex;align-items:center;gap:6px;background:#1e293b;color:#a78bfa;border:1px solid #4c1d95;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-snapshot:hover{background:#2e1065;color:#c4b5fd}
 .spinner{width:40px;height:40px;border:3px solid #334155;border-top-color:#60a5fa;border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .err-card{background:#ef444420;border:1px solid #ef444440;border-radius:12px;padding:20px;max-width:500px;color:#ef4444;font-size:14px;line-height:1.7}
 .err-card strong{display:block;margin-bottom:6px;font-size:16px}
+.debug-card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;max-width:700px;font-size:11px;color:#64748b;line-height:1.8;word-break:break-all;margin-top:12px;text-align:left}
 @media(max-width:1000px){.g4{grid-template-columns:repeat(2,1fr)}.g6{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.g3,.g4{grid-template-columns:1fr}}
 </style>
@@ -62,7 +65,6 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 <div class="w" id="app">
   <div class="center-screen"><div class="spinner"></div><p style="color:#64748b">Initializing…</p></div>
 </div>
-
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const CLIENT_ID  = 'dc704d15-4dc6-47d7-bc4b-143455acfd4d';
@@ -70,7 +72,7 @@ const TENANT     = 'iconnections675.onmicrosoft.com';
 const FILE_OWNER  = 'cgoggil_iconnections_io';
 const FILE_ID     = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
 const SHEET       = 'master tracker';
-const HEADER_ROW  = 13;
+const HEADER_ROW  = 13; // 0-based index; row 14 in Excel
 const ENG_FILE_ID = 'f3908b5a-e17e-420f-b2e6-500c5dbad32c';
 const ENG_OWNER   = 'tfischer_iconnections_io';
 const ENG_SHEETS  = {
@@ -86,16 +88,15 @@ const ENG_SHEETS  = {
 };
 const SCOPES     = 'Files.Read Files.Read.All offline_access';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
-
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
-let D=[], PREV={}, lastUpdated='', COL={};
+const SNAPSHOT_KEY = 'cs_renewal_snapshot_v1';
+let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={};
 let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev'};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
 async function genVerifier(){const a=new Uint8Array(32);crypto.getRandomValues(a);return b64url(a);}
 async function genChallenge(v){return b64url(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));}
-
 async function startLogin(){
   sessionStorage.clear();
   const v=await genVerifier(), c=await genChallenge(v);
@@ -103,7 +104,6 @@ async function startLogin(){
   const p=new URLSearchParams({client_id:CLIENT_ID,response_type:'code',redirect_uri:REDIRECT,scope:SCOPES,code_challenge:c,code_challenge_method:'S256',response_mode:'fragment',prompt:'select_account'});
   location.href=`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize?${p}`;
 }
-
 async function exchangeCode(code){
   const body=new URLSearchParams({client_id:CLIENT_ID,grant_type:'authorization_code',code,redirect_uri:REDIRECT,code_verifier:sessionStorage.getItem('pkce_v'),scope:SCOPES});
   const r=await fetch(`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
@@ -111,13 +111,11 @@ async function exchangeCode(code){
   if(j.error)throw new Error(j.error_description||j.error);
   return j;
 }
-
 function saveTokens(t){
   sessionStorage.setItem('at',t.access_token);
   if(t.refresh_token)sessionStorage.setItem('rt',t.refresh_token);
   sessionStorage.setItem('exp',Date.now()+((t.expires_in||3600)*1000));
 }
-
 async function getToken(){
   const exp=parseInt(sessionStorage.getItem('exp')||'0'), at=sessionStorage.getItem('at');
   if(at&&Date.now()<exp-60000)return at;
@@ -133,87 +131,89 @@ async function getToken(){
   throw new Error('login_required');
 }
 
+// ── ROBUST COLUMN LOOKUP ──────────────────────────────────────────────────────
+// Normalise a header string: trim, collapse internal spaces, lower-case
+function normKey(s){return String(s||'').trim().replace(/\s+/g,' ').toLowerCase();}
+
+// Build column maps from a headers array (call after reading header row)
+function buildColMaps(headers){
+  COL={};COL_LC={};
+  headers.forEach((h,i)=>{
+    COL[h]=i;            // exact (already trimmed upstream)
+    COL_LC[normKey(h)]=i; // normalised
+  });
+}
+
+// Lookup column index by name — tries exact, then normalised
+function colIdx(name){
+  let i=COL[name];
+  if(i!==undefined)return i;
+  i=COL[name.trim()];
+  if(i!==undefined)return i;
+  return COL_LC[normKey(name)];
+}
+
+// Get a cell value from a row by column name
+function getCell(row,name){const i=colIdx(name);return i!==undefined?row[i]:undefined;}
+
 // ── GRAPH API ─────────────────────────────────────────────────────────────────
-async function findFileId(token){
-  // Try sharedWithMe — search by name
-  try{
-    const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:{Authorization:`Bearer ${token}`}});
-    const j=await r.json();
-    if(j.value&&j.value.length){
-      const f=j.value.find(f=>(f.name&&f.name.toLowerCase().includes('2026 renewal master'))||(f.remoteItem&&f.remoteItem.name&&f.remoteItem.name.toLowerCase().includes('2026 renewal master')));
-      if(f){const ri=f.remoteItem||f;return{driveId:ri.parentReference?.driveId,itemId:ri.id};}
-      // Also try matching by ID
-      const f2=j.value.find(f=>f.id===FILE_ID||(f.remoteItem&&f.remoteItem.id===FILE_ID));
-      if(f2){const ri=f2.remoteItem||f2;return{driveId:ri.parentReference?.driveId,itemId:ri.id};}
-    }
-  }catch(e){}
-  // Try drive search
-  try{
-    const r2=await fetch(`https://graph.microsoft.com/v1.0/me/drive/search(q='2026 renewal master')`,{headers:{Authorization:`Bearer ${token}`}});
-    const j2=await r2.json();
-    if(j2.value&&j2.value.length){
-      const f=j2.value.find(f=>f.name&&f.name.toLowerCase().includes('2026 renewal master'));
-      if(f)return{driveId:f.parentReference?.driveId,itemId:f.id};
-    }
-  }catch(e){}
-  // Try accessing via the owner's drive path directly
-  try{
-    const r3=await fetch(`https://graph.microsoft.com/v1.0/users/${FILE_OWNER}/drive/items/${FILE_ID}`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r3.ok){
-      const j3=await r3.json();
-      return{driveId:j3.parentReference?.driveId,itemId:j3.id};
-    }
-  }catch(e){}
-  throw new Error('Could not find "2026 Renewal Master" file. Please ask cgoggil to re-share it with rsetya@iconnections.io');
+async function getSharePointDriveId(token, ownerUpn){
+  const siteRes=await fetch(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${ownerUpn}`,{headers:{Authorization:`Bearer ${token}`}});
+  if(!siteRes.ok){const j=await siteRes.json().catch(()=>({}));throw new Error(`Site lookup for ${ownerUpn}: ${siteRes.status} — ${j.error?.message||'unknown'}`);}
+  const site=await siteRes.json();
+  const drivesRes=await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
+  if(!drivesRes.ok){const j=await drivesRes.json().catch(()=>({}));throw new Error(`Drives for ${ownerUpn}: ${drivesRes.status} — ${j.error?.message||'unknown'}`);}
+  const drives=await drivesRes.json();
+  if(!drives.value||!drives.value.length)throw new Error(`No drives found for ${ownerUpn}`);
+  return drives.value[0].id;
 }
 
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET), errors=[];
 
-  // Helper — tries to fetch the sheet from a given drive+item combo
-  async function tryWorkbook(driveId, itemId){
-    const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}`;
-    const r=await fetch(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r.ok)return r.json();
-    const j=await r.json().catch(()=>({}));
-    throw new Error(`${r.status} — ${j.error?.message||'unknown'}`);
-  }
-
-  // Attempt 1: me/drive
+  // Attempt 1: me/drive direct item lookup
   try{
     const r=await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}`,{headers:{Authorization:`Bearer ${token}`}});
     if(r.ok){
       const item=await r.json();
-      return await tryWorkbook(item.parentReference.driveId, FILE_ID);
+      const r2=await fetch(`https://graph.microsoft.com/v1.0/drives/${item.parentReference.driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+      if(r2.ok)return r2.json();
+      const j2=await r2.json().catch(()=>({}));
+      errors.push(`me/drive workbook: ${r2.status} — ${j2.error?.message||'unknown'}`);
+    } else {
+      const j=await r.json().catch(()=>({}));errors.push(`me/drive item: ${r.status} — ${j.error?.message||'unknown'}`);
     }
-    const j=await r.json().catch(()=>({}));
-    errors.push(`me/drive: ${r.status} — ${j.error?.message||'unknown'}`);
   }catch(e){errors.push(`me/drive: ${e.message}`);}
 
-  // Attempt 2: via SharePoint personal site
+  // Attempt 2: owner's SharePoint personal site drive (primary method per handoff)
   try{
-    const siteRes=await fetch(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${FILE_OWNER}`,{headers:{Authorization:`Bearer ${token}`}});
-    if(siteRes.ok){
-      const site=await siteRes.json();
-      const drivesRes=await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
-      if(drivesRes.ok){
-        const drives=await drivesRes.json();
-        const drive=drives.value&&drives.value[0];
-        if(drive){
-          return await tryWorkbook(drive.id, FILE_ID);
-        }
-      }
-    } else {
-      const j=await siteRes.json().catch(()=>({}));
-      errors.push(`site lookup: ${siteRes.status} — ${j.error?.message||'unknown'}`);
-    }
+    const driveId=await getSharePointDriveId(token, FILE_OWNER);
+    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r.ok)return r.json();
+    const j=await r.json().catch(()=>({}));
+    errors.push(`site drive workbook: ${r.status} — ${j.error?.message||'unknown'}`);
   }catch(e){errors.push(`site drive: ${e.message}`);}
 
-  // Attempt 3: sharedWithMe
+  // Attempt 3: sharedWithMe search
   try{
-    const {driveId,itemId}=await findFileId(token);
-    return await tryWorkbook(driveId, itemId);
-  }catch(e){errors.push(`shared: ${e.message}`);}
+    const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:{Authorization:`Bearer ${token}`}});
+    const j=await r.json();
+    if(j.value&&j.value.length){
+      const f=j.value.find(f=>f.id===FILE_ID||(f.remoteItem&&f.remoteItem.id===FILE_ID))||
+               j.value.find(f=>(f.name||'').toLowerCase().includes('2026 renewal master'));
+      if(f){
+        const ri=f.remoteItem||f;
+        const driveId=ri.parentReference?.driveId;
+        const itemId=ri.id;
+        if(driveId&&itemId){
+          const r2=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+          if(r2.ok)return r2.json();
+          const j2=await r2.json().catch(()=>({}));
+          errors.push(`sharedWithMe workbook: ${r2.status} — ${j2.error?.message||'unknown'}`);
+        }
+      }
+    }
+  }catch(e){errors.push(`sharedWithMe: ${e.message}`);}
 
   throw new Error(errors.join('<br>'));
 }
@@ -221,18 +221,34 @@ async function fetchSheet(token){
 // ── ENGAGEMENT FETCH ──────────────────────────────────────────────────────────
 async function fetchEngSheet(token, sheetName){
   const enc=encodeURIComponent(sheetName);
-  const urls=[`https://graph.microsoft.com/v1.0/me/drive/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`];
+
+  // Attempt 1: owner's SharePoint personal site drive (mirrors primary method above)
+  try{
+    const driveId=await getSharePointDriveId(token, ENG_OWNER);
+    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r.ok)return r.json();
+  }catch(e){}
+
+  // Attempt 2: me/drive
+  try{
+    const r=await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r.ok)return r.json();
+  }catch(e){}
+
+  // Attempt 3: sharedWithMe
   try{
     const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:{Authorization:`Bearer ${token}`}});
     const j=await r.json();
     if(j.value){
-      const f=j.value.find(f=>(f.remoteItem?.id===ENG_FILE_ID||f.id===ENG_FILE_ID));
-      if(f){const ri=f.remoteItem||f;urls.unshift(`https://graph.microsoft.com/v1.0/drives/${ri.parentReference?.driveId}/items/${ri.id}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`);}
+      const f=j.value.find(f=>f.remoteItem?.id===ENG_FILE_ID||f.id===ENG_FILE_ID);
+      if(f){
+        const ri=f.remoteItem||f;
+        const r2=await fetch(`https://graph.microsoft.com/v1.0/drives/${ri.parentReference?.driveId}/items/${ri.id}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+        if(r2.ok)return r2.json();
+      }
     }
   }catch(e){}
-  for(const url of urls){
-    try{const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});if(r.ok)return r.json();}catch(e){}
-  }
+
   return null;
 }
 
@@ -242,19 +258,60 @@ async function fetchAllEngagement(token){
     try{
       const data=await fetchEngSheet(token,sheet);
       if(!data||!data.values||data.values.length<3)continue;
-      const headers=data.values[1].map(h=>String(h||'').trim());
-      const colIdx={};headers.forEach((h,i)=>colIdx[h]=i);
-      function gc(row,name){const i=colIdx[name];return i!==undefined?row[i]:'';}
+      // Header row is index 1 (row 2 in Excel)
+      const engHeaders=data.values[1].map(h=>String(h||'').trim());
+      const eColMap={};engHeaders.forEach((h,i)=>eColMap[normKey(h)]=i);
+      function ec(row,name){const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';}
+      const yesNo=v=>String(v||'').toLowerCase().startsWith('y')?1:0;
       for(let i=2;i<data.values.length;i++){
         const row=data.values[i];
-        const acct=String(gc(row,'Account Name')||'').trim();
+        const acct=String(ec(row,'Account Name')||'').trim();
         if(!acct)continue;
-        const yesNo=v=>String(v||'').toLowerCase().startsWith('y')?1:0;
-        engMap[acct]={ro:owner,out:yesNo(gc(row,'Outreach Sent?')),gms:yesNo(gc(row,'GM Scheduled?')),gm:yesNo(gc(row,'GM Completed?')),ap:yesNo(gc(row,'AP Delivered?')),rsk:yesNo(gc(row,'Risk?')),mt:parseNum(gc(row,'Miami Mtgs')),sentiment:String(gc(row,'Sentiment')||'')};
+        engMap[acct]={
+          ro:owner,
+          out:yesNo(ec(row,'Outreach Sent? (Y/N)')||ec(row,'Outreach Sent?')),
+          gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
+          gm:yesNo(ec(row,'GM Completed? (Y/N)')||ec(row,'GM Completed?')),
+          ap:yesNo(ec(row,'AP Delivered? (Y/N)')||ec(row,'AP Delivered?')),
+          rsk:yesNo(ec(row,'Risk? (Y/N)')||ec(row,'Risk?')),
+          mt:parseNum(ec(row,'Miami Mtgs')||ec(row,'Miami Meetings')),
+          sentiment:String(ec(row,'Sentiment')||'')
+        };
       }
-    }catch(e){console.warn(`Failed to fetch sheet ${sheet}:`,e);}
+    }catch(e){console.warn(`Failed to fetch engagement sheet "${sheet}":`,e);}
   }
   return engMap;
+}
+
+// ── SNAPSHOT (Movement tab) ───────────────────────────────────────────────────
+function saveSnapshot(){
+  try{
+    const snap={ts:Date.now(),data:{}};
+    D.forEach(d=>snap.data[d.c]=d.s);
+    localStorage.setItem(SNAPSHOT_KEY,JSON.stringify(snap));
+    PREV=snap.data;PREV_TS=snap.ts;
+    render();
+    alert('Snapshot saved! The Movement tab will now compare against this state on future refreshes.');
+  }catch(e){alert('Could not save snapshot: '+e.message);}
+}
+function loadSnapshot(){
+  try{
+    const raw=localStorage.getItem(SNAPSHOT_KEY);
+    if(!raw)return;
+    const snap=JSON.parse(raw);
+    PREV=snap.data||{};
+    PREV_TS=snap.ts||null;
+  }catch(e){PREV={};PREV_TS=null;}
+}
+function clearSnapshot(){
+  localStorage.removeItem(SNAPSHOT_KEY);
+  PREV={};PREV_TS=null;
+  render();
+}
+function snapAge(){
+  if(!PREV_TS)return null;
+  const ms=Date.now()-PREV_TS, h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
+  return h>0?`${h}h ${m}m ago`:`${m}m ago`;
 }
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
@@ -265,7 +322,7 @@ function parseNum(v){return parseFloat(String(v||0).replace(/[$,]/g,''))||0;}
 function excelDateToJS(v){
   if(!v)return'';
   const n=parseFloat(v);
-  if(isNaN(n)||n<1000)return String(v);
+  if(isNaN(n)||n<1000)return String(v).trim();
   return new Date((n-25569)*86400*1000).toISOString().split('T')[0];
 }
 function daysDiff(v){if(!v)return 0;const d=new Date(v);return isNaN(d)?0:Math.round((d-new Date())/864e5);}
@@ -279,7 +336,45 @@ const MO=['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07',
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const WOW_ICONS={up:'▲',down:'▼',won:'★',lost:'✖',new:'●',same:''};
 const WOW_COLORS={up:'#34d399',down:'#ef4444',won:'#34d399',lost:'#ef4444',new:'#60a5fa',same:'#334155'};
-const WOW_LABELS={up:'Moved Up',down:'Moved Down',won:'New Won',lost:'New Lost',new:'New',same:'No Change'};
+
+// ── STAGE NORMALISATION ───────────────────────────────────────────────────────
+// Build lookup: normalised text → canonical stage string
+const STAGE_NORM_MAP=new Map();
+ST.forEach(s=>{
+  STAGE_NORM_MAP.set(normKey(s),s);
+  // Also map without numeric prefix ("contacted no interest" → "2. Contacted No Interest")
+  const noPrefix=s.replace(/^\d+\.\s*/,'');
+  STAGE_NORM_MAP.set(normKey(noPrefix),s);
+  // Map by prefix number alone ("2" → ...)
+  const m=s.match(/^(\d+)\./);
+  if(m)STAGE_NORM_MAP.set(m[1],s);
+});
+
+function resolveStage(rawStage){
+  if(!rawStage)return null;
+  const raw=String(rawStage).trim();
+  // Exact match first
+  if(ST.includes(raw))return raw;
+  // Normalised match
+  const norm=normKey(raw);
+  if(STAGE_NORM_MAP.has(norm))return STAGE_NORM_MAP.get(norm);
+  // Partial: does the raw value contain a stage label?
+  for(const [k,v] of STAGE_NORM_MAP){
+    if(norm.includes(k)||k.includes(norm))return v;
+  }
+  return null;
+}
+
+// ── OFFER PRICE COLUMN CANDIDATES ─────────────────────────────────────────────
+// The Excel column uses an en dash (U+2013) or em dash (U+2014) — try both
+const OFFER_COLS=[
+  'Offer Price \u2013 Total Contract Value',  // en dash
+  'Offer Price \u2014 Total Contract Value',  // em dash
+  'Offer Price - Total Contract Value',        // plain hyphen fallback
+  'Offer Price\u2013Total Contract Value',     // no spaces around dash
+  'Offer Price\u2014Total Contract Value',
+  'Offer Price',                               // bare name
+];
 
 function computeSignals(row){
   const sg=[],{dy,r25,o,s,mt,rsk}=row;
@@ -294,7 +389,6 @@ function computeSignals(row){
   if(s==='8. Closed Lost (Not Renewing)')sg.push('wb');
   return[...new Set(sg)];
 }
-
 function getWow(d){
   const ps=PREV[d.c];
   if(!ps)return'new';
@@ -305,58 +399,89 @@ function getWow(d){
   if(ci>pi)return'up';if(ci<pi)return'down';return'same';
 }
 
+// ── PROCESS DATA ──────────────────────────────────────────────────────────────
 function processData(range, engMap={}){
   const rows=range.values;
   if(!rows||rows.length<=HEADER_ROW)throw new Error('Sheet appears empty or headers not at row '+(HEADER_ROW+1));
-  const headers=rows[HEADER_ROW].map(h=>String(h||'').trim());
-  COL={};headers.forEach((h,i)=>COL[h]=i);
-  function g(v,name){const i=COL[name];return i!==undefined?v[i]:undefined;}
-  const data=[],prevMap={};
-  // Debug: log all headers found
-  console.log('Headers found:', headers.join(' | '));
-  console.log('COL keys:', Object.keys(COL).slice(0,20).join(' | '));
+
+  const rawHeaders=rows[HEADER_ROW].map(h=>String(h||'').trim());
+  buildColMaps(rawHeaders);
+
+  // Debug output to help diagnose column issues
+  console.log('=== PIPELINE FILE HEADERS ===');
+  console.log(rawHeaders.join(' | '));
+  console.log('Stage col idx:', colIdx('Stage'));
+  console.log('Renewal Owner col idx:', colIdx('Renewal Owner'));
+  console.log('Contact col idx:', colIdx('Contact'));
+  const offerHit=OFFER_COLS.find(c=>colIdx(c)!==undefined);
+  console.log('Offer price col matched:', offerHit, '@ idx', offerHit?colIdx(offerHit):'–');
+
+  const data=[];
+  let stageUnmatched=[];
+
   for(let i=HEADER_ROW+1;i<rows.length;i++){
     const v=rows[i];
-    const company=String(g(v,'Contact')||'').trim();
+    const company=String(getCell(v,'Contact')||'').trim();
     if(!company)continue;
-    const rawStage=String(g(v,'Stage')||'').trim();
-    const stage=ST.includes(rawStage)?rawStage:'1. Uncontacted';
-    if(!ST.includes(rawStage)&&rawStage)console.warn(`Unknown stage: "${rawStage}" for: "${company}"`);
-    const r25=parseNum(g(v,'2025 Total Revenue'));
-    const r24=parseNum(g(v,'2024 Total Revenue'));
-    const offer=parseNum(g(v,'Offer Price \u2013 Total Contract Value')||g(v,'Offer Price - Total Contract Value')||g(v,'Offer Price'));
-    const subEnd=excelDateToJS(g(v,'Final Sub End Date')||'');
-    const dy=daysDiff(subEnd);
-    const ro=String(g(v,'Renewal Owner ')||g(v,'Renewal Owner')||'Support iConnections');
+
+    // Stage — normalised match
+    const rawStage=String(getCell(v,'Stage')||'').trim();
+    const stage=resolveStage(rawStage)||'1. Uncontacted';
+    if(rawStage&&!resolveStage(rawStage)){
+      stageUnmatched.push(`"${rawStage}" (row ${i+1})`);
+    }
+
+    // Renewal Owner — column headers are trimmed, so plain 'Renewal Owner' works
+    const rawOwner=String(
+      getCell(v,'Renewal Owner') ||
+      getCell(v,'Renewal Owner ') ||  // trailing-space variant just in case
+      ''
+    ).trim();
+    const ro=rawOwner||'Support iConnections';
     if(!VALID_OWNERS.has(ro))continue;
-    const or_=String(g(v,'ONSITE REP (iConn + Benchies)')||g(v,'Onsite Rep')||'N/A');
+
+    const r25=parseNum(getCell(v,'2025 Total Revenue'));
+    const r24=parseNum(getCell(v,'2024 Total Revenue'));
+
+    // Offer Price — try all candidate column names
+    let offerRaw=undefined;
+    for(const col of OFFER_COLS){offerRaw=getCell(v,col);if(offerRaw!==undefined&&offerRaw!=='')break;}
+    const offer=parseNum(offerRaw);
+
+    const subEnd=excelDateToJS(getCell(v,'Final Sub End Date')||'');
+    const dy=daysDiff(subEnd);
+
+    const or_=String(getCell(v,'ONSITE REP (iConn + Benchies)')||getCell(v,'Onsite Rep')||'N/A');
     const eng=engMap[company]||{};
-    const mt=eng.mt||parseNum(g(v,'Confirmed Miami Meetings'));
-    const rsk=eng.rsk||(parseNum(g(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0);
+    const mt=eng.mt!==undefined?eng.mt:parseNum(getCell(v,'Confirmed Miami Meetings'));
+    const rsk=eng.rsk!==undefined?eng.rsk:(parseNum(getCell(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0);
     const out=eng.out||0;
     const gm=eng.gm||0;
     const gms=eng.gms||0;
     const ap=eng.ap||0;
     const sentiment=eng.sentiment||'';
-    const clr=String(g(v,'Notes / Closed Lost Reason')||'');
+    const clr=String(getCell(v,'Notes / Closed Lost Reason')||'');
     const em=subEnd?subEnd.substring(0,7):'';
     const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
     data.push(row);
-    prevMap[company]=stage;
+  }
+
+  if(stageUnmatched.length){
+    console.warn('Unmatched stage values:', stageUnmatched.slice(0,10).join(', '));
   }
   if(!data.length){
-    const preview=headers.slice(0,10).join(' | ');
-    throw new Error(`No valid rows found.<br><br>First 10 headers:<br><small>${preview}</small>`);
+    const preview=rawHeaders.slice(0,12).join(' | ');
+    throw new Error(`No valid rows found after filtering.<br><br>First 12 headers from row ${HEADER_ROW+1}:<br><small>${preview}</small><br><br>Verify HEADER_ROW constant matches the actual header row.`);
   }
-  PREV=prevMap;
+
+  console.log(`Loaded ${data.length} accounts. Owners:`, [...new Set(data.map(d=>d.ro))].join(', '));
   return data;
 }
 
 // ── UI SCREENS ────────────────────────────────────────────────────────────────
 function showLoading(msg='Loading data from SharePoint…'){
   document.getElementById('app').innerHTML=`<div class="center-screen"><div class="spinner"></div><p style="color:#64748b">${msg}</p></div>`;}
-
 function showLogin(){
   document.getElementById('app').innerHTML=`
   <div class="center-screen">
@@ -375,17 +500,18 @@ function showLogin(){
       </button>
     </div>
   </div>`;}
-
-function showError(msg){
+function showError(msg, debugInfo=''){
   document.getElementById('app').innerHTML=`
   <div class="center-screen">
-    <div class="err-card"><strong>⚠ Error</strong>${msg}</div>
-    <button class="btn-ms" style="max-width:280px;margin-top:16px" onclick="init()">Try Again</button>
+    <div class="err-card"><strong>⚠ Error</strong>${msg}<br><br><small>Make sure your account has access to both SharePoint files.</small></div>
+    ${debugInfo?`<div class="debug-card"><strong style="color:#94a3b8;font-size:12px">Debug info:</strong><br>${debugInfo}</div>`:''}
+    <button class="btn-ms" style="max-width:280px;margin-top:8px" onclick="init()">Try Again</button>
   </div>`;}
 
 // ── MAIN FLOW ─────────────────────────────────────────────────────────────────
 async function loadData(){
   showLoading('Loading pipeline data…');
+  loadSnapshot(); // restore previous snapshot for Movement comparison
   try{
     const token=await getToken();
     showLoading('Loading pipeline + engagement data…');
@@ -396,13 +522,11 @@ async function loadData(){
   }catch(e){
     const msg=e.message||String(e);
     if(/login_required|interaction/i.test(msg))showLogin();
-    else showError(msg+'<br><br><small>Make sure your account has access to both SharePoint files.</small>');
+    else showError(msg);
   }
 }
-
 async function refreshData(){await loadData();}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;}else if(k==='drill')S.drill=v||null;else S[k]=v;render();}
-
 async function init(){
   const hash=new URLSearchParams(location.hash.replace('#',''));
   const code=hash.get('code');
@@ -435,26 +559,23 @@ function render(){
   const maxN=Math.max(...ST.map(s=>sc[s].n),1);
   const owners=[...new Set(D.map(d=>d.ro))].sort();
   const gap=r25T-offT;
-
   let h='';
   h+=`<div class="hdr"><div><h1>CS Renewal Pipeline</h1><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div>
-  <div style="display:flex;gap:8px;align-items:center">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
     <button class="btn-refresh" onclick="refreshData()">↻ Refresh</button>
     <select onchange="ss('owner',this.value)"><option value="ALL">All CS Owners</option>
     ${owners.map(o=>`<option value="${o}"${S.owner===o?' selected':''}>${o}</option>`).join('')}
     </select>
   </div></div>`;
-
   h+=`<div class="rv" style="grid-template-columns:1fr 1fr">
     <div class="rc" style="border-left:3px solid #fbbf24"><h4>2025 Revenue (Base)</h4><div class="rb" style="color:#fbbf24">${fm(r25T)}</div><div class="rd">${tot} CS accounts</div></div>
     <div class="rc" style="border-left:3px solid #22d3ee"><h4>2026 Offer Price</h4><div class="rb" style="color:#22d3ee">${fm(offT)}</div><div class="rd">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span> (${pct(gap,r25T)}% uncovered)</div></div>
   </div>`;
-
   h+=`<div class="g g6">`;
   [{l:'Won',v:fm(wonO),s:`${won.length} accts`,c:'#34d399'},{l:'Pipeline',v:fm(pipeO),s:`${pipe.length} accts · base ${fm(pipeR)}`,c:'#a78bfa'},{l:'Lost (2025)',v:fm(lostR),s:`${lost.length} accts`,c:'#ef4444'},{l:'Uncontacted',v:fm(unc.reduce((a,d)=>a+d.r25,0)),s:`${unc.length} accts`,c:'#94a3b8'},{l:'At Risk',v:flagged.length,s:fm(flagRev),c:'#fb923c'},{l:'Win-Back',v:wbAll.length,s:fm(wbAll.reduce((a,d)=>a+d.r25,0)),c:'#60a5fa'}
   ].forEach(k=>h+=`<div class="kpi" style="border-left:3px solid ${k.c}"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
   h+=`</div>`;
-
   const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard'],['workload','Workload'],['crossref','Pipeline × Eng'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts']];
   h+=`<div class="tabs">`;
   tabs.forEach(([tid,lbl])=>{
@@ -514,6 +635,9 @@ function render(){
 
   // ── MOVEMENT ──
   if(S.tab==='movement'){
+    const snapInfo=PREV_TS
+      ?`Comparing against snapshot from <strong>${snapAge()}</strong> · <button class="sb" onclick="clearSnapshot()" style="color:#ef4444;border-color:#ef444433">Clear</button>`
+      :`<span style="color:#fb923c">No snapshot saved.</span> Use the <strong>📸 Save Snapshot</strong> button (top right) to record current state, then refresh later to see movement.`;
     const movedUp=[],movedDown=[],newWon=[],newLost=[],stuckDeals=[];
     f.forEach(d=>{
       const w=getWow(d);
@@ -523,6 +647,7 @@ function render(){
       if(w==='lost')newLost.push(d);
       if(w==='same'&&['3. Contacted Follow-up Needed','4. Contacted Attempting Again','5. Proposal Made','6. Signature Requested'].includes(d.s))stuckDeals.push(d);
     });
+    h+=`<div style="background:#172033;border:1px solid #334155;border-radius:8px;padding:10px 16px;font-size:12px;margin-bottom:16px;color:#94a3b8">${snapInfo}</div>`;
     h+=`<div class="g g4" style="margin-bottom:16px">
       <div class="kpi" style="border-left:3px solid #34d399"><div class="kl">Progressed</div><div class="kv" style="color:#34d399">${movedUp.length+newWon.length}</div><div class="ks">${movedUp.length} moved up, ${newWon.length} won</div></div>
       <div class="kpi" style="border-left:3px solid #ef4444"><div class="kl">Regressed / Lost</div><div class="kv" style="color:#ef4444">${movedDown.length+newLost.length}</div><div class="ks">${movedDown.length} moved down, ${newLost.length} new losses</div></div>
@@ -810,7 +935,6 @@ function render(){
 
   document.getElementById('app').innerHTML=h;
 }
-
 init();
 </script>
 </body>
