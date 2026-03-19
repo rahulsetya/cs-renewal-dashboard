@@ -271,9 +271,9 @@ function excelDateToJS(v){
 }
 function daysDiff(v){if(!v)return 0;const d=new Date(v);return isNaN(d)?0:Math.round((d-new Date())/864e5);}
 
-const ST=['1. Uncontacted','2. Contacted No Interest','3. Contacted Follow-up Needed','4. Contacted Attempting Again','5. Proposal Made','6. Signature Requested','7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent'];
-const SH={'1. Uncontacted':'1. Uncontacted','2. Contacted No Interest':'2. No Interest','3. Contacted Follow-up Needed':'3. Follow-up Needed','4. Contacted Attempting Again':'4. Attempting Again','5. Proposal Made':'5. Proposal Made','6. Signature Requested':'6. Sig Requested','7. Signed':'7. Signed','8. Closed Lost (Not Renewing)':'8. Closed Lost','9. Invoice Sent':'9. Invoice Sent'};
-const CL={'1. Uncontacted':'#94a3b8','2. Contacted No Interest':'#f87171','3. Contacted Follow-up Needed':'#fbbf24','4. Contacted Attempting Again':'#fb923c','5. Proposal Made':'#a78bfa','6. Signature Requested':'#60a5fa','7. Signed':'#34d399','8. Closed Lost (Not Renewing)':'#ef4444','9. Invoice Sent':'#22d3ee'};
+const ST=['1. Uncontacted','2. Contacted No Interest','3. Contacted Follow-up Needed','4. Contacted Attempting Again','5. Proposal Made','6. Signature Requested','7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent','10. Paid'];
+const SH={'1. Uncontacted':'1. Uncontacted','2. Contacted No Interest':'2. No Interest','3. Contacted Follow-up Needed':'3. Follow-up Needed','4. Contacted Attempting Again':'4. Attempting Again','5. Proposal Made':'5. Proposal Made','6. Signature Requested':'6. Sig Requested','7. Signed':'7. Signed','8. Closed Lost (Not Renewing)':'8. Closed Lost','9. Invoice Sent':'9. Invoice Sent','10. Paid':'10. Paid'};
+const CL={'1. Uncontacted':'#94a3b8','2. Contacted No Interest':'#f87171','3. Contacted Follow-up Needed':'#fbbf24','4. Contacted Attempting Again':'#fb923c','5. Proposal Made':'#a78bfa','6. Signature Requested':'#60a5fa','7. Signed':'#34d399','8. Closed Lost (Not Renewing)':'#ef4444','9. Invoice Sent':'#22d3ee','10. Paid':'#10b981'};
 const SIG_L={ue:'Uncontacted Expiring',en:'Expiring No Offer',co:'No Outreach Tracked',pp:'Proposal No Price',se:'Sig Req Expiring',nm:'No Meetings',rf:'Risk Flagged',hr:'High Rev No Engagement',wb:'Win-Back'};
 const SIG_C={ue:'b-red',en:'b-red',co:'b-orange',pp:'b-purple',se:'b-yellow',nm:'b-orange',rf:'b-red',hr:'b-red',wb:'b-blue'};
 const MO=['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'];
@@ -419,7 +419,7 @@ async function init(){
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render(){
   const f=gf(),tot=f.length;
-  const won=f.filter(d=>d.s==='7. Signed'||d.s==='9. Invoice Sent');
+  const won=f.filter(d=>d.s==='7. Signed'||d.s==='9. Invoice Sent'||d.s==='10. Paid');
   const lost=f.filter(d=>d.s==='8. Closed Lost (Not Renewing)');
   const pipe=f.filter(d=>d.s==='5. Proposal Made'||d.s==='6. Signature Requested');
   const unc=f.filter(d=>d.s==='1. Uncontacted');
