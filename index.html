@@ -169,19 +169,36 @@ async function findFileId(token){
 
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET), errors=[];
-  async function tryFetch(base){
-    const r=await fetch(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+  // Attempt 1: direct via me/drive (works if personally shared)
+  try{
+    const r=await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
     if(r.ok)return r.json();
     const j=await r.json().catch(()=>({}));
-    throw new Error(`${r.status} — ${j.error?.message||'unknown'}`);
-  }
-  try{
-    return await tryFetch(`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}`);
+    errors.push(`me/drive: ${r.status} — ${j.error?.message||'unknown'}`);
   }catch(e){errors.push(`me/drive: ${e.message}`);}
+
+  // Attempt 2: via owner's personal OneDrive (works for org-wide shares)
+  try{
+    const driveRes=await fetch(`https://graph.microsoft.com/v1.0/users/${FILE_OWNER}/drive`,{headers:{Authorization:`Bearer ${token}`}});
+    if(driveRes.ok){
+      const driveData=await driveRes.json();
+      const driveId=driveData.id;
+      const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+      if(r.ok)return r.json();
+      const j=await r.json().catch(()=>({}));
+      errors.push(`owner drive: ${r.status} — ${j.error?.message||'unknown'}`);
+    }
+  }catch(e){errors.push(`owner drive: ${e.message}`);}
+
+  // Attempt 3: via sharedWithMe
   try{
     const {driveId,itemId}=await findFileId(token);
-    return await tryFetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}`);
-  }catch(e){errors.push(`shared drive: ${e.message}`);}
+    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r.ok)return r.json();
+    const j=await r.json().catch(()=>({}));
+    errors.push(`shared drive: ${r.status} — ${j.error?.message||'unknown'}`);
+  }catch(e){errors.push(`shared: ${e.message}`);}
+
   throw new Error(errors.join('<br>'));
 }
 
