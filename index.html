@@ -68,10 +68,23 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const CLIENT_ID  = 'dc704d15-4dc6-47d7-bc4b-143455acfd4d';
 const TENANT     = 'iconnections675.onmicrosoft.com';
-const FILE_OWNER = 'cgoggil_iconnections_io';
-const FILE_ID    = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
-const SHEET      = 'master tracker';
-const HEADER_ROW = 13;
+const FILE_OWNER  = 'cgoggil_iconnections_io';
+const FILE_ID     = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
+const SHEET       = 'master tracker';
+const HEADER_ROW  = 13;
+const ENG_FILE_ID = 'f3908b5a-e17e-420f-b2e6-500c5dbad32c';
+const ENG_OWNER   = 'tfischer_iconnections_io';
+const ENG_SHEETS  = {
+  'Christina C':'Christina Chumak',
+  'Alex C':'Alex Cherecwich',
+  'Courtney K':'Courtney Krieg',
+  'Lucy G':'Lucy Garber',
+  'Juwan P':'Juwan Pryce',
+  'Helen R':'Helen Ramsay',
+  'Andreas S':'Andreas Santikos',
+  'Joe R':'Joe Romanoff',
+  'Scale':'Support iConnections'
+};
 const SCOPES     = 'Files.Read Files.Read.All offline_access';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 
@@ -141,25 +154,88 @@ async function findFileId(token){
 
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET), errors=[];
+
+  // Helper to try a base URL
+  async function tryFetch(base){
+    // First get the used range address to know dimensions
+    const r=await fetch(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r.ok)return r.json();
+    const j=await r.json().catch(()=>({}));
+    throw new Error(`${r.status} — ${j.error?.message||'unknown'}`);
+  }
+
   // Attempt 1: hardcoded file ID via me/drive
-  const u1=`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange`;
-  const r1=await fetch(u1,{headers:{Authorization:`Bearer ${token}`}});
-  if(r1.ok)return r1.json();
-  const e1=await r1.json().catch(()=>({}));
-  errors.push(`me/drive: ${r1.status} — ${e1.error?.message||'unknown'}`);
+  try{
+    const base=`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}`;
+    return await tryFetch(base);
+  }catch(e){errors.push(`me/drive: ${e.message}`);}
+
   // Attempt 2: via sharedWithMe/search
   try{
     const {driveId,itemId}=await findFileId(token);
-    const u2=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook/worksheets/${enc}/usedRange`;
-    const r2=await fetch(u2,{headers:{Authorization:`Bearer ${token}`}});
-    if(r2.ok)return r2.json();
-    const e2=await r2.json().catch(()=>({}));
-    errors.push(`shared drive: ${r2.status} — ${e2.error?.message||'unknown'}`);
-  }catch(e){errors.push(`sharedWithMe: ${e.message}`);}
+    const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}`;
+    return await tryFetch(base);
+  }catch(e){errors.push(`shared drive: ${e.message}`);}
+
   throw new Error(errors.join('<br>'));
 }
 
-// ── DATA HELPERS ──────────────────────────────────────────────────────────────
+// ── ENGAGEMENT FETCH ──────────────────────────────────────────────────────────
+async function fetchEngSheet(token, sheetName){
+  const enc=encodeURIComponent(sheetName);
+  const urls=[
+    `https://graph.microsoft.com/v1.0/me/drive/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,
+  ];
+  // Try sharedWithMe for eng file
+  try{
+    const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:{Authorization:`Bearer ${token}`}});
+    const j=await r.json();
+    if(j.value){
+      const f=j.value.find(f=>(f.remoteItem?.id===ENG_FILE_ID||f.id===ENG_FILE_ID));
+      if(f){
+        const ri=f.remoteItem||f;
+        urls.unshift(`https://graph.microsoft.com/v1.0/drives/${ri.parentReference?.driveId}/items/${ri.id}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`);
+      }
+    }
+  }catch(e){}
+  for(const url of urls){
+    try{
+      const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+      if(r.ok)return r.json();
+    }catch(e){}
+  }
+  return null;
+}
+
+async function fetchAllEngagement(token){
+  const engMap={}; // keyed by account name → engagement data
+  for(const [sheet, owner] of Object.entries(ENG_SHEETS)){
+    try{
+      const data=await fetchEngSheet(token, sheet);
+      if(!data||!data.values||data.values.length<3) continue;
+      const headers=data.values[1].map(h=>String(h||'').trim()); // row 2 = index 1
+      const colIdx={};headers.forEach((h,i)=>colIdx[h]=i);
+      function gc(row,name){const i=colIdx[name];return i!==undefined?row[i]:'';}
+      for(let i=2;i<data.values.length;i++){
+        const row=data.values[i];
+        const acct=String(gc(row,'Account Name')||'').trim();
+        if(!acct)continue;
+        const yesNo=v=>String(v||'').toLowerCase().startsWith('y')?1:0;
+        engMap[acct]={
+          ro: owner,
+          out: yesNo(gc(row,'Outreach Sent?')),
+          gms: yesNo(gc(row,'GM Scheduled?')),
+          gm:  yesNo(gc(row,'GM Completed?')),
+          ap:  yesNo(gc(row,'AP Delivered?')),
+          rsk: yesNo(gc(row,'Risk?')),
+          mt:  parseNum(gc(row,'Miami Mtgs')),
+          sentiment: String(gc(row,'Sentiment')||''),
+        };
+      }
+    }catch(e){console.warn(`Failed to fetch sheet ${sheet}:`,e);}
+  }
+  return engMap;
+}
 function fm(n){return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+(n/1000).toFixed(0)+'K':'$'+Math.round(n);}
 function gf(){return S.owner==='ALL'?D:D.filter(d=>d.ro===S.owner);}
 function pct(a,b){return b>0?Math.round(a/b*100):0;}
@@ -207,7 +283,7 @@ function getWow(d){
   if(ci>pi)return'up';if(ci<pi)return'down';return'same';
 }
 
-function processData(range){
+function processData(range, engMap={}){
   const rows=range.values;
   if(!rows||rows.length<=HEADER_ROW)throw new Error('Sheet appears empty or headers not at row '+(HEADER_ROW+1));
   const headers=rows[HEADER_ROW].map(h=>String(h||'').trim());
@@ -228,13 +304,18 @@ function processData(range){
     const ro=String(g(v,'Renewal Owner CS Rep')||g(v,'Renewal Owner')||'Support iConnections');
     if(!VALID_OWNERS.has(ro))continue;
     const or_=String(g(v,'ONSITE REP (iConn + Benchies)')||g(v,'Onsite Rep')||'N/A');
-    const mt=parseNum(g(v,'Count of Miami Schedules')||g(v,'Confirmed Miami Meetings'));
-    const rsk=parseNum(g(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0;
-    const out=parseNum(g(v,'Attending GA Miami \'26 (Y/N)')||g(v,'Contact Responded'))>0?1:0;
-    const gm=parseNum(g(v,'Meeting Status (As of 2/25/2026 at 11:45 PM)'))>0?1:0;
+    // Merge engagement data from second spreadsheet
+    const eng=engMap[company]||{};
+    const mt=eng.mt||parseNum(g(v,'Count of Miami Schedules')||g(v,'Confirmed Miami Meetings'));
+    const rsk=eng.rsk||(parseNum(g(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0);
+    const out=eng.out||0;
+    const gm=eng.gm||0;
+    const gms=eng.gms||0;
+    const ap=eng.ap||0;
+    const sentiment=eng.sentiment||'';
     const clr=String(g(v,'Notes / Closed Lost Reason')||'');
     const em=subEnd?subEnd.substring(0,7):'';
-    const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,ap:0,ex:0,snt:0,clr,sg:[],ct:'Manager',wow:'same'};
+    const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
     data.push(row);
     prevMap[company]=stage;
@@ -280,17 +361,22 @@ function showError(msg){
 
 // ── MAIN FLOW ─────────────────────────────────────────────────────────────────
 async function loadData(){
-  showLoading();
+  showLoading('Loading pipeline data…');
   try{
     const token=await getToken();
-    const range=await fetchSheet(token);
-    D=processData(range);
+    // Fetch both files in parallel
+    showLoading('Loading pipeline + engagement data…');
+    const [range, engMap] = await Promise.all([
+      fetchSheet(token),
+      fetchAllEngagement(token)
+    ]);
+    D=processData(range, engMap);
     lastUpdated='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
     render();
   }catch(e){
     const msg=e.message||String(e);
     if(/login_required|interaction/i.test(msg))showLogin();
-    else showError(msg+'<br><br><small>Make sure your account has access to the SharePoint file.</small>');
+    else showError(msg+'<br><br><small>Make sure your account has access to both SharePoint files.</small>');
   }
 }
 
