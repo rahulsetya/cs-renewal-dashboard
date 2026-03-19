@@ -91,7 +91,7 @@ const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
 const SNAPSHOT_KEY = 'cs_renewal_snapshot_v1';
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -561,7 +561,7 @@ async function loadData(){
   }
 }
 async function refreshData(){await loadData();}
-function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;}else if(k==='drill')S.drill=v||null;else S[k]=v;render();}
+function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;}else if(k==='drill')S.drill=v||null;else if(k==='aeDrill')S.aeDrill=v||null;else S[k]=v;render();}
 async function init(){
   const hash=new URLSearchParams(location.hash.replace('#',''));
   const code=hash.get('code');
@@ -915,38 +915,54 @@ function _render(){
     });
     const quarters=Object.keys(groups).filter(k=>k!=='__none__').sort();
     if(groups['__none__'])quarters.push('__none__');
-    const colHdr=`<tr><th>Account</th><th>CSM</th><th style="text-align:center;color:#60a5fa">Outreach</th><th style="text-align:center;color:#60a5fa">GM Sched</th><th style="text-align:center;color:#a78bfa">GM Done</th><th style="text-align:center;color:#34d399">AP</th><th style="text-align:center;color:#fbbf24">Miami Mtgs</th><th style="text-align:center;color:#ef4444">Risk</th><th>Sentiment</th></tr>`;
     const yn=(v,yc,nc)=>`<span style="font-size:11px;color:${v?yc:nc}">${v?'✓':'✗'}</span>`;
-    h+=`<div style="display:flex;flex-direction:column;gap:16px">`;
+    h+=`<div style="display:flex;flex-direction:column;gap:8px">`;
     quarters.forEach(key=>{
       const grp=groups[key].sort((a,b)=>a.ro.localeCompare(b.ro)||a.acct.localeCompare(b.acct));
-      const label=key==='__none__'?'No End Date':key.replace('-',' ');
+      const label=key==='__none__'?'No End Date':key.replace(/(\d{4})-/,'$1 ');
       const tot=grp.length,out=grp.filter(r=>r.out).length,gms=grp.filter(r=>r.gms).length,gm=grp.filter(r=>r.gm).length,rsk=grp.filter(r=>r.rsk).length;
-      const isOpen=S.drill===key;
+      const isOpen=S.aeDrill===key;
+      const safeKey=key.replace(/'/g,"\\'");
       h+=`<div class="cd" style="padding:0;overflow:hidden">
-        <div onclick="ss('drill','${isOpen?'':key}')" style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:16px;flex-wrap:wrap;${key==='__none__'?'border-left:3px solid #475569':'border-left:3px solid #60a5fa'}">
-          <div style="display:flex;align-items:center;gap:12px">
-            <span style="font-size:13px;font-weight:700;color:#f8fafc">${isOpen?'▾':'▸'} ${label}</span>
-            <span style="font-size:12px;color:#64748b">${tot} accounts</span>
+        <div onclick="ss('aeDrill','${isOpen?'':safeKey}')" style="padding:10px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:16px;flex-wrap:wrap;user-select:none;${key==='__none__'?'border-left:3px solid #475569':'border-left:3px solid #60a5fa'}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:12px;color:#94a3b8;min-width:10px">${isOpen?'▾':'▸'}</span>
+            <span style="font-size:13px;font-weight:700;color:#f8fafc">${label}</span>
+            <span style="font-size:11px;color:#64748b;background:#1e293b;padding:2px 7px;border-radius:10px">${tot}</span>
           </div>
-          <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
-            <span style="color:${pct(out,tot)>=60?'#34d399':pct(out,tot)>=30?'#fbbf24':'#ef4444'}">Outreach ${out}/${tot}</span>
-            <span style="color:${pct(gms,tot)>=60?'#34d399':pct(gms,tot)>=30?'#fbbf24':'#ef4444'}">GM Sched ${gms}/${tot}</span>
-            <span style="color:${pct(gm,tot)>=60?'#34d399':pct(gm,tot)>=30?'#fbbf24':'#ef4444'}">GM Done ${gm}/${tot}</span>
-            ${rsk>0?`<span style="color:#ef4444">⚠ ${rsk} at risk</span>`:''}
+          <div style="display:flex;gap:14px;font-size:11px;flex-wrap:wrap">
+            <span style="color:${pct(out,tot)>=60?'#34d399':pct(out,tot)>=30?'#fbbf24':'#64748b'}">Out ${out}/${tot}</span>
+            <span style="color:${pct(gms,tot)>=60?'#34d399':pct(gms,tot)>=30?'#fbbf24':'#64748b'}">GM Sched ${gms}/${tot}</span>
+            <span style="color:${pct(gm,tot)>=60?'#34d399':pct(gm,tot)>=30?'#fbbf24':'#64748b'}">GM Done ${gm}/${tot}</span>
+            ${rsk>0?`<span style="color:#ef4444">⚠ ${rsk} risk</span>`:''}
           </div>
         </div>
-        ${isOpen?`<div class="st"><table>${colHdr}<tbody>${grp.map(r=>`<tr class="dr">
-          <td style="font-weight:500;color:#e2e8f0">${r.acct}</td>
-          <td style="color:#94a3b8;font-size:11px">${r.ro}</td>
-          <td style="text-align:center">${yn(r.out,'#34d399','#ef4444')}</td>
-          <td style="text-align:center">${yn(r.gms,'#60a5fa','#475569')}</td>
-          <td style="text-align:center">${yn(r.gm,'#a78bfa','#475569')}</td>
-          <td style="text-align:center">${yn(r.ap,'#34d399','#475569')}</td>
-          <td style="text-align:center;color:${r.mt>0?'#fbbf24':'#475569'};font-weight:600">${r.mt||'–'}</td>
-          <td style="text-align:center;color:${r.rsk?'#ef4444':'#334155'};font-weight:700">${r.rsk?'⚠':'–'}</td>
-          <td style="color:#94a3b8;font-size:11px">${r.sentiment||'–'}</td>
-        </tr>`).join('')}</tbody></table></div>`:''}
+        ${isOpen?`<div style="padding:0 18px 14px;border-top:1px solid #1e293b">
+          <table style="width:100%;border-collapse:collapse;margin-top:10px">
+            <thead><tr style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px">
+              <th style="padding:4px 8px;text-align:left;font-weight:600">Account</th>
+              <th style="padding:4px 8px;text-align:left;font-weight:600">CSM</th>
+              <th style="padding:4px 8px;text-align:center;color:#60a5fa">Outreach</th>
+              <th style="padding:4px 8px;text-align:center;color:#60a5fa">GM Sched</th>
+              <th style="padding:4px 8px;text-align:center;color:#a78bfa">GM Done</th>
+              <th style="padding:4px 8px;text-align:center;color:#34d399">AP</th>
+              <th style="padding:4px 8px;text-align:center;color:#fbbf24">Mtgs</th>
+              <th style="padding:4px 8px;text-align:center;color:#ef4444">Risk</th>
+              <th style="padding:4px 8px;text-align:left">Sentiment</th>
+            </tr></thead>
+            <tbody>${grp.map((r,i)=>`<tr style="border-top:1px solid #0f172a;background:${i%2===0?'#0f172a20':'transparent'}">
+              <td style="padding:5px 8px;font-size:12px;font-weight:500;color:#e2e8f0">${r.acct}</td>
+              <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${r.ro}</td>
+              <td style="padding:5px 8px;text-align:center">${yn(r.out,'#34d399','#374151')}</td>
+              <td style="padding:5px 8px;text-align:center">${yn(r.gms,'#60a5fa','#374151')}</td>
+              <td style="padding:5px 8px;text-align:center">${yn(r.gm,'#a78bfa','#374151')}</td>
+              <td style="padding:5px 8px;text-align:center">${yn(r.ap,'#34d399','#374151')}</td>
+              <td style="padding:5px 8px;text-align:center;color:${r.mt>0?'#fbbf24':'#374151'};font-weight:600;font-size:12px">${r.mt||'–'}</td>
+              <td style="padding:5px 8px;text-align:center">${r.rsk?'<span style="color:#ef4444;font-size:11px">⚠</span>':'<span style="color:#374151">–</span>'}</td>
+              <td style="padding:5px 8px;font-size:11px;color:#94a3b8">${r.sentiment||'–'}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`:''}
       </div>`;
     });
     if(!quarters.length)h+=`<div class="cd" style="padding:40px;text-align:center;color:#475569">No engagement data loaded</div>`;
