@@ -325,7 +325,7 @@ function processData(range, engMap={}){
     const offer=parseNum(g(v,'Offer Price - Total Contract Value'));
     const subEnd=excelDateToJS(g(v,'Final Sub End Date')||g(v,'Subcription End')||g(v,'Subscription End')||'');
     const dy=daysDiff(subEnd);
-    const ro=String(g(v,'Renewal Owner CS Rep')||g(v,'Renewal Owner')||'Support iConnections');
+    const ro=String(g(v,'Renewal Owner ')||g(v,'Renewal Owner')||g(v,'Renewal Owner CS Rep')||'Support iConnections');
     if(!VALID_OWNERS.has(ro))continue;
     const or_=String(g(v,'ONSITE REP (iConn + Benchies)')||g(v,'Onsite Rep')||'N/A');
     const eng=engMap[company]||{};
