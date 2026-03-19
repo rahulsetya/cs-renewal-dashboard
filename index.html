@@ -91,7 +91,7 @@ const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
 const SNAPSHOT_KEY = 'cs_renewal_snapshot_v1';
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -328,7 +328,7 @@ function snapAge(){
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
 function fm(n){return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+(n/1000).toFixed(0)+'K':'$'+Math.round(n);}
-function gf(){return S.owner==='ALL'?D:D.filter(d=>d.ro===S.owner);}
+function gf(){let d=S.owner==='ALL'?D:D.filter(d=>d.ro===S.owner);if(S.hidePaid)d=d.filter(d=>d.s!=='10. Paid');return d;}
 function pct(a,b){return b>0?Math.round(a/b*100):0;}
 function parseNum(v){return parseFloat(String(v||0).replace(/[$,]/g,''))||0;}
 function parseEngEndMonth(v){
@@ -596,7 +596,7 @@ function _render(){
   const owners=[...new Set(D.map(d=>d.ro))].sort();
   const gap=r25T-offT;
   let h='';
-  h+=`<div class="hdr"><div><h1>CS Renewal Pipeline</h1><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div>
+  h+=`<div class="hdr"><div style="display:flex;align-items:center;gap:12px"><div><h1>CS Renewal Pipeline</h1><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button></div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
       <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
