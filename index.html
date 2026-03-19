@@ -421,8 +421,17 @@ function processData(range, engMap={}){
 
   for(let i=HEADER_ROW+1;i<rows.length;i++){
     const v=rows[i];
-    const company=String(getCell(v,'Contact')||'').trim();
-    if(!company)continue;
+    let company=String(getCell(v,'Contact')||'').trim();
+    if(!company){
+      // Fallback: try 'Company Name' column
+      company=String(getCell(v,'Company Name')||getCell(v,'Account Name')||'').trim();
+    }
+    if(!company){
+      // Log rows that have a valid owner but blank company — helps diagnose missing accounts
+      const ownerPeek=String(getCell(v,'Renewal Owner')||getCell(v,'Renewal Owner ')||'').trim();
+      if(ownerPeek)console.warn(`Row ${i+1} skipped — blank Contact. Owner: "${ownerPeek}" | Row sample:`, v.slice(0,8));
+      continue;
+    }
 
     // Stage — normalised match
     const rawStage=String(getCell(v,'Stage')||'').trim();
