@@ -72,7 +72,7 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const CLIENT_ID  = 'dc704d15-4dc6-47d7-bc4b-143455acfd4d';
 const TENANT     = 'iconnections675.onmicrosoft.com';
-const FILE_ID    = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
+const FILE_ID    = 'cb56a10b-e016-4453-9df6-159035bd5c8c'; // fallback
 const SHEET      = 'master tracker';
 const SCOPES     = 'Files.Read offline_access';
 const REDIRECT = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
@@ -157,15 +157,38 @@ async function getToken(){
 }
 
 // ── GRAPH FETCH ──────────────────────────────────────────────────────────────
+async function findFileId(token){
+  // Search for the Excel file by name across the user's OneDrive
+  const res=await fetch(`https://graph.microsoft.com/v1.0/me/drive/search(q='master tracker')`,{
+    headers:{Authorization:`Bearer ${token}`}
+  });
+  const j=await res.json();
+  if(!j.value||!j.value.length) throw new Error('Could not find the Excel file. Make sure you have access to it.');
+  // Find the xlsx file
+  const xlsx=j.value.find(f=>f.name&&f.name.toLowerCase().endsWith('.xlsx'));
+  if(!xlsx) throw new Error('No Excel (.xlsx) file found in search results. Check file access.');
+  return xlsx.id;
+}
+
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET);
-  const url=`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange`;
-  const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
-  if(!res.ok){
+  // First try with hardcoded FILE_ID, fall back to search
+  let fileId=FILE_ID;
+  try{
+    const url=`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets/${enc}/usedRange`;
+    const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+    if(res.ok) return res.json();
+    // If 404, try searching for the file
+    if(res.status===404){
+      fileId=await findFileId(token);
+      const url2=`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/workbook/worksheets/${enc}/usedRange`;
+      const res2=await fetch(url2,{headers:{Authorization:`Bearer ${token}`}});
+      if(!res2.ok){const j=await res2.json().catch(()=>({}));throw new Error(j.error?.message||`HTTP ${res2.status}`);}
+      return res2.json();
+    }
     const j=await res.json().catch(()=>({}));
     throw new Error(j.error?.message||`HTTP ${res.status}`);
-  }
-  return res.json();
+  }catch(e){throw e;}
 }
 
 // ── DATA PROCESSING ──────────────────────────────────────────────────────────
