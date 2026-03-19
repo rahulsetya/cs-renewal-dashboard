@@ -73,7 +73,7 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 const CLIENT_ID  = 'dc704d15-4dc6-47d7-bc4b-143455acfd4d';
 const TENANT     = 'iconnections675.onmicrosoft.com';
 const FILE_ID    = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
-const FILE_OWNER = 'cgoggil_iconnections_io';
+const HEADER_ROW = 13; // 0-indexed, so row 14 in Excel
 const SHEET      = 'master tracker';
 const SCOPES     = 'Files.Read Files.Read.All offline_access';
 const REDIRECT = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
@@ -239,14 +239,14 @@ function computeSignals(row){
 
 function processData(range){
   const rows=range.values;
-  if(!rows||rows.length<2)throw new Error('Sheet appears empty');
-  const headers=rows[0].map(h=>String(h||'').trim());
+  if(!rows||rows.length<15)throw new Error('Sheet appears empty or headers not at row 14');
+  const headers=rows[HEADER_ROW].map(h=>String(h||'').trim());
   COL={};headers.forEach((h,i)=>COL[h]=i);
   function g(vals,name){const i=COL[name];return i!==undefined?vals[i]:undefined;}
   const data=[];
-  for(let i=1;i<rows.length;i++){
+  for(let i=HEADER_ROW+1;i<rows.length;i++){
     const v=rows[i];
-    const company=g(v,'Contact')||g(v,'Platform Company Name')||g(v,'Company Name')||g(v,'Platform Company name')||'';
+    const company=g(v,'Platform Company Name')||g(v,'Contact')||g(v,'Company Name')||g(v,'Platform Company name')||'';
     if(!company||String(company).trim()==='')continue;
     const stage=g(v,'Stage')||'1. Uncontacted';
     const r25=parseNum(g(v,'2025 Total Revenue'));
