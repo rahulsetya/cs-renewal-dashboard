@@ -496,7 +496,7 @@ function processData(range, engMap={}){
     const sentiment=eng.sentiment||'';
     const clr=String(getCell(v,'Notes / Closed Lost Reason')||'');
     const icn=String(getCell(v,'iConnections Notes')||'').trim();
-    const ae=String(v[6]||'').trim(); // Column G = Account Executive
+    const ae=String(getCell(v,'Sales Rep')||'').trim();
     const em=subEnd?subEnd.substring(0,7):'';
     const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,ae,sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
