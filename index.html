@@ -135,19 +135,36 @@ async function getToken(){
 
 // ── GRAPH API ─────────────────────────────────────────────────────────────────
 async function findFileId(token){
-  const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:{Authorization:`Bearer ${token}`}});
-  const j=await r.json();
-  if(j.value){
-    const f=j.value.find(f=>(f.name&&f.name.toLowerCase().includes('2026 renewal master'))||(f.remoteItem&&f.remoteItem.name&&f.remoteItem.name.toLowerCase().includes('2026 renewal master')));
-    if(f){const ri=f.remoteItem||f;return{driveId:ri.parentReference?.driveId,itemId:ri.id};}
-  }
-  const r2=await fetch(`https://graph.microsoft.com/v1.0/me/drive/search(q='2026 renewal master')`,{headers:{Authorization:`Bearer ${token}`}});
-  const j2=await r2.json();
-  if(j2.value){
-    const f=j2.value.find(f=>f.name&&f.name.toLowerCase().includes('2026 renewal master'));
-    if(f)return{driveId:f.parentReference?.driveId,itemId:f.id};
-  }
-  throw new Error('Could not find "2026 Renewal Master" file. Make sure it has been shared with you.');
+  // Try sharedWithMe — search by name
+  try{
+    const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:{Authorization:`Bearer ${token}`}});
+    const j=await r.json();
+    if(j.value&&j.value.length){
+      const f=j.value.find(f=>(f.name&&f.name.toLowerCase().includes('2026 renewal master'))||(f.remoteItem&&f.remoteItem.name&&f.remoteItem.name.toLowerCase().includes('2026 renewal master')));
+      if(f){const ri=f.remoteItem||f;return{driveId:ri.parentReference?.driveId,itemId:ri.id};}
+      // Also try matching by ID
+      const f2=j.value.find(f=>f.id===FILE_ID||(f.remoteItem&&f.remoteItem.id===FILE_ID));
+      if(f2){const ri=f2.remoteItem||f2;return{driveId:ri.parentReference?.driveId,itemId:ri.id};}
+    }
+  }catch(e){}
+  // Try drive search
+  try{
+    const r2=await fetch(`https://graph.microsoft.com/v1.0/me/drive/search(q='2026 renewal master')`,{headers:{Authorization:`Bearer ${token}`}});
+    const j2=await r2.json();
+    if(j2.value&&j2.value.length){
+      const f=j2.value.find(f=>f.name&&f.name.toLowerCase().includes('2026 renewal master'));
+      if(f)return{driveId:f.parentReference?.driveId,itemId:f.id};
+    }
+  }catch(e){}
+  // Try accessing via the owner's drive path directly
+  try{
+    const r3=await fetch(`https://graph.microsoft.com/v1.0/users/${FILE_OWNER}/drive/items/${FILE_ID}`,{headers:{Authorization:`Bearer ${token}`}});
+    if(r3.ok){
+      const j3=await r3.json();
+      return{driveId:j3.parentReference?.driveId,itemId:j3.id};
+    }
+  }catch(e){}
+  throw new Error('Could not find "2026 Renewal Master" file. Please ask cgoggil to re-share it with rsetya@iconnections.io');
 }
 
 async function fetchSheet(token){
