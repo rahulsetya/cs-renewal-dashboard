@@ -91,7 +91,7 @@ const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
 const SNAPSHOT_KEY = 'cs_renewal_snapshot_v1';
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -496,8 +496,9 @@ function processData(range, engMap={}){
     const sentiment=eng.sentiment||'';
     const clr=String(getCell(v,'Notes / Closed Lost Reason')||'');
     const icn=String(getCell(v,'iConnections Notes')||'').trim();
+    const ae=String(v[6]||'').trim(); // Column G = Account Executive
     const em=subEnd?subEnd.substring(0,7):'';
-    const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,sg:[],ct:'Manager',wow:'same'};
+    const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,ae,sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
     data.push(row);
   }
@@ -562,6 +563,7 @@ async function loadData(){
 }
 async function refreshData(){await loadData();}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill')S.drill=v||null;else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else S[k]=v;render();}
+function roDisp(ro,ae){return S.showAE&&ae?`${ro}<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`:ro;}
 async function init(){
   const hash=new URLSearchParams(location.hash.replace('#',''));
   const code=hash.get('code');
@@ -596,7 +598,7 @@ function _render(){
   const owners=[...new Set(D.map(d=>d.ro))].sort();
   const gap=r25T-offT;
   let h='';
-  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><h1>CS Renewal Pipeline</h1><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button></div><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div>
+  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><h1>CS Renewal Pipeline</h1><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button><button onclick="ss('showAE',${!S.showAE})" style="background:${S.showAE?'#2563eb':'#1e293b'};border:1px solid ${S.showAE?'#1d4ed8':'#334155'};color:${S.showAE?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.showAE?'✓ Show AE':'Show AE'}</button></div><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div>
   <div style="display:flex;gap:8px;align-items:flex-start">
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px">
       <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
@@ -661,7 +663,7 @@ function _render(){
           const nOpen=S.noteOpen===a.c;
           h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,'\\\'')}')" title="Click to toggle iCon Notes">
             <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
-            <td style="color:#94a3b8">${a.ro}</td>
+            <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
             <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
             <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
             <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
@@ -705,7 +707,7 @@ function _render(){
         const nOpen=S.noteOpen===d.c;
         h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':d.c.replace(/'/g,"\\'")}') " title="${d.icn?'Click to toggle iCon Notes':'No iCon Notes'}">
           <td style="color:#e2e8f0;font-weight:500">${d.c}</td>
-          <td style="color:#94a3b8">${d.ro}</td>
+          <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
           <td style="font-size:11px;color:#94a3b8">${SH[ps]||ps}</td>
           <td style="text-align:center"><span style="color:${WOW_COLORS[w]};font-weight:700">${WOW_ICONS[w]}</span></td>
           <td style="font-size:11px;color:${CL[d.s]};font-weight:600">${SH[d.s]}</td>
@@ -727,7 +729,7 @@ function _render(){
         const dc=d.dy<=0?'#ef4444':d.dy<=30?'#ef4444':d.dy<=90?'#fb923c':d.dy<=180?'#fbbf24':'#94a3b8';
         h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}</td>
           <td><span style="color:${CL[d.s]};font-weight:600;font-size:11px">${SH[d.s]}</span></td>
-          <td style="color:#94a3b8">${d.ro}</td>
+          <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
           <td style="text-align:right;color:#fbbf24;font-weight:600">${d.r25?fm(d.r25):'–'}</td>
           <td style="text-align:right;color:${d.o>0?'#22d3ee':'#334155'}">${d.o>0?fm(d.o):'–'}</td>
           <td style="color:#94a3b8;font-size:11px">${d.se||'–'}</td>
@@ -792,7 +794,7 @@ function _render(){
             const nOpen=S.noteOpen===a.c;
             return `<tr class="dr ck" style="background:${idx%2===0?'#0a1628':'transparent'}" onclick="event.stopPropagation();ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
               <td style="padding:5px 12px 5px 28px;font-size:12px;font-weight:500;color:#e2e8f0">${a.c}</td>
-              <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${a.ro}</td>
+              <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${roDisp(a.ro,a.ae)}</td>
               <td style="padding:5px 8px"><span style="font-size:11px;font-weight:600;color:${CL[a.s]}">${SH[a.s]}</span></td>
               <td style="padding:5px 8px;text-align:right;color:#fbbf24;font-weight:600;font-size:12px">${a.r25?fm(a.r25):'–'}</td>
               <td style="padding:5px 8px;text-align:right;font-size:12px"><span style="color:${a.o>0?'#22d3ee':'#ef4444'};font-weight:600">${a.o>0?fm(a.o):'No Offer'}</span>${dl!==-999?`<span style="font-size:10px;color:${dl>=0?'#34d399':'#ef4444'};margin-left:4px">${dl>=0?'+':''}${Math.round(dl)}%</span>`:''}</td>
@@ -892,7 +894,7 @@ function _render(){
         sa.sort((a,b)=>b.r25-a.r25).forEach(a=>{
           h+=`<tr class="dr" style="background:#0f172a">
             <td style="padding-left:28px;color:#e2e8f0;font-weight:500">${a.c}</td>
-            <td style="color:#94a3b8;font-size:11px">${a.ro}</td>
+            <td style="color:#94a3b8;font-size:11px">${roDisp(a.ro,a.ae)}</td>
             <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
             <td style="text-align:center"><span style="font-size:11px;color:${a.out?'#34d399':'#ef4444'}">${a.out?'✓':'✗'}</span></td>
             <td style="text-align:center"><span style="font-size:11px;color:${a.gms?'#60a5fa':'#475569'}">${a.gms?'✓':'–'}</span></td>
@@ -1041,7 +1043,7 @@ function _render(){
         <td style="color:#475569;font-weight:700">${i+1}</td>
         <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
         <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
-        <td style="color:#94a3b8">${a.ro}</td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
         <td style="text-align:right;color:#fbbf24;font-weight:600">${fm(a.r25)}</td>
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'};font-weight:600">${a.o>0?fm(a.o):'–'}</td>
         <td style="text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:4px">
@@ -1073,7 +1075,7 @@ function _render(){
       </tr></thead><tbody>`;
     fl.forEach(a=>{
       const dc=a.dy<=0?'#ef4444':a.dy<=30?'#ef4444':a.dy<=90?'#fb923c':a.dy<=180?'#fbbf24':'#94a3b8';
-      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td><td style="color:#94a3b8">${a.ro}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td><td style="text-align:center;font-weight:600;color:${dc}">${a.dy<=0?'PAST DUE':a.dy+'d'}</td><td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td></tr>`;
+      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td><td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td><td style="text-align:center;font-weight:600;color:${dc}">${a.dy<=0?'PAST DUE':a.dy+'d'}</td><td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td></tr>`;
     });
     h+=`</tbody></table></div></div>`;
   }
@@ -1101,7 +1103,7 @@ function _render(){
       </tr></thead><tbody>`;
     wba.forEach(a=>{
       const dc=a.dy<=120?'#fb923c':a.dy<=180?'#fbbf24':'#94a3b8';
-      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${a.ro}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se}</td><td style="text-align:center;font-weight:600;color:${dc}">${a.dy}d</td></tr>`;
+      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se}</td><td style="text-align:center;font-weight:600;color:${dc}">${a.dy}d</td></tr>`;
     });
     h+=`</tbody></table></div></div>`;
   }
@@ -1130,7 +1132,7 @@ function _render(){
         <th>Account</th><th>Owner</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">Offer</th><th>Sub End</th><th style="text-align:center">Days</th><th style="text-align:center">Outreach?</th><th>Reason</th>
       </tr></thead><tbody>`;
     la.forEach(a=>{
-      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${a.ro}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td><td style="text-align:center;color:${a.dy<=0?'#ef4444':'#94a3b8'};font-weight:600">${a.dy<=0?'Expired':a.dy+'d'}</td><td style="text-align:center">${a.out?'<span class="badge b-green">Yes</span>':'<span class="badge b-red">No</span>'}</td><td style="color:#64748b;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.clr||'–'}</td></tr>`;
+      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td><td style="text-align:center;color:${a.dy<=0?'#ef4444':'#94a3b8'};font-weight:600">${a.dy<=0?'Expired':a.dy+'d'}</td><td style="text-align:center">${a.out?'<span class="badge b-green">Yes</span>':'<span class="badge b-red">No</span>'}</td><td style="color:#64748b;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.clr||'–'}</td></tr>`;
     });
     h+=`</tbody></table></div></div>`;
   }
@@ -1145,7 +1147,7 @@ function _render(){
     </tr></thead><tbody>`;
     sorted.forEach(a=>{
       const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
-      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td><td style="color:#94a3b8">${a.or}</td><td style="color:#94a3b8">${a.ro}</td><td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td><td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td><td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td></tr>`;
+      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td><td style="color:#94a3b8">${a.or}</td><td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td><td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td><td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td><td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td></tr>`;
     });
     h+=`</tbody></table></div></div>`;
   }
