@@ -893,21 +893,27 @@ function render(){
   // ── ALL ENGAGEMENT ──
   if(S.tab==='alleng'){
     const rows=S.owner==='ALL'?ENG_RAW:ENG_RAW.filter(r=>r.ro===S.owner);
-    // Group by endMonth
+    function toQuarter(endMonth){
+      if(!endMonth)return'__none__';
+      const [yr,mo]=endMonth.split('-');
+      const q=Math.ceil(parseInt(mo)/3);
+      return`${yr}-Q${q}`;
+    }
+    // Group by quarter
     const groups={};
     rows.forEach(r=>{
-      const key=r.endMonth||'__none__';
+      const key=toQuarter(r.endMonth);
       if(!groups[key])groups[key]=[];
       groups[key].push(r);
     });
-    const months=Object.keys(groups).filter(k=>k!=='__none__').sort();
-    if(groups['__none__'])months.push('__none__');
+    const quarters=Object.keys(groups).filter(k=>k!=='__none__').sort();
+    if(groups['__none__'])quarters.push('__none__');
     const colHdr=`<tr><th>Account</th><th>CSM</th><th style="text-align:center;color:#60a5fa">Outreach</th><th style="text-align:center;color:#60a5fa">GM Sched</th><th style="text-align:center;color:#a78bfa">GM Done</th><th style="text-align:center;color:#34d399">AP</th><th style="text-align:center;color:#fbbf24">Miami Mtgs</th><th style="text-align:center;color:#ef4444">Risk</th><th>Sentiment</th></tr>`;
     const yn=(v,yc,nc)=>`<span style="font-size:11px;color:${v?yc:nc}">${v?'✓':'✗'}</span>`;
     h+=`<div style="display:flex;flex-direction:column;gap:16px">`;
-    months.forEach(key=>{
+    quarters.forEach(key=>{
       const grp=groups[key].sort((a,b)=>a.ro.localeCompare(b.ro)||a.acct.localeCompare(b.acct));
-      const label=key==='__none__'?'No End Date':(() =>{const [yr,mo]=key.split('-');return`${MON[parseInt(mo)-1]} ${yr}`;})();
+      const label=key==='__none__'?'No End Date':key.replace('-',' ');
       const tot=grp.length,out=grp.filter(r=>r.out).length,gms=grp.filter(r=>r.gms).length,gm=grp.filter(r=>r.gm).length,rsk=grp.filter(r=>r.rsk).length;
       const isOpen=S.drill===key;
       h+=`<div class="cd" style="padding:0;overflow:hidden">
