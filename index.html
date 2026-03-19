@@ -575,7 +575,8 @@ async function init(){
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-function render(){
+function render(){try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
+function _render(){
   const f=gf(),tot=f.length;
   const won=f.filter(d=>d.s==='7. Signed'||d.s==='9. Invoice Sent'||d.s==='10. Paid');
   const lost=f.filter(d=>d.s==='8. Closed Lost (Not Renewing)');
@@ -1079,7 +1080,7 @@ function render(){
   }
 
   document.getElementById('app').innerHTML=h;
-}
+} // end _render
 init();
 </script>
 </body>
