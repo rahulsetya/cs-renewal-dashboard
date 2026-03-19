@@ -246,22 +246,26 @@ function processData(range){
   const data=[];
   for(let i=1;i<rows.length;i++){
     const v=rows[i];
-    const company=g(v,'Contact')||g(v,'Platform Company Name')||g(v,'Company Name')||'';
+    const company=g(v,'Contact')||g(v,'Platform Company Name')||g(v,'Company Name')||g(v,'Platform Company name')||'';
     if(!company||String(company).trim()==='')continue;
     const stage=g(v,'Stage')||'1. Uncontacted';
     const r25=parseNum(g(v,'2025 Total Revenue'));
     const offer=parseNum(g(v,'Offer Price - Total Contract Value'));
-    const subEnd=String(g(v,'Final Sub End Date')||g(v,'Subcription End')||'');
+    const subEnd=String(g(v,'Final Sub End Date')||g(v,'Subcription End')||g(v,'Subscription End')||'');
     const dy=daysDiff(subEnd);
-    const ro=String(g(v,'Renewal Owner CS Rep')||g(v,'Renewal Owner')||'Support iConnections');
-    const or_=String(g(v,'ONSITE REP (iConn + Benchies)')||'N/A');
+    const ro=String(g(v,'Renewal Owner CS Rep')||g(v,'Renewal Owner')||g(v,'CS Rep')||'Support iConnections');
+    const or_=String(g(v,'ONSITE REP (iConn + Benchies)')||g(v,'Onsite Rep')||'N/A');
     const mt=parseNum(g(v,'Count of Miami Schedules')||g(v,'Confirmed Miami Meetings'));
     const rsk=parseNum(g(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0;
     const row={c:String(company).trim(),s:stage,ro,or:or_,o:offer,r25,se:subEnd,dy,mt,rsk,sg:[]};
     row.sg=computeSignals(row);
     data.push(row);
   }
-  if(!data.length)throw new Error('No valid rows found. Check column "Contact" or "Platform Company Name" exists.');
+  if(!data.length){
+    // Show first 10 headers to help debug
+    const preview=headers.slice(0,10).join(' | ');
+    throw new Error(`No valid rows found.<br><br>First 10 column headers found:<br><small>${preview}</small>`);
+  }
   return data;
 }
 
