@@ -173,26 +173,33 @@ async function findFileId(token){
 
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET);
-  // Try via users endpoint first (access another user's drive)
-  const attempts=[
-    `https://graph.microsoft.com/v1.0/users/${FILE_OWNER}/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange`,
-    `https://graph.microsoft.com/v1.0/drives/${FILE_ID}/root/workbook/worksheets/${enc}/usedRange`,
-  ];
-  for(const url of attempts){
-    try{
-      const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
-      if(res.ok) return res.json();
-    }catch(e){}
-  }
-  // Fall back to searching shared files
+  const errors=[];
+
+  // Attempt 1: via file owner's user drive
+  const url1=`https://graph.microsoft.com/v1.0/users/${FILE_OWNER}/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange`;
+  const r1=await fetch(url1,{headers:{Authorization:`Bearer ${token}`}});
+  if(r1.ok) return r1.json();
+  const e1=await r1.json().catch(()=>({}));
+  errors.push(`Attempt 1 (user drive): ${r1.status} — ${e1.error?.message||'unknown'}`);
+
+  // Attempt 2: via sharedWithMe to get driveId
   try{
     const {driveId,itemId}=await findFileId(token);
-    const url=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook/worksheets/${enc}/usedRange`;
-    const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
-    if(res.ok) return res.json();
-    const j=await res.json().catch(()=>({}));
-    throw new Error(j.error?.message||`HTTP ${res.status}`);
-  }catch(e){throw e;}
+    const url2=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook/worksheets/${enc}/usedRange`;
+    const r2=await fetch(url2,{headers:{Authorization:`Bearer ${token}`}});
+    if(r2.ok) return r2.json();
+    const e2=await r2.json().catch(()=>({}));
+    errors.push(`Attempt 2 (shared drive): ${r2.status} — ${e2.error?.message||'unknown'}`);
+  }catch(e){errors.push(`Attempt 2 (sharedWithMe): ${e.message}`);}
+
+  // Attempt 3: via me/drive with item ID directly
+  const url3=`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange`;
+  const r3=await fetch(url3,{headers:{Authorization:`Bearer ${token}`}});
+  if(r3.ok) return r3.json();
+  const e3=await r3.json().catch(()=>({}));
+  errors.push(`Attempt 3 (me/drive): ${r3.status} — ${e3.error?.message||'unknown'}`);
+
+  throw new Error(errors.join('<br>'));
 }
 
 // ── DATA PROCESSING ──────────────────────────────────────────────────────────
