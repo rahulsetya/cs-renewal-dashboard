@@ -90,7 +90,7 @@ const SCOPES     = 'Files.Read Files.Read.All offline_access';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
 const SNAPSHOT_KEY = 'cs_renewal_snapshot_v1';
-let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={};
+let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
 let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev'};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
@@ -254,6 +254,7 @@ async function fetchEngSheet(token, sheetName){
 
 async function fetchAllEngagement(token){
   const engMap={};
+  ENG_RAW=[];
   for(const [sheet,owner] of Object.entries(ENG_SHEETS)){
     try{
       const data=await fetchEngSheet(token,sheet);
@@ -267,8 +268,11 @@ async function fetchAllEngagement(token){
         const row=data.values[i];
         const acct=String(ec(row,'Account Name')||'').trim();
         if(!acct)continue;
-        engMap[acct]={
-          ro:owner,
+        // Column F = index 5 (contract end month)
+        const rawEnd=String(row[5]||'').trim();
+        const endMonth=parseEngEndMonth(rawEnd);
+        const rec={
+          acct,ro:owner,endMonth,rawEnd,
           out:yesNo(ec(row,'Outreach Sent? (Y/N)')||ec(row,'Outreach Sent?')),
           gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
           gm:yesNo(ec(row,'GM Completed? (Y/N)')||ec(row,'GM Completed?')),
@@ -277,6 +281,8 @@ async function fetchAllEngagement(token){
           mt:parseNum(ec(row,'Miami Mtgs')||ec(row,'Miami Meetings')),
           sentiment:String(ec(row,'Sentiment')||'')
         };
+        engMap[acct]=rec;
+        ENG_RAW.push(rec);
       }
     }catch(e){console.warn(`Failed to fetch engagement sheet "${sheet}":`,e);}
   }
@@ -322,6 +328,19 @@ function fm(n){return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+(n/1000).toF
 function gf(){return S.owner==='ALL'?D:D.filter(d=>d.ro===S.owner);}
 function pct(a,b){return b>0?Math.round(a/b*100):0;}
 function parseNum(v){return parseFloat(String(v||0).replace(/[$,]/g,''))||0;}
+function parseEngEndMonth(v){
+  if(!v)return'';
+  // Excel serial date
+  const n=parseFloat(v);
+  if(!isNaN(n)&&n>1000){const d=new Date((n-25569)*86400*1000);return d.toISOString().substring(0,7);}
+  // Already YYYY-MM or YYYY-MM-DD
+  if(/^\d{4}-\d{2}/.test(v))return v.substring(0,7);
+  // "Mar 2026", "March 2026", "Mar-26" etc.
+  const mo={'jan':'01','feb':'02','mar':'03','apr':'04','may':'05','jun':'06','jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12'};
+  const m=v.toLowerCase().match(/([a-z]{3})[a-z]*[\s\-\/]+(\d{2,4})/);
+  if(m){const yr=m[2].length===2?'20'+m[2]:m[2];return`${yr}-${mo[m[1]]||''}`.replace(/-$/,'');}
+  return v;
+}
 function excelDateToJS(v){
   if(!v)return'';
   const n=parseFloat(v);
@@ -588,7 +607,7 @@ function render(){
   [{l:'Won',v:fm(wonO),s:`${won.length} accts`,c:'#34d399'},{l:'Pipeline',v:fm(pipeO),s:`${pipe.length} accts · base ${fm(pipeR)}`,c:'#a78bfa'},{l:'Lost (2025)',v:fm(lostR),s:`${lost.length} accts`,c:'#ef4444'},{l:'Uncontacted',v:fm(unc.reduce((a,d)=>a+d.r25,0)),s:`${unc.length} accts`,c:'#94a3b8'},{l:'At Risk',v:flagged.length,s:fm(flagRev),c:'#fb923c'},{l:'Win-Back',v:wbAll.length,s:fm(wbAll.reduce((a,d)=>a+d.r25,0)),c:'#60a5fa'}
   ].forEach(k=>h+=`<div class="kpi" style="border-left:3px solid ${k.c}"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
   h+=`</div>`;
-  const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard'],['workload','Workload'],['crossref','Pipeline × Eng'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts']];
+  const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard'],['workload','Workload'],['crossref','Pipeline × Eng'],['alleng','All Engagement'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts']];
   h+=`<div class="tabs">`;
   tabs.forEach(([tid,lbl])=>{
     const bc=tid==='risk'?flagged.length:tid==='winback'?wbAll.length:0;
@@ -827,6 +846,56 @@ function render(){
       }
     });
     h+=`</tbody></table></div>`;
+  }
+
+  // ── ALL ENGAGEMENT ──
+  if(S.tab==='alleng'){
+    const rows=S.owner==='ALL'?ENG_RAW:ENG_RAW.filter(r=>r.ro===S.owner);
+    // Group by endMonth
+    const groups={};
+    rows.forEach(r=>{
+      const key=r.endMonth||'__none__';
+      if(!groups[key])groups[key]=[];
+      groups[key].push(r);
+    });
+    const months=Object.keys(groups).filter(k=>k!=='__none__').sort();
+    if(groups['__none__'])months.push('__none__');
+    const colHdr=`<tr><th>Account</th><th>CSM</th><th style="text-align:center;color:#60a5fa">Outreach</th><th style="text-align:center;color:#60a5fa">GM Sched</th><th style="text-align:center;color:#a78bfa">GM Done</th><th style="text-align:center;color:#34d399">AP</th><th style="text-align:center;color:#fbbf24">Miami Mtgs</th><th style="text-align:center;color:#ef4444">Risk</th><th>Sentiment</th></tr>`;
+    const yn=(v,yc,nc)=>`<span style="font-size:11px;color:${v?yc:nc}">${v?'✓':'✗'}</span>`;
+    h+=`<div style="display:flex;flex-direction:column;gap:16px">`;
+    months.forEach(key=>{
+      const grp=groups[key].sort((a,b)=>a.ro.localeCompare(b.ro)||a.acct.localeCompare(b.acct));
+      const label=key==='__none__'?'No End Date':(() =>{const [yr,mo]=key.split('-');return`${MON[parseInt(mo)-1]} ${yr}`;})();
+      const tot=grp.length,out=grp.filter(r=>r.out).length,gms=grp.filter(r=>r.gms).length,gm=grp.filter(r=>r.gm).length,rsk=grp.filter(r=>r.rsk).length;
+      const isOpen=S.drill===key;
+      h+=`<div class="cd" style="padding:0;overflow:hidden">
+        <div onclick="ss('drill','${isOpen?'':key}')" style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:16px;flex-wrap:wrap;${key==='__none__'?'border-left:3px solid #475569':'border-left:3px solid #60a5fa'}">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:13px;font-weight:700;color:#f8fafc">${isOpen?'▾':'▸'} ${label}</span>
+            <span style="font-size:12px;color:#64748b">${tot} accounts</span>
+          </div>
+          <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap">
+            <span style="color:${pct(out,tot)>=60?'#34d399':pct(out,tot)>=30?'#fbbf24':'#ef4444'}">Outreach ${out}/${tot}</span>
+            <span style="color:${pct(gms,tot)>=60?'#34d399':pct(gms,tot)>=30?'#fbbf24':'#ef4444'}">GM Sched ${gms}/${tot}</span>
+            <span style="color:${pct(gm,tot)>=60?'#34d399':pct(gm,tot)>=30?'#fbbf24':'#ef4444'}">GM Done ${gm}/${tot}</span>
+            ${rsk>0?`<span style="color:#ef4444">⚠ ${rsk} at risk</span>`:''}
+          </div>
+        </div>
+        ${isOpen?`<div class="st"><table>${colHdr}<tbody>${grp.map(r=>`<tr class="dr">
+          <td style="font-weight:500;color:#e2e8f0">${r.acct}</td>
+          <td style="color:#94a3b8;font-size:11px">${r.ro}</td>
+          <td style="text-align:center">${yn(r.out,'#34d399','#ef4444')}</td>
+          <td style="text-align:center">${yn(r.gms,'#60a5fa','#475569')}</td>
+          <td style="text-align:center">${yn(r.gm,'#a78bfa','#475569')}</td>
+          <td style="text-align:center">${yn(r.ap,'#34d399','#475569')}</td>
+          <td style="text-align:center;color:${r.mt>0?'#fbbf24':'#475569'};font-weight:600">${r.mt||'–'}</td>
+          <td style="text-align:center;color:${r.rsk?'#ef4444':'#334155'};font-weight:700">${r.rsk?'⚠':'–'}</td>
+          <td style="color:#94a3b8;font-size:11px">${r.sentiment||'–'}</td>
+        </tr>`).join('')}</tbody></table></div>`:''}
+      </div>`;
+    });
+    if(!months.length)h+=`<div class="cd" style="padding:40px;text-align:center;color:#475569">No engagement data loaded</div>`;
+    h+=`</div>`;
   }
 
   // ── REVENUE CONCENTRATION ──
