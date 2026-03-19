@@ -280,6 +280,9 @@ async function fetchAllEngagement(token){
       }
     }catch(e){console.warn(`Failed to fetch engagement sheet "${sheet}":`,e);}
   }
+  const engTotal=Object.keys(engMap).length;
+  console.log(`=== ENGAGEMENT LOADED: ${engTotal} accounts ===`);
+  if(engTotal===0)console.warn('Engagement data is empty — all sheet fetches may have failed');
   return engMap;
 }
 
