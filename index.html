@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Renewal Pipeline — iConnections</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans','Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:20px 24px}
+.w{max-width:1320px;margin:0 auto}
+h1{font-size:24px;font-weight:700;color:#f8fafc}
+.sub{color:#64748b;font-size:13px;margin-top:4px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+select{background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:8px 14px;border-radius:8px;font-size:13px;min-width:200px;font-family:inherit}
+.kpis{display:grid;gap:10px;margin-bottom:20px}
+.k4{grid-template-columns:repeat(4,1fr)}.k6{grid-template-columns:repeat(6,1fr)}
+.kpi{background:#1e293b;border-radius:12px;padding:14px 18px}
+.kl{font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.kv{font-size:26px;font-weight:700;margin-top:2px}.ks{font-size:12px;color:#475569;margin-top:1px}
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{background:transparent;color:#64748b;border:none;padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.tab.a{background:#334155;color:#f8fafc}
+.tab.alert{position:relative}
+.tab.alert::after{content:attr(data-count);position:absolute;top:-4px;right:-6px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:8px}
+.cd{background:#1e293b;border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px 10px;text-align:left;color:#94a3b8;font-weight:600}
+td{padding:7px 10px}
+tr.dr{border-bottom:1px solid #172033}
+tr.dr:nth-child(even){background:#172033}
+tr.dr:nth-child(odd){background:#1e293b}
+tr.ck:hover{background:#2d3a52!important;cursor:pointer}
+.sb{background:transparent;color:#94a3b8;border:none;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.sb.a{background:#475569;color:#f8fafc}
+.pill{display:inline-block;min-width:22px;padding:1px 6px;border-radius:4px;font-weight:700;font-size:11px;text-align:center}
+.rv{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.rc{background:#0f172a;border-radius:10px;padding:16px 20px}
+.rc h4{font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.rb{font-size:32px;font-weight:700}.rd{font-size:12px;color:#64748b;margin-top:4px}
+.sg{display:grid;grid-template-columns:125px 1fr 45px 90px 90px 80px 55px;align-items:center;gap:8px;margin-bottom:5px;cursor:pointer;padding:5px 8px;border-radius:6px;transition:background .15s}
+.sg:hover{background:#293548}.sg.act{background:#334155}
+.bb{background:#0f172a;border-radius:5px;height:22px;overflow:hidden;position:relative}
+.bf{height:100%;border-radius:5px;transition:width .4s ease;position:absolute;top:0;left:0}
+.dr2{margin-top:16px;padding:16px;background:#0f172a;border-radius:8px;max-height:340px;overflow-y:auto}
+.st{max-height:600px;overflow-y:auto}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin:1px 2px}
+.b-red{background:#ef444422;color:#ef4444}.b-orange{background:#fb923c22;color:#fb923c}
+.b-yellow{background:#fbbf2422;color:#fbbf24}.b-blue{background:#60a5fa22;color:#60a5fa}
+.b-purple{background:#a78bfa22;color:#a78bfa}
+.center-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:20px;text-align:center}
+.login-card{background:#1e293b;border-radius:16px;padding:40px;max-width:440px;width:100%}
+.login-card h2{font-size:20px;font-weight:700;margin-bottom:8px}
+.login-card p{color:#64748b;font-size:14px;margin-bottom:28px;line-height:1.6}
+.btn-ms{display:flex;align-items:center;gap:12px;background:#0078d4;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;width:100%;justify-content:center;font-family:inherit}
+.btn-ms:hover{background:#106ebe}
+.btn-refresh{display:flex;align-items:center;gap:6px;background:#1e293b;color:#94a3b8;border:1px solid #334155;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-refresh:hover{background:#334155;color:#f8fafc}
+.spinner{width:40px;height:40px;border:3px solid #334155;border-top-color:#60a5fa;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-card{background:#ef444420;border:1px solid #ef444440;border-radius:12px;padding:20px;max-width:500px;color:#ef4444;font-size:14px;line-height:1.7}
+.err-card strong{display:block;margin-bottom:6px;font-size:16px}
+.token-input{width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:12px;box-sizing:border-box}
+@media(max-width:900px){.k4{grid-template-columns:repeat(2,1fr)}.k6{grid-template-columns:repeat(3,1fr)}.rv{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="w" id="app">
+  <div class="center-screen"><div class="spinner"></div><p style="color:#64748b">Initializing…</p></div>
+</div>
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const CLIENT_ID  = 'dc704d15-4dc6-47d7-bc4b-143455acfd4d';
+const TENANT     = 'iconnections675.onmicrosoft.com';
+const FILE_ID    = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
+const SHEET      = 'master tracker';
+const SCOPES     = 'Files.Read offline_access';
+const REDIRECT = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let D=[], S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev'}, lastUpdated='', COL={};
+
+// ── OAUTH2 PKCE HELPERS ──────────────────────────────────────────────────────
+function b64url(buf){
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+async function genVerifier(){
+  const arr=new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return b64url(arr);
+}
+async function genChallenge(verifier){
+  const enc=new TextEncoder().encode(verifier);
+  const hash=await crypto.subtle.digest('SHA-256',enc);
+  return b64url(hash);
+}
+
+async function startLogin(){
+  const verifier=await genVerifier();
+  const challenge=await genChallenge(verifier);
+  sessionStorage.setItem('pkce_verifier',verifier);
+  const params=new URLSearchParams({
+    client_id: CLIENT_ID,
+    response_type: 'code',
+    redirect_uri: REDIRECT,
+    scope: SCOPES,
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    response_mode: 'fragment',
+    prompt: 'select_account'
+  });
+  location.href=`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize?${params}`;
+}
+
+async function exchangeCode(code){
+  const verifier=sessionStorage.getItem('pkce_verifier');
+  const body=new URLSearchParams({
+    client_id: CLIENT_ID,
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: REDIRECT,
+    code_verifier: verifier,
+    scope: SCOPES
+  });
+  const res=await fetch(`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`,{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body
+  });
+  const json=await res.json();
+  if(json.error) throw new Error(json.error_description||json.error);
+  return json;
+}
+
+function saveTokens(t){
+  sessionStorage.setItem('access_token',t.access_token);
+  if(t.refresh_token) sessionStorage.setItem('refresh_token',t.refresh_token);
+  sessionStorage.setItem('token_exp', Date.now()+((t.expires_in||3600)*1000));
+}
+
+async function getToken(){
+  const exp=parseInt(sessionStorage.getItem('token_exp')||'0');
+  const at=sessionStorage.getItem('access_token');
+  if(at && Date.now()<exp-60000) return at;
+  // Try refresh
+  const rt=sessionStorage.getItem('refresh_token');
+  if(rt){
+    try{
+      const body=new URLSearchParams({client_id:CLIENT_ID,grant_type:'refresh_token',refresh_token:rt,scope:SCOPES});
+      const res=await fetch(`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+      const json=await res.json();
+      if(!json.error){saveTokens(json);return json.access_token;}
+    }catch(e){}
+  }
+  throw new Error('login_required');
+}
+
+// ── GRAPH FETCH ──────────────────────────────────────────────────────────────
+async function fetchSheet(token){
+  const enc=encodeURIComponent(SHEET);
+  const url=`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange`;
+  const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+  if(!res.ok){
+    const j=await res.json().catch(()=>({}));
+    throw new Error(j.error?.message||`HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── DATA PROCESSING ──────────────────────────────────────────────────────────
+function fm(n){return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+(n/1000).toFixed(0)+'K':'$'+Math.round(n)}
+function gf(){return S.owner==='ALL'?D:D.filter(d=>d.ro===S.owner)}
+function daysDiff(v){if(!v)return 0;const d=new Date(v);return isNaN(d)?0:Math.round((d-new Date())/864e5);}
+function parseNum(v){return parseFloat(String(v||0).replace(/[$,]/g,''))||0;}
+
+const ST=['1. Uncontacted','2. Contacted No Interest','3. Contacted Follow-up Needed','4. Contacted Attempting Again','5. Proposal Made','6. Signature Requested','7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent'];
+const SH={'1. Uncontacted':'1. Uncontacted','2. Contacted No Interest':'2. No Interest','3. Contacted Follow-up Needed':'3. Follow-up Needed','4. Contacted Attempting Again':'4. Attempting Again','5. Proposal Made':'5. Proposal Made','6. Signature Requested':'6. Sig Requested','7. Signed':'7. Signed','8. Closed Lost (Not Renewing)':'8. Closed Lost','9. Invoice Sent':'9. Invoice Sent'};
+const CL={'1. Uncontacted':'#94a3b8','2. Contacted No Interest':'#f87171','3. Contacted Follow-up Needed':'#fbbf24','4. Contacted Attempting Again':'#fb923c','5. Proposal Made':'#a78bfa','6. Signature Requested':'#60a5fa','7. Signed':'#34d399','8. Closed Lost (Not Renewing)':'#ef4444','9. Invoice Sent':'#22d3ee'};
+const SIG_LABELS={ue:'Uncontacted Expiring',en:'Expiring No Offer',co:'No Outreach Tracked',pp:'Proposal No Price',se:'Sig Req Expiring',nm:'No Meetings',rf:'Risk Flagged',hr:'High Rev No Engagement',wb:'Win-Back Opportunity'};
+const SIG_CLS={ue:'b-red',en:'b-red',co:'b-orange',pp:'b-purple',se:'b-yellow',nm:'b-orange',rf:'b-red',hr:'b-red',wb:'b-blue'};
+
+function computeSignals(row){
+  const sg=[],{dy,r25,o,s,mt,rsk}=row;
+  if(s==='1. Uncontacted'&&dy>0&&dy<=90)sg.push('ue');
+  if((s==='3. Contacted Follow-up Needed'||s==='4. Contacted Attempting Again')&&o===0)sg.push('en');
+  if(mt===0&&s!=='1. Uncontacted')sg.push('co');
+  if(s==='5. Proposal Made'&&o===0)sg.push('pp');
+  if(s==='6. Signature Requested'&&dy>=0&&dy<=60)sg.push('se');
+  if(mt===0)sg.push('nm');
+  if(rsk)sg.push('rf');
+  if(r25>=50000&&mt===0)sg.push('hr');
+  if(s==='8. Closed Lost (Not Renewing)')sg.push('wb');
+  return[...new Set(sg)];
+}
+
+function processData(range){
+  const rows=range.values;
+  if(!rows||rows.length<2)throw new Error('Sheet appears empty');
+  const headers=rows[0].map(h=>String(h||'').trim());
+  COL={};headers.forEach((h,i)=>COL[h]=i);
+  function g(vals,name){const i=COL[name];return i!==undefined?vals[i]:undefined;}
+  const data=[];
+  for(let i=1;i<rows.length;i++){
+    const v=rows[i];
+    const company=g(v,'Platform Company Name')||g(v,'Company Name')||'';
+    if(!company||String(company).trim()==='')continue;
+    const stage=g(v,'Stage')||'1. Uncontacted';
+    const r25=parseNum(g(v,'2025 Total Revenue'));
+    const offer=parseNum(g(v,'Offer Price - Total Contract Value'));
+    const subEnd=String(g(v,'Final Sub End Date')||g(v,'Subcription End')||'');
+    const dy=daysDiff(subEnd);
+    const ro=String(g(v,'Renewal Owner CS Rep')||g(v,'Renewal Owner')||'Support iConnections');
+    const or_=String(g(v,'ONSITE REP (iConn + Benchies)')||'N/A');
+    const mt=parseNum(g(v,'Count of Miami Schedules')||g(v,'Confirmed Miami Meetings'));
+    const rsk=parseNum(g(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0;
+    const row={c:String(company).trim(),s:stage,ro,or:or_,o:offer,r25,se:subEnd,dy,mt,rsk,sg:[]};
+    row.sg=computeSignals(row);
+    data.push(row);
+  }
+  if(!data.length)throw new Error('No valid rows found. Check column name "Platform Company Name" exists.');
+  return data;
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+function showLoading(msg='Loading data from SharePoint…'){
+  document.getElementById('app').innerHTML=`<div class="center-screen"><div class="spinner"></div><p style="color:#64748b">${msg}</p></div>`;}
+
+function showLogin(){
+  document.getElementById('app').innerHTML=`
+  <div class="center-screen">
+    <div class="login-card">
+      <div style="font-size:28px;font-weight:800;color:#f8fafc;letter-spacing:-1px;margin-bottom:16px">i<span style="color:#60a5fa">Connections</span></div>
+      <h2>CS Renewal Pipeline</h2>
+      <p>Sign in with your iConnections Microsoft account to load live data from the SharePoint tracker.</p>
+      <button class="btn-ms" onclick="startLogin()">
+        <svg width="20" height="20" viewBox="0 0 21 21" fill="none">
+          <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+          <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+          <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+          <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+        </svg>
+        Sign in with Microsoft
+      </button>
+    </div>
+  </div>`;}
+
+function showError(msg){
+  document.getElementById('app').innerHTML=`
+  <div class="center-screen">
+    <div class="err-card"><strong>⚠ Error</strong>${msg}</div>
+    <button class="btn-ms" style="max-width:280px;margin-top:16px" onclick="init()">Try Again</button>
+  </div>`;}
+
+// ── MAIN FLOW ────────────────────────────────────────────────────────────────
+async function loadData(){
+  showLoading();
+  try{
+    const token=await getToken();
+    const range=await fetchSheet(token);
+    D=processData(range);
+    lastUpdated='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    render();
+  }catch(e){
+    const msg=e.message||String(e);
+    if(/login_required|interaction/i.test(msg)) showLogin();
+    else showError(msg+'<br><br><small>Make sure your account has read access to the SharePoint file.</small>');
+  }
+}
+
+async function refreshData(){await loadData();}
+function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;}else if(k==='drill')S.drill=v||null;else S[k]=v;render();}
+
+async function init(){
+  // Check if returning from OAuth redirect with code in fragment
+  const hash=new URLSearchParams(location.hash.replace('#',''));
+  const code=hash.get('code');
+  if(code){
+    showLoading('Completing sign-in…');
+    // Clean up URL
+    history.replaceState(null,'',location.pathname+location.search);
+    try{
+      const tokens=await exchangeCode(code);
+      saveTokens(tokens);
+      await loadData();
+    }catch(e){showError(e.message||String(e));}
+    return;
+  }
+  // Check for existing session
+  const at=sessionStorage.getItem('access_token');
+  const exp=parseInt(sessionStorage.getItem('token_exp')||'0');
+  if(at&&Date.now()<exp){
+    await loadData();
+  } else {
+    showLogin();
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  const f=gf(),tot=f.length;
+  const won=f.filter(d=>d.s==='7. Signed'||d.s==='9. Invoice Sent');
+  const lost=f.filter(d=>d.s==='8. Closed Lost (Not Renewing)');
+  const pipe=f.filter(d=>d.s==='5. Proposal Made'||d.s==='6. Signature Requested');
+  const unc=f.filter(d=>d.s==='1. Uncontacted');
+  const r25T=f.reduce((a,d)=>a+d.r25,0),offT=f.reduce((a,d)=>a+d.o,0);
+  const wonO=won.reduce((a,d)=>a+d.o,0),lostR=lost.reduce((a,d)=>a+d.r25,0);
+  const pipeO=pipe.reduce((a,d)=>a+d.o,0),pipeR=pipe.reduce((a,d)=>a+d.r25,0);
+  const flagged=f.filter(d=>d.sg.length>0),flagRev=flagged.reduce((a,d)=>a+d.r25,0);
+  const sc={};ST.forEach(s=>sc[s]={n:0,r25:0,off:0});
+  f.forEach(d=>{if(sc[d.s]){sc[d.s].n++;sc[d.s].r25+=d.r25;sc[d.s].off+=d.o;}});
+  const maxN=Math.max(...ST.map(s=>sc[s].n),1);
+  const owners=[...new Set(D.map(d=>d.ro))].sort();
+  const wbCt=f.filter(d=>d.sg.includes('wb')).length;
+  const gap=r25T-offT;
+
+  let h='';
+  h+=`<div class="hdr"><div><h1>CS Renewal Pipeline</h1><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+    <select onchange="ss('owner',this.value)"><option value="ALL">All CS Owners</option>
+    ${owners.map(o=>`<option value="${o}"${S.owner===o?' selected':''}>${o}</option>`).join('')}
+    </select>
+  </div></div>`;
+
+  h+=`<div class="rv">
+    <div class="rc" style="border-left:3px solid #fbbf24"><h4>2025 Revenue (Base)</h4><div class="rb" style="color:#fbbf24">${fm(r25T)}</div><div class="rd">${tot} CS accounts</div></div>
+    <div class="rc" style="border-left:3px solid #22d3ee"><h4>2026 Offer Price</h4><div class="rb" style="color:#22d3ee">${fm(offT)}</div><div class="rd">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span> (${Math.round(gap/Math.max(r25T,1)*100)}% uncovered)</div></div>
+  </div>`;
+
+  h+=`<div class="kpis k6">`;
+  [{l:'Won',v:fm(wonO),s:`${won.length} accounts`,c:'#34d399'},{l:'Pipeline',v:fm(pipeO),s:`base: ${fm(pipeR)} · ${pipe.length} accts`,c:'#a78bfa'},{l:'Lost (2025)',v:fm(lostR),s:`${lost.length} accts · ${Math.round(lost.length/Math.max(tot,1)*100)}%`,c:'#ef4444'},{l:'Uncontacted',v:fm(unc.reduce((a,d)=>a+d.r25,0)),s:`${unc.length} accts`,c:'#94a3b8'},{l:'At Risk',v:flagged.length,s:`${fm(flagRev)} 2025 rev`,c:'#fb923c'},{l:'Avg Days to Expiry',v:Math.round(f.filter(d=>d.dy>0).reduce((a,d)=>a+d.dy,0)/Math.max(f.filter(d=>d.dy>0).length,1)),s:'active accounts',c:'#60a5fa'}
+  ].forEach(k=>h+=`<div class="kpi" style="border-left:3px solid ${k.c}"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
+  h+=`</div>`;
+
+  h+=`<div class="tabs">`;
+  [['pipeline','Stage Breakdown'],['owners','CSM Scoreboard'],['risk','At Risk'],['winback','Win-Back'],['accounts','Account List']].forEach(([tid,lbl])=>{
+    const iR=tid==='risk',iW=tid==='winback';
+    h+=`<button class="tab${S.tab===tid?' a':''}${iR&&flagged.length?' alert':''}${iW&&wbCt?' alert':''}" ${iR?`data-count="${flagged.length}"`:''}${iW?`data-count="${wbCt}"`:''} onclick="ss('tab','${tid}')">${lbl}</button>`;
+  });
+  h+=`</div>`;
+
+  // ── PIPELINE ──
+  if(S.tab==='pipeline'){
+    h+=`<div class="cd" style="padding:20px">`;
+    h+=`<div class="sg" style="cursor:default;margin-bottom:10px"><div style="font-size:11px;color:#475569;text-align:right">Stage</div><div></div><div style="font-size:11px;color:#475569;text-align:right">#</div><div style="font-size:11px;color:#fbbf24;text-align:right;font-weight:600">2025 Rev</div><div style="font-size:11px;color:#22d3ee;text-align:right;font-weight:600">2026 Offer</div><div style="font-size:11px;color:#64748b;text-align:right">Delta $</div><div style="font-size:11px;color:#64748b;text-align:right">Delta %</div></div>`;
+    ST.forEach(s=>{
+      const d=sc[s],p=d.n/maxN*100,act=S.drill===s;
+      const dd=d.off>0?d.off-d.r25:-999,dp=d.off>0&&d.r25>0?(d.off-d.r25)/d.r25*100:-999;
+      h+=`<div class="sg${act?' act':''}" onclick="ss('drill','${act?'':s}')">
+        <div style="font-size:12px;color:${act?'#f8fafc':'#94a3b8'};text-align:right;font-weight:500">${SH[s]}</div>
+        <div class="bb"><div class="bf" style="width:${p}%;background:${CL[s]};${d.n?'min-width:3px':''}"></div></div>
+        <div style="font-size:14px;font-weight:700;color:#f8fafc;text-align:right">${d.n}</div>
+        <div style="font-size:12px;color:#fbbf24;text-align:right;font-weight:600">${fm(d.r25)}</div>
+        <div style="font-size:12px;color:#22d3ee;text-align:right;font-weight:600">${d.off>0?fm(d.off):'–'}</div>
+        <div style="font-size:11px;font-weight:600;text-align:right;color:${dd===-999?'#334155':dd>=0?'#34d399':'#ef4444'}">${dd===-999?'–':(dd>=0?'+':'-')+fm(Math.abs(dd))}</div>
+        <div style="font-size:11px;font-weight:600;text-align:right;color:${dp===-999?'#334155':dp>=0?'#34d399':'#ef4444'}">${dp===-999?'–':(dp>=0?'+':'')+Math.round(dp)+'%'}</div>
+      </div>`;
+    });
+    const tdd=offT-r25T,tdp=r25T?(offT-r25T)/r25T*100:0;
+    h+=`<div class="sg" style="margin-top:10px;padding-top:10px;border-top:1px solid #334155;cursor:default">
+      <div style="font-size:12px;color:#64748b;text-align:right;font-weight:700">TOTAL</div><div></div>
+      <div style="font-size:14px;font-weight:700;color:#f8fafc;text-align:right">${tot}</div>
+      <div style="font-size:12px;color:#fbbf24;text-align:right;font-weight:700">${fm(r25T)}</div>
+      <div style="font-size:12px;color:#22d3ee;text-align:right;font-weight:700">${fm(offT)}</div>
+      <div style="font-size:11px;font-weight:700;text-align:right;color:${tdd>=0?'#34d399':'#ef4444'}">${tdd>=0?'+':'-'}${fm(Math.abs(tdd))}</div>
+      <div style="font-size:11px;font-weight:700;text-align:right;color:${tdp>=0?'#34d399':'#ef4444'}">${tdp>=0?'+':''}${Math.round(tdp)}%</div>
+    </div>`;
+    if(S.drill){
+      const da=f.filter(d=>d.s===S.drill).sort((a,b)=>b.r25-a.r25);
+      if(da.length){
+        const dr=da.reduce((a,d)=>a+d.r25,0),dof=da.reduce((a,d)=>a+d.o,0);
+        h+=`<div class="dr2"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:600;color:${CL[S.drill]}">${SH[S.drill]} — ${da.length} accounts</span>
+          <span style="font-size:12px;color:#64748b">2025: <span style="color:#fbbf24;font-weight:600">${fm(dr)}</span> · 2026: <span style="color:#22d3ee;font-weight:600">${dof>0?fm(dof):'–'}</span></span>
+        </div>
+        <table><thead><tr><th>Account</th><th>Renewal Owner</th><th style="text-align:right;color:#fbbf24">2025</th><th style="text-align:right;color:#22d3ee">2026</th><th style="text-align:right">Δ</th><th>Sub End</th><th>Flags</th></tr></thead><tbody>`;
+        da.forEach(a=>{
+          const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
+          h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${a.ro}</td>
+            <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
+            <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
+            <td style="text-align:right;font-weight:600;font-size:11px;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
+            <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}${a.dy>0?` (${a.dy}d)`:''}</td>
+            <td>${a.sg.map(s=>`<span class="badge ${SIG_CLS[s]}">${SIG_LABELS[s]}</span>`).join('')}</td>
+          </tr>`;
+        });
+        h+=`</tbody></table></div>`;
+      }
+    }
+    h+=`</div>`;
+  }
+
+  // ── CSM SCOREBOARD ──
+  if(S.tab==='owners'){
+    const om={};
+    D.forEach(d=>{
+      if(!om[d.ro])om[d.ro]={o:d.ro,tot:0,st:{},r25:0,off:0,won:0,lost:0,pipe:0,flags:0};
+      om[d.ro].tot++;om[d.ro].st[d.s]=(om[d.ro].st[d.s]||0)+1;
+      om[d.ro].r25+=d.r25;om[d.ro].off+=d.o;
+      if(d.s==='7. Signed'||d.s==='9. Invoice Sent')om[d.ro].won++;
+      if(d.s==='8. Closed Lost (Not Renewing)')om[d.ro].lost++;
+      if(d.s==='5. Proposal Made'||d.s==='6. Signature Requested')om[d.ro].pipe++;
+      if(d.sg.length)om[d.ro].flags++;
+    });
+    const ot=Object.values(om);
+    const sf={total:(a,b)=>b.tot-a.tot,won:(a,b)=>b.won-a.won,lost:(a,b)=>b.lost-a.lost,pipeline:(a,b)=>b.pipe-a.pipe,rev:(a,b)=>b.r25-a.r25,offer:(a,b)=>b.off-a.off,flags:(a,b)=>b.flags-a.flags};
+    ot.sort(sf[S.sort]||sf.total);
+    h+=`<div class="cd" style="padding:0;overflow:hidden"><div style="padding:14px 18px;border-bottom:1px solid #334155;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:#475569">Sort:</span>`;
+    [['total','Total'],['pipeline','Pipeline'],['won','Won'],['lost','Lost'],['rev','2025 Rev'],['offer','2026 Offer'],['flags','Flags']].forEach(([k,l])=>h+=`<button class="sb${S.sort===k?' a':''}" onclick="ss('sort','${k}')">${l}</button>`);
+    h+=`</div><div style="overflow-x:auto"><table><thead><tr><th style="min-width:150px;position:sticky;left:0;background:#1e293b;z-index:1">CSM</th>`;
+    ST.forEach(s=>h+=`<th style="text-align:center;color:${CL[s]};font-size:10px;white-space:nowrap">${SH[s]}</th>`);
+    h+=`<th style="text-align:center">Tot</th><th style="text-align:right;color:#fbbf24">2025</th><th style="text-align:right;color:#22d3ee">2026</th><th style="text-align:center;color:#34d399">Win%</th><th style="text-align:center;color:#fb923c">Flags</th></tr></thead><tbody>`;
+    ot.forEach(r=>{
+      const wp=r.tot?Math.round(r.won/r.tot*100):0;
+      h+=`<tr class="dr ck" onclick="ss('owner','${r.o}');ss('tab','pipeline')"><td style="font-weight:600;color:#f8fafc;position:sticky;left:0;background:inherit;white-space:nowrap">${r.o}</td>`;
+      ST.forEach(s=>{const v=r.st[s]||0;h+=`<td style="text-align:center">${v?`<span class="pill" style="background:${CL[s]}20;color:${CL[s]}">${v}</span>`:'<span style="color:#1e293b">–</span>'}</td>`;});
+      h+=`<td style="text-align:center;font-weight:700;color:#f8fafc">${r.tot}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${fm(r.r25)}</td><td style="text-align:right;color:#22d3ee;font-weight:600">${fm(r.off)}</td><td style="text-align:center"><span style="color:${wp>=30?'#34d399':wp>=15?'#fbbf24':'#f87171'};font-weight:700">${wp}%</span></td><td style="text-align:center;color:${r.flags?'#fb923c':'#334155'};font-weight:700">${r.flags}</td></tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  }
+
+  // ── AT RISK ──
+  if(S.tab==='risk'){
+    const fl=[...flagged].sort((a,b)=>S.rsort==='days'?(a.dy<0?9999:a.dy)-(b.dy<0?9999:b.dy):S.rsort==='signals'?b.sg.length-a.sg.length:b.r25-a.r25);
+    const sigC={};fl.forEach(d=>d.sg.forEach(s=>sigC[s]=(sigC[s]||0)+1));
+    h+=`<div class="kpis k4" style="margin-bottom:16px">`;
+    [['en','Expiring No Offer','#ef4444'],['co','No Outreach Tracked','#fb923c'],['nm','No Meetings','#fbbf24'],['hr','High Rev No Engagement','#ef4444']].forEach(([k,l,c])=>h+=`<div class="kpi" style="border-left:3px solid ${c}"><div class="kl">${l}</div><div class="kv" style="color:${c}">${sigC[k]||0}</div></div>`);
+    h+=`</div><div class="cd" style="padding:0;overflow:hidden"><div style="padding:14px 18px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="font-size:14px;font-weight:600;color:#fb923c">${fl.length} flagged · ${fm(flagRev)} at risk</div>
+      <div style="display:flex;gap:6px"><span style="font-size:12px;color:#475569">Sort:</span>`;
+    [['rev','Revenue'],['days','Urgency'],['signals','# Flags']].forEach(([k,l])=>h+=`<button class="sb${S.rsort===k?' a':''}" onclick="ss('rsort','${k}')">${l}</button>`);
+    h+=`</div></div><div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr><th>Account</th><th>Stage</th><th>Renewal Owner</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th>Sub End</th><th style="text-align:center">Days</th><th>Risk Signals</th></tr></thead><tbody>`;
+    fl.forEach(a=>{
+      const dc=a.dy<=0?'#ef4444':a.dy<=30?'#ef4444':a.dy<=90?'#fb923c':a.dy<=180?'#fbbf24':'#94a3b8';
+      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td><td style="color:#94a3b8">${a.ro}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td><td style="text-align:center;font-weight:600;color:${dc}">${a.dy<=0?'PAST DUE':a.dy+'d'}</td><td>${a.sg.map(s=>`<span class="badge ${SIG_CLS[s]}">${SIG_LABELS[s]}</span>`).join('')}</td></tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  }
+
+  // ── WIN-BACK ──
+  if(S.tab==='winback'){
+    const wba=f.filter(d=>d.sg.includes('wb')).sort((a,b)=>b.r25-a.r25);
+    const wbRev=wba.reduce((a,d)=>a+d.r25,0),wbOff=wba.reduce((a,d)=>a+d.o,0);
+    const wbo={};wba.forEach(d=>{if(!wbo[d.ro])wbo[d.ro]={n:0,rev:0};wbo[d.ro].n++;wbo[d.ro].rev+=d.r25;});
+    const wboA=Object.keys(wbo).map(k=>{const ac=wba.filter(d=>d.ro===k);return{o:k,n:wbo[k].n,rev:wbo[k].rev,avg:Math.round(wbo[k].rev/wbo[k].n),days:Math.round(ac.reduce((a,d)=>a+d.dy,0)/ac.length)};}).sort((a,b)=>b.rev-a.rev);
+    h+=`<div class="rv" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      <div class="rc" style="border-left:3px solid #60a5fa"><h4>Win-Back Candidates</h4><div class="rb" style="color:#60a5fa">${wba.length}</div><div class="rd">Closed Lost accounts</div></div>
+      <div class="rc" style="border-left:3px solid #fbbf24"><h4>Recoverable 2025 Rev</h4><div class="rb" style="color:#fbbf24">${fm(wbRev)}</div><div class="rd">if re-engaged</div></div>
+      <div class="rc" style="border-left:3px solid #22d3ee"><h4>Offers Already Made</h4><div class="rb" style="color:#22d3ee">${fm(wbOff)}</div><div class="rd">${wbOff>0?Math.round(wba.filter(d=>d.o>0).length/wba.length*100)+'% have offer on file':'no offers yet'}</div></div>
+    </div>`;
+    h+=`<div class="cd" style="padding:0;overflow:hidden;margin-bottom:16px"><div style="padding:14px 18px;border-bottom:1px solid #334155;font-size:14px;font-weight:600;color:#60a5fa">Win-Back by CSM</div>
+    <table><thead><tr><th>CSM</th><th style="text-align:center">Accounts</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right">Avg Rev</th><th style="text-align:center">Avg Days Left</th></tr></thead><tbody>`;
+    wboA.forEach(r=>h+=`<tr class="dr ck" onclick="ss('owner','${r.o}');ss('tab','winback')"><td style="font-weight:600;color:#f8fafc">${r.o}</td><td style="text-align:center;font-weight:600">${r.n}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${fm(r.rev)}</td><td style="text-align:right;color:#94a3b8">${fm(r.avg)}</td><td style="text-align:center;color:${r.days<=120?'#fb923c':'#94a3b8'}">${r.days}d</td></tr>`);
+    h+=`</tbody></table></div>`;
+    h+=`<div class="cd" style="padding:0;overflow:hidden"><div style="padding:14px 18px;border-bottom:1px solid #334155;font-size:14px;font-weight:600">${wba.length} accounts · ${fm(wbRev)} recoverable</div>
+    <div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr><th>Account</th><th>Renewal Owner</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">Offer Made</th><th>Sub End</th><th style="text-align:center">Days Left</th><th>Other Flags</th></tr></thead><tbody>`;
+    wba.forEach(a=>{
+      const dc=a.dy<=120?'#fb923c':a.dy<=180?'#fbbf24':'#94a3b8';
+      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${a.ro}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'};font-weight:600">${a.o>0?fm(a.o):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se}</td><td style="text-align:center;font-weight:600;color:${dc}">${a.dy}d</td><td>${a.sg.filter(s=>s!=='wb').map(s=>`<span class="badge ${SIG_CLS[s]}">${SIG_LABELS[s]}</span>`).join('')}</td></tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  }
+
+  // ── ACCOUNT LIST ──
+  if(S.tab==='accounts'){
+    const sorted=[...f].sort((a,b)=>ST.indexOf(a.s)-ST.indexOf(b.s));
+    h+=`<div class="cd" style="padding:0;overflow:hidden"><div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
+      <th>Account</th><th>Stage</th><th>Onsite Rep</th><th>Renewal Owner</th>
+      <th style="text-align:right;color:#fbbf24">2025</th><th style="text-align:right;color:#22d3ee">2026</th>
+      <th style="text-align:right">Δ</th><th>Sub End</th><th>Flags</th>
+    </tr></thead><tbody>`;
+    sorted.forEach(a=>{
+      const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
+      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td><td style="color:#94a3b8">${a.or}</td><td style="color:#94a3b8">${a.ro}</td><td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="text-align:right;font-weight:600;font-size:11px;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td><td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td><td>${a.sg.map(s=>`<span class="badge ${SIG_CLS[s]}">${SIG_LABELS[s]}</span>`).join('')}</td></tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  }
+
+  document.getElementById('app').innerHTML=h;
+}
+
+init();
+</script>
+</body>
+</html>
