@@ -795,7 +795,7 @@ function _render(){
       const df=S.drillFilter||{};
       const dsd=k=>ds.col===k?(ds.dir==='asc'?'▲':'▼'):'<span style="opacity:.3">⇅</span>';
       const dThS='cursor:pointer;user-select:none;vertical-align:top;padding:3px 6px 4px';
-      const dCtrlS='width:100%;margin-top:2px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;padding:1px 4px;font-family:inherit;box-sizing:border-box;outline:none';
+      const dCtrlS='width:75%;margin-top:2px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;padding:1px 4px;font-family:inherit;box-sizing:border-box;outline:none';
       const dSel=(col,opts)=>{const cur=df[col]||'';return`<select onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" style="${dCtrlS};padding:1px 3px"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
       const dRng=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" value="${(df[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${dCtrlS};text-align:right">`;
       const dRngPair=(c1,c2)=>`<div style="margin-top:2px;display:flex;flex-direction:column;gap:1px">${dRng(c1,'min $K')}${dRng(c2,'max $K')}</div>`;
@@ -1452,7 +1452,7 @@ function _render(){
     const af=S.acctFilter||{};
     const sdArr=k=>as.col===k?(as.dir==='asc'?'▲':'▼'):'<span style="opacity:.3">⇅</span>';
     const thStyle='cursor:pointer;user-select:none;vertical-align:top;padding:3px 6px 4px';
-    const aCtrlS='width:100%;margin-top:2px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;padding:1px 4px;font-family:inherit;box-sizing:border-box;outline:none';
+    const aCtrlS='width:75%;margin-top:2px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;padding:1px 4px;font-family:inherit;box-sizing:border-box;outline:none';
     const fSelect=(col,opts)=>{const cur=af[col]||'';return`<select onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" style="${aCtrlS};padding:1px 3px"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
     const fInput=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${aCtrlS}">`;
     // Unique sorted values for dropdown filters
