@@ -1141,7 +1141,7 @@ function _render(){
             <span style="font-size:11px;color:#64748b;background:#1e293b;padding:2px 7px;border-radius:10px">${tot}</span>
           </div>
           <div style="display:flex;gap:14px;font-size:11px;flex-wrap:wrap;align-items:center">
-            ${qRev>0?`<span style="color:#34d399;font-weight:700">${fmt(qRev)}</span>`:''}
+            ${qRev>0?`<span style="color:#34d399;font-weight:700">${fm(qRev)}</span>`:''}
             <span style="color:${pct(out,tot)>=60?'#34d399':pct(out,tot)>=30?'#fbbf24':'#64748b'}">Out ${out}/${tot}</span>
             <span style="color:${pct(gms,tot)>=60?'#34d399':pct(gms,tot)>=30?'#fbbf24':'#64748b'}">GM Sched ${gms}/${tot}</span>
             <span style="color:${pct(gm,tot)>=60?'#34d399':pct(gm,tot)>=30?'#fbbf24':'#64748b'}">GM Done ${gm}/${tot}</span>
@@ -1165,7 +1165,7 @@ function _render(){
             <tbody>${grp.map((r,i)=>`<tr style="border-top:1px solid #0f172a;background:${i%2===0?'#0f172a20':'transparent'}">
               <td style="padding:5px 8px;font-size:12px;font-weight:500;color:#e2e8f0">${r.acct}</td>
               <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${r.ro}</td>
-              <td style="padding:5px 8px;font-size:12px;font-weight:600;color:${r.rev>0?'#34d399':'#475569'};text-align:right">${r.rev>0?fmt(r.rev):'–'}</td>
+              <td style="padding:5px 8px;font-size:12px;font-weight:600;color:${r.rev>0?'#34d399':'#475569'};text-align:right">${r.rev>0?fm(r.rev):'–'}</td>
               <td style="padding:5px 8px;text-align:center">${yn(r.out,'#34d399','#374151')}</td>
               <td style="padding:5px 8px;text-align:center">${yn(r.gms,'#60a5fa','#374151')}</td>
               <td style="padding:5px 8px;text-align:center">${yn(r.gm,'#a78bfa','#374151')}</td>
