@@ -662,6 +662,16 @@ async function refreshData(){await loadData(true);}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];render();}
+function navKpi(type){
+  S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};S.drill=null;
+  if(type==='won'){S.tab='accounts';S.acctFilter.stageIn=['7. Signed','9. Invoice Sent','10. Paid'];}
+  else if(type==='pipeline'){S.tab='accounts';S.acctFilter.stageIn=['5. Proposal Made','6. Signature Requested'];}
+  else if(type==='lost'){S.tab='accounts';S.acctFilter.stage='8. Closed Lost (Not Renewing)';}
+  else if(type==='unc'){S.tab='accounts';S.acctFilter.stage='1. Uncontacted';}
+  else if(type==='risk'){S.tab='accounts';S.acctFilter.flags=['__any__'];}
+  else if(type==='winback'){S.tab='winback';}
+  render();
+}
 let _flagDDCloseListener=null;
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
@@ -757,8 +767,8 @@ function _render(){
     <div class="rc" style="border-left:3px solid #22d3ee"><h4>2026 Offer Price</h4><div class="rb" style="color:#22d3ee">${fm(offT)}</div><div class="rd">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span> (${pct(gap,r25T)}% uncovered)</div></div>
   </div>`;
   h+=`<div class="g g6">`;
-  [{l:'Won',v:fm(wonO),s:`${won.length} accts`,c:'#34d399'},{l:'Pipeline',v:fm(pipeO),s:`${pipe.length} accts · base ${fm(pipeR)}`,c:'#a78bfa'},{l:'Lost (2025)',v:fm(lostR),s:`${lost.length} accts`,c:'#ef4444'},{l:'Uncontacted',v:fm(unc.reduce((a,d)=>a+d.r25,0)),s:`${unc.length} accts`,c:'#94a3b8'},{l:'At Risk',v:flagged.length,s:fm(flagRev),c:'#fb923c'},{l:'Win-Back',v:wbAll.length,s:fm(wbAll.reduce((a,d)=>a+d.r25,0)),c:'#60a5fa'}
-  ].forEach(k=>h+=`<div class="kpi" style="border-left:3px solid ${k.c}"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
+  [{l:'Won',v:fm(wonO),s:`${won.length} accts`,c:'#34d399',n:'won'},{l:'Pipeline',v:fm(pipeO),s:`${pipe.length} accts · base ${fm(pipeR)}`,c:'#a78bfa',n:'pipeline'},{l:'Lost (2025)',v:fm(lostR),s:`${lost.length} accts`,c:'#ef4444',n:'lost'},{l:'Uncontacted',v:fm(unc.reduce((a,d)=>a+d.r25,0)),s:`${unc.length} accts`,c:'#94a3b8',n:'unc'},{l:'At Risk',v:flagged.length,s:fm(flagRev),c:'#fb923c',n:'risk'},{l:'Win-Back',v:wbAll.length,s:fm(wbAll.reduce((a,d)=>a+d.r25,0)),c:'#60a5fa',n:'winback'}
+  ].forEach(k=>h+=`<div class="kpi" onclick="navKpi('${k.n}')" style="border-left:3px solid ${k.c};cursor:pointer;transition:background .15s" onmouseover="this.style.background='#263248'" onmouseout="this.style.background=''"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
   h+=`</div>`;
   if(S.staleWarning)h+=`<div style="background:#422006;border:1px solid #92400e;border-radius:8px;padding:8px 16px;font-size:12px;color:#fbbf24;margin-bottom:8px;display:flex;align-items:center">${S.staleWarning}</div>`;
   const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard'],['workload','Workload'],['crossref','Pipeline × Eng'],['alleng','All Engagement'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts']];
@@ -1502,7 +1512,8 @@ function _render(){
 
     // Apply filters
     let rows=[...f];
-    if(af.stage)rows=rows.filter(a=>a.s===af.stage);
+    if(af.stageIn)rows=rows.filter(a=>af.stageIn.includes(a.s));
+    else if(af.stage)rows=rows.filter(a=>a.s===af.stage);
     if(af.onsite)rows=rows.filter(a=>(a.or||'')===af.onsite);
     if(af.owner)rows=rows.filter(a=>a.ro===af.owner);
     if(af.ae)rows=rows.filter(a=>(a.ae||'')===af.ae);
