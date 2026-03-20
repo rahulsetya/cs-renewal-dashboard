@@ -113,7 +113,7 @@ function saveDataCache(d,er,lu){
   catch(e){console.warn('Cache save failed (storage full?):',e);}
 }
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',staleWarning:null};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{}};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -660,6 +660,8 @@ async function loadData(forceRefresh=false){
 }
 async function refreshData(){await loadData(true);}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill')S.drill=v||null;else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
+function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
+function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];render();}
 function roDisp(ro,ae){return S.showAE&&ae?`${ro}<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`:ro;}
 async function init(){
   const hash=new URLSearchParams(location.hash.replace('#',''));
@@ -1385,27 +1387,68 @@ function _render(){
 
   // ── ACCOUNTS ──
   if(S.tab==='accounts'){
-    const sorted=[...f].sort((a,b)=>ST.indexOf(a.s)-ST.indexOf(b.s));
+    const as=S.acctSort||{col:'stage',dir:'asc'};
+    const af=S.acctFilter||{};
+    const sdArr=k=>as.col===k?(as.dir==='asc'?'▲':'▼'):'<span style="opacity:.3">⇅</span>';
+    const thStyle='cursor:pointer;user-select:none;white-space:nowrap;vertical-align:top;padding-bottom:6px';
+    const fInput=(col,ph,align='left')=>`<br><input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:100%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 5px;font-family:inherit;text-align:${align};box-sizing:border-box">`;
+
+    // Sort functions
+    const sortFns={
+      stage:(a,b)=>ST.indexOf(a.s)-ST.indexOf(b.s),
+      onsite:(a,b)=>(a.or||'').localeCompare(b.or||''),
+      owner:(a,b)=>a.ro.localeCompare(b.ro),
+      ae:(a,b)=>(a.ae||'').localeCompare(b.ae||''),
+      r25:(a,b)=>a.r25-b.r25,
+      offer:(a,b)=>a.o-b.o,
+      delta:(a,b)=>{const da=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25:-999,db=b.o>0&&b.r25>0?(b.o-b.r25)/b.r25:-999;return da-db;},
+      subend:(a,b)=>String(a.se||'').localeCompare(String(b.se||'')),
+      flags:(a,b)=>a.sg.length-b.sg.length,
+    };
+
+    // Apply filters
+    let rows=[...f];
+    if(af.stage)rows=rows.filter(a=>a.s.toLowerCase().includes(af.stage.toLowerCase()));
+    if(af.onsite)rows=rows.filter(a=>(a.or||'').toLowerCase().includes(af.onsite.toLowerCase()));
+    if(af.owner)rows=rows.filter(a=>a.ro.toLowerCase().includes(af.owner.toLowerCase()));
+    if(af.ae)rows=rows.filter(a=>(a.ae||'').toLowerCase().includes(af.ae.toLowerCase()));
+    if(af.r25)rows=rows.filter(a=>fm(a.r25).toLowerCase().includes(af.r25.toLowerCase()));
+    if(af.offer)rows=rows.filter(a=>a.o>0?fm(a.o).toLowerCase().includes(af.offer.toLowerCase()):af.offer==='–'||af.offer==='-');
+    if(af.subend)rows=rows.filter(a=>String(a.se||'').includes(af.subend));
+    if(af.flags)rows=rows.filter(a=>a.sg.map(s=>SIG_L[s]).join(' ').toLowerCase().includes(af.flags.toLowerCase()));
+
+    // Apply sort
+    if(sortFns[as.col])rows=rows.sort((a,b)=>sortFns[as.col](a,b)*(as.dir==='asc'?1:-1));
+
+    const colCount=S.showAE?10:9;
     h+=`<div class="cd" style="padding:0;overflow:hidden"><div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
-      <th>Account</th><th>Stage</th><th>Onsite Rep</th><th>Owner</th>
-      <th style="text-align:right;color:#fbbf24">2025</th><th style="text-align:right;color:#22d3ee">2026</th>
-      <th style="text-align:right">Δ</th><th>Sub End</th><th>Flags</th>
+      <th style="vertical-align:top;padding-bottom:6px">Account</th>
+      <th onclick="ssAcctSort('stage')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Stage ${sdArr('stage')}</div>${fInput('stage','filter...')}</th>
+      <th onclick="ssAcctSort('onsite')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Onsite Rep ${sdArr('onsite')}</div>${fInput('onsite','filter...')}</th>
+      <th onclick="ssAcctSort('owner')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Owner ${sdArr('owner')}</div>${fInput('owner','filter...')}</th>
+      ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">AE ${sdArr('ae')}</div>${fInput('ae','filter...')}</th>`:''}
+      <th onclick="ssAcctSort('r25')" style="${thStyle};text-align:right;color:#fbbf24"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2025 ${sdArr('r25')}</div>${fInput('r25','filter...','right')}</th>
+      <th onclick="ssAcctSort('offer')" style="${thStyle};text-align:right;color:#22d3ee"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2026 ${sdArr('offer')}</div>${fInput('offer','filter...','right')}</th>
+      <th onclick="ssAcctSort('delta')" style="${thStyle};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">Δ ${sdArr('delta')}</div></th>
+      <th onclick="ssAcctSort('subend')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Sub End ${sdArr('subend')}</div>${fInput('subend','YYYY-MM')}</th>
+      <th onclick="ssAcctSort('flags')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Flags ${sdArr('flags')}</div>${fInput('flags','filter...')}</th>
     </tr></thead><tbody>`;
-    sorted.forEach(a=>{
+    rows.forEach(a=>{
       const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
       const nOpen=S.noteOpen===a.c;
       h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
         <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
         <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
         <td style="color:#94a3b8">${a.or}</td>
-        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="color:#94a3b8">${a.ro}</td>
+        ${S.showAE?`<td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>`:''}
         <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
         <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
         <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td>
         <td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:4px">${nOpen?'▾':'▸'} notes</span>`:''}</td>
       </tr>
-      ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="9" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
+      ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="${colCount}" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
     });
     h+=`</tbody></table></div></div>`;
   }
