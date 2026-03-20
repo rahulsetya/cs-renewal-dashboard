@@ -158,19 +158,43 @@ function colIdx(name){
 function getCell(row,name){const i=colIdx(name);return i!==undefined?row[i]:undefined;}
 
 // ── GRAPH API ─────────────────────────────────────────────────────────────────
+const _driveIdCache={};
+const _driveIdPending={};
 async function getSharePointDriveId(token, ownerUpn){
-  const siteRes=await fetch(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${ownerUpn}`,{headers:{Authorization:`Bearer ${token}`}});
-  if(!siteRes.ok){const j=await siteRes.json().catch(()=>({}));throw new Error(`Site lookup for ${ownerUpn}: ${siteRes.status} — ${j.error?.message||'unknown'}`);}
-  const site=await siteRes.json();
-  const drivesRes=await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
-  if(!drivesRes.ok){const j=await drivesRes.json().catch(()=>({}));throw new Error(`Drives for ${ownerUpn}: ${drivesRes.status} — ${j.error?.message||'unknown'}`);}
-  const drives=await drivesRes.json();
-  if(!drives.value||!drives.value.length)throw new Error(`No drives found for ${ownerUpn}`);
-  return drives.value[0].id;
+  // Return cached result immediately — avoids 20+ redundant lookups for engagement sheets
+  if(_driveIdCache[ownerUpn])return _driveIdCache[ownerUpn];
+  // Deduplicate in-flight requests for the same owner
+  if(_driveIdPending[ownerUpn])return _driveIdPending[ownerUpn];
+  _driveIdPending[ownerUpn]=(async()=>{
+    const siteRes=await fetch(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${ownerUpn}`,{headers:{Authorization:`Bearer ${token}`}});
+    if(!siteRes.ok){const j=await siteRes.json().catch(()=>({}));throw new Error(`Site lookup for ${ownerUpn}: ${siteRes.status} — ${j.error?.message||'unknown'}`);}
+    const site=await siteRes.json();
+    const drivesRes=await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
+    if(!drivesRes.ok){const j=await drivesRes.json().catch(()=>({}));throw new Error(`Drives for ${ownerUpn}: ${drivesRes.status} — ${j.error?.message||'unknown'}`);}
+    const drives=await drivesRes.json();
+    if(!drives.value||!drives.value.length)throw new Error(`No drives found for ${ownerUpn}`);
+    const id=drives.value[0].id;
+    _driveIdCache[ownerUpn]=id;
+    delete _driveIdPending[ownerUpn];
+    return id;
+  })();
+  return _driveIdPending[ownerUpn];
+}
+
+async function fetchWithRetry(url,opts,retries=2,delay=1500){
+  for(let i=0;i<=retries;i++){
+    try{
+      const r=await fetch(url,opts);
+      if(r.status===504||r.status===503){
+        if(i<retries){await new Promise(res=>setTimeout(res,delay*(i+1)));continue;}
+      }
+      return r;
+    }catch(e){if(i===retries)throw e;await new Promise(res=>setTimeout(res,delay*(i+1)));}
+  }
 }
 
 async function fetchSheet(token){
-  const enc=encodeURIComponent(SHEET), errors=[];
+  const enc=encodeURIComponent(SHEET), errors=[], hdrs={Authorization:`Bearer ${token}`};
 
   // Attempt 1: me/drive direct item lookup
   try{
@@ -189,7 +213,7 @@ async function fetchSheet(token){
   // Attempt 2: owner's SharePoint personal site drive (primary method per handoff)
   try{
     const driveId=await getSharePointDriveId(token, FILE_OWNER);
-    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:hdrs});
     if(r.ok)return r.json();
     const j=await r.json().catch(()=>({}));
     errors.push(`site drive workbook: ${r.status} — ${j.error?.message||'unknown'}`);
@@ -226,13 +250,13 @@ async function fetchEngSheet(token, sheetName){
   // Attempt 1: owner's SharePoint personal site drive (mirrors primary method above)
   try{
     const driveId=await getSharePointDriveId(token, ENG_OWNER);
-    const r=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
     if(r.ok)return r.json();
   }catch(e){}
 
   // Attempt 2: me/drive
   try{
-    const r=await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
+    const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/me/drive/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
     if(r.ok)return r.json();
   }catch(e){}
 
