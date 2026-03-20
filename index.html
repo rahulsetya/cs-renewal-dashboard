@@ -608,6 +608,39 @@ async function init(){
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render(){try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
 function _render(){
+  // ── Shared funnel helpers (used by Pipeline×Eng and All Engagement tabs) ──
+  const funnelConn=(prev,cur)=>{
+    const dn=prev-cur,dp=prev>0?Math.round(dn/prev*100):100;
+    return `<div style="flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:36px">
+      <div style="color:#60a5fa;font-size:13px;margin-bottom:2px">→</div>
+      <div style="font-size:13px;font-weight:700;color:#e2e8f0;line-height:1.2">-${dn}</div>
+      <div style="font-size:10px;color:#94a3b8">(-${dp}%)</div>
+    </div>`;
+  };
+  const funnelTip=(label,bg,num,total,prev,rev,alwaysRev=true)=>{
+    const conv=prev>0?Math.round(num/prev*100):null;
+    return `<div class="fbar-tip">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;font-weight:700;color:#f8fafc">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${bg};flex-shrink:0"></span>${label}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:11px">
+        <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Accounts</span><span style="color:#e2e8f0;font-weight:600">${num} of ${total}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Pct of book</span><span style="color:#e2e8f0;font-weight:600">${pct(num,total)}%</span></div>
+        ${(alwaysRev||rev>0)?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Revenue</span><span style="color:#fbbf24;font-weight:600">${fm(rev)}</span></div>`:''}
+        ${conv!==null?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Conv from prev</span><span style="color:#34d399;font-weight:600">${conv}%</span></div>`:''}
+      </div>
+    </div>`;
+  };
+  const funnelBar=(flex,barH,bg,num,label,prev,rev,total,alwaysRev=true)=>`
+    <div class="fbar" style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
+      ${funnelTip(label,bg,num,total,prev,rev,alwaysRev)}
+      <div style="height:${barH}px;background:${bg};border-radius:4px 4px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+        <span style="font-size:18px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'};line-height:1">${num}</span>
+        <span style="font-size:10px;font-weight:600;color:${bg==='#4b5563'?'#6b7280':'rgba(255,255,255,0.65)'}">${pct(num,total)}%</span>
+      </div>
+      <div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-top:6px;white-space:nowrap;overflow:visible">${label}</div>
+    </div>`;
+
   const f=gf(),tot=f.length;
   const won=f.filter(d=>d.s==='7. Signed'||d.s==='9. Invoice Sent'||d.s==='10. Paid');
   const lost=f.filter(d=>d.s==='8. Closed Lost (Not Renewing)');
@@ -899,51 +932,11 @@ function _render(){
     const active2=f;
     const xStages=ST;
 
-    // ── Sprint Funnel ──
+    // ── Sprint Funnel ── single-pass for all counts + revenues
     const sfTotal=f.length;
-    const sfOut=f.filter(d=>d.out===1).length;
-    const sfGms=f.filter(d=>d.gms===1).length;
-    const sfGm=f.filter(d=>d.gm===1).length;
-    const sfAp=f.filter(d=>d.ap===1).length;
-    const sfNoOut=sfTotal-sfOut;
-    const sfNoOutRev=f.filter(d=>d.out!==1).reduce((a,d)=>a+d.r25,0);
-    const sfOutRev=f.filter(d=>d.out===1).reduce((a,d)=>a+d.r25,0);
-    const sfGmsRev=f.filter(d=>d.gms===1).reduce((a,d)=>a+d.r25,0);
-    const sfGmRev=f.filter(d=>d.gm===1).reduce((a,d)=>a+d.r25,0);
-    const sfApRev=f.filter(d=>d.ap===1).reduce((a,d)=>a+d.r25,0);
-    // connector: drop count + % from previous stage
-    const sfConn=(prev,cur)=>{
-      const dn=prev-cur,dp=prev>0?Math.round(dn/prev*100):100;
-      return `<div style="flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:36px">
-        <div style="color:#60a5fa;font-size:13px;margin-bottom:2px">→</div>
-        <div style="font-size:13px;font-weight:700;color:#e2e8f0;line-height:1.2">-${dn}</div>
-        <div style="font-size:10px;color:#94a3b8">(-${dp}%)</div>
-      </div>`;
-    };
-    const sfTip=(label,bg,num,total,prev,rev)=>{
-      const pct2=total>0?Math.round(num/total*100):0;
-      const conv=prev>0?Math.round(num/prev*100):null;
-      return `<div class="fbar-tip">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;font-weight:700;color:#f8fafc">
-          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${bg};flex-shrink:0"></span>${label}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;font-size:11px">
-          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Accounts</span><span style="color:#e2e8f0;font-weight:600">${num} of ${total}</span></div>
-          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Pct of book</span><span style="color:#e2e8f0;font-weight:600">${pct2}%</span></div>
-          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Revenue</span><span style="color:#fbbf24;font-weight:600">${fm(rev)}</span></div>
-          ${conv!==null?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Conv from prev</span><span style="color:#34d399;font-weight:600">${conv}%</span></div>`:''}
-        </div>
-      </div>`;
-    };
-    const sfBar2=(flex,barH,bg,num,label,prev,rev)=>`
-      <div class="fbar" style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
-        ${sfTip(label,bg,num,sfTotal,prev,rev)}
-        <div style="height:${barH}px;background:${bg};border-radius:4px 4px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
-          <span style="font-size:18px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'};line-height:1">${num}</span>
-          <span style="font-size:10px;font-weight:600;color:${bg==='#4b5563'?'#6b7280':'rgba(255,255,255,0.65)'}">${sfTotal>0?Math.round(num/sfTotal*100):0}%</span>
-        </div>
-        <div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-top:6px;white-space:nowrap;overflow:visible">${label}</div>
-      </div>`;
+    const sfS=f.reduce((a,d)=>{const r=d.r25||0;if(d.out===1){a.outN++;a.outR+=r}else a.noOutR+=r;if(d.gms===1){a.gmsN++;a.gmsR+=r}if(d.gm===1){a.gmN++;a.gmR+=r}if(d.ap===1){a.apN++;a.apR+=r}return a;},{outN:0,outR:0,noOutR:0,gmsN:0,gmsR:0,gmN:0,gmR:0,apN:0,apR:0});
+    const sfOut=sfS.outN,sfGms=sfS.gmsN,sfGm=sfS.gmN,sfAp=sfS.apN,sfNoOut=sfTotal-sfOut;
+    const sfNoOutRev=sfS.noOutR,sfOutRev=sfS.outR,sfGmsRev=sfS.gmsR,sfGmRev=sfS.gmR,sfApRev=sfS.apR;
     h+=`<div class="cd" style="padding:20px;margin-bottom:16px">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:20px">
         <span style="font-size:15px;font-weight:700;color:#f8fafc">Sprint Funnel</span>
@@ -951,15 +944,15 @@ function _render(){
         <span style="margin-left:auto;font-size:11px;color:#475569">Engagement activity across pipeline accounts</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:0">
-        ${sfBar2(sfNoOut,100,'#4b5563',sfNoOut,'No Outreach',null,sfNoOutRev)}
-        ${sfConn(sfTotal,sfOut)}
-        ${sfBar2(sfOut,100,'#60a5fa',sfOut,'Outreach Sent',sfTotal,sfOutRev)}
-        ${sfConn(sfOut,sfGms)}
-        ${sfBar2(sfGms,100,'#fbbf24',sfGms,'GM Scheduled',sfOut,sfGmsRev)}
-        ${sfConn(sfGms,sfGm)}
-        ${sfBar2(sfGm,100,'#34d399',sfGm,'GM Completed',sfGms,sfGmRev)}
-        ${sfConn(sfGm,sfAp)}
-        ${sfBar2(Math.max(sfAp,1),100,'#a78bfa',sfAp,'AP Delivered',sfGm,sfApRev)}
+        ${funnelBar(sfNoOut,100,'#4b5563',sfNoOut,'No Outreach',null,sfNoOutRev,sfTotal)}
+        ${funnelConn(sfTotal,sfOut)}
+        ${funnelBar(sfOut,100,'#60a5fa',sfOut,'Outreach Sent',sfTotal,sfOutRev,sfTotal)}
+        ${funnelConn(sfOut,sfGms)}
+        ${funnelBar(sfGms,100,'#fbbf24',sfGms,'GM Scheduled',sfOut,sfGmsRev,sfTotal)}
+        ${funnelConn(sfGms,sfGm)}
+        ${funnelBar(sfGm,100,'#34d399',sfGm,'GM Completed',sfGms,sfGmRev,sfTotal)}
+        ${funnelConn(sfGm,sfAp)}
+        ${funnelBar(Math.max(sfAp,1),100,'#a78bfa',sfAp,'AP Delivered',sfGm,sfApRev,sfTotal)}
       </div>
     </div>`;
 
@@ -969,8 +962,8 @@ function _render(){
     xStages.forEach(s=>{
       const sa=active2.filter(d=>d.s===s),n=sa.length,r=sa.reduce((a,d)=>a+d.r25,0);
       if(!n)return;
-      const o=sa.filter(d=>d.out===1).length,gms=sa.filter(d=>d.gms===1).length,gm=sa.filter(d=>d.gm===1).length,rf=sa.filter(d=>d.rsk===1).length;
-      const op=n>0?pct(o,n):0,sp=n>0?pct(gms,n):0,dp=n>0?pct(gm,n):0;
+      let o=0,gms=0,gm=0,rf=0;sa.forEach(d=>{if(d.out===1)o++;if(d.gms===1)gms++;if(d.gm===1)gm++;if(d.rsk===1)rf++;});
+      const op=pct(o,n),sp=pct(gms,n),dp=pct(gm,n);
       const act=S.drill===s;
       h+=`<tr class="dr ck" onclick="ss('drill','${act?'':s}')">
         <td style="color:${CL[s]};font-weight:600;font-size:11px">${act?'▾':'▸'} ${SH[s]}</td>
@@ -1054,52 +1047,11 @@ function _render(){
     // Apply quarter filter
     const rows=S.engQtrFilter==='ALL'?baseRows:(allGroups[S.engQtrFilter]||[]);
 
-    // ── Funnel ──
+    // ── Funnel ── single-pass for all counts + revenues
     const efTotal=rows.length;
-    const efOut=rows.filter(r=>r.out).length;
-    const efGms=rows.filter(r=>r.gms).length;
-    const efGm=rows.filter(r=>r.gm).length;
-    const efAp=rows.filter(r=>r.ap).length;
-    const efNoOut=efTotal-efOut;
-    const revSum=arr=>arr.reduce((a,r)=>a+(r.rev||0),0);
-    const efRevTotal=revSum(rows);
-    const efRevOut=revSum(rows.filter(r=>r.out));
-    const efRevGms=revSum(rows.filter(r=>r.gms));
-    const efRevGm=revSum(rows.filter(r=>r.gm));
-    const efRevAp=revSum(rows.filter(r=>r.ap));
-    const efRevNoOut=revSum(rows.filter(r=>!r.out));
-    const efConn=(prev,cur)=>{
-      const dn=prev-cur,dp=prev>0?Math.round(dn/prev*100):100;
-      return `<div style="flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:36px">
-        <div style="color:#60a5fa;font-size:13px;margin-bottom:2px">→</div>
-        <div style="font-size:13px;font-weight:700;color:#e2e8f0;line-height:1.2">-${dn}</div>
-        <div style="font-size:10px;color:#94a3b8">(-${dp}%)</div>
-      </div>`;
-    };
-    const efTip=(label,bg,num,total,prev,rev)=>{
-      const pct2=total>0?Math.round(num/total*100):0;
-      const conv=prev>0?Math.round(num/prev*100):null;
-      return `<div class="fbar-tip">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;font-weight:700;color:#f8fafc">
-          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${bg};flex-shrink:0"></span>${label}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;font-size:11px">
-          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Accounts</span><span style="color:#e2e8f0;font-weight:600">${num} of ${total}</span></div>
-          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Pct of book</span><span style="color:#e2e8f0;font-weight:600">${pct2}%</span></div>
-          ${rev>0?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Revenue</span><span style="color:#34d399;font-weight:600">${fm(rev)}</span></div>`:''}
-          ${conv!==null?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Conv from prev</span><span style="color:#34d399;font-weight:600">${conv}%</span></div>`:''}
-        </div>
-      </div>`;
-    };
-    const efBar=(flex,bg,num,label,prev,rev)=>`
-      <div class="fbar" style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
-        ${efTip(label,bg,num,efTotal,prev,rev)}
-        <div style="height:100px;background:${bg};border-radius:4px 4px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
-          <span style="font-size:18px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'};line-height:1">${num}</span>
-          <span style="font-size:10px;font-weight:600;color:${bg==='#4b5563'?'#6b7280':'rgba(255,255,255,0.65)'}">${efTotal>0?Math.round(num/efTotal*100):0}%</span>
-        </div>
-        <div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-top:6px;white-space:nowrap">${label}</div>
-      </div>`;
+    const efS=rows.reduce((a,r)=>{const v=r.rev||0;if(r.out){a.outN++;a.outR+=v}else a.noOutR+=v;if(r.gms){a.gmsN++;a.gmsR+=v}if(r.gm){a.gmN++;a.gmR+=v}if(r.ap){a.apN++;a.apR+=v}return a;},{outN:0,outR:0,noOutR:0,gmsN:0,gmsR:0,gmN:0,gmR:0,apN:0,apR:0});
+    const efOut=efS.outN,efGms=efS.gmsN,efGm=efS.gmN,efAp=efS.apN,efNoOut=efTotal-efOut;
+    const efRevOut=efS.outR,efRevNoOut=efS.noOutR,efRevGms=efS.gmsR,efRevGm=efS.gmR,efRevAp=efS.apR;
 
     // Quarter filter buttons
     const qBtns=[['ALL','All'],...allQtrs.map(k=>[k,qLabel(k)])].map(([val,lbl])=>{
@@ -1115,15 +1067,15 @@ function _render(){
         <span style="margin-left:auto;font-size:11px;color:#475569">All engagement accounts</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:0">
-        ${efBar(efNoOut,'#4b5563',efNoOut,'No Outreach',null,efRevNoOut)}
-        ${efConn(efTotal,efOut)}
-        ${efBar(efOut,'#60a5fa',efOut,'Outreach Sent',efTotal,efRevOut)}
-        ${efConn(efOut,efGms)}
-        ${efBar(efGms,'#fbbf24',efGms,'GM Scheduled',efOut,efRevGms)}
-        ${efConn(efGms,efGm)}
-        ${efBar(efGm,'#34d399',efGm,'GM Completed',efGms,efRevGm)}
-        ${efConn(efGm,efAp)}
-        ${efBar(Math.max(efAp,1),'#a78bfa',efAp,'AP Delivered',efGm,efRevAp)}
+        ${funnelBar(efNoOut,100,'#4b5563',efNoOut,'No Outreach',null,efRevNoOut,efTotal,false)}
+        ${funnelConn(efTotal,efOut)}
+        ${funnelBar(efOut,100,'#60a5fa',efOut,'Outreach Sent',efTotal,efRevOut,efTotal,false)}
+        ${funnelConn(efOut,efGms)}
+        ${funnelBar(efGms,100,'#fbbf24',efGms,'GM Scheduled',efOut,efRevGms,efTotal,false)}
+        ${funnelConn(efGms,efGm)}
+        ${funnelBar(efGm,100,'#34d399',efGm,'GM Completed',efGms,efRevGm,efTotal,false)}
+        ${funnelConn(efGm,efAp)}
+        ${funnelBar(Math.max(efAp,1),100,'#a78bfa',efAp,'AP Delivered',efGm,efRevAp,efTotal,false)}
       </div>
     </div>`;
 
