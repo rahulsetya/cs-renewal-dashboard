@@ -297,7 +297,7 @@ async function fetchAllEngagement(token){
         if(!acct)continue;
         const rawEnd=String(row[5]||'').trim();
         const rec={
-          acct,ro:owner,endMonth:parseEngEndMonth(rawEnd),rawEnd,
+          acct,ro:owner,ae:String(ec(row,'Sales Rep')||'').trim(),endMonth:parseEngEndMonth(rawEnd),rawEnd,
           rev:parseNum(row[4]),
           out:yesNo(ec(row,'Outreach Sent? (Y/N)')||ec(row,'Outreach Sent?')),
           gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
@@ -1123,6 +1123,7 @@ function _render(){
             <thead><tr style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px">
               <th style="padding:4px 8px;text-align:left;font-weight:600">Account</th>
               <th style="padding:4px 8px;text-align:left;font-weight:600">CSM</th>
+              ${S.showAE?'<th style="padding:4px 8px;text-align:left;color:#60a5fa;font-weight:600">AE</th>':''}
               <th style="padding:4px 8px;text-align:right;color:#34d399;font-weight:600">2025 Rev</th>
               <th style="padding:4px 8px;text-align:center;color:#60a5fa">Outreach</th>
               <th style="padding:4px 8px;text-align:center;color:#60a5fa">GM Sched</th>
@@ -1135,6 +1136,7 @@ function _render(){
             <tbody>${grp.map((r,i)=>`<tr style="border-top:1px solid #0f172a;background:${i%2===0?'#0f172a20':'transparent'}">
               <td style="padding:5px 8px;font-size:12px;font-weight:500;color:#e2e8f0">${r.acct}</td>
               <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${r.ro}</td>
+              ${S.showAE?`<td style="padding:5px 8px;font-size:11px;color:#60a5fa;white-space:nowrap">${r.ae||'–'}</td>`:''}
               <td style="padding:5px 8px;font-size:12px;font-weight:600;color:${r.rev>0?'#34d399':'#475569'};text-align:right">${r.rev>0?fm(r.rev):'–'}</td>
               <td style="padding:5px 8px;text-align:center">${yn(r.out,'#34d399','#374151')}</td>
               <td style="padding:5px 8px;text-align:center">${yn(r.gms,'#60a5fa','#374151')}</td>
@@ -1211,7 +1213,17 @@ function _render(){
       </tr></thead><tbody>`;
     fl.forEach(a=>{
       const dc=a.dy<=0?'#ef4444':a.dy<=30?'#ef4444':a.dy<=90?'#fb923c':a.dy<=180?'#fbbf24':'#94a3b8';
-      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td><td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td><td style="text-align:center;font-weight:600;color:${dc}">${a.dy<=0?'PAST DUE':a.dy+'d'}</td><td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td></tr>`;
+      const nOpen=S.noteOpen===a.c;
+      h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
+        <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
+        <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td>
+        <td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td>
+        <td style="text-align:center;font-weight:600;color:${dc}">${a.dy<=0?'PAST DUE':a.dy+'d'}</td>
+        <td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:4px">${nOpen?'▾':'▸'} notes</span>`:''}</td>
+      </tr>
+      ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="7" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
     });
     h+=`</tbody></table></div></div>`;
   }
@@ -1235,11 +1247,21 @@ function _render(){
     <div class="cd" style="padding:0;overflow:hidden">
       <div style="padding:12px 18px;border-bottom:1px solid #334155;font-size:14px;font-weight:600;color:#f8fafc">${wba.length} accounts · ${fm(wbRev)} recoverable</div>
       <div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
-        <th>Account</th><th>Owner</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">Offer</th><th>Sub End</th><th style="text-align:center">Days Left</th>
+        <th>Account</th><th>Owner</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">Offer</th><th>Sub End</th><th style="text-align:center">Days Left</th><th>Notes</th>
       </tr></thead><tbody>`;
     wba.forEach(a=>{
       const dc=a.dy<=120?'#fb923c':a.dy<=180?'#fbbf24':'#94a3b8';
-      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se}</td><td style="text-align:center;font-weight:600;color:${dc}">${a.dy}d</td></tr>`;
+      const nOpen=S.noteOpen===a.c;
+      h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
+        <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td>
+        <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
+        <td style="color:#94a3b8;font-size:11px">${a.se}</td>
+        <td style="text-align:center;font-weight:600;color:${dc}">${a.dy}d</td>
+        <td style="font-size:10px;color:#475569">${a.icn?(nOpen?'▾':'▸')+' notes':''}</td>
+      </tr>
+      ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="7" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
     });
     h+=`</tbody></table></div></div>`;
   }
@@ -1265,10 +1287,22 @@ function _render(){
     <div class="cd" style="padding:0;overflow:hidden">
       <div style="padding:12px 18px;border-bottom:1px solid #334155;font-size:13px;font-weight:600;color:#f8fafc">All Lost Accounts</div>
       <div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
-        <th>Account</th><th>Owner</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">Offer</th><th>Sub End</th><th style="text-align:center">Days</th><th style="text-align:center">Outreach?</th><th>Reason</th>
+        <th>Account</th><th>Owner</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">Offer</th><th>Sub End</th><th style="text-align:center">Days</th><th style="text-align:center">Outreach?</th><th>Reason</th><th>Notes</th>
       </tr></thead><tbody>`;
     la.forEach(a=>{
-      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td><td style="text-align:center;color:${a.dy<=0?'#ef4444':'#94a3b8'};font-weight:600">${a.dy<=0?'Expired':a.dy+'d'}</td><td style="text-align:center">${a.out?'<span class="badge b-green">Yes</span>':'<span class="badge b-red">No</span>'}</td><td style="color:#64748b;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.clr||'–'}</td></tr>`;
+      const nOpen=S.noteOpen===a.c;
+      h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
+        <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td>
+        <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
+        <td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td>
+        <td style="text-align:center;color:${a.dy<=0?'#ef4444':'#94a3b8'};font-weight:600">${a.dy<=0?'Expired':a.dy+'d'}</td>
+        <td style="text-align:center">${a.out?'<span class="badge b-green">Yes</span>':'<span class="badge b-red">No</span>'}</td>
+        <td style="color:#64748b;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.clr||'–'}</td>
+        <td style="font-size:10px;color:#475569">${a.icn?(nOpen?'▾':'▸')+' notes':''}</td>
+      </tr>
+      ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="9" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
     });
     h+=`</tbody></table></div></div>`;
   }
@@ -1283,7 +1317,19 @@ function _render(){
     </tr></thead><tbody>`;
     sorted.forEach(a=>{
       const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
-      h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${a.c}</td><td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td><td style="color:#94a3b8">${a.or}</td><td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td><td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td><td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td><td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td><td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td><td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td></tr>`;
+      const nOpen=S.noteOpen===a.c;
+      h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
+        <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
+        <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
+        <td style="color:#94a3b8">${a.or}</td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
+        <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
+        <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
+        <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td>
+        <td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:4px">${nOpen?'▾':'▸'} notes</span>`:''}</td>
+      </tr>
+      ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="9" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
     });
     h+=`</tbody></table></div></div>`;
   }
