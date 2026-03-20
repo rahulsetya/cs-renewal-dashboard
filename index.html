@@ -777,11 +777,11 @@ function _render(){
       const d=sc[s],p=d.n/maxN*100,act=S.drill===s;
       const dd=d.off>0?d.off-d.r25:-999,dp=d.off>0&&d.r25>0?(d.off-d.r25)/d.r25*100:-999;
       const sdelta=PREV_TS?d.n-(prevSc[s]||0):null;
-      const sdeltaHtml=sdelta!==null&&sdelta!==0?`<span style="font-size:10px;font-weight:700;color:${sdelta>0?'#34d399':'#ef4444'};margin-left:4px">${sdelta>0?'+':''}${sdelta}</span>`:'';
+      const sdeltaHtml=sdelta!==null&&sdelta!==0?`<span style="font-size:10px;font-weight:700;color:${sdelta>0?'#34d399':'#ef4444'}">${sdelta>0?'+':''}${sdelta}</span>`:'<span></span>';
       h+=`<div class="sg${act?' act':''}" onclick="ss('drill','${act?'':s}')">
         <div style="font-size:12px;color:${act?'#f8fafc':'#94a3b8'};text-align:right;font-weight:500">${SH[s]}</div>
         <div class="bb"><div class="bf" style="width:${p}%;background:${CL[s]};${d.n?'min-width:3px':''}"></div></div>
-        <div style="font-size:14px;font-weight:700;color:#f8fafc;text-align:right;display:flex;align-items:baseline;justify-content:flex-end;gap:0">${d.n}${sdeltaHtml}</div>
+        <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:0"><span style="font-size:14px;font-weight:700;color:#f8fafc;display:inline-block;min-width:30px;text-align:right">${d.n}</span><span style="display:inline-block;min-width:32px;padding-left:4px">${sdeltaHtml}</span></div>
         <div style="font-size:12px;color:#fbbf24;text-align:right;font-weight:600">${fm(d.r25)}</div>
         <div style="font-size:12px;color:#22d3ee;text-align:right;font-weight:600">${d.off>0?fm(d.off):'–'}</div>
         <div style="font-size:11px;font-weight:600;text-align:right;color:${dd===-999?'#334155':dd>=0?'#34d399':'#ef4444'}">${dd===-999?'–':(dd>=0?'+':'-')+fm(Math.abs(dd))}</div>
@@ -790,10 +790,10 @@ function _render(){
     });
     const tdd=offT-r25T,tdp=r25T?(offT-r25T)/r25T*100:0;
     const prevTot=PREV_TS?Object.values(prevSc).reduce((a,v)=>a+v,0):null;
-    const totDelta=prevTot!==null&&tot!==prevTot?`<span style="font-size:10px;font-weight:700;color:${tot>prevTot?'#34d399':'#ef4444'};margin-left:4px">${tot>prevTot?'+':''}${tot-prevTot}</span>`:'';
+    const totDeltaHtml=prevTot!==null&&tot!==prevTot?`<span style="font-size:10px;font-weight:700;color:${tot>prevTot?'#34d399':'#ef4444'}">${tot>prevTot?'+':''}${tot-prevTot}</span>`:'<span></span>';
     h+=`<div class="sg" style="margin-top:10px;padding-top:10px;border-top:1px solid #334155;cursor:default">
       <div style="font-size:12px;color:#64748b;text-align:right;font-weight:700">TOTAL</div><div></div>
-      <div style="font-size:14px;font-weight:700;color:#f8fafc;text-align:right;display:flex;align-items:baseline;justify-content:flex-end">${tot}${totDelta}</div>
+      <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:0"><span style="font-size:14px;font-weight:700;color:#f8fafc;display:inline-block;min-width:30px;text-align:right">${tot}</span><span style="display:inline-block;min-width:32px;padding-left:4px">${totDeltaHtml}</span></div>
       <div style="font-size:12px;color:#fbbf24;text-align:right;font-weight:700">${fm(r25T)}</div>
       <div style="font-size:12px;color:#22d3ee;text-align:right;font-weight:700">${fm(offT)}</div>
       <div style="font-size:11px;font-weight:700;text-align:right;color:${tdd>=0?'#34d399':'#ef4444'}">${tdd>=0?'+':'-'}${fm(Math.abs(tdd))}</div>
