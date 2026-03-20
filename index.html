@@ -1400,6 +1400,7 @@ function _render(){
     const uOnsite=[...new Set(f.map(a=>a.or||'').filter(Boolean))].sort();
     const uOwners=[...new Set(f.map(a=>a.ro))].sort();
     const uFlags=[...new Set(f.flatMap(a=>a.sg.map(s=>SIG_L[s])).filter(Boolean))].sort();
+    const uAE=[...new Set(f.map(a=>a.ae||'').filter(Boolean))].sort();
     const seToQtr=se=>{if(!se)return'';const m=se.match(/^(\d{4})-(\d{2})/);return m?`${m[1]} Q${Math.ceil(parseInt(m[2])/3)}`:'';}
     const uSubQtrs=[...new Set(f.map(a=>seToQtr(a.se)).filter(Boolean))].sort();
     const rInp=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:48%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;text-align:right;box-sizing:border-box">`;
@@ -1422,7 +1423,7 @@ function _render(){
     if(af.stage)rows=rows.filter(a=>a.s===af.stage);
     if(af.onsite)rows=rows.filter(a=>(a.or||'')===af.onsite);
     if(af.owner)rows=rows.filter(a=>a.ro===af.owner);
-    if(af.ae)rows=rows.filter(a=>(a.ae||'').toLowerCase().includes(af.ae.toLowerCase()));
+    if(af.ae)rows=rows.filter(a=>(a.ae||'')===af.ae);
     if(af.r25min)rows=rows.filter(a=>a.r25>=(parseFloat(af.r25min)||0)*1000);
     if(af.r25max)rows=rows.filter(a=>a.r25<=(parseFloat(af.r25max)||Infinity)*1000);
     if(af.offermin)rows=rows.filter(a=>a.o>=(parseFloat(af.offermin)||0)*1000);
@@ -1439,7 +1440,7 @@ function _render(){
       <th onclick="ssAcctSort('stage')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Stage ${sdArr('stage')}</div>${fSelect('stage',uStages)}</th>
       <th onclick="ssAcctSort('onsite')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Onsite Rep ${sdArr('onsite')}</div>${fSelect('onsite',uOnsite)}</th>
       <th onclick="ssAcctSort('owner')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Owner ${sdArr('owner')}</div>${fSelect('owner',uOwners)}</th>
-      ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">AE ${sdArr('ae')}</div>${fInput('ae','filter...')}</th>`:''}
+      ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">AE ${sdArr('ae')}</div>${fSelect('ae',uAE)}</th>`:''}
       <th onclick="ssAcctSort('r25')" style="${thStyle};text-align:right;color:#fbbf24"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2025 ${sdArr('r25')}</div><br><div style="display:flex;gap:2%;margin-top:0">${rInp('r25min','min $K')}${rInp('r25max','max $K')}</div></th>
       <th onclick="ssAcctSort('offer')" style="${thStyle};text-align:right;color:#22d3ee"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2026 ${sdArr('offer')}</div><br><div style="display:flex;gap:2%;margin-top:0">${rInp('offermin','min $K')}${rInp('offermax','max $K')}</div></th>
       <th onclick="ssAcctSort('delta')" style="${thStyle};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">Δ ${sdArr('delta')}</div></th>
