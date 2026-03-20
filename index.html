@@ -1137,6 +1137,7 @@ function _render(){
           <table style="width:100%;border-collapse:collapse;margin-top:10px">
             <thead><tr style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px">
               <th style="padding:4px 8px;text-align:left;font-weight:600">Account</th>
+              <th style="padding:4px 8px;text-align:left;color:#94a3b8;font-weight:600">Contract End</th>
               <th style="padding:4px 8px;text-align:left;font-weight:600">CSM</th>
               ${S.showAE?'<th style="padding:4px 8px;text-align:left;color:#60a5fa;font-weight:600">AE</th>':''}
               <th style="padding:4px 8px;text-align:right;color:#34d399;font-weight:600">2025 Rev</th>
@@ -1148,8 +1149,13 @@ function _render(){
               <th style="padding:4px 8px;text-align:center;color:#ef4444">Risk</th>
               <th style="padding:4px 8px;text-align:left">Sentiment</th>
             </tr></thead>
-            <tbody>${grp.map((r,i)=>`<tr style="border-top:1px solid #0f172a;background:${i%2===0?'#0f172a20':'transparent'}">
+            <tbody>${grp.map((r,i)=>{
+              const [ey,em]=r.endMonth?r.endMonth.split('-').map(Number):[];
+              const MNAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+              const endDisp=(ey&&em)?`${MNAMES[em-1]} ${ey}`:'–';
+              return`<tr style="border-top:1px solid #0f172a;background:${i%2===0?'#0f172a20':'transparent'}">
               <td style="padding:5px 8px;font-size:12px;font-weight:500;color:#e2e8f0">${r.acct}</td>
+              <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${endDisp}</td>
               <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${r.ro}</td>
               ${S.showAE?`<td style="padding:5px 8px;font-size:11px;color:#60a5fa;white-space:nowrap">${r.ae||'–'}</td>`:''}
               <td style="padding:5px 8px;font-size:12px;font-weight:600;color:${r.rev>0?'#34d399':'#475569'};text-align:right">${r.rev>0?fm(r.rev):'–'}</td>
@@ -1160,7 +1166,7 @@ function _render(){
               <td style="padding:5px 8px;text-align:center;color:${r.mt>0?'#fbbf24':'#374151'};font-weight:600;font-size:12px">${r.mt||'–'}</td>
               <td style="padding:5px 8px;text-align:center">${r.rsk?'<span style="color:#ef4444;font-size:11px">⚠</span>':'<span style="color:#374151">–</span>'}</td>
               <td style="padding:5px 8px;font-size:11px;color:#94a3b8">${r.sentiment||'–'}</td>
-            </tr>`).join('')}</tbody>
+            </tr>`;}).join('')}</tbody>
           </table>
         </div>`:''}
       </div>`;
