@@ -1399,6 +1399,7 @@ function _render(){
     const uStages=[...new Set(f.map(a=>a.s))].sort((a,b)=>ST.indexOf(a)-ST.indexOf(b));
     const uOnsite=[...new Set(f.map(a=>a.or||'').filter(Boolean))].sort();
     const uOwners=[...new Set(f.map(a=>a.ro))].sort();
+    const uFlags=[...new Set(f.flatMap(a=>a.sg.map(s=>SIG_L[s])).filter(Boolean))].sort();
 
     // Sort functions
     const sortFns={
@@ -1422,7 +1423,7 @@ function _render(){
     if(af.r25)rows=rows.filter(a=>fm(a.r25).toLowerCase().includes(af.r25.toLowerCase()));
     if(af.offer)rows=rows.filter(a=>a.o>0?fm(a.o).toLowerCase().includes(af.offer.toLowerCase()):af.offer==='–'||af.offer==='-');
     if(af.subend)rows=rows.filter(a=>String(a.se||'').includes(af.subend));
-    if(af.flags)rows=rows.filter(a=>a.sg.map(s=>SIG_L[s]).join(' ').toLowerCase().includes(af.flags.toLowerCase()));
+    if(af.flags)rows=rows.filter(a=>a.sg.some(s=>SIG_L[s]===af.flags));
 
     // Apply sort
     if(sortFns[as.col])rows=rows.sort((a,b)=>sortFns[as.col](a,b)*(as.dir==='asc'?1:-1));
@@ -1438,7 +1439,7 @@ function _render(){
       <th onclick="ssAcctSort('offer')" style="${thStyle};text-align:right;color:#22d3ee"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2026 ${sdArr('offer')}</div>${fInput('offer','filter...','right')}</th>
       <th onclick="ssAcctSort('delta')" style="${thStyle};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">Δ ${sdArr('delta')}</div></th>
       <th onclick="ssAcctSort('subend')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Sub End ${sdArr('subend')}</div>${fInput('subend','YYYY-MM')}</th>
-      <th onclick="ssAcctSort('flags')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Flags ${sdArr('flags')}</div>${fInput('flags','filter...')}</th>
+      <th onclick="ssAcctSort('flags')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Flags ${sdArr('flags')}</div>${fSelect('flags',uFlags)}</th>
     </tr></thead><tbody>`;
     rows.forEach(a=>{
       const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
