@@ -38,7 +38,7 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .sg:hover{background:#293548}.sg.act{background:#334155}
 .bb{background:#0f172a;border-radius:5px;height:22px;overflow:hidden;position:relative}
 .bf{height:100%;border-radius:5px;transition:width .4s ease;position:absolute;top:0;left:0}
-.dr2{margin-top:16px;padding:16px;background:#0f172a;border-radius:8px;overflow-y:auto;max-height:calc(2*(100vh - 420px))}
+.dr2{margin-top:16px;padding:0 16px 16px;background:#0f172a;border-radius:8px;overflow-y:auto;max-height:calc(2*(100vh - 420px))}
 .st{max-height:calc(100vh - 260px);overflow-y:auto}
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin:1px 2px}
 .b-red{background:#ef444422;color:#ef4444}.b-orange{background:#fb923c22;color:#fb923c}.b-yellow{background:#fbbf2422;color:#fbbf24}.b-blue{background:#60a5fa22;color:#60a5fa}.b-purple{background:#a78bfa22;color:#a78bfa}.b-green{background:#34d39922;color:#34d399}
@@ -846,7 +846,7 @@ function _render(){
       if(da.length||stageAccts.length){
         const colSpan=S.showAE?8:7;
         h+=`<div class="dr2">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-top:16px">
             <span style="font-size:13px;font-weight:600;color:${CL[S.drill]}">${SH[S.drill]} — ${da.length}${da.length!==stageAccts.length?` of ${stageAccts.length}`:''} accounts</span>
             ${drillHasFilters?`<button onclick="S.drillFilter={};S.drillSort={col:'r25',dir:'desc'};render()" style="background:#ef444420;color:#ef4444;border:1px solid #ef444440;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
           </div>
