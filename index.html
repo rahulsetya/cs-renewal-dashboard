@@ -284,6 +284,15 @@ async function fetchEngSheet(token, sheetName){
   return null;
 }
 
+// Normalize abbreviated CSM names from MASTER sheet column AI → full names used in VALID_OWNERS
+const CSM_NAME_MAP={
+  'alex c':'Alex Cherecwich','courtney k':'Courtney Krieg','lucy g':'Lucy Garber',
+  'juwan p':'Juwan Pryce','helen r':'Helen Ramsay','andreas s':'Andreas Santikos',
+  'joe r':'Joe Romanoff','christina c':'Christina Chumak','scale':'Support iConnections',
+  'kristan h':'Kristan Hester'
+};
+function normCsm(v){const k=String(v||'').trim();return CSM_NAME_MAP[k.toLowerCase()]||k;}
+
 async function fetchAllEngagement(token){
   const engMap={};
   const tmpRaw=[];
@@ -311,7 +320,7 @@ async function fetchAllEngagement(token){
         const row=data.values[i];
         const acct=String(ec(row,'Account Name')||'').trim();
         if(!acct)continue;
-        const ro=String(row[CSM_COL]||'').trim();   // column AI
+        const ro=normCsm(row[CSM_COL]);               // column AI → full CSM name
         const ae=String(row[1]||'').trim();          // column B = Sales Rep
         const rawEnd=String(row[5]||'').trim();      // column F = contract end
         const rev=parseNum(row[4]);                  // column E = 2025 revenue
