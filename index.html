@@ -794,12 +794,11 @@ function _render(){
       const ds=S.drillSort||{col:'r25',dir:'desc'};
       const df=S.drillFilter||{};
       const dsd=k=>ds.col===k?(ds.dir==='asc'?'▲':'▼'):'<span style="opacity:.3">⇅</span>';
-      const dThS='cursor:pointer;user-select:none;vertical-align:top;padding-bottom:4px';
-      const dSelS='width:100%;margin-top:2px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;box-sizing:border-box';
-      const dInpS='width:100%;margin-top:2px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;box-sizing:border-box';
-      const dSel=(col,opts)=>{const cur=df[col]||'';return`<br><select onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" style="${dSelS}"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
-      const dInp=(col,ph,align='left')=>`<br><input onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" value="${(df[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${dInpS};text-align:${align}">`;
-      const dRng=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" value="${(df[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:48%;margin-top:2px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;text-align:right;box-sizing:border-box">`;
+      const dThS='cursor:pointer;user-select:none;vertical-align:top;padding:6px 8px 6px';
+      const dCtrlS='width:100%;margin-top:3px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;padding:2px 5px;font-family:inherit;box-sizing:border-box;outline:none';
+      const dSel=(col,opts)=>{const cur=df[col]||'';return`<select onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" style="${dCtrlS};padding:2px 4px"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
+      const dRng=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" value="${(df[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${dCtrlS};text-align:right">`;
+      const dRngPair=(c1,c2)=>`<div style="margin-top:3px;display:flex;flex-direction:column;gap:2px">${dRng(c1,'min $K')}${dRng(c2,'max $K')}</div>`;
       const seToQtr2=se=>{if(!se)return'';const m=se.match(/^(\d{4})-(\d{2})/);return m?`${m[1]} Q${Math.ceil(parseInt(m[2])/3)}`:'';}
 
       const stageAccts=f.filter(d=>d.s===S.drill);
@@ -843,14 +842,14 @@ function _render(){
             ${drillHasFilters?`<button onclick="S.drillFilter={};S.drillSort={col:'r25',dir:'desc'};render()" style="background:#ef444420;color:#ef4444;border:1px solid #ef444440;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
           </div>
           <table><thead style="position:sticky;top:0;background:#0f172a;z-index:1"><tr>
-            <th onclick="ssDrillSort('account')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">Account ${dsd('account')}</div></th>
-            <th onclick="ssDrillSort('owner')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">Owner ${dsd('owner')}</div>${dSel('owner',uDOwners)}</th>
-            ${S.showAE?`<th onclick="ssDrillSort('ae')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">AE ${dsd('ae')}</div>${dSel('ae',uDAE)}</th>`:''}
-            <th onclick="ssDrillSort('r25')" style="${dThS};text-align:right;color:#fbbf24"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">2025 ${dsd('r25')}</div><br><div style="display:flex;gap:2%">${dRng('r25min','min $K')}${dRng('r25max','max $K')}</div></th>
-            <th onclick="ssDrillSort('offer')" style="${dThS};text-align:right;color:#22d3ee"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">2026 ${dsd('offer')}</div><br><div style="display:flex;gap:2%">${dRng('offermin','min $K')}${dRng('offermax','max $K')}</div></th>
-            <th onclick="ssDrillSort('delta')" style="${dThS};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">Δ ${dsd('delta')}</div></th>
-            <th onclick="ssDrillSort('subend')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">Sub End ${dsd('subend')}</div>${dSel('subend',uDSub)}</th>
-            <th onclick="ssDrillSort('flags')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">Flags ${dsd('flags')}${dfFlags.length?`<span style="background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:3px">${dfFlags.length}</span>`:''}</div>${dFChk(uDFlags,dfFlags)}</th>
+            <th onclick="ssDrillSort('account')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Account ${dsd('account')}</div></th>
+            <th onclick="ssDrillSort('owner')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Owner ${dsd('owner')}</div>${dSel('owner',uDOwners)}</th>
+            ${S.showAE?`<th onclick="ssDrillSort('ae')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">AE ${dsd('ae')}</div>${dSel('ae',uDAE)}</th>`:''}
+            <th onclick="ssDrillSort('r25')" style="${dThS};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${dsd('r25')}</div>${dRngPair('r25min','r25max')}</th>
+            <th onclick="ssDrillSort('offer')" style="${dThS};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#22d3ee">2026 ${dsd('offer')}</div>${dRngPair('offermin','offermax')}</th>
+            <th onclick="ssDrillSort('delta')" style="${dThS};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#94a3b8">Δ ${dsd('delta')}</div></th>
+            <th onclick="ssDrillSort('subend')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Sub End ${dsd('subend')}</div>${dSel('subend',uDSub)}</th>
+            <th onclick="ssDrillSort('flags')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Flags ${dsd('flags')}${dfFlags.length?`<span style="background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:3px">${dfFlags.length}</span>`:''}</div>${dFChk(uDFlags,dfFlags)}</th>
           </tr></thead><tbody>`;
         da.forEach(a=>{
           const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
