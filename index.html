@@ -769,8 +769,7 @@ function _render(){
     h+=`<button class="tab${S.tab===tid?' a':''}${bc>0?' al':''}"${bc>0?` data-count="${bc}"`:''}  onclick="ss('tab','${tid}')">${lbl}</button>`;
   });
   h+=`</div>`;
-  h+=`<div style="flex:1;overflow:hidden;display:flex;flex-direction:column">`;
-  if(S.tab!=='pipeline'&&S.tab!=='accounts') h+=`<div style="flex:1;overflow-y:auto;min-height:0;padding-bottom:16px">`;
+  h+=`<div style="flex:1;overflow-y:auto;min-height:0;padding-bottom:16px">`;
 
   // ── PIPELINE ──
   if(S.tab==='pipeline'){
@@ -850,7 +849,7 @@ function _render(){
 
       if(da.length||stageAccts.length){
         const colSpan=S.showAE?8:7;
-        h+=`<div class="dr2" style="flex:1;overflow-y:auto;min-height:0;max-height:none;margin-top:16px;padding:16px;background:#0f172a;border-radius:8px">
+        h+=`<div class="dr2">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <span style="font-size:13px;font-weight:600;color:${CL[S.drill]}">${SH[S.drill]} — ${da.length}${da.length!==stageAccts.length?` of ${stageAccts.length}`:''} accounts</span>
             ${drillHasFilters?`<button onclick="S.drillFilter={};S.drillSort={col:'r25',dir:'desc'};render()" style="background:#ef444420;color:#ef4444;border:1px solid #ef444440;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
@@ -1522,12 +1521,12 @@ function _render(){
     if(sortFns[as.col])rows=rows.sort((a,b)=>sortFns[as.col](a,b)*(as.dir==='asc'?1:-1));
 
     const colCount=S.showAE?10:9;
-    h+=`<div class="cd" style="padding:0;overflow:hidden;flex:1;display:flex;flex-direction:column">
-    <div style="padding:8px 14px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    h+=`<div class="cd" style="padding:0;overflow:hidden">
+    <div style="padding:8px 14px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between">
       <span style="font-size:12px;color:#64748b">${rows.length}${rows.length!==f.length?` of ${f.length}`:''} accounts</span>
       ${hasFilters?`<button onclick="S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};render()" style="font-size:10px;padding:2px 10px;background:#1e293b;border:1px solid #ef4444;color:#ef4444;border-radius:4px;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
     </div>
-    <div class="st" style="flex:1;overflow-y:auto;min-height:0"><table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
+    <div class="st"><table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
       <th onclick="ssAcctSort('account')" style="${thStyle};width:170px"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div></th>
       <th onclick="ssAcctSort('stage')" style="${thStyle};width:112px"><div style="display:flex;align-items:center;gap:3px">Stage ${sdArr('stage')}</div>${fSelect('stage',uStages)}</th>
       <th onclick="ssAcctSort('onsite')" style="${thStyle};width:108px"><div style="display:flex;align-items:center;gap:3px">Onsite Rep ${sdArr('onsite')}</div>${fSelect('onsite',uOnsite)}</th>
@@ -1560,11 +1559,9 @@ function _render(){
       ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="${colCount}" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
     });
     h+=`</tbody></table></div></div>`;
-    h+=`</div>`;// close tab-content scroll wrapper
     if(S.acctFlagOpen&&S.acctFlagRect){const _am=S.acctFlagMode;const _aBtnS=(active)=>`font-size:9px;padding:2px 10px;border-radius:3px;cursor:pointer;font-family:inherit;border:1px solid ${active?'#3b82f6':'#1e3a5f'};background:${active?'#1e3a5f':'transparent'};color:${active?'#60a5fa':'#475569'}`;h+=`<div onclick="event.stopPropagation()" style="position:fixed;top:${S.acctFlagRect.top}px;left:${S.acctFlagRect.left}px;z-index:9999;background:#0a1628;border:1px solid #334155;border-radius:4px;min-width:200px;max-height:300px;overflow-y:auto;box-shadow:0 6px 24px rgba(0,0,0,.8)"><div onclick="event.stopPropagation();ssAcctFlagToggle('__any__',${!afFlags.includes('__any__')})" style="padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${afFlags.includes('__any__')?'#1e3a5f':'transparent'};color:${afFlags.includes('__any__')?'#60a5fa':'#94a3b8'};border-bottom:1px solid #0f1f33"><span style="font-size:11px;width:13px;flex-shrink:0;text-align:center">${afFlags.includes('__any__')?'✓':''}</span><span style="font-size:11px;font-style:italic">Has Any Flag</span></div>${uFlags.map(o=>{const on=afFlags.includes(o);return`<div onclick="event.stopPropagation();ssAcctFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:11px;width:13px;flex-shrink:0;text-align:center">${on?'✓':''}</span><span style="font-size:11px">${o}</span></div>`;}).join('')}<div onclick="event.stopPropagation()" style="padding:6px 10px;border-top:1px solid #0f1f33;display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#475569;flex:1">Match:</span><button onclick="event.stopPropagation();S.acctFlagMode='any';render()" style="${_aBtnS(_am==='any')}">Any</button><button onclick="event.stopPropagation();S.acctFlagMode='all';render()" style="${_aBtnS(_am==='all')}">All</button></div></div>`;}
   }
 
-  if(S.tab!=='pipeline'&&S.tab!=='accounts') h+=`</div>`;
   document.getElementById('app').innerHTML=h;
   if(_flagDDCloseListener){document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;}
   if(S.acctFlagOpen||S.drillFlagOpen){requestAnimationFrame(()=>{_flagDDCloseListener=function(){S.acctFlagOpen=false;S.drillFlagOpen=false;document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;render();};document.addEventListener('click',_flagDDCloseListener);});}
