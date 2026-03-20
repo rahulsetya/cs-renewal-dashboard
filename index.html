@@ -1061,6 +1061,13 @@ function _render(){
     const efGm=rows.filter(r=>r.gm).length;
     const efAp=rows.filter(r=>r.ap).length;
     const efNoOut=efTotal-efOut;
+    const revSum=arr=>arr.reduce((a,r)=>a+(r.rev||0),0);
+    const efRevTotal=revSum(rows);
+    const efRevOut=revSum(rows.filter(r=>r.out));
+    const efRevGms=revSum(rows.filter(r=>r.gms));
+    const efRevGm=revSum(rows.filter(r=>r.gm));
+    const efRevAp=revSum(rows.filter(r=>r.ap));
+    const efRevNoOut=revSum(rows.filter(r=>!r.out));
     const efConn=(prev,cur)=>{
       const dn=prev-cur,dp=prev>0?Math.round(dn/prev*100):100;
       return `<div style="flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:36px">
@@ -1069,7 +1076,7 @@ function _render(){
         <div style="font-size:10px;color:#94a3b8">(-${dp}%)</div>
       </div>`;
     };
-    const efTip=(label,bg,num,total,prev)=>{
+    const efTip=(label,bg,num,total,prev,rev)=>{
       const pct2=total>0?Math.round(num/total*100):0;
       const conv=prev>0?Math.round(num/prev*100):null;
       return `<div class="fbar-tip">
@@ -1079,13 +1086,14 @@ function _render(){
         <div style="display:flex;flex-direction:column;gap:4px;font-size:11px">
           <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Accounts</span><span style="color:#e2e8f0;font-weight:600">${num} of ${total}</span></div>
           <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Pct of book</span><span style="color:#e2e8f0;font-weight:600">${pct2}%</span></div>
+          ${rev>0?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Revenue</span><span style="color:#34d399;font-weight:600">${fm(rev)}</span></div>`:''}
           ${conv!==null?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Conv from prev</span><span style="color:#34d399;font-weight:600">${conv}%</span></div>`:''}
         </div>
       </div>`;
     };
-    const efBar=(flex,bg,num,label,prev)=>`
+    const efBar=(flex,bg,num,label,prev,rev)=>`
       <div class="fbar" style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
-        ${efTip(label,bg,num,efTotal,prev)}
+        ${efTip(label,bg,num,efTotal,prev,rev)}
         <div style="height:100px;background:${bg};border-radius:4px 4px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
           <span style="font-size:18px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'};line-height:1">${num}</span>
           <span style="font-size:10px;font-weight:600;color:${bg==='#4b5563'?'#6b7280':'rgba(255,255,255,0.65)'}">${efTotal>0?Math.round(num/efTotal*100):0}%</span>
@@ -1107,15 +1115,15 @@ function _render(){
         <span style="margin-left:auto;font-size:11px;color:#475569">All engagement accounts</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:0">
-        ${efBar(efNoOut,'#4b5563',efNoOut,'No Outreach',null)}
+        ${efBar(efNoOut,'#4b5563',efNoOut,'No Outreach',null,efRevNoOut)}
         ${efConn(efTotal,efOut)}
-        ${efBar(efOut,'#60a5fa',efOut,'Outreach Sent',efTotal)}
+        ${efBar(efOut,'#60a5fa',efOut,'Outreach Sent',efTotal,efRevOut)}
         ${efConn(efOut,efGms)}
-        ${efBar(efGms,'#fbbf24',efGms,'GM Scheduled',efOut)}
+        ${efBar(efGms,'#fbbf24',efGms,'GM Scheduled',efOut,efRevGms)}
         ${efConn(efGms,efGm)}
-        ${efBar(efGm,'#34d399',efGm,'GM Completed',efGms)}
+        ${efBar(efGm,'#34d399',efGm,'GM Completed',efGms,efRevGm)}
         ${efConn(efGm,efAp)}
-        ${efBar(Math.max(efAp,1),'#a78bfa',efAp,'AP Delivered',efGm)}
+        ${efBar(Math.max(efAp,1),'#a78bfa',efAp,'AP Delivered',efGm,efRevAp)}
       </div>
     </div>`;
 
