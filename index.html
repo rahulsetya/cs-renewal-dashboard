@@ -1451,11 +1451,10 @@ function _render(){
     const as=S.acctSort||{col:'stage',dir:'asc'};
     const af=S.acctFilter||{};
     const sdArr=k=>as.col===k?(as.dir==='asc'?'▲':'▼'):'<span style="opacity:.3">⇅</span>';
-    const thStyle='cursor:pointer;user-select:none;white-space:nowrap;vertical-align:top;padding-bottom:6px';
-    const selStyle='width:100%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;box-sizing:border-box';
-    const inpStyle='width:100%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 5px;font-family:inherit;box-sizing:border-box';
-    const fSelect=(col,opts)=>{const cur=af[col]||'';return`<br><select onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" style="${selStyle}"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
-    const fInput=(col,ph,align='left')=>`<br><input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${inpStyle};text-align:${align}">`;
+    const thStyle='cursor:pointer;user-select:none;white-space:nowrap;vertical-align:top;padding:6px 8px 6px';
+    const aCtrlS='width:100%;margin-top:3px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;padding:2px 5px;font-family:inherit;box-sizing:border-box;outline:none';
+    const fSelect=(col,opts)=>{const cur=af[col]||'';return`<select onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" style="${aCtrlS};padding:2px 4px"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
+    const fInput=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${aCtrlS}">`;
     // Unique sorted values for dropdown filters
     const uStages=[...new Set(f.map(a=>a.s))].sort((a,b)=>ST.indexOf(a)-ST.indexOf(b));
     const uOnsite=[...new Set(f.map(a=>a.or||'').filter(Boolean))].sort();
@@ -1464,7 +1463,8 @@ function _render(){
     const uAE=[...new Set(f.map(a=>a.ae||'').filter(Boolean))].sort();
     const seToQtr=se=>{if(!se)return'';const m=se.match(/^(\d{4})-(\d{2})/);return m?`${m[1]} Q${Math.ceil(parseInt(m[2])/3)}`:'';}
     const uSubQtrs=[...new Set(f.map(a=>seToQtr(a.se)).filter(Boolean))].sort();
-    const rInp=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:48%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;text-align:right;box-sizing:border-box">`;
+    const rInp=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${aCtrlS};text-align:right">`;
+    const rInpPair=(c1,c2)=>`<div style="margin-top:3px;display:flex;flex-direction:column;gap:2px">${rInp(c1,'min $K')}${rInp(c2,'max $K')}</div>`;
 
     const fChk=(opts,selArr)=>{const lbl=selArr.length?`${selArr.length} selected`:'All flags';return`<div style="position:relative" onclick="event.stopPropagation()"><div onclick="S.acctFlagOpen=!S.acctFlagOpen;render()" style="cursor:pointer;margin-top:3px;padding:2px 6px;background:#0a1628;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;display:flex;align-items:center;justify-content:space-between;gap:4px;white-space:nowrap"><span>${lbl}</span><span style="font-size:8px">▾</span></div>${S.acctFlagOpen?`<div style="position:absolute;top:calc(100% + 2px);left:0;z-index:200;background:#0a1628;border:1px solid #334155;border-radius:4px;min-width:150px;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.5)">${opts.map(o=>{const on=selArr.includes(o);return`<div onclick="ssAcctFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:9px;width:10px;text-align:center">${on?'✓':''}</span><span style="font-size:10px">${o}</span></div>`;}).join('')}</div>`:''}</div>`;};
 
@@ -1513,8 +1513,8 @@ function _render(){
       <th onclick="ssAcctSort('onsite')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Onsite Rep ${sdArr('onsite')}</div>${fSelect('onsite',uOnsite)}</th>
       <th onclick="ssAcctSort('owner')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Owner ${sdArr('owner')}</div>${fSelect('owner',uOwners)}</th>
       ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">AE ${sdArr('ae')}</div>${fSelect('ae',uAE)}</th>`:''}
-      <th onclick="ssAcctSort('r25')" style="${thStyle};text-align:right;color:#fbbf24"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2025 ${sdArr('r25')}</div><br><div style="display:flex;gap:2%;margin-top:0">${rInp('r25min','min $K')}${rInp('r25max','max $K')}</div></th>
-      <th onclick="ssAcctSort('offer')" style="${thStyle};text-align:right;color:#22d3ee"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2026 ${sdArr('offer')}</div><br><div style="display:flex;gap:2%;margin-top:0">${rInp('offermin','min $K')}${rInp('offermax','max $K')}</div></th>
+      <th onclick="ssAcctSort('r25')" style="${thStyle};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;color:#fbbf24">2025 ${sdArr('r25')}</div>${rInpPair('r25min','r25max')}</th>
+      <th onclick="ssAcctSort('offer')" style="${thStyle};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;color:#22d3ee">2026 ${sdArr('offer')}</div>${rInpPair('offermin','offermax')}</th>
       <th onclick="ssAcctSort('delta')" style="${thStyle};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">Δ ${sdArr('delta')}</div></th>
       <th onclick="ssAcctSort('subend')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Sub End ${sdArr('subend')}</div>${fSelect('subend',uSubQtrs)}</th>
       <th onclick="ssAcctSort('flags')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Flags ${sdArr('flags')}${afFlags.length?`<span style="background:#60a5fa;color:#fff;border-radius:8px;padding:0 5px;font-size:9px;font-weight:700">${afFlags.length}</span>`:''}</div>${fChk(uFlags,afFlags)}</th>
