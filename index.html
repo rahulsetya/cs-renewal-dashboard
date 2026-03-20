@@ -91,7 +91,7 @@ const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
 const SNAPSHOT_KEY = 'cs_renewal_snapshot_v1';
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL'};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -562,7 +562,7 @@ async function loadData(){
   }
 }
 async function refreshData(){await loadData();}
-function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill')S.drill=v||null;else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else S[k]=v;render();}
+function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill')S.drill=v||null;else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function roDisp(ro,ae){return S.showAE&&ae?`${ro}<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`:ro;}
 async function init(){
   const hash=new URLSearchParams(location.hash.replace('#',''));
@@ -995,21 +995,76 @@ function _render(){
   // ── ALL ENGAGEMENT ──
   const toQuarter=em=>{if(!em)return'__none__';const[yr,mo]=em.split('-');return`${yr}-Q${Math.ceil(parseInt(mo)/3)}`;};
   if(S.tab==='alleng'){
-    const rows=S.owner==='ALL'?ENG_RAW:ENG_RAW.filter(r=>r.ro===S.owner);
-    // Group by quarter
+    const baseRows=S.owner==='ALL'?ENG_RAW:ENG_RAW.filter(r=>r.ro===S.owner);
+    // Build quarter list for filter
+    const allGroups={};
+    baseRows.forEach(r=>{const k=toQuarter(r.endMonth);if(!allGroups[k])allGroups[k]=[];allGroups[k].push(r);});
+    const allQtrs=Object.keys(allGroups).filter(k=>k!=='__none__').sort();
+    if(allGroups['__none__'])allQtrs.push('__none__');
+    const qLabel=k=>k==='__none__'?'No End Date':k.replace(/(\d{4})-/,'$1 ');
+
+    // Apply quarter filter
+    const rows=S.engQtrFilter==='ALL'?baseRows:(allGroups[S.engQtrFilter]||[]);
+
+    // ── Funnel ──
+    const efTotal=rows.length;
+    const efOut=rows.filter(r=>r.out).length;
+    const efGms=rows.filter(r=>r.gms).length;
+    const efGm=rows.filter(r=>r.gm).length;
+    const efAp=rows.filter(r=>r.ap).length;
+    const efNoOut=efTotal-efOut;
+    const efConn=(prev,cur)=>{
+      const dn=prev-cur,dp=prev>0?Math.round(dn/prev*100):100;
+      return `<div style="flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:36px">
+        <div style="color:#60a5fa;font-size:13px;margin-bottom:2px">→</div>
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;line-height:1.2">-${dn}</div>
+        <div style="font-size:10px;color:#94a3b8">(-${dp}%)</div>
+      </div>`;
+    };
+    const efBar=(flex,bg,num,label)=>`
+      <div style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
+        <div style="height:100px;background:${bg};border-radius:4px 4px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px">
+          <span style="font-size:18px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'}">${num}</span>
+        </div>
+        <div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-top:6px;white-space:nowrap">${label}</div>
+      </div>`;
+
+    // Quarter filter buttons
+    const qBtns=[['ALL','All'],...allQtrs.map(k=>[k,qLabel(k)])].map(([val,lbl])=>{
+      const active=S.engQtrFilter===val;
+      return `<button onclick="ss('engQtrFilter','${val}')" style="padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid ${active?'#60a5fa':'#334155'};background:${active?'#1e3a5f':'#1e293b'};color:${active?'#60a5fa':'#64748b'}">${lbl}</button>`;
+    }).join('');
+
+    h+=`<div class="cd" style="padding:20px;margin-bottom:16px">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:15px;font-weight:700;color:#f8fafc">Sprint Funnel</span>
+        <span style="font-size:26px;font-weight:700;color:#f8fafc">${efTotal}</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:12px">${qBtns}</div>
+        <span style="margin-left:auto;font-size:11px;color:#475569">All engagement accounts</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:0">
+        ${efBar(efNoOut,'#4b5563',efNoOut,'No Outreach')}
+        ${efConn(efTotal,efOut)}
+        ${efBar(efOut,'#60a5fa',efOut,'Outreach Sent')}
+        ${efConn(efOut,efGms)}
+        ${efBar(efGms,'#fbbf24',efGms,'GM Scheduled')}
+        ${efConn(efGms,efGm)}
+        ${efBar(efGm,'#34d399',efGm,'GM Completed')}
+        ${efConn(efGm,efAp)}
+        ${efBar(Math.max(efAp,1),'#a78bfa',efAp,'AP Delivered')}
+      </div>
+    </div>`;
+
+    // ── Quarter breakdown ──
     const groups={};
-    rows.forEach(r=>{
-      const key=toQuarter(r.endMonth);
-      if(!groups[key])groups[key]=[];
-      groups[key].push(r);
-    });
+    rows.forEach(r=>{const key=toQuarter(r.endMonth);if(!groups[key])groups[key]=[];groups[key].push(r);});
     const quarters=Object.keys(groups).filter(k=>k!=='__none__').sort();
     if(groups['__none__'])quarters.push('__none__');
     const yn=(v,yc,nc)=>`<span style="font-size:11px;color:${v?yc:nc}">${v?'✓':'✗'}</span>`;
     h+=`<div style="display:flex;flex-direction:column;gap:8px">`;
     quarters.forEach(key=>{
       const grp=groups[key].sort((a,b)=>a.ro.localeCompare(b.ro)||a.acct.localeCompare(b.acct));
-      const label=key==='__none__'?'No End Date':key.replace(/(\d{4})-/,'$1 ');
+      const label=qLabel(key);
       const tot=grp.length,out=grp.filter(r=>r.out).length,gms=grp.filter(r=>r.gms).length,gm=grp.filter(r=>r.gm).length,rsk=grp.filter(r=>r.rsk).length;
       const isOpen=S.aeDrill===key;
       const safeKey=key.replace(/'/g,"\\'");
