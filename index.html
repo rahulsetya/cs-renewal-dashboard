@@ -864,8 +864,10 @@ function _render(){
         da.forEach(a=>{
           const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
           const nOpen=S.noteOpen===a.c;
+          const prevStg=PREV_TS?PREV[a.c]:null;
+          const movedFrom=prevStg&&prevStg!==a.s?`<div style="font-size:10px;color:#ef4444;margin-top:2px;font-weight:400"><span style="font-weight:700">×</span> from <span style="color:#fb923c">${SH[prevStg]||prevStg}</span></div>`:'';
           h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,'\\\'')}')" title="Click to toggle iCon Notes">
-            <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
+            <td style="color:#e2e8f0;font-weight:500;vertical-align:middle">${a.c}${movedFrom}</td>
             <td style="color:#94a3b8">${a.ro}</td>
             ${S.showAE?`<td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>`:''}
             <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
