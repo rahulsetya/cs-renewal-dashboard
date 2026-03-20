@@ -113,7 +113,7 @@ function saveDataCache(d,er,lu){
   catch(e){console.warn('Cache save failed (storage full?):',e);}
 }
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{}};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -659,7 +659,7 @@ async function loadData(forceRefresh=false){
   }
 }
 async function refreshData(){await loadData(true);}
-function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
+function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
@@ -831,7 +831,8 @@ function _render(){
       };
       if(dSortFns[ds.col])da=da.sort((a,b)=>dSortFns[ds.col](a,b)*(ds.dir==='asc'?1:-1));
 
-      const dFChk=(opts,selArr)=>`<select multiple onclick="event.stopPropagation()" onchange="ssDrillFlagsSet(Array.from(this.selectedOptions).map(o=>o.value))" size="${Math.min(opts.length,4)}" style="width:100%;margin-top:2px;background:#0a1628;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px;font-family:inherit;box-sizing:border-box">${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}" ${selArr.includes(o)?'selected':''}>${o}</option>`).join('')}</select>`;
+      const dFChk=(opts,selArr)=>{const lbl=selArr.length?`${selArr.length} selected`:'All flags';return`<div style="position:relative" onclick="event.stopPropagation()"><div onclick="S.drillFlagOpen=!S.drillFlagOpen;render()" style="cursor:pointer;margin-top:2px;padding:2px 6px;background:#0a1628;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;display:flex;align-items:center;justify-content:space-between;gap:4px;white-space:nowrap"><span>${lbl}</span><span style="font-size:8px">▾</span></div>${S.drillFlagOpen?`<div style="position:absolute;top:calc(100% + 2px);left:0;z-index:200;background:#0a1628;border:1px solid #334155;border-radius:4px;min-width:150px;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.5)">${opts.map(o=>{const on=selArr.includes(o);return`<div onclick="ssDrillFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:9px;width:10px;text-align:center">${on?'✓':''}</span><span style="font-size:10px">${o}</span></div>`;}).join('')}</div>`:''}</div>`;};
+
       const drillHasFilters=Object.keys(df).some(k=>k==='flags'?dfFlags.length>0:df[k]);
 
       if(da.length||stageAccts.length){
@@ -1466,7 +1467,8 @@ function _render(){
     const uSubQtrs=[...new Set(f.map(a=>seToQtr(a.se)).filter(Boolean))].sort();
     const rInp=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:48%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;text-align:right;box-sizing:border-box">`;
 
-    const fChk=(opts,selArr,setFn)=>`<select multiple onclick="event.stopPropagation()" onchange="${setFn}(Array.from(this.selectedOptions).map(o=>o.value))" size="${Math.min(opts.length,4)}" style="width:100%;margin-top:3px;background:#0a1628;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px;font-family:inherit;box-sizing:border-box">${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}" ${(selArr||[]).includes(o)?'selected':''}>${o}</option>`).join('')}</select>`;
+    const fChk=(opts,selArr)=>{const lbl=selArr.length?`${selArr.length} selected`:'All flags';return`<div style="position:relative" onclick="event.stopPropagation()"><div onclick="S.acctFlagOpen=!S.acctFlagOpen;render()" style="cursor:pointer;margin-top:3px;padding:2px 6px;background:#0a1628;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;display:flex;align-items:center;justify-content:space-between;gap:4px;white-space:nowrap"><span>${lbl}</span><span style="font-size:8px">▾</span></div>${S.acctFlagOpen?`<div style="position:absolute;top:calc(100% + 2px);left:0;z-index:200;background:#0a1628;border:1px solid #334155;border-radius:4px;min-width:150px;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.5)">${opts.map(o=>{const on=selArr.includes(o);return`<div onclick="ssAcctFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:9px;width:10px;text-align:center">${on?'✓':''}</span><span style="font-size:10px">${o}</span></div>`;}).join('')}</div>`:''}</div>`;};
+
     const afFlags=Array.isArray(af.flags)?af.flags:[];
     const hasFilters=Object.keys(af).some(k=>k==='flags'?afFlags.length>0:af[k]);
 
@@ -1516,7 +1518,7 @@ function _render(){
       <th onclick="ssAcctSort('offer')" style="${thStyle};text-align:right;color:#22d3ee"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2026 ${sdArr('offer')}</div><br><div style="display:flex;gap:2%;margin-top:0">${rInp('offermin','min $K')}${rInp('offermax','max $K')}</div></th>
       <th onclick="ssAcctSort('delta')" style="${thStyle};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">Δ ${sdArr('delta')}</div></th>
       <th onclick="ssAcctSort('subend')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Sub End ${sdArr('subend')}</div>${fSelect('subend',uSubQtrs)}</th>
-      <th onclick="ssAcctSort('flags')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Flags ${sdArr('flags')}${afFlags.length?`<span style="background:#60a5fa;color:#fff;border-radius:8px;padding:0 5px;font-size:9px;font-weight:700">${afFlags.length}</span>`:''}</div>${fChk(uFlags,afFlags,'ssAcctFlagsSet')}</th>
+      <th onclick="ssAcctSort('flags')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Flags ${sdArr('flags')}${afFlags.length?`<span style="background:#60a5fa;color:#fff;border-radius:8px;padding:0 5px;font-size:9px;font-weight:700">${afFlags.length}</span>`:''}</div>${fChk(uFlags,afFlags)}</th>
     </tr></thead><tbody>`;
     rows.forEach(a=>{
       const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
