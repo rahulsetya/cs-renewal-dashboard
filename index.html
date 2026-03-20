@@ -94,12 +94,17 @@ const SNAPSHOT_KEY  = 'cs_renewal_snapshot_v1';
 const DATA_CACHE_KEY = 'cs_data_cache_v1';
 const DATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-function loadDataCache(){
+function loadDataCache(allowStale=false){
   try{
     const raw=localStorage.getItem(DATA_CACHE_KEY);
     if(!raw)return null;
     const c=JSON.parse(raw);
-    if(Date.now()-c.ts>DATA_CACHE_TTL)return null;
+    const age=Date.now()-c.ts;
+    if(age>DATA_CACHE_TTL){
+      if(!allowStale)return null;
+      c.stale=true;
+      c.staleMinutes=Math.round(age/60000);
+    }
     return c;
   }catch(e){return null;}
 }
@@ -108,7 +113,7 @@ function saveDataCache(d,er,lu){
   catch(e){console.warn('Cache save failed (storage full?):',e);}
 }
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL'};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',staleWarning:null};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -197,7 +202,7 @@ async function getSharePointDriveId(token, ownerUpn){
   return _driveIdPending[ownerUpn];
 }
 
-async function fetchWithRetry(url,opts,retries=2,delay=1500){
+async function fetchWithRetry(url,opts,retries=3,delay=3000){
   for(let i=0;i<=retries;i++){
     try{
       const r=await fetch(url,opts);
@@ -574,11 +579,11 @@ function showError(msg, debugInfo=''){
 // ── MAIN FLOW ─────────────────────────────────────────────────────────────────
 async function loadData(forceRefresh=false){
   loadSnapshot(); // restore previous snapshot for Movement comparison
-  // Serve from cache if fresh and not a manual refresh
+  // Serve from fresh cache immediately if available and not a manual refresh
   if(!forceRefresh){
     const cache=loadDataCache();
     if(cache){
-      D=cache.D; ENG_RAW=cache.ENG_RAW; lastUpdated=cache.lastUpdated+' ·cached';
+      D=cache.D; ENG_RAW=cache.ENG_RAW; lastUpdated=cache.lastUpdated+' · cached';
       render();
       return;
     }
@@ -590,11 +595,20 @@ async function loadData(forceRefresh=false){
     D=processData(range,engMap);
     lastUpdated='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
     saveDataCache(D,ENG_RAW,lastUpdated);
+    S.staleWarning=null;
     render();
   }catch(e){
     const msg=e.message||String(e);
-    if(/login_required|interaction/i.test(msg))showLogin();
-    else showError(msg);
+    if(/login_required|interaction/i.test(msg)){showLogin();return;}
+    // On network/504 failure, try falling back to stale cache rather than showing error screen
+    const stale=loadDataCache(true);
+    if(stale&&stale.D&&stale.D.length){
+      D=stale.D; ENG_RAW=stale.ENG_RAW; lastUpdated=stale.lastUpdated+' · cached';
+      S.staleWarning=`SharePoint timed out — showing data from ${stale.staleMinutes}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
+      render();
+    } else {
+      showError(msg);
+    }
   }
 }
 async function refreshData(){await loadData(true);}
@@ -686,6 +700,7 @@ function _render(){
   [{l:'Won',v:fm(wonO),s:`${won.length} accts`,c:'#34d399'},{l:'Pipeline',v:fm(pipeO),s:`${pipe.length} accts · base ${fm(pipeR)}`,c:'#a78bfa'},{l:'Lost (2025)',v:fm(lostR),s:`${lost.length} accts`,c:'#ef4444'},{l:'Uncontacted',v:fm(unc.reduce((a,d)=>a+d.r25,0)),s:`${unc.length} accts`,c:'#94a3b8'},{l:'At Risk',v:flagged.length,s:fm(flagRev),c:'#fb923c'},{l:'Win-Back',v:wbAll.length,s:fm(wbAll.reduce((a,d)=>a+d.r25,0)),c:'#60a5fa'}
   ].forEach(k=>h+=`<div class="kpi" style="border-left:3px solid ${k.c}"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
   h+=`</div>`;
+  if(S.staleWarning)h+=`<div style="background:#422006;border:1px solid #92400e;border-radius:8px;padding:8px 16px;font-size:12px;color:#fbbf24;margin-bottom:8px;display:flex;align-items:center">${S.staleWarning}</div>`;
   const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard'],['workload','Workload'],['crossref','Pipeline × Eng'],['alleng','All Engagement'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts']];
   h+=`<div class="tabs">`;
   tabs.forEach(([tid,lbl])=>{
