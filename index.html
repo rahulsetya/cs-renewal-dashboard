@@ -288,22 +288,30 @@ async function fetchAllEngagement(token){
   const engMap={};
   const tmpRaw=[];
   const yesNo=v=>String(v||'').toLowerCase().startsWith('y')?1:0;
-  // Fetch all sheets in parallel
-  await Promise.all(Object.entries(ENG_SHEETS).map(async ([sheet,owner])=>{
-    try{
-      const data=await fetchEngSheet(token,sheet);
-      if(!data||!data.values||data.values.length<3)return;
+  // Column AI = index 34 (A=0 … Z=25, AA=26 … AI=34)
+  const CSM_COL=34;
+
+  try{
+    const data=await fetchEngSheet(token,'MASTER');
+    if(!data||!data.values||data.values.length<3){
+      console.warn('MASTER sheet empty or missing');
+    } else {
       const engHeaders=data.values[1].map(h=>String(h||'').trim());
+      console.log('=== MASTER SHEET HEADERS ===');
+      console.log(engHeaders.map((h,i)=>`${i}:${h}`).join(' | '));
       const eColMap={};engHeaders.forEach((h,i)=>eColMap[normKey(h)]=i);
-      const ec=(row,name)=>{const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';}
+      const ec=(row,name)=>{const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';};
+
       for(let i=2;i<data.values.length;i++){
         const row=data.values[i];
         const acct=String(ec(row,'Account Name')||'').trim();
         if(!acct)continue;
-        const rawEnd=String(row[5]||'').trim();
+        const ro=String(row[CSM_COL]||'').trim();   // column AI
+        const ae=String(row[1]||'').trim();          // column B = Sales Rep
+        const rawEnd=String(row[5]||'').trim();      // column F = contract end
+        const rev=parseNum(row[4]);                  // column E = 2025 revenue
         const rec={
-          acct,ro:owner,ae:String(ec(row,'Sales Rep')||'').trim(),endMonth:parseEngEndMonth(rawEnd),rawEnd,
-          rev:parseNum(row[4]),
+          acct,ro,ae,endMonth:parseEngEndMonth(rawEnd),rawEnd,rev,
           out:yesNo(ec(row,'Outreach Sent? (Y/N)')||ec(row,'Outreach Sent?')),
           gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
           gm:yesNo(ec(row,'GM Completed? (Y/N)')||ec(row,'GM Completed?')),
@@ -315,12 +323,26 @@ async function fetchAllEngagement(token){
         engMap[acct]=rec;
         tmpRaw.push(rec);
       }
-    }catch(e){console.warn(`Failed to fetch engagement sheet "${sheet}":`,e);}
-  }));
+
+      // ── Inconsistency report ──────────────────────────────────────────────
+      const missingCSM=tmpRaw.filter(r=>!r.ro);
+      const unknownCSM=[...new Set(tmpRaw.map(r=>r.ro).filter(r=>r&&!VALID_OWNERS.has(r)))];
+      const missingAcct=data.values.slice(2).filter(r=>!String(r[0]||'').trim()&&r.some(c=>c));
+      if(missingCSM.length)
+        console.warn(`⚠ MASTER: ${missingCSM.length} rows have no CSM in column AI:`,missingCSM.map(r=>r.acct));
+      if(unknownCSM.length)
+        console.warn(`⚠ MASTER: CSM values not in VALID_OWNERS (check spelling):`,unknownCSM);
+      if(missingAcct.length)
+        console.warn(`⚠ MASTER: ${missingAcct.length} non-empty rows missing Account Name`);
+      if(!missingCSM.length&&!unknownCSM.length)
+        console.log('✓ MASTER: all CSM values matched VALID_OWNERS');
+    }
+  }catch(e){console.warn('Failed to fetch MASTER engagement sheet:',e);}
+
   ENG_RAW=tmpRaw;
   const engTotal=Object.keys(engMap).length;
   console.log(`=== ENGAGEMENT LOADED: ${engTotal} accounts ===`);
-  if(engTotal===0)console.warn('Engagement data is empty — all sheet fetches may have failed');
+  if(engTotal===0)console.warn('Engagement data is empty — MASTER sheet fetch may have failed');
   return engMap;
 }
 
