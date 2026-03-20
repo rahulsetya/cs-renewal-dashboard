@@ -1391,7 +1391,14 @@ function _render(){
     const af=S.acctFilter||{};
     const sdArr=k=>as.col===k?(as.dir==='asc'?'▲':'▼'):'<span style="opacity:.3">⇅</span>';
     const thStyle='cursor:pointer;user-select:none;white-space:nowrap;vertical-align:top;padding-bottom:6px';
-    const fInput=(col,ph,align='left')=>`<br><input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:100%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 5px;font-family:inherit;text-align:${align};box-sizing:border-box">`;
+    const selStyle='width:100%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;box-sizing:border-box';
+    const inpStyle='width:100%;margin-top:3px;background:#0f172a;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 5px;font-family:inherit;box-sizing:border-box';
+    const fSelect=(col,opts)=>{const cur=af[col]||'';return`<br><select onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" style="${selStyle}"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
+    const fInput=(col,ph,align='left')=>`<br><input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${inpStyle};text-align:${align}">`;
+    // Unique sorted values for dropdown filters
+    const uStages=[...new Set(f.map(a=>a.s))].sort((a,b)=>ST.indexOf(a)-ST.indexOf(b));
+    const uOnsite=[...new Set(f.map(a=>a.or||'').filter(Boolean))].sort();
+    const uOwners=[...new Set(f.map(a=>a.ro))].sort();
 
     // Sort functions
     const sortFns={
@@ -1408,9 +1415,9 @@ function _render(){
 
     // Apply filters
     let rows=[...f];
-    if(af.stage)rows=rows.filter(a=>a.s.toLowerCase().includes(af.stage.toLowerCase()));
-    if(af.onsite)rows=rows.filter(a=>(a.or||'').toLowerCase().includes(af.onsite.toLowerCase()));
-    if(af.owner)rows=rows.filter(a=>a.ro.toLowerCase().includes(af.owner.toLowerCase()));
+    if(af.stage)rows=rows.filter(a=>a.s===af.stage);
+    if(af.onsite)rows=rows.filter(a=>(a.or||'')===af.onsite);
+    if(af.owner)rows=rows.filter(a=>a.ro===af.owner);
     if(af.ae)rows=rows.filter(a=>(a.ae||'').toLowerCase().includes(af.ae.toLowerCase()));
     if(af.r25)rows=rows.filter(a=>fm(a.r25).toLowerCase().includes(af.r25.toLowerCase()));
     if(af.offer)rows=rows.filter(a=>a.o>0?fm(a.o).toLowerCase().includes(af.offer.toLowerCase()):af.offer==='–'||af.offer==='-');
@@ -1423,9 +1430,9 @@ function _render(){
     const colCount=S.showAE?10:9;
     h+=`<div class="cd" style="padding:0;overflow:hidden"><div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
       <th style="vertical-align:top;padding-bottom:6px">Account</th>
-      <th onclick="ssAcctSort('stage')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Stage ${sdArr('stage')}</div>${fInput('stage','filter...')}</th>
-      <th onclick="ssAcctSort('onsite')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Onsite Rep ${sdArr('onsite')}</div>${fInput('onsite','filter...')}</th>
-      <th onclick="ssAcctSort('owner')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Owner ${sdArr('owner')}</div>${fInput('owner','filter...')}</th>
+      <th onclick="ssAcctSort('stage')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Stage ${sdArr('stage')}</div>${fSelect('stage',uStages)}</th>
+      <th onclick="ssAcctSort('onsite')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Onsite Rep ${sdArr('onsite')}</div>${fSelect('onsite',uOnsite)}</th>
+      <th onclick="ssAcctSort('owner')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">Owner ${sdArr('owner')}</div>${fSelect('owner',uOwners)}</th>
       ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle}"><div style="display:flex;align-items:center;gap:4px">AE ${sdArr('ae')}</div>${fInput('ae','filter...')}</th>`:''}
       <th onclick="ssAcctSort('r25')" style="${thStyle};text-align:right;color:#fbbf24"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2025 ${sdArr('r25')}</div>${fInput('r25','filter...','right')}</th>
       <th onclick="ssAcctSort('offer')" style="${thStyle};text-align:right;color:#22d3ee"><div style="display:flex;align-items:center;justify-content:flex-end;gap:4px">2026 ${sdArr('offer')}</div>${fInput('offer','filter...','right')}</th>
