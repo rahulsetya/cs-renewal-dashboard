@@ -274,6 +274,7 @@ async function fetchAllEngagement(token){
         const endMonth=parseEngEndMonth(rawEnd);
         const rec={
           acct,ro:owner,endMonth,rawEnd,
+          rev:parseNum(row[4]),  // Column E = 2025 Revenue
           out:yesNo(ec(row,'Outreach Sent? (Y/N)')||ec(row,'Outreach Sent?')),
           gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
           gm:yesNo(ec(row,'GM Completed? (Y/N)')||ec(row,'GM Completed?')),
@@ -1105,6 +1106,7 @@ function _render(){
       const grp=groups[key].sort((a,b)=>a.ro.localeCompare(b.ro)||a.acct.localeCompare(b.acct));
       const label=qLabel(key);
       const tot=grp.length,out=grp.filter(r=>r.out).length,gms=grp.filter(r=>r.gms).length,gm=grp.filter(r=>r.gm).length,rsk=grp.filter(r=>r.rsk).length;
+      const qRev=grp.reduce((a,r)=>a+(r.rev||0),0);
       const isOpen=S.aeDrill===key;
       const safeKey=key.replace(/'/g,"\\'");
       h+=`<div class="cd" style="padding:0;overflow:hidden">
@@ -1114,7 +1116,8 @@ function _render(){
             <span style="font-size:13px;font-weight:700;color:#f8fafc">${label}</span>
             <span style="font-size:11px;color:#64748b;background:#1e293b;padding:2px 7px;border-radius:10px">${tot}</span>
           </div>
-          <div style="display:flex;gap:14px;font-size:11px;flex-wrap:wrap">
+          <div style="display:flex;gap:14px;font-size:11px;flex-wrap:wrap;align-items:center">
+            ${qRev>0?`<span style="color:#34d399;font-weight:700">${fmt(qRev)}</span>`:''}
             <span style="color:${pct(out,tot)>=60?'#34d399':pct(out,tot)>=30?'#fbbf24':'#64748b'}">Out ${out}/${tot}</span>
             <span style="color:${pct(gms,tot)>=60?'#34d399':pct(gms,tot)>=30?'#fbbf24':'#64748b'}">GM Sched ${gms}/${tot}</span>
             <span style="color:${pct(gm,tot)>=60?'#34d399':pct(gm,tot)>=30?'#fbbf24':'#64748b'}">GM Done ${gm}/${tot}</span>
@@ -1126,6 +1129,7 @@ function _render(){
             <thead><tr style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px">
               <th style="padding:4px 8px;text-align:left;font-weight:600">Account</th>
               <th style="padding:4px 8px;text-align:left;font-weight:600">CSM</th>
+              <th style="padding:4px 8px;text-align:right;color:#34d399;font-weight:600">2025 Rev</th>
               <th style="padding:4px 8px;text-align:center;color:#60a5fa">Outreach</th>
               <th style="padding:4px 8px;text-align:center;color:#60a5fa">GM Sched</th>
               <th style="padding:4px 8px;text-align:center;color:#a78bfa">GM Done</th>
@@ -1137,6 +1141,7 @@ function _render(){
             <tbody>${grp.map((r,i)=>`<tr style="border-top:1px solid #0f172a;background:${i%2===0?'#0f172a20':'transparent'}">
               <td style="padding:5px 8px;font-size:12px;font-weight:500;color:#e2e8f0">${r.acct}</td>
               <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${r.ro}</td>
+              <td style="padding:5px 8px;font-size:12px;font-weight:600;color:${r.rev>0?'#34d399':'#475569'};text-align:right">${r.rev>0?fmt(r.rev):'–'}</td>
               <td style="padding:5px 8px;text-align:center">${yn(r.out,'#34d399','#374151')}</td>
               <td style="padding:5px 8px;text-align:center">${yn(r.gms,'#60a5fa','#374151')}</td>
               <td style="padding:5px 8px;text-align:center">${yn(r.gm,'#a78bfa','#374151')}</td>
