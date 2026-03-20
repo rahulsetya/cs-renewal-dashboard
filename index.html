@@ -1112,7 +1112,7 @@ function _render(){
     const yn=(v,yc,nc)=>`<span style="font-size:11px;color:${v?yc:nc}">${v?'✓':'✗'}</span>`;
     h+=`<div style="display:flex;flex-direction:column;gap:8px">`;
     quarters.forEach(key=>{
-      const grp=groups[key].sort((a,b)=>a.ro.localeCompare(b.ro)||a.acct.localeCompare(b.acct));
+      const grp=groups[key].sort((a,b)=>(a.endMonth||'9999-99').localeCompare(b.endMonth||'9999-99')||a.acct.localeCompare(b.acct));
       const label=qLabel(key);
       const tot=grp.length,out=grp.filter(r=>r.out).length,gms=grp.filter(r=>r.gms).length,gm=grp.filter(r=>r.gm).length,rsk=grp.filter(r=>r.rsk).length;
       const qRev=grp.reduce((a,r)=>a+(r.rev||0),0);
