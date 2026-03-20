@@ -499,6 +499,8 @@ function processData(range, engMap={}){
 
   const rawHeaders=rows[HEADER_ROW].map(h=>String(h||'').trim());
   buildColMaps(rawHeaders);
+  // Find both Notes/Closed Lost Reason columns (CE and CF) — colIdx only returns first match
+  const clrIdxAll=rawHeaders.reduce((a,h,i)=>h==='Notes / Closed Lost Reason'?[...a,i]:a,[]);
 
   // Debug output to help diagnose column issues
   console.log('=== PIPELINE FILE HEADERS ===');
@@ -562,8 +564,12 @@ function processData(range, engMap={}){
     const gms=eng.gms||0;
     const ap=eng.ap||0;
     const sentiment=eng.sentiment||'';
-    const clr=String(getCell(v,'Notes / Closed Lost Reason')||'');
-    const icn=String(getCell(v,'iConnections Notes')||'').trim();
+    // Notes hierarchy: col L (iConnections Notes) → col CE → col CF
+    const _icnRaw=String(getCell(v,'iConnections Notes')||'').trim();
+    const _clrA=clrIdxAll[0]!==undefined?String(v[clrIdxAll[0]]||'').trim():'';
+    const _clrB=clrIdxAll[1]!==undefined?String(v[clrIdxAll[1]]||'').trim():'';
+    const icn=_icnRaw?`${_icnRaw} (icon note)`:_clrA?`${_clrA} (C/L Note)`:_clrB?`${_clrB} (C/L Note)`:'';
+    const clr=_clrA||_clrB;
     const ae=String(getCell(v,'Sales Rep')||'').trim();
     const em=subEnd?subEnd.substring(0,7):'';
     const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,ae,sg:[],ct:'Manager',wow:'same'};
