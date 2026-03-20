@@ -90,7 +90,23 @@ const ENG_SHEETS  = {
 const SCOPES     = 'Files.Read Files.Read.All offline_access';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
-const SNAPSHOT_KEY = 'cs_renewal_snapshot_v1';
+const SNAPSHOT_KEY  = 'cs_renewal_snapshot_v1';
+const DATA_CACHE_KEY = 'cs_data_cache_v1';
+const DATA_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function loadDataCache(){
+  try{
+    const raw=localStorage.getItem(DATA_CACHE_KEY);
+    if(!raw)return null;
+    const c=JSON.parse(raw);
+    if(Date.now()-c.ts>DATA_CACHE_TTL)return null;
+    return c;
+  }catch(e){return null;}
+}
+function saveDataCache(d,er,lu){
+  try{localStorage.setItem(DATA_CACHE_KEY,JSON.stringify({ts:Date.now(),D:d,ENG_RAW:er,lastUpdated:lu}));}
+  catch(e){console.warn('Cache save failed (storage full?):',e);}
+}
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
 let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL'};
 
@@ -196,21 +212,7 @@ async function fetchWithRetry(url,opts,retries=2,delay=1500){
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET), errors=[], hdrs={Authorization:`Bearer ${token}`};
 
-  // Attempt 1: me/drive direct item lookup
-  try{
-    const r=await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${FILE_ID}`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r.ok){
-      const item=await r.json();
-      const r2=await fetch(`https://graph.microsoft.com/v1.0/drives/${item.parentReference.driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-      if(r2.ok)return r2.json();
-      const j2=await r2.json().catch(()=>({}));
-      errors.push(`me/drive workbook: ${r2.status} — ${j2.error?.message||'unknown'}`);
-    } else {
-      const j=await r.json().catch(()=>({}));errors.push(`me/drive item: ${r.status} — ${j.error?.message||'unknown'}`);
-    }
-  }catch(e){errors.push(`me/drive: ${e.message}`);}
-
-  // Attempt 2: owner's SharePoint personal site drive (primary method per handoff)
+  // Attempt 1: owner's SharePoint personal site drive (primary method)
   try{
     const driveId=await getSharePointDriveId(token, FILE_OWNER);
     const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:hdrs});
@@ -279,26 +281,24 @@ async function fetchEngSheet(token, sheetName){
 
 async function fetchAllEngagement(token){
   const engMap={};
-  ENG_RAW=[];
-  for(const [sheet,owner] of Object.entries(ENG_SHEETS)){
+  const tmpRaw=[];
+  const yesNo=v=>String(v||'').toLowerCase().startsWith('y')?1:0;
+  // Fetch all sheets in parallel
+  await Promise.all(Object.entries(ENG_SHEETS).map(async ([sheet,owner])=>{
     try{
       const data=await fetchEngSheet(token,sheet);
-      if(!data||!data.values||data.values.length<3)continue;
-      // Header row is index 1 (row 2 in Excel)
+      if(!data||!data.values||data.values.length<3)return;
       const engHeaders=data.values[1].map(h=>String(h||'').trim());
       const eColMap={};engHeaders.forEach((h,i)=>eColMap[normKey(h)]=i);
-      function ec(row,name){const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';}
-      const yesNo=v=>String(v||'').toLowerCase().startsWith('y')?1:0;
+      const ec=(row,name)=>{const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';}
       for(let i=2;i<data.values.length;i++){
         const row=data.values[i];
         const acct=String(ec(row,'Account Name')||'').trim();
         if(!acct)continue;
-        // Column F = index 5 (contract end month)
         const rawEnd=String(row[5]||'').trim();
-        const endMonth=parseEngEndMonth(rawEnd);
         const rec={
-          acct,ro:owner,endMonth,rawEnd,
-          rev:parseNum(row[4]),  // Column E = 2025 Revenue
+          acct,ro:owner,endMonth:parseEngEndMonth(rawEnd),rawEnd,
+          rev:parseNum(row[4]),
           out:yesNo(ec(row,'Outreach Sent? (Y/N)')||ec(row,'Outreach Sent?')),
           gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
           gm:yesNo(ec(row,'GM Completed? (Y/N)')||ec(row,'GM Completed?')),
@@ -308,10 +308,11 @@ async function fetchAllEngagement(token){
           sentiment:String(ec(row,'Sentiment')||'')
         };
         engMap[acct]=rec;
-        ENG_RAW.push(rec);
+        tmpRaw.push(rec);
       }
     }catch(e){console.warn(`Failed to fetch engagement sheet "${sheet}":`,e);}
-  }
+  }));
+  ENG_RAW=tmpRaw;
   const engTotal=Object.keys(engMap).length;
   console.log(`=== ENGAGEMENT LOADED: ${engTotal} accounts ===`);
   if(engTotal===0)console.warn('Engagement data is empty — all sheet fetches may have failed');
@@ -571,15 +572,24 @@ function showError(msg, debugInfo=''){
   </div>`;}
 
 // ── MAIN FLOW ─────────────────────────────────────────────────────────────────
-async function loadData(){
-  showLoading('Loading pipeline data…');
+async function loadData(forceRefresh=false){
   loadSnapshot(); // restore previous snapshot for Movement comparison
+  // Serve from cache if fresh and not a manual refresh
+  if(!forceRefresh){
+    const cache=loadDataCache();
+    if(cache){
+      D=cache.D; ENG_RAW=cache.ENG_RAW; lastUpdated=cache.lastUpdated+' ·cached';
+      render();
+      return;
+    }
+  }
+  showLoading('Loading pipeline + engagement data…');
   try{
     const token=await getToken();
-    showLoading('Loading pipeline + engagement data…');
     const [range,engMap]=await Promise.all([fetchSheet(token),fetchAllEngagement(token)]);
     D=processData(range,engMap);
     lastUpdated='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    saveDataCache(D,ENG_RAW,lastUpdated);
     render();
   }catch(e){
     const msg=e.message||String(e);
@@ -587,7 +597,7 @@ async function loadData(){
     else showError(msg);
   }
 }
-async function refreshData(){await loadData();}
+async function refreshData(){await loadData(true);}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill')S.drill=v||null;else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function roDisp(ro,ae){return S.showAE&&ae?`${ro}<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`:ro;}
 async function init(){
