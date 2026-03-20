@@ -1106,15 +1106,22 @@ function _render(){
   }
 
   // ── ALL ENGAGEMENT ──
-  const toQuarter=em=>{if(!em)return'__none__';const[yr,mo]=em.split('-');return`${yr}-Q${Math.ceil(parseInt(mo)/3)}`;};
+  const toQuarter=em=>{
+    if(!em)return'__none__';
+    if(/not.?renew/i.test(em))return'__notrenewing__';
+    const[yr,mo]=em.split('-');
+    const q=Math.ceil(parseInt(mo)/3);
+    return(yr&&!isNaN(q))?`${yr}-Q${q}`:'__none__';
+  };
   if(S.tab==='alleng'){
     const baseRows=S.owner==='ALL'?ENG_RAW:ENG_RAW.filter(r=>r.ro===S.owner);
     // Build quarter list for filter
     const allGroups={};
     baseRows.forEach(r=>{const k=toQuarter(r.endMonth);if(!allGroups[k])allGroups[k]=[];allGroups[k].push(r);});
-    const allQtrs=Object.keys(allGroups).filter(k=>k!=='__none__').sort();
+    const allQtrs=Object.keys(allGroups).filter(k=>k!=='__none__'&&k!=='__notrenewing__').sort();
+    if(allGroups['__notrenewing__'])allQtrs.push('__notrenewing__');
     if(allGroups['__none__'])allQtrs.push('__none__');
-    const qLabel=k=>k==='__none__'?'No End Date':k.replace(/(\d{4})-/,'$1 ');
+    const qLabel=k=>k==='__none__'?'No End Date':k==='__notrenewing__'?'Not Renewing':k.replace(/(\d{4})-/,'$1 ');
 
     // Apply quarter filter
     const rows=S.engQtrFilter==='ALL'?baseRows:(allGroups[S.engQtrFilter]||[]);
@@ -1154,7 +1161,8 @@ function _render(){
     // ── Quarter breakdown ──
     const groups={};
     rows.forEach(r=>{const key=toQuarter(r.endMonth);if(!groups[key])groups[key]=[];groups[key].push(r);});
-    const quarters=Object.keys(groups).filter(k=>k!=='__none__').sort();
+    const quarters=Object.keys(groups).filter(k=>k!=='__none__'&&k!=='__notrenewing__').sort();
+    if(groups['__notrenewing__'])quarters.push('__notrenewing__');
     if(groups['__none__'])quarters.push('__none__');
     const yn=(v,yc,nc)=>`<span style="font-size:11px;color:${v?yc:nc}">${v?'✓':'✗'}</span>`;
     h+=`<div style="display:flex;flex-direction:column;gap:8px">`;
