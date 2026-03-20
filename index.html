@@ -24,8 +24,8 @@ select{background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:8px 14p
 .tab.al{position:relative}.tab.al::after{content:attr(data-count);position:absolute;top:-4px;right:-6px;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px}
 .cd{background:#1e293b;border-radius:12px}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{padding:8px 10px;text-align:left;color:#94a3b8;font-weight:600}
-td{padding:7px 10px}
+th{padding:8px 10px;text-align:left;color:#94a3b8;font-weight:600;overflow:hidden}
+td{padding:7px 10px;overflow:hidden;text-overflow:ellipsis}
 tr.dr{border-bottom:1px solid #172033}tr.dr:nth-child(even){background:#172033}tr.dr:nth-child(odd){background:#1e293b}
 tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .sb{background:transparent;color:#94a3b8;border:none;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}.sb.a{background:#475569;color:#f8fafc}
@@ -842,7 +842,7 @@ function _render(){
             ${drillHasFilters?`<button onclick="S.drillFilter={};S.drillSort={col:'r25',dir:'desc'};render()" style="background:#ef444420;color:#ef4444;border:1px solid #ef444440;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
           </div>
           <table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#0f172a;z-index:1"><tr>
-            <th onclick="ssDrillSort('account')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Account ${dsd('account')}</div></th>
+            <th onclick="ssDrillSort('account')" style="${dThS};width:180px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Account ${dsd('account')}</div></th>
             <th onclick="ssDrillSort('owner')" style="${dThS};width:100px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Owner ${dsd('owner')}</div>${dSel('owner',uDOwners)}</th>
             ${S.showAE?`<th onclick="ssDrillSort('ae')" style="${dThS};width:90px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">AE ${dsd('ae')}</div>${dSel('ae',uDAE)}</th>`:''}
             <th onclick="ssDrillSort('r25')" style="${dThS};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${dsd('r25')}</div>${dRngPair('r25min','r25max')}</th>
@@ -1508,7 +1508,7 @@ function _render(){
       ${hasFilters?`<button onclick="S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};render()" style="font-size:10px;padding:2px 10px;background:#1e293b;border:1px solid #ef4444;color:#ef4444;border-radius:4px;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
     </div>
     <div class="st"><table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
-      <th onclick="ssAcctSort('account')" style="${thStyle}"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div></th>
+      <th onclick="ssAcctSort('account')" style="${thStyle};width:170px"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div></th>
       <th onclick="ssAcctSort('stage')" style="${thStyle};width:112px"><div style="display:flex;align-items:center;gap:3px">Stage ${sdArr('stage')}</div>${fSelect('stage',uStages)}</th>
       <th onclick="ssAcctSort('onsite')" style="${thStyle};width:108px"><div style="display:flex;align-items:center;gap:3px">Onsite Rep ${sdArr('onsite')}</div>${fSelect('onsite',uOnsite)}</th>
       <th onclick="ssAcctSort('owner')" style="${thStyle};width:100px"><div style="display:flex;align-items:center;gap:3px">Owner ${sdArr('owner')}</div>${fSelect('owner',uOwners)}</th>
