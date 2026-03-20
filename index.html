@@ -113,7 +113,7 @@ function saveDataCache(d,er,lu){
   catch(e){console.warn('Cache save failed (storage full?):',e);}
 }
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[];
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{}};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{}};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -659,9 +659,11 @@ async function loadData(forceRefresh=false){
   }
 }
 async function refreshData(){await loadData(true);}
-function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill')S.drill=v||null;else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
+function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];render();}
+function ssDrillSort(col){const cur=S.drillSort;S.drillSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
+function ssDrillFilter(col,val){if(!S.drillFilter)S.drillFilter={};if(val)S.drillFilter[col]=val;else delete S.drillFilter[col];render();}
 function roDisp(ro,ae){return S.showAE&&ae?`${ro}<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`:ro;}
 async function init(){
   const hash=new URLSearchParams(location.hash.replace('#',''));
@@ -785,25 +787,74 @@ function _render(){
       <div style="font-size:11px;font-weight:700;text-align:right;color:${tdp>=0?'#34d399':'#ef4444'}">${tdp>=0?'+':''}${Math.round(tdp)}%</div>
     </div>`;
     if(S.drill){
-      const da=f.filter(d=>d.s===S.drill).sort((a,b)=>b.r25-a.r25);
-      if(da.length){
-        h+=`<div class="dr2"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-size:13px;font-weight:600;color:${CL[S.drill]}">${SH[S.drill]} — ${da.length} accounts</span>
-        </div>
-        <table><thead><tr><th>Account</th><th>Owner</th><th style="text-align:right;color:#fbbf24">2025</th><th style="text-align:right;color:#22d3ee">2026</th><th style="text-align:right">Δ</th><th>Sub End</th><th>Flags</th></tr></thead><tbody>`;
+      const ds=S.drillSort||{col:'r25',dir:'desc'};
+      const df=S.drillFilter||{};
+      const dsd=k=>ds.col===k?(ds.dir==='asc'?'▲':'▼'):'<span style="opacity:.3">⇅</span>';
+      const dThS='cursor:pointer;user-select:none;vertical-align:top;padding-bottom:4px';
+      const dSelS='width:100%;margin-top:2px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;box-sizing:border-box';
+      const dInpS='width:100%;margin-top:2px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;box-sizing:border-box';
+      const dSel=(col,opts)=>{const cur=df[col]||'';return`<br><select onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" style="${dSelS}"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
+      const dInp=(col,ph,align='left')=>`<br><input onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" value="${(df[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${dInpS};text-align:${align}">`;
+      const dRng=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssDrillFilter('${col}',this.value)" value="${(df[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="width:48%;margin-top:2px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:10px;padding:2px 4px;font-family:inherit;text-align:right;box-sizing:border-box">`;
+      const seToQtr2=se=>{if(!se)return'';const m=se.match(/^(\d{4})-(\d{2})/);return m?`${m[1]} Q${Math.ceil(parseInt(m[2])/3)}`:'';}
+
+      const stageAccts=f.filter(d=>d.s===S.drill);
+      const uDOwners=[...new Set(stageAccts.map(a=>a.ro))].sort();
+      const uDAE=[...new Set(stageAccts.map(a=>a.ae||'').filter(Boolean))].sort();
+      const uDFlags=[...new Set(stageAccts.flatMap(a=>a.sg.map(s=>SIG_L[s])).filter(Boolean))].sort();
+      const uDSub=[...new Set(stageAccts.map(a=>seToQtr2(a.se)).filter(Boolean))].sort();
+
+      // Apply drill filters
+      let da=[...stageAccts];
+      if(df.owner)da=da.filter(a=>a.ro===df.owner);
+      if(df.ae)da=da.filter(a=>(a.ae||'')===df.ae);
+      if(df.r25min)da=da.filter(a=>a.r25>=(parseFloat(df.r25min)||0)*1000);
+      if(df.r25max)da=da.filter(a=>a.r25<=(parseFloat(df.r25max)||Infinity)*1000);
+      if(df.offermin)da=da.filter(a=>a.o>=(parseFloat(df.offermin)||0)*1000);
+      if(df.offermax)da=da.filter(a=>a.o<=(parseFloat(df.offermax)||Infinity)*1000);
+      if(df.subend)da=da.filter(a=>seToQtr2(a.se)===df.subend);
+      if(df.flags)da=da.filter(a=>a.sg.some(s=>SIG_L[s]===df.flags));
+
+      // Apply drill sort
+      const dSortFns={
+        owner:(a,b)=>a.ro.localeCompare(b.ro),ae:(a,b)=>(a.ae||'').localeCompare(b.ae||''),
+        r25:(a,b)=>a.r25-b.r25,offer:(a,b)=>a.o-b.o,
+        delta:(a,b)=>{const da2=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25:-999,db=b.o>0&&b.r25>0?(b.o-b.r25)/b.r25:-999;return da2-db;},
+        subend:(a,b)=>String(a.se||'').localeCompare(String(b.se||'')),
+        flags:(a,b)=>a.sg.length-b.sg.length,
+      };
+      if(dSortFns[ds.col])da=da.sort((a,b)=>dSortFns[ds.col](a,b)*(ds.dir==='asc'?1:-1));
+
+      if(da.length||stageAccts.length){
+        const colSpan=S.showAE?8:7;
+        h+=`<div class="dr2">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:13px;font-weight:600;color:${CL[S.drill]}">${SH[S.drill]} — ${da.length}${da.length!==stageAccts.length?` of ${stageAccts.length}`:''} accounts</span>
+          </div>
+          <table><thead style="position:sticky;top:0;background:#0f172a;z-index:1"><tr>
+            <th style="vertical-align:top;padding-bottom:4px">Account</th>
+            <th onclick="ssDrillSort('owner')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">Owner ${dsd('owner')}</div>${dSel('owner',uDOwners)}</th>
+            ${S.showAE?`<th onclick="ssDrillSort('ae')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">AE ${dsd('ae')}</div>${dSel('ae',uDAE)}</th>`:''}
+            <th onclick="ssDrillSort('r25')" style="${dThS};text-align:right;color:#fbbf24"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">2025 ${dsd('r25')}</div><br><div style="display:flex;gap:2%">${dRng('r25min','min $K')}${dRng('r25max','max $K')}</div></th>
+            <th onclick="ssDrillSort('offer')" style="${dThS};text-align:right;color:#22d3ee"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">2026 ${dsd('offer')}</div><br><div style="display:flex;gap:2%">${dRng('offermin','min $K')}${dRng('offermax','max $K')}</div></th>
+            <th onclick="ssDrillSort('delta')" style="${dThS};text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">Δ ${dsd('delta')}</div></th>
+            <th onclick="ssDrillSort('subend')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">Sub End ${dsd('subend')}</div>${dSel('subend',uDSub)}</th>
+            <th onclick="ssDrillSort('flags')" style="${dThS}"><div style="display:flex;align-items:center;gap:3px">Flags ${dsd('flags')}</div>${dSel('flags',uDFlags)}</th>
+          </tr></thead><tbody>`;
         da.forEach(a=>{
           const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
           const nOpen=S.noteOpen===a.c;
           h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,'\\\'')}')" title="Click to toggle iCon Notes">
             <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
-            <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+            <td style="color:#94a3b8">${a.ro}</td>
+            ${S.showAE?`<td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>`:''}
             <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
             <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
             <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
             <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}${a.dy>0?` (${a.dy}d)`:''}</td>
             <td style="display:flex;align-items:center;gap:6px">${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:auto">${nOpen?'▾':'▸'} notes</span>`:''}</td>
           </tr>
-          ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="7" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
+          ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="${colSpan}" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
         });
         h+=`</tbody></table></div>`;
       }
