@@ -293,16 +293,21 @@ async function fetchAllEngagement(token){
 
   try{
     const data=await fetchEngSheet(token,'MASTER');
-    if(!data||!data.values||data.values.length<3){
+    if(!data||!data.values||data.values.length<2){
       console.warn('MASTER sheet empty or missing');
     } else {
-      const engHeaders=data.values[1].map(h=>String(h||'').trim());
-      console.log('=== MASTER SHEET HEADERS ===');
+      // Auto-detect header row: find first row that contains 'Account Name'
+      let headerRowIdx=0;
+      for(let r=0;r<Math.min(5,data.values.length);r++){
+        if(data.values[r].some(c=>String(c||'').trim().toLowerCase()==='account name')){headerRowIdx=r;break;}
+      }
+      const engHeaders=data.values[headerRowIdx].map(h=>String(h||'').trim());
+      console.log(`=== MASTER SHEET HEADERS (row ${headerRowIdx}) ===`);
       console.log(engHeaders.map((h,i)=>`${i}:${h}`).join(' | '));
       const eColMap={};engHeaders.forEach((h,i)=>eColMap[normKey(h)]=i);
       const ec=(row,name)=>{const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';};
 
-      for(let i=2;i<data.values.length;i++){
+      for(let i=headerRowIdx+1;i<data.values.length;i++){
         const row=data.values[i];
         const acct=String(ec(row,'Account Name')||'').trim();
         if(!acct)continue;
@@ -599,7 +604,10 @@ function showError(msg, debugInfo=''){
   </div>`;}
 
 // ── MAIN FLOW ─────────────────────────────────────────────────────────────────
+let _loadingInProgress=false;
 async function loadData(forceRefresh=false){
+  if(_loadingInProgress&&!forceRefresh){console.log('loadData: already in progress, skipping duplicate call');return;}
+  _loadingInProgress=true;
   loadSnapshot(); // restore previous snapshot for Movement comparison
   // Serve from fresh cache immediately if available and not a manual refresh
   if(!forceRefresh){
@@ -631,6 +639,8 @@ async function loadData(forceRefresh=false){
     } else {
       showError(msg);
     }
+  }finally{
+    _loadingInProgress=false;
   }
 }
 async function refreshData(){await loadData(true);}
