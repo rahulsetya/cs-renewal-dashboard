@@ -830,7 +830,7 @@ function _render(){
       };
       if(dSortFns[ds.col])da=da.sort((a,b)=>dSortFns[ds.col](a,b)*(ds.dir==='asc'?1:-1));
 
-      const dFChk=(opts,selArr)=>{const lbl=selArr.length?`${selArr.length} selected`:'All flags';return`<div style="position:relative" onclick="event.stopPropagation()"><div onclick="S.drillFlagOpen=!S.drillFlagOpen;render()" style="cursor:pointer;margin-top:2px;padding:1px 4px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;display:flex;align-items:center;justify-content:space-between;gap:3px;white-space:nowrap"><span>${lbl}</span><span style="font-size:7px">▾</span></div>${S.drillFlagOpen?`<div style="position:absolute;top:calc(100% + 2px);left:0;z-index:200;background:#0a1628;border:1px solid #334155;border-radius:4px;min-width:140px;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.5)">${opts.map(o=>{const on=selArr.includes(o);return`<div onclick="ssDrillFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:6px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:9px;width:10px;text-align:center">${on?'✓':''}</span><span style="font-size:10px">${o}</span></div>`;}).join('')}</div>`:''}</div>`;};
+      const dFChk=(opts,selArr)=>{if(!opts.length)return'';return`<div onclick="event.stopPropagation()" style="width:100%;margin-top:3px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;overflow-y:auto;max-height:80px">${opts.map(o=>{const on=selArr.includes(o);return`<div onclick="ssDrillFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:3px 7px;cursor:pointer;display:flex;align-items:center;gap:5px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:9px;width:10px;flex-shrink:0;text-align:center">${on?'✓':''}</span><span style="font-size:10px;white-space:nowrap">${o}</span></div>`;}).join('')}</div>`;};
 
       const drillHasFilters=Object.keys(df).some(k=>k==='flags'?dfFlags.length>0:df[k]);
 
@@ -847,9 +847,9 @@ function _render(){
             ${S.showAE?`<th onclick="ssDrillSort('ae')" style="${dThS};width:90px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">AE ${dsd('ae')}</div>${dSel('ae',uDAE)}</th>`:''}
             <th onclick="ssDrillSort('r25')" style="${dThS};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${dsd('r25')}</div>${dRngPair('r25min','r25max')}</th>
             <th onclick="ssDrillSort('offer')" style="${dThS};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#22d3ee">2026 ${dsd('offer')}</div>${dRngPair('offermin','offermax')}</th>
-            <th onclick="ssDrillSort('delta')" style="${dThS};width:42px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#94a3b8">Δ ${dsd('delta')}</div></th>
+            <th onclick="ssDrillSort('delta')" style="${dThS};width:68px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#94a3b8">Percent +/- ${dsd('delta')}</div></th>
             <th onclick="ssDrillSort('subend')" style="${dThS};width:90px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Sub End ${dsd('subend')}</div>${dSel('subend',uDSub)}</th>
-            <th onclick="ssDrillSort('flags')" style="${dThS};width:96px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Flags ${dsd('flags')}${dfFlags.length?`<span style="background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:3px">${dfFlags.length}</span>`:''}</div>${dFChk(uDFlags,dfFlags)}</th>
+            <th onclick="ssDrillSort('flags')" style="${dThS};width:160px;overflow:visible"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Flags ${dsd('flags')}${dfFlags.length?`<span style="background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:3px">${dfFlags.length}</span>`:''}</div>${dFChk(uDFlags,dfFlags)}</th>
           </tr></thead><tbody>`;
         da.forEach(a=>{
           const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
@@ -862,7 +862,7 @@ function _render(){
             <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
             <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
             <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}${a.dy>0?` (${a.dy}d)`:''}</td>
-            <td style="display:flex;align-items:center;gap:6px">${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:auto">${nOpen?'▾':'▸'} notes</span>`:''}</td>
+            <td style="overflow:visible;white-space:normal;vertical-align:top;padding:5px 6px"><div style="display:flex;flex-wrap:wrap;gap:3px;align-items:flex-start">${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;white-space:nowrap">${nOpen?'▾':'▸'} notes</span>`:''}</div></td>
           </tr>
           ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="${colSpan}" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
         });
@@ -1466,7 +1466,7 @@ function _render(){
     const rInp=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${aCtrlS};text-align:right">`;
     const rInpPair=(c1,c2)=>`<div style="margin-top:2px;display:flex;flex-direction:column;gap:1px">${rInp(c1,'min $K')}${rInp(c2,'max $K')}</div>`;
 
-    const fChk=(opts,selArr)=>{const lbl=selArr.length?`${selArr.length} selected`:'All flags';return`<div style="position:relative" onclick="event.stopPropagation()"><div onclick="S.acctFlagOpen=!S.acctFlagOpen;render()" style="cursor:pointer;margin-top:2px;padding:1px 4px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;display:flex;align-items:center;justify-content:space-between;gap:3px;white-space:nowrap"><span>${lbl}</span><span style="font-size:7px">▾</span></div>${S.acctFlagOpen?`<div style="position:absolute;top:calc(100% + 2px);left:0;z-index:200;background:#0a1628;border:1px solid #334155;border-radius:4px;min-width:140px;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.5)">${opts.map(o=>{const on=selArr.includes(o);return`<div onclick="ssAcctFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:6px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:9px;width:10px;text-align:center">${on?'✓':''}</span><span style="font-size:10px">${o}</span></div>`;}).join('')}</div>`:''}</div>`;};
+    const fChk=(opts,selArr)=>{if(!opts.length)return'';return`<div onclick="event.stopPropagation()" style="width:100%;margin-top:3px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;overflow-y:auto;max-height:80px">${opts.map(o=>{const on=selArr.includes(o);return`<div onclick="ssAcctFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:3px 7px;cursor:pointer;display:flex;align-items:center;gap:5px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:9px;width:10px;flex-shrink:0;text-align:center">${on?'✓':''}</span><span style="font-size:10px;white-space:nowrap">${o}</span></div>`;}).join('')}</div>`;};
 
     const afFlags=Array.isArray(af.flags)?af.flags:[];
     const hasFilters=Object.keys(af).some(k=>k==='flags'?afFlags.length>0:af[k]);
@@ -1515,9 +1515,9 @@ function _render(){
       ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle};width:90px"><div style="display:flex;align-items:center;gap:3px">AE ${sdArr('ae')}</div>${fSelect('ae',uAE)}</th>`:''}
       <th onclick="ssAcctSort('r25')" style="${thStyle};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${sdArr('r25')}</div>${rInpPair('r25min','r25max')}</th>
       <th onclick="ssAcctSort('offer')" style="${thStyle};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#22d3ee">2026 ${sdArr('offer')}</div>${rInpPair('offermin','offermax')}</th>
-      <th onclick="ssAcctSort('delta')" style="${thStyle};width:42px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">Δ ${sdArr('delta')}</div></th>
+      <th onclick="ssAcctSort('delta')" style="${thStyle};width:68px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">Percent +/- ${sdArr('delta')}</div></th>
       <th onclick="ssAcctSort('subend')" style="${thStyle};width:90px"><div style="display:flex;align-items:center;gap:3px">Sub End ${sdArr('subend')}</div>${fSelect('subend',uSubQtrs)}</th>
-      <th onclick="ssAcctSort('flags')" style="${thStyle};width:96px"><div style="display:flex;align-items:center;gap:3px">Flags ${sdArr('flags')}${afFlags.length?`<span style="background:#60a5fa;color:#fff;border-radius:8px;padding:0 5px;font-size:9px;font-weight:700">${afFlags.length}</span>`:''}</div>${fChk(uFlags,afFlags)}</th>
+      <th onclick="ssAcctSort('flags')" style="${thStyle};width:160px;overflow:visible"><div style="display:flex;align-items:center;gap:3px">Flags ${sdArr('flags')}${afFlags.length?`<span style="background:#60a5fa;color:#fff;border-radius:8px;padding:0 5px;font-size:9px;font-weight:700">${afFlags.length}</span>`:''}</div>${fChk(uFlags,afFlags)}</th>
     </tr></thead><tbody>`;
     rows.forEach(a=>{
       const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
@@ -1532,7 +1532,7 @@ function _render(){
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
         <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
         <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td>
-        <td>${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:4px">${nOpen?'▾':'▸'} notes</span>`:''}</td>
+        <td style="overflow:visible;white-space:normal;vertical-align:top;padding:5px 6px"><div style="display:flex;flex-wrap:wrap;gap:3px;align-items:flex-start">${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}${a.icn?`<span style="font-size:10px;color:#475569;white-space:nowrap">${nOpen?'▾':'▸'} notes</span>`:''}</div></td>
       </tr>
       ${nOpen&&a.icn?`<tr style="background:#0a1628"><td colspan="${colCount}" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${a.icn}</td></tr>`:''}`;
     });
