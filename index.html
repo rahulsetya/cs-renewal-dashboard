@@ -872,6 +872,43 @@ function _render(){
   if(S.tab==='crossref'){
     const active2=f;
     const xStages=ST;
+
+    // ── Sprint Funnel ──
+    const sfTotal=f.length;
+    const sfOut=f.filter(d=>d.out===1).length;
+    const sfGms=f.filter(d=>d.gms===1).length;
+    const sfGm=f.filter(d=>d.gm===1).length;
+    const sfAp=f.filter(d=>d.ap===1).length;
+    const sfNoOut=sfTotal-sfOut;
+    const sfW=n=>sfTotal>0?+(n/sfTotal*100).toFixed(2):0;
+    // drop-off % from each stage's predecessor
+    const sfD1=sfTotal>0?Math.round((sfTotal-sfOut)/sfTotal*100):0;
+    const sfD2=sfOut>0?Math.round((sfOut-sfGms)/sfOut*100):100;
+    const sfD3=sfGms>0?Math.round((sfGms-sfGm)/sfGms*100):100;
+    const sfD4=sfGm>0?Math.round((sfGm-sfAp)/sfGm*100):100;
+    const sfBar=(w,h,bg,num,label,drop)=>`
+      <div style="display:flex;flex-direction:column;align-items:stretch;width:${w}%;min-width:${w>0?'3px':'0'}">
+        <div style="display:flex;align-items:flex-start;justify-content:center;height:${h}px;background:${bg};border-radius:4px 4px 0 0;padding-top:6px">
+          ${num!==null?`<span style="font-size:${num>9?'20':'22'}px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'}">${num}</span>`:''}
+        </div>
+        ${label?`<div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-top:6px;white-space:nowrap">${label}</div>`:''}
+        ${drop!==null?`<div style="font-size:11px;font-weight:600;color:#ef4444;text-align:center;margin-top:1px">-${drop}%</div>`:''}
+      </div>`;
+    h+=`<div class="cd" style="padding:20px;margin-bottom:16px;overflow:hidden">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:20px">
+        <span style="font-size:15px;font-weight:700;color:#f8fafc">Sprint Funnel</span>
+        <span style="font-size:26px;font-weight:700;color:#f8fafc">${sfTotal}</span>
+        <span style="margin-left:auto;font-size:11px;color:#475569">Engagement activity across pipeline accounts</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:3px">
+        ${sfBar(sfW(sfNoOut),100,'#4b5563',sfNoOut,'No Outreach',null)}
+        ${sfBar(sfW(sfOut),85,'#60a5fa',sfOut,'Outreach Sent',sfD1)}
+        ${sfBar(sfW(sfGms),65,'#fbbf24',sfGms,'GM Scheduled',sfD2)}
+        ${sfBar(sfW(sfGm),50,'#34d399',sfGm,'GM Completed',sfD3)}
+        ${sfBar(Math.max(sfW(sfAp),sfTotal>0?2:0),40,'#a78bfa',sfAp,'AP Delivered',sfD4)}
+      </div>
+    </div>`;
+
     h+=`<div class="cd" style="padding:20px"><h3 style="margin:0 0 6px;font-size:15px;font-weight:600;color:#f8fafc">Pipeline Stage × Engagement Activity</h3>
     <p style="font-size:12px;color:#64748b;margin-bottom:16px">For each pipeline stage, what engagement has actually happened?</p>
     <table><thead><tr><th>Stage</th><th style="text-align:center">Accounts</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:center;color:#60a5fa">Outreach</th><th style="text-align:center;color:#60a5fa">GM Sched</th><th style="text-align:center;color:#a78bfa">GM Done</th><th style="text-align:center;color:#ef4444">Risk</th></tr></thead><tbody>`;
