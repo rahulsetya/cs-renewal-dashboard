@@ -42,6 +42,7 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .st{max-height:600px;overflow-y:auto}
 .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin:1px 2px}
 .b-red{background:#ef444422;color:#ef4444}.b-orange{background:#fb923c22;color:#fb923c}.b-yellow{background:#fbbf2422;color:#fbbf24}.b-blue{background:#60a5fa22;color:#60a5fa}.b-purple{background:#a78bfa22;color:#a78bfa}.b-green{background:#34d39922;color:#34d399}
+.fbar{position:relative}.fbar .fbar-tip{opacity:0;pointer-events:none;transition:opacity .15s;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 14px;min-width:180px;z-index:99;white-space:nowrap}.fbar:hover .fbar-tip{opacity:1}.fbar-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#334155}
 .center-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:20px;text-align:center}
 .login-card{background:#1e293b;border-radius:16px;padding:40px;max-width:440px;width:100%}
 .login-card h2{font-size:20px;font-weight:700;margin-bottom:8px}
@@ -880,6 +881,11 @@ function _render(){
     const sfGm=f.filter(d=>d.gm===1).length;
     const sfAp=f.filter(d=>d.ap===1).length;
     const sfNoOut=sfTotal-sfOut;
+    const sfNoOutRev=f.filter(d=>d.out!==1).reduce((a,d)=>a+d.r25,0);
+    const sfOutRev=f.filter(d=>d.out===1).reduce((a,d)=>a+d.r25,0);
+    const sfGmsRev=f.filter(d=>d.gms===1).reduce((a,d)=>a+d.r25,0);
+    const sfGmRev=f.filter(d=>d.gm===1).reduce((a,d)=>a+d.r25,0);
+    const sfApRev=f.filter(d=>d.ap===1).reduce((a,d)=>a+d.r25,0);
     // connector: drop count + % from previous stage
     const sfConn=(prev,cur)=>{
       const dn=prev-cur,dp=prev>0?Math.round(dn/prev*100):100;
@@ -889,8 +895,24 @@ function _render(){
         <div style="font-size:10px;color:#94a3b8">(-${dp}%)</div>
       </div>`;
     };
-    const sfBar2=(flex,barH,bg,num,label)=>`
-      <div style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
+    const sfTip=(label,bg,num,total,prev,rev)=>{
+      const pct2=total>0?Math.round(num/total*100):0;
+      const conv=prev>0?Math.round(num/prev*100):null;
+      return `<div class="fbar-tip">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;font-weight:700;color:#f8fafc">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${bg};flex-shrink:0"></span>${label}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:11px">
+          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Accounts</span><span style="color:#e2e8f0;font-weight:600">${num} of ${total}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Pct of book</span><span style="color:#e2e8f0;font-weight:600">${pct2}%</span></div>
+          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Revenue</span><span style="color:#fbbf24;font-weight:600">${fm(rev)}</span></div>
+          ${conv!==null?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Conv from prev</span><span style="color:#34d399;font-weight:600">${conv}%</span></div>`:''}
+        </div>
+      </div>`;
+    };
+    const sfBar2=(flex,barH,bg,num,label,prev,rev)=>`
+      <div class="fbar" style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
+        ${sfTip(label,bg,num,sfTotal,prev,rev)}
         <div style="height:${barH}px;background:${bg};border-radius:4px 4px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
           <span style="font-size:18px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'};line-height:1">${num}</span>
           <span style="font-size:10px;font-weight:600;color:${bg==='#4b5563'?'#6b7280':'rgba(255,255,255,0.65)'}">${sfTotal>0?Math.round(num/sfTotal*100):0}%</span>
@@ -904,15 +926,15 @@ function _render(){
         <span style="margin-left:auto;font-size:11px;color:#475569">Engagement activity across pipeline accounts</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:0">
-        ${sfBar2(sfNoOut,100,'#4b5563',sfNoOut,'No Outreach')}
+        ${sfBar2(sfNoOut,100,'#4b5563',sfNoOut,'No Outreach',null,sfNoOutRev)}
         ${sfConn(sfTotal,sfOut)}
-        ${sfBar2(sfOut,100,'#60a5fa',sfOut,'Outreach Sent')}
+        ${sfBar2(sfOut,100,'#60a5fa',sfOut,'Outreach Sent',sfTotal,sfOutRev)}
         ${sfConn(sfOut,sfGms)}
-        ${sfBar2(sfGms,100,'#fbbf24',sfGms,'GM Scheduled')}
+        ${sfBar2(sfGms,100,'#fbbf24',sfGms,'GM Scheduled',sfOut,sfGmsRev)}
         ${sfConn(sfGms,sfGm)}
-        ${sfBar2(sfGm,100,'#34d399',sfGm,'GM Completed')}
+        ${sfBar2(sfGm,100,'#34d399',sfGm,'GM Completed',sfGms,sfGmRev)}
         ${sfConn(sfGm,sfAp)}
-        ${sfBar2(Math.max(sfAp,1),100,'#a78bfa',sfAp,'AP Delivered')}
+        ${sfBar2(Math.max(sfAp,1),100,'#a78bfa',sfAp,'AP Delivered',sfGm,sfApRev)}
       </div>
     </div>`;
 
@@ -1022,8 +1044,23 @@ function _render(){
         <div style="font-size:10px;color:#94a3b8">(-${dp}%)</div>
       </div>`;
     };
-    const efBar=(flex,bg,num,label)=>`
-      <div style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
+    const efTip=(label,bg,num,total,prev)=>{
+      const pct2=total>0?Math.round(num/total*100):0;
+      const conv=prev>0?Math.round(num/prev*100):null;
+      return `<div class="fbar-tip">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;font-weight:700;color:#f8fafc">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${bg};flex-shrink:0"></span>${label}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:11px">
+          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Accounts</span><span style="color:#e2e8f0;font-weight:600">${num} of ${total}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Pct of book</span><span style="color:#e2e8f0;font-weight:600">${pct2}%</span></div>
+          ${conv!==null?`<div style="display:flex;justify-content:space-between;gap:20px"><span style="color:#64748b">Conv from prev</span><span style="color:#34d399;font-weight:600">${conv}%</span></div>`:''}
+        </div>
+      </div>`;
+    };
+    const efBar=(flex,bg,num,label,prev)=>`
+      <div class="fbar" style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
+        ${efTip(label,bg,num,efTotal,prev)}
         <div style="height:100px;background:${bg};border-radius:4px 4px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
           <span style="font-size:18px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'};line-height:1">${num}</span>
           <span style="font-size:10px;font-weight:600;color:${bg==='#4b5563'?'#6b7280':'rgba(255,255,255,0.65)'}">${efTotal>0?Math.round(num/efTotal*100):0}%</span>
@@ -1045,15 +1082,15 @@ function _render(){
         <span style="margin-left:auto;font-size:11px;color:#475569">All engagement accounts</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:0">
-        ${efBar(efNoOut,'#4b5563',efNoOut,'No Outreach')}
+        ${efBar(efNoOut,'#4b5563',efNoOut,'No Outreach',null)}
         ${efConn(efTotal,efOut)}
-        ${efBar(efOut,'#60a5fa',efOut,'Outreach Sent')}
+        ${efBar(efOut,'#60a5fa',efOut,'Outreach Sent',efTotal)}
         ${efConn(efOut,efGms)}
-        ${efBar(efGms,'#fbbf24',efGms,'GM Scheduled')}
+        ${efBar(efGms,'#fbbf24',efGms,'GM Scheduled',efOut)}
         ${efConn(efGms,efGm)}
-        ${efBar(efGm,'#34d399',efGm,'GM Completed')}
+        ${efBar(efGm,'#34d399',efGm,'GM Completed',efGms)}
         ${efConn(efGm,efAp)}
-        ${efBar(Math.max(efAp,1),'#a78bfa',efAp,'AP Delivered')}
+        ${efBar(Math.max(efAp,1),'#a78bfa',efAp,'AP Delivered',efGm)}
       </div>
     </div>`;
 
