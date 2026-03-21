@@ -1566,6 +1566,7 @@ function _render(){
   }
 
   document.getElementById('app').innerHTML=h;
+  if(S.drill&&S.tab==='pipeline'){requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));}
   if(_flagDDCloseListener){document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;}
   if(S.acctFlagOpen||S.drillFlagOpen){requestAnimationFrame(()=>{_flagDDCloseListener=function(){S.acctFlagOpen=false;S.drillFlagOpen=false;document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;render();};document.addEventListener('click',_flagDDCloseListener);});}
 } // end _render
