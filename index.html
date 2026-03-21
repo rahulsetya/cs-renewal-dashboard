@@ -728,7 +728,7 @@ function navEng(stage,qtr){
   requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
 }
 function navMonth(m){
-  S.acctFilter={seMonth:m};
+  S.acctFilter={seMonth:m,stageNotIn:['7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent']};
   S.acctSort={col:'subend',dir:'asc'};S.drill=null;
   S.tab='accounts';
   render();
@@ -1580,6 +1580,7 @@ function _render(){
     let rows=[...f];
     if(af.stageIn)rows=rows.filter(a=>af.stageIn.includes(a.s));
     else if(af.stage)rows=rows.filter(a=>a.s===af.stage);
+    if(af.stageNotIn)rows=rows.filter(a=>!af.stageNotIn.includes(a.s));
     if(af.owner)rows=rows.filter(a=>a.ro===af.owner);
     if(af.ae)rows=rows.filter(a=>(a.ae||'')===af.ae);
     if(af.r25min)rows=rows.filter(a=>a.r25>=(parseFloat(af.r25min)||0)*1000);
