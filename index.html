@@ -73,7 +73,8 @@ body.light .tab{color:#475569}
 body.light .tab.a{background:#a8bdd4;color:#1e293b}
 body.light .sg:hover{background:#bdd0e4}
 body.light .sg.act{background:#b0c8e0}
-body.light th{color:#475569}
+body.light th{color:#334155;font-weight:700}
+body.light tr.dr td{color:#0f172a;font-weight:600}
 body.light select{background:#f2f7fc;border-color:#a8bdd4;color:#1e293b}
 body.light .sb{color:#475569}
 body.light .sb.a{background:#a8bdd4;color:#1e293b}
@@ -734,7 +735,7 @@ async function init(){
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-const DARK_TO_LIGHT={'#0f172a':'#b8cce0','#1e293b':'#f2f7fc','#172033':'#ddeaf5','#0a1628':'#c8daec','#2d3a52':'#b8d0e8','#334155':'#a8bdd4','#293548':'#bdd0e4','#1e3a5f':'#c0d8ee','#0d1520':'#c8daec','#0f1f33':'#b0c8e0','#060f1e':'#c0d2e6','#0d1f35':'#b8cce0','#e2e8f0':'#1e293b','#94a3b8':'#475569','#64748b':'#374151','#475569':'#1f2937','#f8fafc':'#0f172a','#4b5563':'#6b7280','#422006':'#fff3e0','#92400e':'#d97706','#fbbf24':'#b45309','#22d3ee':'#0369a1','#fbbf2422':'#fef3c7','#22d3ee22':'#cffafe'};
+const DARK_TO_LIGHT={'#0f172a':'#b8cce0','#1e293b':'#f2f7fc','#172033':'#ddeaf5','#0a1628':'#c8daec','#2d3a52':'#b8d0e8','#334155':'#a8bdd4','#293548':'#bdd0e4','#1e3a5f':'#c0d8ee','#0d1520':'#c8daec','#0f1f33':'#b0c8e0','#060f1e':'#c0d2e6','#0d1f35':'#b8cce0','#e2e8f0':'#0f172a','#94a3b8':'#475569','#64748b':'#374151','#475569':'#1f2937','#f8fafc':'#0f172a','#4b5563':'#6b7280','#422006':'#fff3e0','#92400e':'#d97706','#fbbf24':'#b45309','#22d3ee':'#0369a1','#fbbf2422':'#fef3c7','#22d3ee22':'#cffafe'};
 function render(){try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
 function _render(){
   // ── Shared funnel helpers (used by Pipeline×Eng and All Engagement tabs) ──
