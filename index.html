@@ -1531,7 +1531,7 @@ function _render(){
       <span style="font-size:12px;color:#64748b">${rows.length}${rows.length!==f.length?` of ${f.length}`:''} accounts</span>
       ${hasFilters?`<button onclick="S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};render()" style="font-size:10px;padding:2px 10px;background:#1e293b;border:1px solid #ef4444;color:#ef4444;border-radius:4px;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
     </div>
-    <div class="st"><table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
+    <div class="st"><table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#0d1520;z-index:1"><tr>
       <th onclick="ssAcctSort('account')" style="${thStyle};width:170px"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div></th>
       <th onclick="ssAcctSort('stage')" style="${thStyle};width:112px"><div style="display:flex;align-items:center;gap:3px">Stage ${sdArr('stage')}</div>${fSelect('stage',uStages)}</th>
       <th onclick="ssAcctSort('owner')" style="${thStyle};width:100px"><div style="display:flex;align-items:center;gap:3px">Owner ${sdArr('owner')}</div>${fSelect('owner',uOwners)}</th>
