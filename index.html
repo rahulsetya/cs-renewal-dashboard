@@ -711,7 +711,11 @@ function navKpi(type){
   else if(type==='risk'){S.tab='risk';}
   else if(type==='winback'){S.tab='winback';}
   render();
-  requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
+  if(S.tab==='accounts'){
+    requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
+  } else {
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
 }
 function navEng(stage,qtr){
   S.acctFilter={engStage:stage};
