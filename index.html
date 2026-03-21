@@ -706,8 +706,8 @@ function navKpi(type){
   else if(type==='pipeline'){S.tab='accounts';S.acctFilter.stageIn=['5. Proposal Made','6. Signature Requested'];}
   else if(type==='lost'){S.tab='accounts';S.acctFilter.stage='8. Closed Lost (Not Renewing)';}
   else if(type==='unc'){S.tab='accounts';S.acctFilter.stage='1. Uncontacted';}
-  else if(type==='risk'){S.tab='accounts';S.acctFilter.flags=['__any__'];}
-  else if(type==='winback'){S.tab='accounts';S.acctFilter.flags=['Win-Back'];}
+  else if(type==='risk'){S.tab='risk';}
+  else if(type==='winback'){S.tab='winback';}
   render();
   requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
 }
