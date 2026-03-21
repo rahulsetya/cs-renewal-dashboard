@@ -60,28 +60,28 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .debug-card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px;max-width:700px;font-size:11px;color:#64748b;line-height:1.8;word-break:break-all;margin-top:12px;text-align:left}
 @media(max-width:1000px){.g4{grid-template-columns:repeat(2,1fr)}.g6{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.g3,.g4{grid-template-columns:1fr}}
-body.light{background:#dde5f0;color:#1e293b}
-body.light .cd{background:#eaf0f8}
-body.light .kpi{background:#eaf0f8;cursor:pointer}
-body.light .rc{background:#d5dfed}
-body.light .bb{background:#d5dded}
-body.light .dr2{background:#d5dfed}
-body.light tr.dr:nth-child(even){background:#d8e2ef}
-body.light tr.dr:nth-child(odd){background:#eaf0f8}
-body.light tr.ck:hover{background:#c8d6e8!important}
+body.light{background:#b8cce0;color:#1e293b}
+body.light .cd{background:#f2f7fc;box-shadow:0 2px 8px rgba(0,0,0,0.12)}
+body.light .kpi{background:#f2f7fc;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.12)}
+body.light .rc{background:#c8daec}
+body.light .bb{background:#c0d2e6}
+body.light .dr2{background:#c8daec}
+body.light tr.dr:nth-child(even){background:#ddeaf5}
+body.light tr.dr:nth-child(odd){background:#f2f7fc}
+body.light tr.ck:hover{background:#b8d0e8!important}
 body.light .tab{color:#475569}
-body.light .tab.a{background:#b8c8db;color:#1e293b}
-body.light .sg:hover{background:#d0dae8}
-body.light .sg.act{background:#c8d4e4}
+body.light .tab.a{background:#a8bdd4;color:#1e293b}
+body.light .sg:hover{background:#bdd0e4}
+body.light .sg.act{background:#b0c8e0}
 body.light th{color:#475569}
-body.light select{background:#eaf0f8;border-color:#b8c8db;color:#1e293b}
+body.light select{background:#f2f7fc;border-color:#a8bdd4;color:#1e293b}
 body.light .sb{color:#475569}
-body.light .sb.a{background:#b8c8db;color:#1e293b}
-body.light .btn-refresh{background:#eaf0f8;color:#475569;border-color:#b8c8db}
-body.light .btn-refresh:hover{background:#d8e2ef;color:#1e293b}
-body.light .btn-snapshot{background:#eaf0f8}
-body.light .debug-card{background:#eaf0f8;border-color:#b8c8db;color:#475569}
-body.light .tabs{border-bottom:1px solid #c8d4e0}
+body.light .sb.a{background:#a8bdd4;color:#1e293b}
+body.light .btn-refresh{background:#f2f7fc;color:#475569;border-color:#a8bdd4}
+body.light .btn-refresh:hover{background:#ddeaf5;color:#1e293b}
+body.light .btn-snapshot{background:#f2f7fc}
+body.light .debug-card{background:#f2f7fc;border-color:#a8bdd4;color:#475569}
+body.light .tabs{border-bottom:1px solid #b0c4d8}
 body.light .b-yellow{background:#fef3c7;color:#92400e}
 body.light .b-orange{background:#ffedd5;color:#9a3412}
 body.light .b-red{background:#fee2e2;color:#991b1b}
@@ -734,7 +734,7 @@ async function init(){
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-const DARK_TO_LIGHT={'#0f172a':'#dde5f0','#1e293b':'#eaf0f8','#172033':'#d8e2ef','#0a1628':'#d5dfed','#2d3a52':'#c8d6e8','#334155':'#b8c8db','#293548':'#d0dae8','#1e3a5f':'#c5d8ef','#0d1520':'#c0cfdf','#0f1f33':'#b8c8d8','#060f1e':'#d0dcea','#0d1f35':'#c8d4e4','#e2e8f0':'#1e293b','#94a3b8':'#475569','#64748b':'#374151','#475569':'#1f2937','#f8fafc':'#0f172a','#4b5563':'#6b7280','#422006':'#fff3e0','#92400e':'#d97706','#fbbf24':'#b45309','#22d3ee':'#0369a1','#fbbf2422':'#fef3c7','#22d3ee22':'#cffafe'};
+const DARK_TO_LIGHT={'#0f172a':'#b8cce0','#1e293b':'#f2f7fc','#172033':'#ddeaf5','#0a1628':'#c8daec','#2d3a52':'#b8d0e8','#334155':'#a8bdd4','#293548':'#bdd0e4','#1e3a5f':'#c0d8ee','#0d1520':'#c8daec','#0f1f33':'#b0c8e0','#060f1e':'#c0d2e6','#0d1f35':'#b8cce0','#e2e8f0':'#1e293b','#94a3b8':'#475569','#64748b':'#374151','#475569':'#1f2937','#f8fafc':'#0f172a','#4b5563':'#6b7280','#422006':'#fff3e0','#92400e':'#d97706','#fbbf24':'#b45309','#22d3ee':'#0369a1','#fbbf2422':'#fef3c7','#22d3ee22':'#cffafe'};
 function render(){try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
 function _render(){
   // ── Shared funnel helpers (used by Pipeline×Eng and All Engagement tabs) ──
