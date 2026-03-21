@@ -713,6 +713,21 @@ function navKpi(type){
   render();
   requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
 }
+function navEng(stage,qtr){
+  S.acctFilter={engStage:stage};
+  if(qtr&&qtr!=='ALL')S.acctFilter.engQtr=qtr;
+  S.acctSort={col:'stage',dir:'asc'};S.drill=null;
+  S.tab='accounts';
+  render();
+  requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
+}
+function navMonth(m){
+  S.acctFilter={seMonth:m};
+  S.acctSort={col:'subend',dir:'asc'};S.drill=null;
+  S.tab='accounts';
+  render();
+  requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
+}
 let _flagDDCloseListener=null;
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
@@ -765,8 +780,8 @@ function _render(){
       </div>
     </div>`;
   };
-  const funnelBar=(flex,barH,bg,num,label,prev,rev,total,alwaysRev=true)=>`
-    <div class="fbar" style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column">
+  const funnelBar=(flex,barH,bg,num,label,prev,rev,total,alwaysRev=true,clickFn='')=>`
+    <div class="fbar" style="flex:${Math.max(flex,1)};min-width:80px;display:flex;flex-direction:column${clickFn?';cursor:pointer':''}" ${clickFn?`onclick="${clickFn}"`:''} title="${clickFn?'Click to view accounts':''}">
       ${funnelTip(label,bg,num,total,prev,rev,alwaysRev)}
       <div style="height:${barH}px;background:${bg};border-radius:4px 4px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
         <span style="font-size:18px;font-weight:700;color:${bg==='#4b5563'?'#94a3b8':'#fff'};line-height:1">${num}</span>
@@ -1014,7 +1029,8 @@ function _render(){
     h+=`<div style="display:flex;align-items:flex-end;gap:6px;height:160px;margin-bottom:8px;padding:0 4px">`;
     MO.forEach((m,i)=>{
       const d=mo_data[m],h1=d.r25>0?d.off/maxR*140:0,h2=d.r25>0?(d.r25-d.off)/maxR*140:0;
-      h+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center">
+      const clickable=d.n>0;
+      h+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center${clickable?';cursor:pointer':''}" ${clickable?`onclick="navMonth('${m}')" title="View ${d.n} accounts expiring ${MON[i]}"`:''}>
         <div style="font-size:10px;color:#f8fafc;font-weight:600;margin-bottom:4px">${d.n>0?d.n:''}</div>
         <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:140px">
           ${d.r25>0?`<div style="width:100%;height:${Math.max(h2,1)}px;background:#ef444466;border-radius:3px 3px 0 0"></div><div style="width:100%;height:${Math.max(h1,1)}px;background:#22d3ee88"></div>`:''}
@@ -1147,15 +1163,15 @@ function _render(){
         <span style="margin-left:auto;font-size:11px;color:#475569">Engagement activity across pipeline accounts</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:0">
-        ${funnelBar(sfNoOut,100,'#4b5563',sfNoOut,'No Outreach',null,sfNoOutRev,sfTotal)}
+        ${funnelBar(sfNoOut,100,'#4b5563',sfNoOut,'No Outreach',null,sfNoOutRev,sfTotal,true,"navEng('noout','ALL')")}
         ${funnelConn(sfTotal,sfOut)}
-        ${funnelBar(sfOut,100,'#60a5fa',sfOut,'Outreach Sent',sfTotal,sfOutRev,sfTotal)}
+        ${funnelBar(sfOut,100,'#60a5fa',sfOut,'Outreach Sent',sfTotal,sfOutRev,sfTotal,true,"navEng('out','ALL')")}
         ${funnelConn(sfOut,sfGms)}
-        ${funnelBar(sfGms,100,'#fbbf24',sfGms,'GM Scheduled',sfOut,sfGmsRev,sfTotal)}
+        ${funnelBar(sfGms,100,'#fbbf24',sfGms,'GM Scheduled',sfOut,sfGmsRev,sfTotal,true,"navEng('gms','ALL')")}
         ${funnelConn(sfGms,sfGm)}
-        ${funnelBar(sfGm,100,'#34d399',sfGm,'GM Completed',sfGms,sfGmRev,sfTotal)}
+        ${funnelBar(sfGm,100,'#34d399',sfGm,'GM Completed',sfGms,sfGmRev,sfTotal,true,"navEng('gm','ALL')")}
         ${funnelConn(sfGm,sfAp)}
-        ${funnelBar(Math.max(sfAp,1),100,'#a78bfa',sfAp,'AP Delivered',sfGm,sfApRev,sfTotal)}
+        ${funnelBar(Math.max(sfAp,1),100,'#a78bfa',sfAp,'AP Delivered',sfGm,sfApRev,sfTotal,true,"navEng('ap','ALL')")}
       </div>
     </div>`;
 
@@ -1277,15 +1293,15 @@ function _render(){
         <span style="margin-left:auto;font-size:11px;color:#475569">All engagement accounts</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:0">
-        ${funnelBar(efNoOut,100,'#4b5563',efNoOut,'No Outreach',null,efRevNoOut,efTotal,false)}
+        ${funnelBar(efNoOut,100,'#4b5563',efNoOut,'No Outreach',null,efRevNoOut,efTotal,false,`navEng('noout','${S.engQtrFilter}')`)}
         ${funnelConn(efTotal,efOut)}
-        ${funnelBar(efOut,100,'#60a5fa',efOut,'Outreach Sent',efTotal,efRevOut,efTotal,false)}
+        ${funnelBar(efOut,100,'#60a5fa',efOut,'Outreach Sent',efTotal,efRevOut,efTotal,false,`navEng('out','${S.engQtrFilter}')`)}
         ${funnelConn(efOut,efGms)}
-        ${funnelBar(efGms,100,'#fbbf24',efGms,'GM Scheduled',efOut,efRevGms,efTotal,false)}
+        ${funnelBar(efGms,100,'#fbbf24',efGms,'GM Scheduled',efOut,efRevGms,efTotal,false,`navEng('gms','${S.engQtrFilter}')`)}
         ${funnelConn(efGms,efGm)}
-        ${funnelBar(efGm,100,'#34d399',efGm,'GM Completed',efGms,efRevGm,efTotal,false)}
+        ${funnelBar(efGm,100,'#34d399',efGm,'GM Completed',efGms,efRevGm,efTotal,false,`navEng('gm','${S.engQtrFilter}')`)}
         ${funnelConn(efGm,efAp)}
-        ${funnelBar(Math.max(efAp,1),100,'#a78bfa',efAp,'AP Delivered',efGm,efRevAp,efTotal,false)}
+        ${funnelBar(Math.max(efAp,1),100,'#a78bfa',efAp,'AP Delivered',efGm,efRevAp,efTotal,false,`navEng('ap','${S.engQtrFilter}')`)}
       </div>
     </div>`;
 
@@ -1564,6 +1580,9 @@ function _render(){
     if(af.offermin)rows=rows.filter(a=>a.o>=(parseFloat(af.offermin)||0)*1000);
     if(af.offermax)rows=rows.filter(a=>a.o<=(parseFloat(af.offermax)||Infinity)*1000);
     if(af.subend)rows=rows.filter(a=>seToQtr(a.se)===af.subend);
+    if(af.seMonth)rows=rows.filter(a=>a.em===af.seMonth);
+    if(af.engStage){const es=af.engStage;if(es==='noout')rows=rows.filter(a=>!a.out);else if(es==='out')rows=rows.filter(a=>a.out===1);else if(es==='gms')rows=rows.filter(a=>a.gms===1);else if(es==='gm')rows=rows.filter(a=>a.gm===1);else if(es==='ap')rows=rows.filter(a=>a.ap===1);}
+    if(af.engQtr){const toQtr=em=>{if(!em)return'';const p=em.match(/^(\d{4})-(\d{2})/);return p?`${p[1]}-Q${Math.ceil(parseInt(p[2])/3)}`:''};rows=rows.filter(a=>toQtr(a.em)===af.engQtr);}
     if(afFlags.length){if(afFlags.includes('__any__')){rows=rows.filter(a=>a.sg.length>0);}else{rows=rows.filter(a=>S.acctFlagMode==='all'?afFlags.every(fl=>a.sg.some(s=>SIG_L[s]===fl)):afFlags.some(fl=>a.sg.some(s=>SIG_L[s]===fl)));}}
 
     // Apply sort
