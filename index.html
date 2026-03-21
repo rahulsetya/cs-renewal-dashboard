@@ -671,6 +671,7 @@ function navKpi(type){
   else if(type==='risk'){S.tab='accounts';S.acctFilter.flags=['__any__'];}
   else if(type==='winback'){S.tab='accounts';S.acctFilter.flags=['Win-Back'];}
   render();
+  requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
 }
 let _flagDDCloseListener=null;
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
