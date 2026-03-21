@@ -669,7 +669,7 @@ function navKpi(type){
   else if(type==='lost'){S.tab='accounts';S.acctFilter.stage='8. Closed Lost (Not Renewing)';}
   else if(type==='unc'){S.tab='accounts';S.acctFilter.stage='1. Uncontacted';}
   else if(type==='risk'){S.tab='accounts';S.acctFilter.flags=['__any__'];}
-  else if(type==='winback'){S.tab='winback';}
+  else if(type==='winback'){S.tab='accounts';S.acctFilter.flags=['Win-Back'];}
   render();
 }
 let _flagDDCloseListener=null;
