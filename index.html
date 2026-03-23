@@ -1004,7 +1004,7 @@ function _render(){
   ].forEach(k=>h+=`<div class="kpi" onclick="navKpi('${k.n}')" style="border-left:3px solid ${k.c};cursor:pointer;transition:background .15s" onmouseover="this.style.background='#263248'" onmouseout="this.style.background=''"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
   h+=`</div>`;
   if(S.staleWarning)h+=`<div style="background:#422006;border:1px solid #92400e;border-radius:8px;padding:8px 16px;font-size:12px;color:#fbbf24;margin-bottom:8px;display:flex;align-items:center">${S.staleWarning}</div>`;
-  const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard'],['workload','Workload'],['crossref','Pipeline × Eng'],['alleng','All Engagement'],['engaccts','All ENG Accounts'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts'],['histsnap','Historical Snapshots']];
+  const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard / Workload'],['crossref','Pipeline × Eng'],['alleng','All Engagement'],['engaccts','All ENG Accounts'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts'],['histsnap','Historical Snapshots']];
   h+=`<div class="tabs">`;
   tabs.forEach(([tid,lbl])=>{
     const mvCount=PREV_TS?f.filter(d=>{const w=getWow(d);return w==='up'||w==='down'||w==='won'||w==='lost';}).length:0;
@@ -1290,10 +1290,7 @@ function _render(){
       h+=`<td style="text-align:center;font-weight:700;color:#f8fafc">${r.tot}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${fm(r.r25)}</td><td style="text-align:right;color:#22d3ee;font-weight:600">${fm(r.off)}</td><td style="text-align:center"><span style="color:${wp>=30?'#34d399':wp>=15?'#fbbf24':'#f87171'};font-weight:700">${wp}%</span></td><td style="text-align:center;color:${r.flags?'#fb923c':'#334155'};font-weight:700">${r.flags}</td></tr>`;
     });
     h+=`</tbody></table></div></div>`;
-  }
-
-  // ── WORKLOAD ──
-  if(S.tab==='workload'){
+    // ── Workload table (appended to Scoreboard) ──
     const wl={};
     D.forEach(d=>{
       if(!wl[d.ro])wl[d.ro]={o:d.ro,renew:0,r25:0,off:0,won:0,lost:0,active:0};
@@ -1303,7 +1300,7 @@ function _render(){
       if(!['7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent'].includes(d.s))wl[d.ro].active++;
     });
     const wa=Object.values(wl).sort((a,b)=>b.r25-a.r25);
-    h+=`<div class="cd" style="padding:20px"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600;color:#f8fafc">CSM Workload vs. Outcome</h3>
+    h+=`<div class="cd" style="padding:20px;margin-top:16px"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600;color:#f8fafc">CSM Workload vs. Outcome</h3>
     <table><thead><tr><th>CSM</th><th style="text-align:center">Total Accts</th><th style="text-align:center">Active Pipeline</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th><th style="text-align:center;color:#34d399">Won</th><th style="text-align:center;color:#ef4444">Lost</th><th style="text-align:center">Win Rate</th><th style="text-align:right">Rev/Acct</th></tr></thead><tbody>`;
     wa.forEach(r=>{
       const wr=r.won+r.lost>0?pct(r.won,r.won+r.lost):0,rpa=r.renew>0?Math.round(r.r25/r.renew):0;
