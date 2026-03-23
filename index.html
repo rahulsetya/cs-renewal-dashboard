@@ -1651,7 +1651,7 @@ function _render(){
   if(LIGHT) h=h.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
   document.getElementById('app').innerHTML=h;
   applyBodyClass();
-  if(S.drill&&S.tab==='pipeline'&&S.drill!==_prevDrill){requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));}
+  if(S.drill&&S.tab==='pipeline'&&S.drill!==_prevDrill){requestAnimationFrame(()=>{const el=document.querySelector('.dr2');if(el)window.scrollTo({top:el.offsetTop-16,behavior:'smooth'});});}
   _prevDrill=S.drill;
   if(_flagDDCloseListener){document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;}
   if(S.acctFlagOpen||S.drillFlagOpen){requestAnimationFrame(()=>{_flagDDCloseListener=function(){S.acctFlagOpen=false;S.drillFlagOpen=false;document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;render();};document.addEventListener('click',_flagDDCloseListener);});}
