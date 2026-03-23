@@ -120,7 +120,9 @@ const ENG_SHEETS  = {
   'Joe R':'Joe Romanoff',
   'Scale':'Support iConnections'
 };
-const SCOPES     = 'Files.Read Files.Read.All offline_access';
+const SCOPES     = 'Files.Read Files.Read.All Files.ReadWrite.All offline_access';
+const SNAPSHOT_SITE = 'iconnections675.sharepoint.com:/sites/All_ClientSuccess:';
+const SNAPSHOT_PATH = 'Documents/cs_snapshot.json';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
 const SNAPSHOT_KEY  = 'cs_renewal_snapshot_v1';
@@ -401,40 +403,74 @@ async function fetchAllEngagement(token){
 }
 
 // ── SNAPSHOT (Movement tab) ───────────────────────────────────────────────────
-function saveSnapshot(){
+async function saveSnapshot(){
   const pw=prompt('Enter password to save snapshot:');
   if(pw===null)return;
   if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
   try{
     const snap={ts:Date.now(),data:{}};
     D.forEach(d=>snap.data[d.c]=d.s);
-    localStorage.setItem(SNAPSHOT_KEY,JSON.stringify(snap));
+    const token=await getToken();
+    await writeSnapshotToSP(token,snap);
+    localStorage.setItem(SNAPSHOT_KEY,JSON.stringify(snap)); // local backup
     PREV=snap.data;PREV_TS=snap.ts;
     render();
-    alert('Snapshot saved! The Movement tab will now compare against this state on future refreshes.');
+    alert('Snapshot saved to SharePoint! All users will now see this snapshot.');
   }catch(e){alert('Could not save snapshot: '+e.message);}
 }
 function loadSnapshot(){
+  // Local fallback only — real load happens via loadSnapshotFromSP after auth
   try{
     const raw=localStorage.getItem(SNAPSHOT_KEY);
     if(!raw)return;
     const snap=JSON.parse(raw);
-    PREV=snap.data||{};
-    PREV_TS=snap.ts||null;
+    PREV=snap.data||{};PREV_TS=snap.ts||null;
   }catch(e){PREV={};PREV_TS=null;}
 }
-function clearSnapshot(){
+async function clearSnapshot(){
   const pw=prompt('Enter password to clear snapshot:');
   if(pw===null)return;
   if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
-  localStorage.removeItem(SNAPSHOT_KEY);
-  PREV={};PREV_TS=null;
-  render();
+  try{
+    const token=await getToken();
+    await writeSnapshotToSP(token,{});
+    localStorage.removeItem(SNAPSHOT_KEY);
+    PREV={};PREV_TS=null;
+    render();
+  }catch(e){alert('Could not clear snapshot: '+e.message);}
 }
 function snapAge(){
   if(!PREV_TS)return null;
   const ms=Date.now()-PREV_TS, h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
   return h>0?`${h}h ${m}m ago`:`${m}m ago`;
+}
+let _snapSiteId=null;
+async function _getSnapSiteId(token){
+  if(_snapSiteId)return _snapSiteId;
+  const r=await fetch(`https://graph.microsoft.com/v1.0/sites/${SNAPSHOT_SITE}`,{headers:{Authorization:`Bearer ${token}`}});
+  if(!r.ok)return null;
+  _snapSiteId=(await r.json()).id;
+  return _snapSiteId;
+}
+async function loadSnapshotFromSP(token){
+  try{
+    const sid=await _getSnapSiteId(token);if(!sid)return;
+    const r=await fetch(`https://graph.microsoft.com/v1.0/sites/${sid}/drive/root:/${SNAPSHOT_PATH}:/content`,{headers:{Authorization:`Bearer ${token}`}});
+    if(!r.ok)return;
+    const txt=await r.text();
+    if(!txt||txt.trim()==='{}')return;
+    const snap=JSON.parse(txt);
+    if(snap.ts&&snap.data){PREV=snap.data;PREV_TS=snap.ts;console.log('✓ Snapshot loaded from SharePoint:',new Date(snap.ts).toLocaleString());}
+  }catch(e){console.warn('Could not load SP snapshot:',e);}
+}
+async function writeSnapshotToSP(token,snap){
+  const sid=await _getSnapSiteId(token);
+  if(!sid)throw new Error('Could not resolve SharePoint site for snapshot');
+  const r=await fetch(`https://graph.microsoft.com/v1.0/sites/${sid}/drive/root:/${SNAPSHOT_PATH}:/content`,{
+    method:'PUT',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+    body:JSON.stringify(snap)
+  });
+  if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(`SP write failed ${r.status}: ${j.error?.message||'unknown'}`);}
 }
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
@@ -679,7 +715,7 @@ async function loadData(forceRefresh=false){
   showLoading('Loading pipeline + engagement data…');
   try{
     const token=await getToken();
-    const [range,engMap]=await Promise.all([fetchSheet(token),fetchAllEngagement(token)]);
+    const [range,engMap]=await Promise.all([fetchSheet(token),fetchAllEngagement(token),loadSnapshotFromSP(token)]);
     D=processData(range,engMap);
     lastUpdated='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
     saveDataCache(D,ENG_RAW,lastUpdated);
