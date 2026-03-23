@@ -424,6 +424,9 @@ function loadSnapshot(){
   }catch(e){PREV={};PREV_TS=null;}
 }
 function clearSnapshot(){
+  const pw=prompt('Enter password to clear snapshot:');
+  if(pw===null)return;
+  if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
   localStorage.removeItem(SNAPSHOT_KEY);
   PREV={};PREV_TS=null;
   render();
