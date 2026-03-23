@@ -854,10 +854,9 @@ function navKpi(type){
   }
 }
 function navSprintEng(stage){
-  // Sprint Funnel = renewal accounts only → ENG Accounts tab cross-filtered with renewal sheet
-  S.engAcctFilter={engStage:stage,renewalOnly:true};
-  S.engAcctSort={col:'stage',dir:'asc'};
-  S.tab='engaccts';
+  S.acctFilter={engStage:stage};
+  S.acctSort={col:'stage',dir:'asc'};S.drill=null;
+  S.tab='accounts';
   render();
   requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
 }
