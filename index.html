@@ -854,10 +854,10 @@ function navKpi(type){
   }
 }
 function navSprintEng(stage){
-  // Sprint Funnel = renewal accounts only → main Accounts tab
-  S.acctFilter={engStage:stage};
-  S.acctSort={col:'stage',dir:'asc'};S.drill=null;
-  S.tab='accounts';
+  // Sprint Funnel = renewal accounts only → ENG Accounts tab cross-filtered with renewal sheet
+  S.engAcctFilter={engStage:stage,renewalOnly:true};
+  S.engAcctSort={col:'stage',dir:'asc'};
+  S.tab='engaccts';
   render();
   requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
 }
@@ -1651,8 +1651,13 @@ function _render(){
       const af=S.engAcctFilter||{};
       const as=S.engAcctSort||{col:'acct',dir:'asc'};
       const allERows=S.owner==='ALL'?ENG_RAW:ENG_RAW.filter(r=>r.ro===S.owner);
+      // Build renewal lookup maps
+      const renewalSet=new Set(D.map(d=>d.c));
+      const renewalStageMap={};D.forEach(d=>{renewalStageMap[d.c]=d.s;});
+      const showRenewal=!!af.renewalOnly;
       let rows=[...allERows];
       // Filters
+      if(af.renewalOnly)rows=rows.filter(r=>renewalSet.has(r.acct));
       if(af.acctSearch)rows=rows.filter(r=>r.acct.toLowerCase().includes(af.acctSearch.toLowerCase()));
       if(af.owner)rows=rows.filter(r=>r.ro===af.owner);
       if(af.endMonth)rows=rows.filter(r=>r.endMonth===af.endMonth);
@@ -1662,7 +1667,7 @@ function _render(){
       if(af.emTo)rows=rows.filter(r=>r.endMonth&&r.endMonth<=af.emTo);
       if(af.rsk)rows=rows.filter(r=>r.rsk===1);
       // Sort
-      const eSortFns={acct:(a,b)=>a.acct.localeCompare(b.acct),owner:(a,b)=>(a.ro||'').localeCompare(b.ro||''),endMonth:(a,b)=>String(a.endMonth||'').localeCompare(String(b.endMonth||'')),rev:(a,b)=>b.rev-a.rev,out:(a,b)=>b.out-a.out,gms:(a,b)=>b.gms-a.gms,gm:(a,b)=>b.gm-a.gm,ap:(a,b)=>b.ap-a.ap};
+      const eSortFns={acct:(a,b)=>a.acct.localeCompare(b.acct),owner:(a,b)=>(a.ro||'').localeCompare(b.ro||''),endMonth:(a,b)=>String(a.endMonth||'').localeCompare(String(b.endMonth||'')),rev:(a,b)=>b.rev-a.rev,out:(a,b)=>b.out-a.out,gms:(a,b)=>b.gms-a.gms,gm:(a,b)=>b.gm-a.gm,ap:(a,b)=>b.ap-a.ap,stage:(a,b)=>(renewalStageMap[a.acct]||'zzz').localeCompare(renewalStageMap[b.acct]||'zzz')};
       const esf=eSortFns[as.col]||eSortFns.acct;
       rows=[...rows].sort((a,b)=>as.dir==='asc'?esf(a,b):-esf(a,b));
       const uEOwners=[...new Set(allERows.map(r=>r.ro).filter(Boolean))].sort();
@@ -1678,6 +1683,7 @@ function _render(){
         <div style="padding:8px 14px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
           <span style="font-size:12px;color:#64748b">${rows.length} of ${allERows.length} engagement accounts</span>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            ${af.renewalOnly?`<span style="font-size:11px;background:#14532d;color:#34d399;border-radius:12px;padding:2px 10px">Renewal Accounts Only</span>`:''}
             ${af.engStage?`<span style="font-size:11px;background:#1e3a5f;color:#60a5fa;border-radius:12px;padding:2px 10px">${engStageLabel[af.engStage]}</span>`:''}
             ${af.engQtr?`<span style="font-size:11px;background:#1e3a5f;color:#60a5fa;border-radius:12px;padding:2px 10px">${af.engQtr.replace('-Q',' Q')}</span>`:''}
             ${af.emFrom||af.emTo?`<span style="font-size:11px;background:#1e293b;color:#fb923c;border-radius:12px;padding:2px 10px">${fmEM(af.emFrom)}–${fmEM(af.emTo)}</span>`:''}
@@ -1687,7 +1693,8 @@ function _render(){
         <div class="st"><table style="table-layout:fixed;width:100%">
         <thead style="position:sticky;top:0;background:#0d1520;z-index:1"><tr>
           <th onclick="ssEngAcctSort('acct')" style="${ethS};width:220px">Account ${esd('acct')}<br><input onclick="event.stopPropagation()" oninput="ssEngAcctFilter('acctSearch',this.value)" value="${(af.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${eCtrlS}"></th>
-          <th onclick="ssEngAcctSort('owner')" style="${ethS};width:120px">Owner ${esd('owner')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('owner',this.value)" style="${eCtrlS}"><option value="">All</option>${uEOwners.map(o=>`<option value="${o}"${af.owner===o?' selected':''}>${o}</option>`).join('')}</select></th>
+          <th onclick="ssEngAcctSort('owner')" style="${ethS};width:110px">Owner ${esd('owner')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('owner',this.value)" style="${eCtrlS}"><option value="">All</option>${uEOwners.map(o=>`<option value="${o}"${af.owner===o?' selected':''}>${o}</option>`).join('')}</select></th>
+          ${showRenewal?`<th onclick="ssEngAcctSort('stage')" style="${ethS};width:160px;color:#a78bfa">Renewal Stage ${esd('stage')}</th>`:''}
           <th onclick="ssEngAcctSort('endMonth')" style="${ethS};width:90px">End Month ${esd('endMonth')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('endMonth',this.value)" style="${eCtrlS}"><option value="">All</option>${uEMonths.map(m=>`<option value="${m}"${af.endMonth===m?' selected':''}>${m}</option>`).join('')}</select></th>
           <th onclick="ssEngAcctSort('rev')" style="${ethS};width:80px;text-align:right;color:#fbbf24">Revenue ${esd('rev')}</th>
           <th onclick="ssEngAcctSort('out')" style="${ethS};width:70px;text-align:center;color:#60a5fa">Outreach ${esd('out')}</th>
@@ -1698,9 +1705,11 @@ function _render(){
         </tr></thead><tbody>`;
       rows.forEach(r=>{
         const ck=(v,yc,nc)=>`<span style="font-size:13px;color:${v?yc:nc}">${v?'✓':'✗'}</span>`;
+        const rStage=renewalStageMap[r.acct]||'';
         h+=`<tr class="dr">
           <td style="padding:5px 8px;color:#e2e8f0;font-weight:500">${r.acct}</td>
           <td style="padding:5px 8px;color:#94a3b8">${r.ro||'–'}</td>
+          ${showRenewal?`<td style="padding:5px 8px;font-size:11px;color:${CL[rStage]||'#94a3b8'};font-weight:600">${SH[rStage]||rStage||'–'}</td>`:''}
           <td style="padding:5px 8px;color:#94a3b8">${fmEM(r.endMonth)}</td>
           <td style="padding:5px 8px;text-align:right;color:#fbbf24;font-weight:600">${r.rev?fm(r.rev):'–'}</td>
           <td style="padding:5px 8px;text-align:center">${ck(r.out,'#60a5fa','#334155')}</td>
