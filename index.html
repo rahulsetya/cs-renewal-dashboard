@@ -1153,9 +1153,39 @@ function _render(){
       <div class="kpi" style="border-left:3px solid #64748b"><div class="kl">No Change</div><div class="kv" style="color:#64748b">${f.filter(d=>getWow(d)==='same').length}</div><div class="ks">of ${f.length} total</div></div>
     </div>`;
     if(movedUp.length+newWon.length+movedDown.length+newLost.length>0){
-      h+=`<div class="cd" style="padding:20px;margin-bottom:16px"><h3 style="margin:0 0 12px;font-size:15px;font-weight:600;color:#f8fafc">Deals That Moved</h3>
-      <table><thead><tr><th>Account</th><th>Owner</th><th>From</th><th></th><th>To</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th><th></th></tr></thead><tbody>`;
-      [...movedUp,...newWon,...movedDown,...newLost].sort((a,b)=>b.r25-a.r25).forEach(d=>{
+      const mvs=S.mvSort||{col:'rev',dir:'desc'};
+      const mvSortFns={
+        acct:(a,b)=>a.c.localeCompare(b.c),
+        owner:(a,b)=>(a.ro||'').localeCompare(b.ro||''),
+        from:(a,b)=>ST.indexOf(PREV[a.c]||'') - ST.indexOf(PREV[b.c]||''),
+        to:(a,b)=>ST.indexOf(a.s) - ST.indexOf(b.s),
+        rev:(a,b)=>b.r25-a.r25,
+        type:(a,b)=>{const o=['won','up','down','lost'];return o.indexOf(getWow(a))-o.indexOf(getWow(b));}
+      };
+      const mvSorted=[...movedUp,...newWon,...movedDown,...newLost].sort((a,b)=>{
+        const r=(mvSortFns[mvs.col]||mvSortFns.rev)(a,b);
+        return mvs.dir==='asc'?r:-r;
+      });
+      const mvHd=(col,lbl,align)=>{
+        const active=mvs.col===col,dir=active?(mvs.dir==='asc'?'▲':'▼'):'↕';
+        return `<th onclick="S.mvSort={col:'${col}',dir:'${active&&mvs.dir==='asc'?'desc':'asc'}'};render()" style="cursor:pointer;user-select:none;${align?'text-align:'+align+';':''}${active?'color:#f8fafc':''}">${lbl} <span style="font-size:9px;color:${active?'#60a5fa':'#334155'}">${dir}</span></th>`;
+      };
+      h+=`<div class="cd" style="padding:20px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="margin:0;font-size:15px;font-weight:600;color:#f8fafc">Deals That Moved</h3>
+          <span style="font-size:11px;color:#475569">${mvSorted.length} deals · click column to sort</span>
+        </div>
+      <table><thead><tr>
+        ${mvHd('acct','Account','')}
+        ${mvHd('owner','Owner','')}
+        ${mvHd('from','From','')}
+        <th></th>
+        ${mvHd('to','To','')}
+        ${mvHd('rev','2025 Rev','right')}
+        <th style="text-align:right;color:#22d3ee">2026 Offer</th>
+        ${mvHd('type','Type','center')}
+      </tr></thead><tbody>`;
+      mvSorted.forEach(d=>{
         const w=getWow(d),ps=PREV[d.c]||'Unknown';
         const nOpen=S.noteOpen===d.c;
         h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':d.c.replace(/'/g,"\\'")}') " title="${d.icn?'Click to toggle iCon Notes':'No iCon Notes'}">
@@ -1166,7 +1196,7 @@ function _render(){
           <td style="font-size:11px;color:${CL[d.s]};font-weight:600">${SH[d.s]}</td>
           <td style="text-align:right;color:#fbbf24;font-weight:600">${fm(d.r25)}</td>
           <td style="text-align:right;color:${d.o>0?'#22d3ee':'#334155'}">${d.o>0?fm(d.o):'–'}</td>
-          <td style="text-align:right;font-size:10px;color:#475569;white-space:nowrap">${d.icn?(nOpen?'▾':'▸')+' notes':''}</td>
+          <td style="text-align:center"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${WOW_COLORS[w]}22;color:${WOW_COLORS[w]}">${w==='won'?'Won':w==='up'?'↑ Up':w==='down'?'↓ Down':'Lost'}</span></td>
         </tr>
         ${nOpen&&d.icn?`<tr style="background:#0a1628"><td colspan="8" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${d.icn}</td></tr>`:''}`;
       });
