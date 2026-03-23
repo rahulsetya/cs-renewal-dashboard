@@ -833,6 +833,14 @@ function navKpi(type){
     window.scrollTo({top:0,behavior:'smooth'});
   }
 }
+function navSprintEng(stage){
+  // Sprint Funnel = renewal accounts only → main Accounts tab
+  S.acctFilter={engStage:stage};
+  S.acctSort={col:'stage',dir:'asc'};S.drill=null;
+  S.tab='accounts';
+  render();
+  requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
+}
 function navEng(stage,qtr){
   S.engAcctFilter={engStage:stage};
   if(qtr&&qtr!=='ALL')S.engAcctFilter.engQtr=qtr;
@@ -1312,15 +1320,15 @@ function _render(){
         <span style="margin-left:auto;font-size:11px;color:#475569">Engagement activity across pipeline accounts</span>
       </div>
       <div style="display:flex;align-items:flex-end;gap:0">
-        ${funnelBar(sfNoOut,100,'#4b5563',sfNoOut,'No Outreach',null,sfNoOutRev,sfTotal,true,"navEng('noout','ALL')")}
+        ${funnelBar(sfNoOut,100,'#4b5563',sfNoOut,'No Outreach',null,sfNoOutRev,sfTotal,true,"navSprintEng('noout')")}
         ${funnelConn(sfTotal,sfOut)}
-        ${funnelBar(sfOut,100,'#60a5fa',sfOut,'Outreach Sent',sfTotal,sfOutRev,sfTotal,true,"navEng('out','ALL')")}
+        ${funnelBar(sfOut,100,'#60a5fa',sfOut,'Outreach Sent',sfTotal,sfOutRev,sfTotal,true,"navSprintEng('out')")}
         ${funnelConn(sfOut,sfGms)}
-        ${funnelBar(sfGms,100,'#fbbf24',sfGms,'GM Scheduled',sfOut,sfGmsRev,sfTotal,true,"navEng('gms','ALL')")}
+        ${funnelBar(sfGms,100,'#fbbf24',sfGms,'GM Scheduled',sfOut,sfGmsRev,sfTotal,true,"navSprintEng('gms')")}
         ${funnelConn(sfGms,sfGm)}
-        ${funnelBar(sfGm,100,'#34d399',sfGm,'GM Completed',sfGms,sfGmRev,sfTotal,true,"navEng('gm','ALL')")}
+        ${funnelBar(sfGm,100,'#34d399',sfGm,'GM Completed',sfGms,sfGmRev,sfTotal,true,"navSprintEng('gm')")}
         ${funnelConn(sfGm,sfAp)}
-        ${funnelBar(Math.max(sfAp,1),100,'#a78bfa',sfAp,'AP Delivered',sfGm,sfApRev,sfTotal,true,"navEng('ap','ALL')")}
+        ${funnelBar(Math.max(sfAp,1),100,'#a78bfa',sfAp,'AP Delivered',sfGm,sfApRev,sfTotal,true,"navSprintEng('ap')")}
       </div>
     </div>`;
 
