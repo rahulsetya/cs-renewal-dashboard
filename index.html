@@ -1664,9 +1664,21 @@ function _render(){
       if(af.engQtr){const toQtr=em=>{if(!em)return'';const p=em.match(/^(\d{4})-(\d{2})/);return p?`${p[1]}-Q${Math.ceil(parseInt(p[2])/3)}`:''};rows=rows.filter(r=>toQtr(r.endMonth)===af.engQtr);}
       if(af.emFrom)rows=rows.filter(r=>r.endMonth&&r.endMonth>=af.emFrom);
       if(af.emTo)rows=rows.filter(r=>r.endMonth&&r.endMonth<=af.emTo);
+      if(af.revF==='yes')rows=rows.filter(r=>r.rev>0);
+      if(af.revF==='no')rows=rows.filter(r=>!r.rev);
+      if(af.outF==='yes')rows=rows.filter(r=>r.out===1);
+      if(af.outF==='no')rows=rows.filter(r=>!r.out);
+      if(af.gmsF==='yes')rows=rows.filter(r=>r.gms===1);
+      if(af.gmsF==='no')rows=rows.filter(r=>!r.gms);
+      if(af.gmF==='yes')rows=rows.filter(r=>r.gm===1);
+      if(af.gmF==='no')rows=rows.filter(r=>!r.gm);
+      if(af.apF==='yes')rows=rows.filter(r=>r.ap===1);
+      if(af.apF==='no')rows=rows.filter(r=>!r.ap);
+      if(af.rskF==='yes')rows=rows.filter(r=>r.rsk===1);
+      if(af.rskF==='no')rows=rows.filter(r=>!r.rsk);
       if(af.rsk)rows=rows.filter(r=>r.rsk===1);
       // Sort
-      const eSortFns={acct:(a,b)=>a.acct.localeCompare(b.acct),owner:(a,b)=>(a.ro||'').localeCompare(b.ro||''),endMonth:(a,b)=>String(a.endMonth||'').localeCompare(String(b.endMonth||'')),rev:(a,b)=>b.rev-a.rev,out:(a,b)=>b.out-a.out,gms:(a,b)=>b.gms-a.gms,gm:(a,b)=>b.gm-a.gm,ap:(a,b)=>b.ap-a.ap,stage:(a,b)=>(renewalStageMap[a.acct]||'zzz').localeCompare(renewalStageMap[b.acct]||'zzz')};
+      const eSortFns={acct:(a,b)=>a.acct.localeCompare(b.acct),owner:(a,b)=>(a.ro||'').localeCompare(b.ro||''),endMonth:(a,b)=>String(a.endMonth||'').localeCompare(String(b.endMonth||'')),rev:(a,b)=>b.rev-a.rev,out:(a,b)=>b.out-a.out,gms:(a,b)=>b.gms-a.gms,gm:(a,b)=>b.gm-a.gm,ap:(a,b)=>b.ap-a.ap,rsk:(a,b)=>(b.rsk||0)-(a.rsk||0),stage:(a,b)=>(renewalStageMap[a.acct]||'zzz').localeCompare(renewalStageMap[b.acct]||'zzz')};
       const esf=eSortFns[as.col]||eSortFns.acct;
       rows=[...rows].sort((a,b)=>as.dir==='asc'?esf(a,b):-esf(a,b));
       const uEOwners=[...new Set(allERows.map(r=>r.ro).filter(Boolean))].sort();
@@ -1695,12 +1707,12 @@ function _render(){
           <th onclick="ssEngAcctSort('owner')" style="${ethS};width:110px">Owner ${esd('owner')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('owner',this.value)" style="${eCtrlS}"><option value="">All</option>${uEOwners.map(o=>`<option value="${o}"${af.owner===o?' selected':''}>${o}</option>`).join('')}</select></th>
           ${showRenewal?`<th onclick="ssEngAcctSort('stage')" style="${ethS};width:160px;color:#a78bfa">Renewal Stage ${esd('stage')}</th>`:''}
           <th onclick="ssEngAcctSort('endMonth')" style="${ethS};width:90px">End Month ${esd('endMonth')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('endMonth',this.value)" style="${eCtrlS}"><option value="">All</option>${uEMonths.map(m=>`<option value="${m}"${af.endMonth===m?' selected':''}>${m}</option>`).join('')}</select></th>
-          <th onclick="ssEngAcctSort('rev')" style="${ethS};width:80px;text-align:right;color:#fbbf24">Revenue ${esd('rev')}</th>
-          <th onclick="ssEngAcctSort('out')" style="${ethS};width:70px;text-align:center;color:#60a5fa">Outreach ${esd('out')}</th>
-          <th onclick="ssEngAcctSort('gms')" style="${ethS};width:70px;text-align:center;color:#fbbf24">GM Sched ${esd('gms')}</th>
-          <th onclick="ssEngAcctSort('gm')" style="${ethS};width:70px;text-align:center;color:#34d399">GM Done ${esd('gm')}</th>
-          <th onclick="ssEngAcctSort('ap')" style="${ethS};width:65px;text-align:center;color:#a78bfa">AP Del ${esd('ap')}</th>
-          <th style="${ethS};width:50px;text-align:center">Risk</th>
+          <th onclick="ssEngAcctSort('rev')" style="${ethS};width:90px;text-align:right;color:#fbbf24">Revenue ${esd('rev')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('revF',this.value)" style="${eCtrlS}"><option value="">All</option><option value="yes"${af.revF==='yes'?' selected':''}>Has Rev</option><option value="no"${af.revF==='no'?' selected':''}>No Rev</option></select></th>
+          <th onclick="ssEngAcctSort('out')" style="${ethS};width:75px;text-align:center;color:#60a5fa">Outreach ${esd('out')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('outF',this.value)" style="${eCtrlS}"><option value="">All</option><option value="yes"${af.outF==='yes'?' selected':''}>Yes</option><option value="no"${af.outF==='no'?' selected':''}>No</option></select></th>
+          <th onclick="ssEngAcctSort('gms')" style="${ethS};width:75px;text-align:center;color:#fbbf24">GM Sched ${esd('gms')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('gmsF',this.value)" style="${eCtrlS}"><option value="">All</option><option value="yes"${af.gmsF==='yes'?' selected':''}>Yes</option><option value="no"${af.gmsF==='no'?' selected':''}>No</option></select></th>
+          <th onclick="ssEngAcctSort('gm')" style="${ethS};width:75px;text-align:center;color:#34d399">GM Done ${esd('gm')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('gmF',this.value)" style="${eCtrlS}"><option value="">All</option><option value="yes"${af.gmF==='yes'?' selected':''}>Yes</option><option value="no"${af.gmF==='no'?' selected':''}>No</option></select></th>
+          <th onclick="ssEngAcctSort('ap')" style="${ethS};width:70px;text-align:center;color:#a78bfa">AP Del ${esd('ap')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('apF',this.value)" style="${eCtrlS}"><option value="">All</option><option value="yes"${af.apF==='yes'?' selected':''}>Yes</option><option value="no"${af.apF==='no'?' selected':''}>No</option></select></th>
+          <th onclick="ssEngAcctSort('rsk')" style="${ethS};width:60px;text-align:center">Risk ${esd('rsk')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('rskF',this.value)" style="${eCtrlS}"><option value="">All</option><option value="yes"${af.rskF==='yes'?' selected':''}>Yes</option><option value="no"${af.rskF==='no'?' selected':''}>No</option></select></th>
         </tr></thead><tbody>`;
       rows.forEach(r=>{
         const ck=(v,yc,nc)=>`<span style="font-size:13px;color:${v?yc:nc}">${v?'✓':'✗'}</span>`;
