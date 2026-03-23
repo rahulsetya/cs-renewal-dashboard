@@ -159,7 +159,7 @@ function deriveKpisFromData(snapData,acctMap){
   const lost=deals.filter(d=>d.s==='8. Closed Lost (Not Renewing)');
   const unc=deals.filter(d=>d.s==='1. Uncontacted');
   const stages={};
-  (typeof ST!=='undefined'?ST:[]).forEach(s=>{const sa=deals.filter(d=>d.s===s);if(sa.length)stages[s]={count:sa.length,rev:sum(sa,'r25'),offer:sum(sa,'o')};});
+  (typeof ST!=='undefined'?ST:[]).forEach(s=>{const sa=deals.filter(d=>d.s===s);if(sa.length)stages[s]={count:sa.length,rev:sum(sa,'r25'),offer:sum(sa,'o'),offerCount:sa.filter(d=>d.o>0).length};});
   return{
     total:{count:deals.length,rev:sum(deals,'r25'),offer:sum(deals,'o')},
     won:{count:won.length,rev:sum(won,'r25')},
@@ -179,7 +179,7 @@ function buildSnapshotKpis(){
   const risk=D.filter(d=>d.sg&&d.sg.length>0);
   const wb=D.filter(d=>d.sg&&d.sg.includes('wb'));
   const stages={};
-  (typeof ST!=='undefined'?ST:[]).forEach(s=>{const sa=D.filter(d=>d.s===s);if(sa.length)stages[s]={count:sa.length,rev:sum(sa,'r25'),offer:sum(sa,'o')};});
+  (typeof ST!=='undefined'?ST:[]).forEach(s=>{const sa=D.filter(d=>d.s===s);if(sa.length)stages[s]={count:sa.length,rev:sum(sa,'r25'),offer:sum(sa,'o'),offerCount:sa.filter(d=>d.o>0).length};});
   return{
     total:{count:D.length,rev:sum(D,'r25'),offer:sum(D,'o')},
     won:{count:won.length,rev:sum(won,'r25')},
@@ -557,7 +557,7 @@ function snapAge(){
 }
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
-function fm(n){return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+(n/1000).toFixed(0)+'K':'$'+Math.round(n);}
+function fm(n){if(n<0)return'-'+fm(-n);return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+(n/1000).toFixed(0)+'K':'$'+Math.round(n);}
 function gf(){let d=S.owner==='ALL'?D:D.filter(d=>d.ro===S.owner);if(S.hidePaid)d=d.filter(d=>d.s!=='10. Paid');return d;}
 function pct(a,b){return b>0?Math.round(a/b*100):0;}
 function parseNum(v){return parseFloat(String(v||0).replace(/[$,]/g,''))||0;}
@@ -1938,16 +1938,19 @@ function _render(){
           // Stage breakdown
           if(k.stages&&Object.keys(k.stages).length){
             h+=`<div style="border-bottom:1px solid #1e293b"><div style="padding:10px 20px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Pipeline Stage Breakdown</div>`;
-            h+=`<table style="width:100%"><thead><tr><th>Stage</th><th style="text-align:center">Count</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th><th style="text-align:right">Delta $</th><th style="text-align:right">Delta %</th></tr></thead><tbody>`;
+            h+=`<table style="width:100%"><thead><tr><th>Stage</th><th style="text-align:center">Count</th><th style="text-align:center;color:#64748b">Δ Count</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th><th style="text-align:right">Offer Delta $</th><th style="text-align:right">Offer Delta %</th></tr></thead><tbody>`;
             ST.filter(s=>k.stages[s]).forEach(s=>{
               const sv=k.stages[s],dl=sv.offer&&sv.rev?(sv.offer-sv.rev)/sv.rev*100:null;
-              const prevCount=pk&&pk.stages&&pk.stages[s]?pk.stages[s].count:null;
-              const cntDelta=prevCount!=null?sv.count-prevCount:0;
+              const prevSv=pk&&pk.stages&&pk.stages[s]?pk.stages[s]:null;
+              const prevCount=prevSv?prevSv.count:null;
+              const cntDelta=prevCount!=null?sv.count-prevCount:null;
+              const offerDelta=sv.offer&&sv.rev?sv.offer-sv.rev:null;
               h+=`<tr class="dr"><td style="color:#f8fafc">${s}</td>`;
-              h+=`<td style="text-align:center">${sv.count}${prevCount!=null&&cntDelta?'<span style="font-size:10px;color:'+(cntDelta>0?'#34d399':'#ef4444')+';margin-left:4px">'+(cntDelta>0?'+':'')+cntDelta+'</span>':''}</td>`;
+              h+=`<td style="text-align:center;font-weight:600">${sv.count}</td>`;
+              h+=`<td style="text-align:center">${cntDelta!=null?(cntDelta===0?'<span style="color:#475569">–</span>':'<span style="font-weight:700;color:'+(cntDelta>0?'#34d399':'#ef4444')+'">'+(cntDelta>0?'+':'')+cntDelta+'</span>'):'<span style="color:#334155">–</span>'}</td>`;
               h+=`<td style="text-align:right;color:#fbbf24">${sv.rev?fm(sv.rev):'–'}</td>`;
-              h+=`<td style="text-align:right;color:${sv.offer?'#22d3ee':'#334155'}">${sv.offer?fm(sv.offer):'–'}</td>`;
-              h+=`<td style="text-align:right;color:${sv.offer&&sv.rev?(sv.offer-sv.rev>0?'#34d399':'#ef4444'):'#334155'}">${sv.offer&&sv.rev?(sv.offer-sv.rev>0?'+':'')+fm(sv.offer-sv.rev):'–'}</td>`;
+              h+=`<td style="text-align:right;color:${sv.offer?'#22d3ee':'#334155'}">${sv.offer?fm(sv.offer):'–'}${sv.offerCount?'<span style="font-size:10px;color:#475569;margin-left:5px">('+sv.offerCount+')</span>':''}</td>`;
+              h+=`<td style="text-align:right;font-weight:600;color:${offerDelta!=null?(offerDelta>0?'#34d399':'#ef4444'):'#334155'}">${offerDelta!=null?(offerDelta>0?'+':'')+fm(offerDelta):'–'}</td>`;
               h+=`<td style="text-align:right;color:${dl!=null?(dl>=0?'#34d399':'#ef4444'):'#334155'}">${dl!=null?(dl>=0?'+':'')+Math.round(dl)+'%':'–'}</td></tr>`;
             });
             h+=`</tbody></table></div>`;
