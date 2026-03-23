@@ -912,6 +912,7 @@ function _render(){
       if(df.offermin)da=da.filter(a=>a.o>=(parseFloat(df.offermin)||0)*1000);
       if(df.offermax)da=da.filter(a=>a.o<=(parseFloat(df.offermax)||Infinity)*1000);
       if(df.subend)da=da.filter(a=>seToQtr2(a.se)===df.subend);
+      if(df.acctSearch)da=da.filter(a=>a.c.toLowerCase().includes(df.acctSearch.toLowerCase()));
       const dfFlags=Array.isArray(df.flags)?df.flags:[];
       if(dfFlags.length){if(dfFlags.includes('__any__')){da=da.filter(a=>a.sg.length>0);}else{da=da.filter(a=>S.drillFlagMode==='all'?dfFlags.every(fl=>a.sg.some(s=>SIG_L[s]===fl)):dfFlags.some(fl=>a.sg.some(s=>SIG_L[s]===fl)));}}
 
@@ -938,7 +939,7 @@ function _render(){
             ${drillHasFilters?`<button onclick="S.drillFilter={};S.drillSort={col:'r25',dir:'desc'};render()" style="background:#ef444420;color:#ef4444;border:1px solid #ef444440;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
           </div>
           <table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#0f172a;z-index:1"><tr>
-            <th onclick="ssDrillSort('account')" style="${dThS};width:180px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Account ${dsd('account')}</div></th>
+            <th onclick="ssDrillSort('account')" style="${dThS};width:180px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Account ${dsd('account')}</div><input onclick="event.stopPropagation()" oninput="ssDrillFilter('acctSearch',this.value)" value="${(df.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${dCtrlS}"></th>
             <th onclick="ssDrillSort('owner')" style="${dThS};width:100px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Owner ${dsd('owner')}</div>${dSel('owner',uDOwners)}</th>
             ${S.showAE?`<th onclick="ssDrillSort('ae')" style="${dThS};width:90px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">AE ${dsd('ae')}</div>${dSel('ae',uDAE)}</th>`:''}
             <th onclick="ssDrillSort('r25')" style="${dThS};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${dsd('r25')}</div>${dRngPair('r25min','r25max')}</th>
@@ -1606,6 +1607,7 @@ function _render(){
     if(af.seMonth)rows=rows.filter(a=>a.em===af.seMonth);
     if(af.engStage){const es=af.engStage;if(es==='noout')rows=rows.filter(a=>!a.out);else if(es==='out')rows=rows.filter(a=>a.out===1);else if(es==='gms')rows=rows.filter(a=>a.gms===1);else if(es==='gm')rows=rows.filter(a=>a.gm===1);else if(es==='ap')rows=rows.filter(a=>a.ap===1);}
     if(af.engQtr){const toQtr=em=>{if(!em)return'';const p=em.match(/^(\d{4})-(\d{2})/);return p?`${p[1]}-Q${Math.ceil(parseInt(p[2])/3)}`:''};rows=rows.filter(a=>toQtr(a.em)===af.engQtr);}
+    if(af.acctSearch)rows=rows.filter(a=>a.c.toLowerCase().includes(af.acctSearch.toLowerCase()));
     if(afFlags.length){if(afFlags.includes('__any__')){rows=rows.filter(a=>a.sg.length>0);}else{rows=rows.filter(a=>S.acctFlagMode==='all'?afFlags.every(fl=>a.sg.some(s=>SIG_L[s]===fl)):afFlags.some(fl=>a.sg.some(s=>SIG_L[s]===fl)));}}
 
     // Apply sort
@@ -1618,7 +1620,7 @@ function _render(){
       ${hasFilters?`<button onclick="S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};render()" style="font-size:10px;padding:2px 10px;background:#1e293b;border:1px solid #ef4444;color:#ef4444;border-radius:4px;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
     </div>
     <div class="st"><table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#0d1520;z-index:1"><tr>
-      <th onclick="ssAcctSort('account')" style="${thStyle};width:170px"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div></th>
+      <th onclick="ssAcctSort('account')" style="${thStyle};width:170px"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div><input onclick="event.stopPropagation()" oninput="ssAcctFilter('acctSearch',this.value)" value="${(af.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${aCtrlS}"></th>
       <th onclick="ssAcctSort('stage')" style="${thStyle};width:112px"><div style="display:flex;align-items:center;gap:3px">Stage ${sdArr('stage')}</div>${fStageSelect()}</th>
       <th onclick="ssAcctSort('owner')" style="${thStyle};width:100px"><div style="display:flex;align-items:center;gap:3px">Owner ${sdArr('owner')}</div>${fSelect('owner',uOwners)}</th>
       ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle};width:90px"><div style="display:flex;align-items:center;gap:3px">AE ${sdArr('ae')}</div>${fSelect('ae',uAE)}</th>`:''}
