@@ -1447,9 +1447,6 @@ function _render(){
       </div>`;
     };
 
-    h+=buildSpecialSection(next90Rows,'eng90Open','⚡ Expiring in Next 90 Days','#fb923c',_todayYM,_d90YM);
-    h+=buildSpecialSection(pastRows,'engPastOpen','🔴 Contract End Date Passed','#ef4444','',_prevYM);
-
     // Quarter filter buttons
     const qBtns=[['ALL','All'],...allQtrs.map(k=>[k,qLabel(k)])].map(([val,lbl])=>{
       const active=S.engQtrFilter===val;
@@ -1475,6 +1472,9 @@ function _render(){
         ${funnelBar(Math.max(efAp,1),100,'#a78bfa',efAp,'AP Delivered',efGm,efRevAp,efTotal,false,`navEng('ap','${S.engQtrFilter}')`)}
       </div>
     </div>`;
+
+    h+=buildSpecialSection(next90Rows,'eng90Open','⚡ Expiring in Next 90 Days','#fb923c',_todayYM,_d90YM);
+    h+=buildSpecialSection(pastRows,'engPastOpen','🔴 Contract End Date Passed','#ef4444','',_prevYM);
 
     // ── Quarter breakdown ──
     const groups={};
