@@ -163,11 +163,11 @@ function buildSnapshotKpis(){
   return{
     total:{count:D.length,rev:sum(D,'r25'),offer:sum(D,'o')},
     won:{count:won.length,rev:sum(won,'r25')},
-    pipeline:{count:pipe.length,rev:sum(pipe,'r25')},
+    pipeline:{count:pipe.length,rev:sum(pipe,'r25'),base:sum(pipe,'r25')},
     lost:{count:lost.length,rev:sum(lost,'r25')},
-    unc:{count:unc.length},
-    atRisk:{count:risk.length},
-    winback:{count:wb.length},
+    unc:{count:unc.length,rev:sum(unc,'r25')},
+    atRisk:{count:risk.length,rev:sum(risk,'r25')},
+    winback:{count:wb.length,rev:sum(wb,'r25')},
     stages
   };
 }
@@ -1842,77 +1842,135 @@ function _render(){
   // ── HISTORICAL SNAPSHOTS ──
   if(S.tab==='histsnap'){
     const hist=SNAP_HISTORY||[];
-    h+=`<div class="cd" style="padding:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <div>
-          <span style="font-size:15px;font-weight:700;color:#f8fafc">Historical Snapshots</span>
-          <span style="margin-left:10px;font-size:12px;color:#475569">${hist.length} saved snapshot${hist.length!==1?'s':''}</span>
-        </div>
-        <button onclick="saveSnapshot()" style="padding:6px 14px;border-radius:6px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Save Snapshot Now</button>
-      </div>`;
+    // Build live account lookup for revenue/offer/notes
+    const acctMap={};D.forEach(d=>acctMap[d.c]=d);
+    h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div><span style="font-size:15px;font-weight:700;color:#f8fafc">Historical Snapshots</span>
+      <span style="margin-left:10px;font-size:12px;color:#475569">${hist.length} saved</span></div>
+      <button onclick="saveSnapshot()" style="padding:6px 14px;border-radius:6px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Save Snapshot Now</button>
+    </div>`;
     if(!hist.length){
-      h+=`<div style="text-align:center;color:#475569;padding:40px">No snapshots saved yet. Click "Save Snapshot" to record the current pipeline state.</div>`;
+      h+=`<div class="cd" style="padding:40px;text-align:center;color:#475569">No snapshots saved yet. Click "Save Snapshot" to record the current pipeline state.</div>`;
     }else{
-      h+=`<div style="overflow-x:auto"><table><thead><tr>
-        <th>Date Saved</th>
-        <th style="text-align:center">Accounts</th>
-        <th style="text-align:right;color:#fbbf24">Total Rev</th>
-        <th style="text-align:right;color:#22d3ee">Total Offer</th>
-        <th style="text-align:center;color:#34d399">Won</th>
-        <th style="text-align:center;color:#a78bfa">Pipeline</th>
-        <th style="text-align:center;color:#ef4444">Lost</th>
-        <th style="text-align:center;color:#fb923c">At Risk</th>
-        <th style="text-align:center;color:#60a5fa">Win-Back</th>
-        <th style="text-align:center">Stages Moved</th>
-      </tr></thead><tbody>`;
       hist.forEach((snap,i)=>{
         const k=snap.kpis||{};
-        const prev=hist[i+1]; // older snapshot for delta
+        const prev=hist[i+1];
         const pk=prev?(prev.kpis||{}):null;
-        const delta=(cur,old,key,sub)=>{
-          if(!pk)return'';
-          const cv=(cur[key]||{})[sub]||0, pv=(old[key]||{})[sub]||0, d=cv-pv;
-          if(d===0)return'';
-          return`<span style="font-size:10px;color:${d>0?'#34d399':'#ef4444'};margin-left:4px">${d>0?'+':''}${d}</span>`;
-        };
-        // Count stage movements between this and previous snapshot
-        let moved=0;
-        if(prev&&snap.data&&prev.data){Object.keys(snap.data).forEach(acct=>{if(prev.data[acct]&&prev.data[acct]!==snap.data[acct])moved++;});}
         const isOpen=S.hsOpen===i;
-        h+=`<tr class="dr ck" onclick="ss('hsOpen',${isOpen?'null':i})" style="cursor:pointer">
-          <td style="font-weight:600;color:#f8fafc;white-space:nowrap">${snap.label||_snapLabel(snap.ts)}</td>
-          <td style="text-align:center">${(k.total||{}).count||'–'}${delta(k,pk,'total','count')}</td>
-          <td style="text-align:right;color:#fbbf24">${(k.total||{}).rev?fm(k.total.rev):'–'}${pk?((k.total||{}).rev&&(pk.total||{}).rev?`<span style="font-size:10px;color:${(k.total.rev-(pk.total.rev||0))>=0?'#34d399':'#ef4444'};margin-left:4px">${(k.total.rev-(pk.total.rev||0))>=0?'+':''}${fm(Math.abs(k.total.rev-(pk.total.rev||0)))}</span>`:''):''}</td>
-          <td style="text-align:right;color:#22d3ee">${(k.total||{}).offer?fm(k.total.offer):'–'}</td>
-          <td style="text-align:center;color:#34d399">${(k.won||{}).count!=null?(k.won.count):'–'}${delta(k,pk,'won','count')}</td>
-          <td style="text-align:center;color:#a78bfa">${(k.pipeline||{}).count!=null?(k.pipeline.count):'–'}${delta(k,pk,'pipeline','count')}</td>
-          <td style="text-align:center;color:#ef4444">${(k.lost||{}).count!=null?(k.lost.count):'–'}${delta(k,pk,'lost','count')}</td>
-          <td style="text-align:center;color:#fb923c">${(k.atRisk||{}).count!=null?(k.atRisk.count):'–'}${delta(k,pk,'atRisk','count')}</td>
-          <td style="text-align:center;color:#60a5fa">${(k.winback||{}).count!=null?(k.winback.count):'–'}${delta(k,pk,'winback','count')}</td>
-          <td style="text-align:center">${prev?(moved>0?`<span style="color:${moved>5?'#fb923c':'#fbbf24'};font-weight:600">${moved}</span>`:'<span style="color:#334155">0</span>'):'–'}</td>
-        </tr>`;
-        if(isOpen&&k.stages){
-          h+=`<tr><td colspan="10" style="padding:0">
-            <div style="background:#0a1628;padding:12px 20px">
+        const tot=k.total||{},won=k.won||{},pipe=k.pipeline||{},lost=k.lost||{},unc=k.unc||{},risk=k.atRisk||{},wb=k.winback||{};
+        const gap=tot.rev&&tot.offer?tot.rev-tot.offer:null;
+        const uncPct=gap&&tot.rev?Math.round(gap/tot.rev*100):null;
+        // Count moves vs previous snapshot
+        let movedCount=0;
+        const moves=[];
+        if(prev&&snap.data&&prev.data){
+          Object.keys(snap.data).forEach(acct=>{
+            const toS=snap.data[acct],frS=prev.data[acct];
+            if(frS&&frS!==toS){movedCount++;moves.push({acct,from:frS,to:toS});}
+          });
+          moves.sort((a,b)=>{const da=acctMap[a.acct],db=acctMap[b.acct];return (db?db.r25:0)-(da?da.r25:0);});
+        }
+        const dNum=(key,sub)=>{if(!pk)return'';const d=(k[key]||{})[sub]-(pk[key]||{})[sub];if(!d)return'';return`<span style="font-size:10px;color:${d>0?'#34d399':'#ef4444'};margin-left:5px">${d>0?'+':''}${d}</span>`;};
+        const dRev=(cur,old)=>{if(old==null||cur==null)return'';const d=cur-old;if(!d)return'';return`<span style="font-size:10px;color:${d>0?'#34d399':'#ef4444'};margin-left:5px">${d>0?'+':''}${fm(Math.abs(d))}</span>`;};
+        h+=`<div class="cd" style="margin-bottom:12px;overflow:hidden">
+          <div class="ck" onclick="ss('hsOpen',${isOpen?'null':i})" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:13px;font-weight:700;color:#f8fafc">${snap.label||_snapLabel(snap.ts)}</span>
+              ${movedCount>0?`<span style="font-size:11px;background:#fbbf2420;color:#fbbf24;border-radius:4px;padding:2px 8px;font-weight:600">${movedCount} moved</span>`:''}
+            </div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">
+              ${tot.rev?`<span style="color:#fbbf24;font-weight:600">${fm(tot.rev)} base${dRev(tot.rev,pk?(pk.total||{}).rev:null)}</span>`:''}
+              ${tot.offer?`<span style="color:#22d3ee;font-weight:600">${fm(tot.offer)} offer</span>`:''}
+              ${tot.count?`<span style="color:#94a3b8">${tot.count} accts</span>`:''}
+            </div>
+            <span style="color:#475569;font-size:14px">${isOpen?'▾':'▸'}</span>
+          </div>
+          ${isOpen?`<div style="border-top:1px solid #1e293b">
+            <!-- Revenue summary cards -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #1e293b">
+              <div style="padding:16px 20px;border-right:1px solid #1e293b">
+                <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">2025 Revenue (Base)</div>
+                <div style="display:flex;align-items:baseline;gap:10px">
+                  <span style="font-size:26px;font-weight:700;color:#fbbf24">${tot.rev?fm(tot.rev):'–'}</span>
+                  ${tot.count?`<span style="font-size:14px;color:#475569">${tot.count} accounts</span>`:''}
+                </div>
+              </div>
+              <div style="padding:16px 20px">
+                <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">2026 Offer Price</div>
+                <div style="font-size:26px;font-weight:700;color:#22d3ee">${tot.offer?fm(tot.offer):'–'}</div>
+                ${gap!=null?`<div style="font-size:12px;color:#94a3b8;margin-top:2px">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span>${uncPct!=null?` (${uncPct}% uncovered)`:''}</div>`:''}
+              </div>
+            </div>
+            <!-- KPI cards -->
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid #1e293b">
+              ${[
+                ['WON',won.rev?fm(won.rev):'–',won.count?`${won.count} accts`:'','#34d399','#1e3a2f'],
+                ['PIPELINE',pipe.rev?fm(pipe.rev):'–',pipe.count?`${pipe.count} accts`:'','#a78bfa','#2d1f4a'],
+                ['LOST (2025)',lost.rev?fm(lost.rev):'–',lost.count?`${lost.count} accts`:'','#ef4444','#3a1f1f'],
+                ['UNCONTACTED',unc.rev?fm(unc.rev):'–',unc.count?`${unc.count} accts`:'','#94a3b8','#1e293b'],
+                ['AT RISK',risk.count!=null?risk.count:'–',risk.rev?fm(risk.rev):'','#fb923c','#3a2a1a'],
+                ['WIN-BACK',wb.count!=null?wb.count:'–',wb.rev?fm(wb.rev):'','#60a5fa','#1a2a3a'],
+              ].map(([lbl,val,sub,col,bg],ci)=>`<div style="padding:12px 14px;border-right:${ci<5?'1px solid #1e293b':'none'}">
+                <div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${lbl}</div>
+                <div style="font-size:18px;font-weight:700;color:${col}">${val}</div>
+                ${sub?`<div style="font-size:10px;color:#475569;margin-top:2px">${sub}</div>`:''}
+              </div>`).join('')}
+            </div>
+            <!-- Stage breakdown -->
+            ${k.stages&&Object.keys(k.stages).length?`<div style="border-bottom:1px solid #1e293b">
+              <div style="padding:10px 20px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Pipeline Stage Breakdown</div>
               <table style="width:100%"><thead><tr>
-                <th style="text-align:left">Stage</th>
-                <th style="text-align:center">Count</th>
-                <th style="text-align:right;color:#fbbf24">Rev</th>
-                <th style="text-align:right;color:#22d3ee">Offer</th>
+                <th>Stage</th><th style="text-align:center">Count${dNum('total','count')?'':''}</th>
+                <th style="text-align:right;color:#fbbf24">2025 Rev</th>
+                <th style="text-align:right;color:#22d3ee">2026 Offer</th>
+                <th style="text-align:right">Delta $</th><th style="text-align:right">Delta %</th>
               </tr></thead><tbody>`;
-          Object.entries(k.stages).forEach(([s,sv])=>{
+        if(k.stages&&Object.keys(k.stages).length){
+          (typeof ST!=='undefined'?ST:[]).filter(s=>k.stages[s]).forEach(s=>{
+            const sv=k.stages[s];
+            const dl=sv.offer&&sv.rev?(sv.offer-sv.rev)/sv.rev*100:null;
             h+=`<tr class="dr"><td style="color:#f8fafc">${s}</td>
-              <td style="text-align:center">${sv.count}</td>
+              <td style="text-align:center">${sv.count}${dNum&&pk&&pk.stages&&pk.stages[s]?`<span style="font-size:10px;color:${sv.count-(pk.stages[s]||{count:0}).count>0?'#34d399':'#ef4444'};margin-left:4px">${sv.count-(pk.stages[s]||{count:0}).count>0?'+':''}${sv.count-(pk.stages[s]||{count:0}).count}</span>`:''}</td>
               <td style="text-align:right;color:#fbbf24">${sv.rev?fm(sv.rev):'–'}</td>
-              <td style="text-align:right;color:#22d3ee">${sv.offer?fm(sv.offer):'–'}</td>
+              <td style="text-align:right;color:${sv.offer?'#22d3ee':'#334155'}">${sv.offer?fm(sv.offer):'–'}</td>
+              <td style="text-align:right;color:${sv.offer&&sv.rev?(sv.offer-sv.rev>0?'#34d399':'#ef4444'):'#334155'}">${sv.offer&&sv.rev?(sv.offer-sv.rev>0?'+':'')+fm(sv.offer-sv.rev):'–'}</td>
+              <td style="text-align:right;color:${dl!=null?(dl>=0?'#34d399':'#ef4444'):'#334155'}">${dl!=null?(dl>=0?'+':'')+Math.round(dl)+'%':'–'}</td>
             </tr>`;
           });
-          h+=`</tbody></table></div></td></tr>`;
-        }
+          h+=`</tbody></table></div>`;}
+        // Deals that moved
+        h+=`${moves.length>0?`<div>
+          <div style="padding:10px 20px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Deals That Moved vs Previous Snapshot</div>
+          <table style="width:100%"><thead><tr>
+            <th>Account</th><th>Owner</th><th>From</th><th></th><th>To</th>
+            <th style="text-align:right;color:#fbbf24">2025 Rev</th>
+            <th style="text-align:right;color:#22d3ee">2026 Offer</th><th></th>
+          </tr></thead><tbody>`;
+        moves.forEach(mv=>{
+          const d=acctMap[mv.acct];
+          const pi=ST.indexOf(mv.from),ci=ST.indexOf(mv.to);
+          const up=ci>pi&&mv.to!=='8. Closed Lost (Not Renewing)';
+          const lost2=mv.to==='8. Closed Lost (Not Renewing)';
+          const icon=lost2?'✕':up?'▲':'▼';
+          const iconCol=lost2?'#ef4444':up?'#34d399':'#ef4444';
+          const nOpen=S.noteOpen===mv.acct;
+          h+=`<tr class="dr ck" style="${up?'background:rgba(52,211,153,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':mv.acct.replace(/'/g,"\\'")}')">
+            <td style="color:#e2e8f0;font-weight:500">${mv.acct}${d&&d.icn?`<span style="font-size:10px;color:#475569;margin-left:6px">${nOpen?'▾':'▸'} notes</span>`:''}</td>
+            <td style="color:#94a3b8">${d?roDisp(d.ro,d.ae):'–'}</td>
+            <td style="font-size:11px;color:#94a3b8">${SH[mv.from]||mv.from}</td>
+            <td style="text-align:center"><span style="color:${iconCol};font-weight:700">${icon}</span></td>
+            <td style="font-size:11px;color:${CL[mv.to]||'#94a3b8'};font-weight:600">${SH[mv.to]||mv.to}</td>
+            <td style="text-align:right;color:#fbbf24;font-weight:600">${d&&d.r25?fm(d.r25):'–'}</td>
+            <td style="text-align:right;color:${d&&d.o>0?'#22d3ee':'#334155'}">${d&&d.o>0?fm(d.o):'–'}</td>
+            <td></td>
+          </tr>
+          ${nOpen&&d&&d.icn?`<tr style="background:#0a1628"><td colspan="8" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${d.icn}</td></tr>`:''}`;
+        });
+        h+=`</tbody></table></div>`:`<div style="padding:16px 20px;color:#475569;font-size:12px">${prev?'No stage changes between this and the previous snapshot.':'No previous snapshot to compare against.'}</div>`}
+          </div>`:''}
+        </div>`;
       });
-      h+=`</tbody></table></div>`;
     }
-    h+=`</div>`;
   }
 
   // ── ACCOUNTS ──
