@@ -153,7 +153,7 @@ matchMedia('(prefers-color-scheme:light)').addEventListener('change',e=>{if(!loc
 function applyBodyClass(){document.body.classList.toggle('light',LIGHT);}
 function ssTheme(){LIGHT=!LIGHT;localStorage.setItem('cs_theme',LIGHT?'light':'dark');applyBodyClass();render();}
 
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any'};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any'};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -737,6 +737,15 @@ function navMonth(m){
   render();
   requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
 }
+function navEngSpecial(stage,emFrom,emTo){
+  S.acctFilter={engStage:stage};
+  if(emFrom)S.acctFilter.emFrom=emFrom;
+  if(emTo)S.acctFilter.emTo=emTo;
+  S.acctSort={col:'subend',dir:'asc'};S.drill=null;
+  S.tab='accounts';
+  render();
+  requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
+}
 function navRiskKpi(sigKey){
   S.acctFilter={flags:[SIG_L[sigKey]]};
   S.acctSort={col:'stage',dir:'asc'};S.drill=null;
@@ -1305,6 +1314,95 @@ function _render(){
     const efOut=efS.outN,efGms=efS.gmsN,efGm=efS.gmN,efAp=efS.apN,efNoOut=efTotal-efOut;
     const efRevOut=efS.outR,efRevNoOut=efS.noOutR,efRevGms=efS.gmsR,efRevGm=efS.gmR,efRevAp=efS.apR;
 
+    // ── Date-based special sections ──
+    const _now=new Date();
+    const _todayYM=`${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}`;
+    const _d90=new Date(_now.getTime()+90*24*60*60*1000);
+    const _d90YM=`${_d90.getFullYear()}-${String(_d90.getMonth()+1).padStart(2,'0')}`;
+    const _prevMDate=new Date(_now.getFullYear(),_now.getMonth(),0);
+    const _prevYM=`${_prevMDate.getFullYear()}-${String(_prevMDate.getMonth()+1).padStart(2,'0')}`;
+    const MNAMES_S=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const fmMonth=ym=>{if(!ym)return'–';const[y,m]=ym.split('-');return`${MNAMES_S[parseInt(m)-1]} ${y}`;};
+
+    const next90Rows=baseRows.filter(r=>r.endMonth&&r.endMonth>=_todayYM&&r.endMonth<=_d90YM);
+    const pastRows=baseRows.filter(r=>r.endMonth&&r.endMonth<=_prevYM);
+
+    const buildSpecialFunnel=(sRows,emFrom,emTo)=>{
+      const tot=sRows.length;
+      if(!tot)return'';
+      const ms=sRows.reduce((a,r)=>{const v=r.rev||0;if(r.out){a.outN++;a.outR+=v}else a.noOutR+=v;if(r.gms){a.gmsN++;a.gmsR+=v}if(r.gm){a.gmN++;a.gmR+=v}if(r.ap){a.apN++;a.apR+=v}return a;},{outN:0,outR:0,noOutR:0,gmsN:0,gmsR:0,gmN:0,gmR:0,apN:0,apR:0});
+      const noOut=tot-ms.outN;
+      return`<div style="display:flex;align-items:flex-end;gap:0;margin-bottom:16px">
+        ${funnelBar(noOut,80,'#4b5563',noOut,'No Outreach',null,ms.noOutR,tot,false,`navEngSpecial('noout','${emFrom}','${emTo}')`)}
+        ${funnelConn(tot,ms.outN)}
+        ${funnelBar(ms.outN,80,'#60a5fa',ms.outN,'Outreach Sent',tot,ms.outR,tot,false,`navEngSpecial('out','${emFrom}','${emTo}')`)}
+        ${funnelConn(ms.outN,ms.gmsN)}
+        ${funnelBar(ms.gmsN,80,'#fbbf24',ms.gmsN,'GM Scheduled',ms.outN,ms.gmsR,tot,false,`navEngSpecial('gms','${emFrom}','${emTo}')`)}
+        ${funnelConn(ms.gmsN,ms.gmN)}
+        ${funnelBar(ms.gmN,80,'#34d399',ms.gmN,'GM Completed',ms.gmsN,ms.gmR,tot,false,`navEngSpecial('gm','${emFrom}','${emTo}')`)}
+        ${funnelConn(ms.gmN,ms.apN)}
+        ${funnelBar(Math.max(ms.apN,1),80,'#a78bfa',ms.apN,'AP Delivered',ms.gmN,ms.apR,tot,false,`navEngSpecial('ap','${emFrom}','${emTo}')`)}
+      </div>`;
+    };
+
+    const buildSpecialTable=sRows=>{
+      const sorted=[...sRows].sort((a,b)=>(a.endMonth||'').localeCompare(b.endMonth||'')||a.acct.localeCompare(b.acct));
+      return`<table style="width:100%;border-collapse:collapse">
+        <thead><tr style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px">
+          <th style="padding:4px 8px;text-align:left;font-weight:600">Account</th>
+          <th style="padding:4px 8px;text-align:left;color:#94a3b8;font-weight:600">Contract End</th>
+          <th style="padding:4px 8px;text-align:left;font-weight:600">CSM</th>
+          <th style="padding:4px 8px;text-align:right;color:#34d399;font-weight:600">2025 Rev</th>
+          <th style="padding:4px 8px;text-align:center;color:#60a5fa">Outreach</th>
+          <th style="padding:4px 8px;text-align:center;color:#60a5fa">GM Sched</th>
+          <th style="padding:4px 8px;text-align:center;color:#a78bfa">GM Done</th>
+          <th style="padding:4px 8px;text-align:center;color:#34d399">AP</th>
+          <th style="padding:4px 8px;text-align:center;color:#ef4444">Risk</th>
+        </tr></thead>
+        <tbody>${sorted.map((r,i)=>`<tr style="border-top:1px solid #1e293b;background:${i%2===0?'rgba(15,23,42,0.3)':'transparent'}">
+          <td style="padding:5px 8px;font-size:12px;font-weight:500;color:#e2e8f0">${r.acct}</td>
+          <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${fmMonth(r.endMonth)}</td>
+          <td style="padding:5px 8px;font-size:11px;color:#94a3b8">${r.ro}</td>
+          <td style="padding:5px 8px;font-size:12px;font-weight:600;color:${r.rev>0?'#34d399':'#475569'};text-align:right">${r.rev>0?fm(r.rev):'–'}</td>
+          <td style="padding:5px 8px;text-align:center"><span style="font-size:11px;color:${r.out?'#34d399':'#374151'}">${r.out?'✓':'–'}</span></td>
+          <td style="padding:5px 8px;text-align:center"><span style="font-size:11px;color:${r.gms?'#60a5fa':'#374151'}">${r.gms?'✓':'–'}</span></td>
+          <td style="padding:5px 8px;text-align:center"><span style="font-size:11px;color:${r.gm?'#a78bfa':'#374151'}">${r.gm?'✓':'–'}</span></td>
+          <td style="padding:5px 8px;text-align:center"><span style="font-size:11px;color:${r.ap?'#34d399':'#374151'}">${r.ap?'✓':'–'}</span></td>
+          <td style="padding:5px 8px;text-align:center">${r.rsk?'<span style="color:#ef4444;font-size:11px">⚠</span>':'<span style="color:#374151">–</span>'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    };
+
+    const buildSpecialSection=(sRows,stateKey,label,borderColor,emFrom,emTo)=>{
+      if(!sRows.length)return'';
+      const isOpen=S[stateKey];
+      const tot=sRows.length,out=sRows.filter(r=>r.out).length,gms=sRows.filter(r=>r.gms).length,gm=sRows.filter(r=>r.gm).length,rsk=sRows.filter(r=>r.rsk).length;
+      const sRev=sRows.reduce((a,r)=>a+(r.rev||0),0);
+      return`<div class="cd" style="padding:0;overflow:hidden;margin-bottom:8px">
+        <div onclick="ss('${stateKey}',${!isOpen})" style="padding:10px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:16px;flex-wrap:wrap;user-select:none;border-left:3px solid ${borderColor}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:12px;color:#94a3b8;min-width:10px">${isOpen?'▾':'▸'}</span>
+            <span style="font-size:13px;font-weight:700;color:${borderColor}">${label}</span>
+            <span style="font-size:11px;color:#64748b;background:#1e293b;padding:2px 7px;border-radius:10px">${tot}</span>
+          </div>
+          <div style="display:flex;gap:14px;font-size:11px;flex-wrap:wrap;align-items:center">
+            ${sRev>0?`<span style="color:#34d399;font-weight:700">${fm(sRev)}</span>`:''}
+            <span style="color:${pct(out,tot)>=60?'#34d399':pct(out,tot)>=30?'#fbbf24':'#64748b'}">Out ${out}/${tot}</span>
+            <span style="color:${pct(gms,tot)>=60?'#34d399':pct(gms,tot)>=30?'#fbbf24':'#64748b'}">GM Sched ${gms}/${tot}</span>
+            <span style="color:${pct(gm,tot)>=60?'#34d399':pct(gm,tot)>=30?'#fbbf24':'#64748b'}">GM Done ${gm}/${tot}</span>
+            ${rsk>0?`<span style="color:#ef4444">⚠ ${rsk} risk</span>`:''}
+          </div>
+        </div>
+        ${isOpen?`<div style="padding:16px 18px 18px;border-top:1px solid #1e293b">
+          ${buildSpecialFunnel(sRows,emFrom,emTo)}
+          ${buildSpecialTable(sRows)}
+        </div>`:''}
+      </div>`;
+    };
+
+    h+=buildSpecialSection(next90Rows,'eng90Open','⚡ Expiring in Next 90 Days','#fb923c',_todayYM,_d90YM);
+    h+=buildSpecialSection(pastRows,'engPastOpen','🔴 Contract End Date Passed','#ef4444','',_prevYM);
+
     // Quarter filter buttons
     const qBtns=[['ALL','All'],...allQtrs.map(k=>[k,qLabel(k)])].map(([val,lbl])=>{
       const active=S.engQtrFilter===val;
@@ -1614,6 +1712,8 @@ function _render(){
     if(af.seMonth)rows=rows.filter(a=>a.em===af.seMonth);
     if(af.engStage){const es=af.engStage;if(es==='noout')rows=rows.filter(a=>!a.out);else if(es==='out')rows=rows.filter(a=>a.out===1);else if(es==='gms')rows=rows.filter(a=>a.gms===1);else if(es==='gm')rows=rows.filter(a=>a.gm===1);else if(es==='ap')rows=rows.filter(a=>a.ap===1);}
     if(af.engQtr){const toQtr=em=>{if(!em)return'';const p=em.match(/^(\d{4})-(\d{2})/);return p?`${p[1]}-Q${Math.ceil(parseInt(p[2])/3)}`:''};rows=rows.filter(a=>toQtr(a.em)===af.engQtr);}
+    if(af.emFrom)rows=rows.filter(a=>a.em&&a.em>=af.emFrom);
+    if(af.emTo)rows=rows.filter(a=>a.em&&a.em<=af.emTo);
     if(af.acctSearch)rows=rows.filter(a=>a.c.toLowerCase().includes(af.acctSearch.toLowerCase()));
     if(afFlags.length){if(afFlags.includes('__any__')){rows=rows.filter(a=>a.sg.length>0);}else{rows=rows.filter(a=>S.acctFlagMode==='all'?afFlags.every(fl=>a.sg.some(s=>SIG_L[s]===fl)):afFlags.some(fl=>a.sg.some(s=>SIG_L[s]===fl)));}}
 
