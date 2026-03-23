@@ -150,6 +150,26 @@ function saveDataCache(d,er,lu){
   catch(e){console.warn('Cache save failed (storage full?):',e);}
 }
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[], SNAP_HISTORY=[];
+function deriveKpisFromData(snapData,acctMap){
+  if(!snapData)return{};
+  const sum=(arr,k)=>arr.reduce((a,d)=>a+(d[k]||0),0);
+  const deals=Object.entries(snapData).map(([c,s])=>({...(acctMap[c]||{}),s}));
+  const won=deals.filter(d=>['7. Signed','9. Invoice Sent','10. Paid'].includes(d.s));
+  const pipe=deals.filter(d=>['5. Proposal Made','6. Signature Requested'].includes(d.s));
+  const lost=deals.filter(d=>d.s==='8. Closed Lost (Not Renewing)');
+  const unc=deals.filter(d=>d.s==='1. Uncontacted');
+  const stages={};
+  (typeof ST!=='undefined'?ST:[]).forEach(s=>{const sa=deals.filter(d=>d.s===s);if(sa.length)stages[s]={count:sa.length,rev:sum(sa,'r25'),offer:sum(sa,'o')};});
+  return{
+    total:{count:deals.length,rev:sum(deals,'r25'),offer:sum(deals,'o')},
+    won:{count:won.length,rev:sum(won,'r25')},
+    pipeline:{count:pipe.length,rev:sum(pipe,'r25')},
+    lost:{count:lost.length,rev:sum(lost,'r25')},
+    unc:{count:unc.length,rev:sum(unc,'r25')},
+    atRisk:{count:0,rev:0},winback:{count:0,rev:0},
+    stages
+  };
+}
 function buildSnapshotKpis(){
   const sum=(arr,k)=>arr.reduce((a,d)=>a+(d[k]||0),0);
   const won=D.filter(d=>['7. Signed','9. Invoice Sent','10. Paid'].includes(d.s));
@@ -481,7 +501,7 @@ async function saveSnapshot(){
     const ts=Date.now(),data={},kpis=buildSnapshotKpis();
     D.forEach(d=>data[d.c]=d.s);
     const entry={ts,label:_snapLabel(ts),data,kpis};
-    const history=[entry,...(existing.history||[])].slice(0,52);
+    const history=[entry,...(existing.history||[])].slice(0,200);
     await writeSnapshotFile(token,{manual:entry,history});
     localStorage.setItem(SNAPSHOT_KEY,JSON.stringify({ts,data}));
     PREV=data;PREV_TS=ts;SNAP_HISTORY=history;
@@ -1859,7 +1879,7 @@ function _render(){
       h+=`<div class="cd" style="padding:40px;text-align:center;color:#475569">No snapshots saved yet. Click "Save Snapshot" to record the current pipeline state.</div>`;
     }else{
       hist.forEach((snap,i)=>{
-        const k=snap.kpis||{};
+        const k=(snap.kpis&&Object.keys(snap.kpis).length)?snap.kpis:deriveKpisFromData(snap.data,acctMap);
         const prev=hist[i+1];
         const pk=prev?(prev.kpis||{}):null;
         const isOpen=S.hsOpen===i;
