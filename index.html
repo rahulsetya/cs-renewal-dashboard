@@ -1906,19 +1906,21 @@ function _render(){
         h+=`</div><span style="color:#475569;font-size:14px">${isOpen?'▾':'▸'}</span></div>`;
         if(isOpen){
           h+=`<div style="border-top:1px solid #1e293b">`;
-          // Revenue header
-          h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #1e293b">`;
-          h+=`<div style="padding:16px 20px;border-right:1px solid #1e293b">`;
-          h+=`<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">2025 Revenue (Base)</div>`;
-          h+=`<div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:26px;font-weight:700;color:#fbbf24">${tot.rev?fm(tot.rev):'–'}</span>`;
-          if(tot.count)h+=`<span style="font-size:14px;color:#475569">${tot.count} accounts</span>`;
-          h+=`</div></div>`;
-          h+=`<div style="padding:16px 20px"><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">2026 Offer Price</div>`;
-          h+=`<div style="font-size:26px;font-weight:700;color:#22d3ee">${tot.offer?fm(tot.offer):'–'}</div>`;
-          if(gap!=null)h+=`<div style="font-size:12px;color:#94a3b8;margin-top:2px">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span>${uncPct!=null?' ('+uncPct+'% uncovered)':''}</div>`;
-          h+=`</div></div>`;
-          // KPI cards
-          h+=`<div style="display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid #1e293b">`;
+          // Unified KPI header row
+          h+=`<div style="display:grid;grid-template-columns:170px 190px repeat(6,1fr);border-bottom:1px solid #1e293b">`;
+          // 2025 Rev cell
+          h+=`<div style="padding:14px 18px;border-right:1px solid #334155">`;
+          h+=`<div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">2025 Rev (Base)</div>`;
+          h+=`<div style="font-size:22px;font-weight:700;color:#fbbf24;line-height:1">${tot.rev?fm(tot.rev):'–'}</div>`;
+          if(tot.count)h+=`<div style="font-size:11px;color:#64748b;margin-top:3px">${tot.count} accounts</div>`;
+          h+=`</div>`;
+          // 2026 Offer cell
+          h+=`<div style="padding:14px 18px;border-right:1px solid #334155">`;
+          h+=`<div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">2026 Offer Price</div>`;
+          h+=`<div style="font-size:22px;font-weight:700;color:#22d3ee;line-height:1">${tot.offer?fm(tot.offer):'–'}</div>`;
+          if(gap!=null)h+=`<div style="font-size:11px;color:#64748b;margin-top:3px">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span>${uncPct!=null?' ('+uncPct+'%)':''}</div>`;
+          h+=`</div>`;
+          // 6 KPI cards
           [['WON',won.rev?fm(won.rev):'–',won.count?won.count+' accts':'','#34d399',dN('won','count')],
            ['PIPELINE',pipe.rev?fm(pipe.rev):'–',pipe.count?pipe.count+' accts':'','#a78bfa',dN('pipeline','count')],
            ['LOST (2025)',lost.rev?fm(lost.rev):'–',lost.count?lost.count+' accts':'','#ef4444',dN('lost','count')],
@@ -1926,10 +1928,10 @@ function _render(){
            ['AT RISK',risk.count!=null?risk.count:'–',risk.rev?fm(risk.rev):'','#fb923c',dN('atRisk','count')],
            ['WIN-BACK',wb.count!=null?wb.count:'–',wb.rev?fm(wb.rev):'','#60a5fa',dN('winback','count')]
           ].forEach(([lbl,val,sub,col,dn],ci)=>{
-            h+=`<div style="padding:12px 14px;border-right:${ci<5?'1px solid #1e293b':'none'}">`;
-            h+=`<div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${lbl}</div>`;
-            h+=`<div style="font-size:18px;font-weight:700;color:${col}">${val}${dn}</div>`;
-            if(sub)h+=`<div style="font-size:10px;color:#475569;margin-top:2px">${sub}</div>`;
+            h+=`<div style="padding:14px 12px;border-right:${ci<5?'1px solid #1e293b':'none'}">`;
+            h+=`<div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">${lbl}</div>`;
+            h+=`<div style="font-size:20px;font-weight:700;color:${col};line-height:1">${val}${dn}</div>`;
+            if(sub)h+=`<div style="font-size:11px;color:#64748b;margin-top:3px">${sub}</div>`;
             h+=`</div>`;
           });
           h+=`</div>`;
