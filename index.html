@@ -473,7 +473,14 @@ async function loadSnapshotFromSP(token){
     const r=await fetch(`https://graph.microsoft.com/v1.0/sites/${sid}/drive/root:/${SNAPSHOT_PATH}:/content`,{headers:{Authorization:`Bearer ${token}`}});
     if(!r.ok)return;
     const txt=await r.text();
-    if(!txt||txt.trim()==='{}')return;
+    if(!txt||txt.trim()==='{}'){
+      // SP file is empty — migrate from localStorage if available
+      try{
+        const local=localStorage.getItem(SNAPSHOT_KEY);
+        if(local){const ls=JSON.parse(local);if(ls.ts&&ls.data){PREV=ls.data;PREV_TS=ls.ts;await writeSnapshotToSP(token,ls);console.log('✓ Migrated local snapshot to SharePoint:',new Date(ls.ts).toLocaleString());}}
+      }catch(me){console.warn('Migration failed:',me);}
+      return;
+    }
     const snap=JSON.parse(txt);
     if(snap.ts&&snap.data){PREV=snap.data;PREV_TS=snap.ts;console.log('✓ Snapshot loaded from SharePoint:',new Date(snap.ts).toLocaleString());}
   }catch(e){console.warn('Could not load SP snapshot:',e);}
