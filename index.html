@@ -704,7 +704,7 @@ async function loadData(forceRefresh=false){
 async function refreshData(){await loadData(true);}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
-function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];render();}
+function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];if(col==='acctSearch')_refocusSearch='acct';render();}
 function navKpi(type){
   S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};S.drill=null;
   if(type==='won'){S.tab='accounts';S.acctFilter.stage='__won__';}
@@ -746,11 +746,12 @@ function navRiskKpi(sigKey){
 }
 let _flagDDCloseListener=null;
 let _prevDrill=null;
+let _refocusSearch=null;
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssAcctFlagsSet(vals){if(!S.acctFilter)S.acctFilter={};S.acctFilter.flags=vals||[];render();}
 function ssDrillSort(col){const cur=S.drillSort;S.drillSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
-function ssDrillFilter(col,val){if(!S.drillFilter)S.drillFilter={};if(val)S.drillFilter[col]=val;else delete S.drillFilter[col];render();}
+function ssDrillFilter(col,val){if(!S.drillFilter)S.drillFilter={};if(val)S.drillFilter[col]=val;else delete S.drillFilter[col];if(col==='acctSearch')_refocusSearch='drill';render();}
 function ssDrillFlagToggle(flag,on){if(!S.drillFilter)S.drillFilter={};const a=Array.isArray(S.drillFilter.flags)?S.drillFilter.flags:[];S.drillFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssDrillFlagsSet(vals){if(!S.drillFilter)S.drillFilter={};S.drillFilter.flags=vals||[];render();}
 function roDisp(ro,ae){return S.showAE&&ae?`${ro}<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`:ro;}
@@ -1656,6 +1657,7 @@ function _render(){
   if(LIGHT) h=h.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
   document.getElementById('app').innerHTML=h;
   applyBodyClass();
+  if(_refocusSearch){const _rs=_refocusSearch;_refocusSearch=null;requestAnimationFrame(()=>{const val=_rs==='acct'?(S.acctFilter&&S.acctFilter.acctSearch||''):(S.drillFilter&&S.drillFilter.acctSearch||'');const inp=[...document.querySelectorAll('input[placeholder="Search..."]')].find(i=>i.value===val);if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}});}
   if(S.drill&&S.tab==='pipeline'&&S.drill!==_prevDrill){requestAnimationFrame(()=>{const el=document.querySelector('.dr2');if(el)window.scrollTo({top:el.offsetTop-16,behavior:'smooth'});});}
   _prevDrill=S.drill;
   if(_flagDDCloseListener){document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;}
