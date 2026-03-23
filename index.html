@@ -1112,7 +1112,8 @@ function _render(){
           const stgMoved=prevStg&&prevStg!==a.s;
           const stgUp=stgMoved?(()=>{const pi=ST.indexOf(prevStg),ci=ST.indexOf(a.s);return ci>pi&&!(a.s==='8. Closed Lost (Not Renewing)');})():false;
           const movedFrom=stgMoved?`<span style="font-size:10px;font-weight:600;color:${stgUp?'#34d399':'#ef4444'};margin-left:8px;white-space:nowrap">${stgUp?'↑':'↓'} from ${SH[prevStg]||prevStg}</span>`:'';
-          h+=`<tr class="dr ck" style="${stgUp?'background:rgba(52,211,153,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,'\\\'')}')" title="Click to toggle iCon Notes">
+          const stgDown=stgMoved&&!stgUp;
+          h+=`<tr class="dr ck" style="${stgUp?'background:rgba(52,211,153,0.07)':stgDown?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,'\\\'')}')" title="Click to toggle iCon Notes">
             <td style="color:#e2e8f0;font-weight:500;vertical-align:middle"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">${a.c}${movedFrom}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:4px;white-space:nowrap">${nOpen?'▾':'▸'} notes</span>`:''}</div></td>
             <td style="color:#94a3b8">${a.ro}</td>
             ${S.showAE?`<td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>`:''}
