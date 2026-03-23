@@ -1881,7 +1881,7 @@ function _render(){
       hist.forEach((snap,i)=>{
         const k=(snap.kpis&&Object.keys(snap.kpis).length)?snap.kpis:deriveKpisFromData(snap.data,acctMap);
         const prev=hist[i+1];
-        const pk=prev?(prev.kpis||{}):null;
+        const pk=prev?((prev.kpis&&Object.keys(prev.kpis).length)?prev.kpis:deriveKpisFromData(prev.data,acctMap)):null;
         const isOpen=S.hsOpen===i;
         const tot=k.total||{},won=k.won||{},pipe=k.pipeline||{},lost=k.lost||{},unc=k.unc||{},risk=k.atRisk||{},wb=k.winback||{};
         const gap=(tot.rev&&tot.offer)?tot.rev-tot.offer:null;
