@@ -106,7 +106,7 @@ const TENANT     = 'iconnections675.onmicrosoft.com';
 const FILE_OWNER  = 'cgoggil_iconnections_io';
 const FILE_ID     = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
 const SHEET       = 'master tracker';
-const HEADER_ROW  = 13; // 0-based index; row 14 in Excel
+const HEADER_ROW  = 14; // 0-based index; row 15 in Excel
 const ENG_FILE_ID = 'f3908b5a-e17e-420f-b2e6-500c5dbad32c';
 const ENG_OWNER   = 'tfischer_iconnections_io';
 const ENG_SHARE_URL = 'https://iconnections675.sharepoint.com/:x:/s/All_ClientSuccess/IQCLMNdTCQBRQbE7YQzxNvaLAdrlXfxV3UBdZ3DwOyQNiqk';
@@ -656,10 +656,10 @@ function processData(range, engMap){
   const rows=range.values;
   if(!rows||!rows.length)throw new Error('Sheet appears empty');
 
-  // Auto-detect header row: scan first 30 rows for one containing 'Stage'
+  // Auto-detect header row: scan first 30 rows for one containing 'Renewal Owner'
   let detectedHeaderRow=HEADER_ROW;
   for(let r=0;r<Math.min(30,rows.length);r++){
-    if(rows[r].some(c=>String(c||'').trim()==='Stage')){detectedHeaderRow=r;break;}
+    if(rows[r].some(c=>String(c||'').trim()==='Renewal Owner')){detectedHeaderRow=r;break;}
   }
   if(rows.length<=detectedHeaderRow)throw new Error('Sheet appears empty or headers not found');
 
