@@ -338,8 +338,6 @@ async function fetchSheet(token){
 // ── ENGAGEMENT FETCH ──────────────────────────────────────────────────────────
 async function fetchEngSheet(token, sheetName){
   const enc=encodeURIComponent(sheetName);
-
-  // Attempt 1: sharing link resolution (works regardless of file location)
   try{
     if(!_engDriveId||!_engItemId){
       const shareId='u!'+btoa(ENG_SHARE_URL).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
@@ -350,35 +348,7 @@ async function fetchEngSheet(token, sheetName){
       const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${_engDriveId}/items/${_engItemId}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
       if(r.ok)return r.json();
     }
-  }catch(e){}
-
-  // Attempt 2: owner's SharePoint personal site drive (legacy location)
-  try{
-    const driveId=await getSharePointDriveId(token, ENG_OWNER);
-    const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r.ok)return r.json();
-  }catch(e){}
-
-  // Attempt 3: me/drive
-  try{
-    const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/me/drive/items/${ENG_FILE_ID}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-    if(r.ok)return r.json();
-  }catch(e){}
-
-  // Attempt 4: sharedWithMe
-  try{
-    const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:{Authorization:`Bearer ${token}`}});
-    const j=await r.json();
-    if(j.value){
-      const f=j.value.find(f=>f.remoteItem?.id===ENG_FILE_ID||f.id===ENG_FILE_ID);
-      if(f){
-        const ri=f.remoteItem||f;
-        const r2=await fetch(`https://graph.microsoft.com/v1.0/drives/${ri.parentReference?.driveId}/items/${ri.id}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
-        if(r2.ok)return r2.json();
-      }
-    }
-  }catch(e){}
-
+  }catch(e){console.warn('Engagement sheet fetch failed:',e);}
   return null;
 }
 
