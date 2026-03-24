@@ -636,7 +636,7 @@ function computeSignals(row){
   if(mt===0)sg.push('nm');
   if(rsk)sg.push('rf');
   if(r25>=50000&&mt===0)sg.push('hr');
-  if(s==='8. Closed Lost (Not Renewing)'||s==='11. Churned')sg.push('wb');
+  if(s==='8. Closed Lost (Not Renewing)')sg.push('wb');
   return[...new Set(sg)];
 }
 function getWow(d){
