@@ -341,8 +341,9 @@ async function fetchEngSheet(token, sheetName){
   try{
     if(!_engDriveId||!_engItemId){
       const shareId='u!'+btoa(ENG_SHARE_URL).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-      const r=await fetch(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem`,{headers:{Authorization:`Bearer ${token}`}});
-      if(r.ok){const item=await r.json();_engDriveId=item.parentReference?.driveId;_engItemId=item.id;}
+      const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),60000);
+      let rr;try{rr=await fetch(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem`,{headers:{Authorization:`Bearer ${token}`},signal:ctrl.signal});}finally{clearTimeout(tid);}
+      if(rr.ok){const item=await rr.json();_engDriveId=item.parentReference?.driveId;_engItemId=item.id;}
     }
     if(_engDriveId&&_engItemId){
       const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${_engDriveId}/items/${_engItemId}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
