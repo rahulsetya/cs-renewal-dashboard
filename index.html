@@ -1919,56 +1919,130 @@ function _render(){
   if(S.tab==='histsnap'){
     const hist=SNAP_HISTORY||[];
     const acctMap={};D.forEach(d=>acctMap[d.c]=d);
+    if(!Array.isArray(S.hsSelected))S.hsSelected=[];
+    if(!S.hsCompare||typeof S.hsCompare!=='object')S.hsCompare={};
+    const hsColors=['#fbbf24','#60a5fa','#34d399','#a78bfa','#fb923c','#f472b6','#22d3ee','#4ade80'];
+    const selCount=S.hsSelected.length;
+    // ── header bar ──
     h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">`;
-    h+=`<div><span style="font-size:15px;font-weight:700;color:#f8fafc">Historical Snapshots</span>`;
-    h+=`<span style="margin-left:10px;font-size:12px;color:#475569">${hist.length} saved</span></div>`;
+    h+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">`;
+    h+=`<span style="font-size:15px;font-weight:700;color:#f8fafc">Historical Snapshots</span>`;
+    h+=`<span style="font-size:12px;color:#475569">${hist.length} saved</span>`;
+    if(selCount>=2){
+      const chartLabel=S.hsShowChart?'▾ Hide Chart':'▸ Stage Chart ('+selCount+' selected)';
+      h+=`<button onclick="ss('hsShowChart',!S.hsShowChart)" style="padding:5px 12px;border-radius:6px;border:1px solid ${S.hsShowChart?'#fbbf24':'#475569'};background:${S.hsShowChart?'rgba(251,191,36,.12)':'transparent'};color:${S.hsShowChart?'#fbbf24':'#64748b'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${chartLabel}</button>`;
+    }
+    if(selCount>0)h+=`<button onclick="S.hsSelected=[];S.hsShowChart=false;render()" style="padding:4px 10px;border-radius:5px;border:1px solid #334155;background:transparent;color:#64748b;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear selection</button>`;
+    h+=`</div>`;
     h+=`<button onclick="saveSnapshot()" style="padding:6px 14px;border-radius:6px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Save Snapshot Now</button></div>`;
+    // ── chart ──
+    if(selCount>=2&&S.hsShowChart){
+      const selSnaps=S.hsSelected.map(i=>hist[i]).filter(Boolean);
+      const stageData=ST.map(stage=>{
+        const vals=selSnaps.map(sn=>{const kk=(sn.kpis&&Object.keys(sn.kpis).length)?sn.kpis:deriveKpisFromData(sn.data,acctMap);return kk.stages&&kk.stages[stage]?kk.stages[stage].count:0;});
+        return{stage,vals};
+      }).filter(sd=>sd.vals.some(v=>v>0));
+      const maxVal=Math.max(...stageData.flatMap(sd=>sd.vals),1);
+      const cW=860,cH=270,lM=42,rM=10,tM=10,bM=60;
+      const chartW=cW-lM-rM,chartH=cH-tM-bM;
+      const gW=chartW/stageData.length;
+      const bW=Math.max(4,Math.min(26,(gW-8)/selCount-2));
+      const gPad=(gW-(bW*selCount+(selCount-1)*2))/2;
+      h+=`<div class="cd" style="margin-bottom:16px;padding:16px 20px 14px">`;
+      h+=`<div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Stage Account Counts — Selected Snapshots</div>`;
+      h+=`<div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px">`;
+      selSnaps.forEach((sn,si)=>{h+=`<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${hsColors[si%hsColors.length]}"></span>${sn.label||_snapLabel(sn.ts)}</div>`;});
+      h+=`</div>`;
+      h+=`<svg viewBox="0 0 ${cW} ${cH}" style="width:100%;height:auto;display:block">`;
+      const yTicks=4;
+      for(let t=0;t<=yTicks;t++){
+        const yv=Math.round(maxVal*t/yTicks);
+        const y=tM+chartH-(chartH*t/yTicks);
+        h+=`<line x1="${lM}" y1="${y.toFixed(1)}" x2="${lM+chartW}" y2="${y.toFixed(1)}" stroke="#1e293b" stroke-width="1"/>`;
+        h+=`<text x="${(lM-5).toFixed(1)}" y="${(y+4).toFixed(1)}" fill="#475569" font-size="10" text-anchor="end">${yv}</text>`;
+      }
+      stageData.forEach((sd,gi)=>{
+        const gX=lM+gi*gW;
+        sd.vals.forEach((val,si)=>{
+          if(!val)return;
+          const bH=chartH*(val/maxVal);
+          const bX=gX+gPad+si*(bW+2);
+          const bY=tM+chartH-bH;
+          h+=`<rect x="${bX.toFixed(1)}" y="${bY.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${hsColors[si%hsColors.length]}" rx="2" opacity="0.85"/>`;
+          if(bH>18)h+=`<text x="${(bX+bW/2).toFixed(1)}" y="${(bY+bH/2+4).toFixed(1)}" fill="#0d1520" font-size="9" font-weight="700" text-anchor="middle">${val}</text>`;
+          else h+=`<text x="${(bX+bW/2).toFixed(1)}" y="${(bY-3).toFixed(1)}" fill="${hsColors[si%hsColors.length]}" font-size="9" text-anchor="middle">${val}</text>`;
+        });
+        const lX=(gX+gW/2).toFixed(1);
+        const stNum=(sd.stage.match(/^(\d+)\./)||['',''])[1];
+        const stShort=(SH[sd.stage]||sd.stage.replace(/^\d+\.\s*/,'')).substring(0,10);
+        h+=`<text x="${lX}" y="${(tM+chartH+18).toFixed(1)}" fill="#475569" font-size="9" text-anchor="middle" font-weight="600">${stNum}.</text>`;
+        h+=`<text x="${lX}" y="${(tM+chartH+30).toFixed(1)}" fill="#475569" font-size="9" text-anchor="middle">${stShort}</text>`;
+      });
+      h+=`<line x1="${lM}" y1="${tM}" x2="${lM}" y2="${tM+chartH}" stroke="#334155" stroke-width="1.5"/>`;
+      h+=`<line x1="${lM}" y1="${tM+chartH}" x2="${lM+chartW}" y2="${tM+chartH}" stroke="#334155" stroke-width="1.5"/>`;
+      h+=`</svg></div>`;
+    }
     if(!hist.length){
       h+=`<div class="cd" style="padding:40px;text-align:center;color:#475569">No snapshots saved yet. Click "Save Snapshot" to record the current pipeline state.</div>`;
     }else{
       hist.forEach((snap,i)=>{
         const k=(snap.kpis&&Object.keys(snap.kpis).length)?snap.kpis:deriveKpisFromData(snap.data,acctMap);
-        const prev=hist[i+1];
+        const compareIdx=S.hsCompare[i]!==undefined?S.hsCompare[i]:(i+1<hist.length?i+1:-1);
+        const prev=compareIdx>=0?hist[compareIdx]:null;
         const pk=prev?((prev.kpis&&Object.keys(prev.kpis).length)?prev.kpis:deriveKpisFromData(prev.data,acctMap)):null;
         const isOpen=S.hsOpen===i;
+        const isSelected=S.hsSelected.includes(i);
+        const selColorIdx=S.hsSelected.indexOf(i);
         const tot=k.total||{},won=k.won||{},pipe=k.pipeline||{},lost=k.lost||{},unc=k.unc||{},risk=k.atRisk||{},wb=k.winback||{};
         const gap=(tot.rev&&tot.offer)?tot.rev-tot.offer:null;
         const uncPct=(gap&&tot.rev)?Math.round(gap/tot.rev*100):null;
         const dN=(key,sub)=>{if(!pk)return'';const dv=((k[key]||{})[sub]||0)-((pk[key]||{})[sub]||0);if(!dv)return'';return '<span style="font-size:10px;color:'+(dv>0?'#34d399':'#ef4444')+';margin-left:5px">'+(dv>0?'+':'')+dv+'</span>';};
         const dR=(cur,old)=>{if(old==null||cur==null)return'';const dv=cur-old;if(!dv)return'';return '<span style="font-size:10px;color:'+(dv>0?'#34d399':'#ef4444')+';margin-left:5px">'+(dv>0?'+':'')+fm(Math.abs(dv))+'</span>';};
-        // Count moves
-        let movedCount=0; const moves=[];
+        let movedCount=0;const moves=[];
         if(prev&&snap.data&&prev.data){
           Object.keys(snap.data).forEach(acct=>{const toS=snap.data[acct],frS=prev.data[acct];if(frS&&frS!==toS){movedCount++;moves.push({acct,from:frS,to:toS});}});
           moves.sort((a,b)=>{const da=acctMap[a.acct],db=acctMap[b.acct];return(db?db.r25:0)-(da?da.r25:0);});
         }
-        // Header row
-        h+=`<div class="cd" style="margin-bottom:12px;overflow:hidden">`;
-        h+=`<div class="ck" onclick="ss('hsOpen',${isOpen?'null':i})" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px;flex-wrap:wrap">`;
-        h+=`<div style="display:flex;align-items:center;gap:12px"><span style="font-size:13px;font-weight:700;color:#f8fafc">${snap.label||_snapLabel(snap.ts)}</span>`;
+        const borderStyle=isSelected?`border:1.5px solid ${hsColors[selColorIdx%hsColors.length]}`:`border:1px solid #1e293b`;
+        h+=`<div class="cd" style="margin-bottom:10px;overflow:hidden;${borderStyle}">`;
+        // header row
+        h+=`<div style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">`;
+        // left: checkbox + label + badge
+        h+=`<div style="display:flex;align-items:center;gap:10px">`;
+        h+=`<input type="checkbox" ${isSelected?'checked':''} onclick="event.stopPropagation();(function(){var sel=[...S.hsSelected],idx=sel.indexOf(${i});if(idx>=0)sel.splice(idx,1);else sel.push(${i});S.hsSelected=sel;if(S.hsSelected.length<2)S.hsShowChart=false;render();})()" style="width:14px;height:14px;cursor:pointer;accent-color:#a78bfa;flex-shrink:0">`;
+        h+=`<span onclick="ss('hsOpen',${isOpen?'null':i})" style="font-size:13px;font-weight:700;color:#f8fafc;cursor:pointer">${snap.label||_snapLabel(snap.ts)}</span>`;
         if(movedCount>0)h+=`<span style="font-size:11px;background:#fbbf2420;color:#fbbf24;border-radius:4px;padding:2px 8px;font-weight:600">${movedCount} moved</span>`;
-        h+=`</div><div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">`;
+        h+=`</div>`;
+        // right: summary + compare selector + arrow
+        h+=`<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">`;
+        h+=`<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;cursor:pointer" onclick="ss('hsOpen',${isOpen?'null':i})">`;
         if(tot.rev)h+=`<span style="color:#fbbf24;font-weight:600">${fm(tot.rev)} base${dR(tot.rev,pk?(pk.total||{}).rev:null)}</span>`;
         if(tot.offer)h+=`<span style="color:#22d3ee;font-weight:600">${fm(tot.offer)} offer</span>`;
         if(tot.count)h+=`<span style="color:#94a3b8">${tot.count} accts</span>`;
-        h+=`</div><span style="color:#475569;font-size:14px">${isOpen?'▾':'▸'}</span></div>`;
+        h+=`</div>`;
+        if(hist.length>1){
+          h+=`<div style="display:flex;align-items:center;gap:5px">`;
+          h+=`<span style="font-size:10px;color:#475569">vs</span>`;
+          h+=`<select onclick="event.stopPropagation()" onchange="(function(v){var c={...S.hsCompare};c[${i}]=parseInt(v);S.hsCompare=c;render();})(this.value)" style="background:#0a1628;border:1px solid #1e3a5f;color:#64748b;font-size:10px;padding:2px 6px;border-radius:4px;font-family:inherit;cursor:pointer">`;
+          h+=`<option value="-1" ${compareIdx===-1?'selected':''}>None</option>`;
+          hist.forEach((s2,j)=>{if(j===i)return;h+=`<option value="${j}" ${compareIdx===j?'selected':''}>${s2.label||_snapLabel(s2.ts)}</option>`;});
+          h+=`</select></div>`;
+        }
+        h+=`<span onclick="ss('hsOpen',${isOpen?'null':i})" style="color:#475569;font-size:14px;cursor:pointer">${isOpen?'▾':'▸'}</span>`;
+        h+=`</div></div>`;
         if(isOpen){
           h+=`<div style="border-top:1px solid #1e293b">`;
-          // Unified KPI header row
           h+=`<div style="display:grid;grid-template-columns:170px 190px repeat(6,1fr);border-bottom:1px solid #1e293b">`;
-          // 2025 Rev cell
           h+=`<div style="padding:14px 18px;border-right:1px solid #334155">`;
           h+=`<div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">2025 Rev (Base)</div>`;
           h+=`<div style="font-size:22px;font-weight:700;color:#fbbf24;line-height:1">${tot.rev?fm(tot.rev):'–'}</div>`;
           if(tot.count)h+=`<div style="font-size:11px;color:#64748b;margin-top:3px">${tot.count} accounts</div>`;
           h+=`</div>`;
-          // 2026 Offer cell
           h+=`<div style="padding:14px 18px;border-right:1px solid #334155">`;
           h+=`<div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">2026 Offer Price</div>`;
           h+=`<div style="font-size:22px;font-weight:700;color:#22d3ee;line-height:1">${tot.offer?fm(tot.offer):'–'}</div>`;
           if(gap!=null)h+=`<div style="font-size:11px;color:#64748b;margin-top:3px">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span>${uncPct!=null?' ('+uncPct+'%)':''}</div>`;
           h+=`</div>`;
-          // 6 KPI cards
           [['WON',won.rev?fm(won.rev):'–',won.count?won.count+' accts':'','#34d399',dN('won','count')],
            ['PIPELINE',pipe.rev?fm(pipe.rev):'–',pipe.count?pipe.count+' accts':'','#a78bfa',dN('pipeline','count')],
            ['LOST (2025)',lost.rev?fm(lost.rev):'–',lost.count?lost.count+' accts':'','#ef4444',dN('lost','count')],
@@ -1983,15 +2057,13 @@ function _render(){
             h+=`</div>`;
           });
           h+=`</div>`;
-          // Stage breakdown
           if(k.stages&&Object.keys(k.stages).length){
             h+=`<div style="border-bottom:1px solid #1e293b"><div style="padding:10px 20px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Pipeline Stage Breakdown</div>`;
             h+=`<table style="width:100%"><thead><tr><th>Stage</th><th style="text-align:center">Count</th><th style="text-align:center;color:#64748b">Δ Count</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th><th style="text-align:right">Offer Delta $</th><th style="text-align:right">Offer Delta %</th></tr></thead><tbody>`;
             ST.filter(s=>k.stages[s]).forEach(s=>{
               const sv=k.stages[s],dl=sv.offer&&sv.rev?(sv.offer-sv.rev)/sv.rev*100:null;
               const prevSv=pk&&pk.stages&&pk.stages[s]?pk.stages[s]:null;
-              const prevCount=prevSv?prevSv.count:null;
-              const cntDelta=prevCount!=null?sv.count-prevCount:null;
+              const cntDelta=prevSv!=null?sv.count-prevSv.count:null;
               const offerDelta=sv.offer&&sv.rev?sv.offer-sv.rev:null;
               h+=`<tr class="dr"><td style="color:#f8fafc">${s}</td>`;
               h+=`<td style="text-align:center;font-weight:600">${sv.count}</td>`;
@@ -2003,8 +2075,8 @@ function _render(){
             });
             h+=`</tbody></table></div>`;
           }
-          // Deals that moved
-          h+=`<div><div style="padding:10px 20px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Deals That Moved vs Previous Snapshot</div>`;
+          const compareLabel=prev?`vs ${prev.label||_snapLabel(prev.ts)}`:'vs Previous Snapshot';
+          h+=`<div><div style="padding:10px 20px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Deals That Moved — ${compareLabel}</div>`;
           if(moves.length){
             h+=`<table style="width:100%"><thead><tr><th>Account</th><th>Owner</th><th>From</th><th></th><th>To</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th><th></th></tr></thead><tbody>`;
             moves.forEach(mv=>{
@@ -2028,7 +2100,7 @@ function _render(){
             });
             h+=`</tbody></table>`;
           }else{
-            h+=`<div style="padding:16px 20px;color:#475569;font-size:12px">${prev?'No stage changes between this and the previous snapshot.':'No previous snapshot to compare against.'}</div>`;
+            h+=`<div style="padding:16px 20px;color:#475569;font-size:12px">${prev?'No stage changes between these snapshots.':'No previous snapshot to compare against.'}</div>`;
           }
           h+=`</div></div>`;
         }
