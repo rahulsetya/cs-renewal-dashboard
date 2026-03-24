@@ -1189,7 +1189,7 @@ function _render(){
       mvSorted.forEach(d=>{
         const w=getWow(d),ps=PREV[d.c]||'Unknown';
         const nOpen=S.noteOpen===d.c;
-        h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':d.c.replace(/'/g,"\\'")}') " title="${d.icn?'Click to toggle iCon Notes':'No iCon Notes'}">
+        h+=`<tr class="dr ck" style="${(w==='won'||w==='up')?'background:rgba(52,211,153,0.07)':(w==='down'||w==='lost')?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':d.c.replace(/'/g,"\\'")}') " title="${d.icn?'Click to toggle iCon Notes':'No iCon Notes'}">
           <td style="color:#e2e8f0;font-weight:500">${d.c}</td>
           <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
           <td style="font-size:11px;color:#94a3b8">${SH[ps]||ps}</td>
@@ -2015,7 +2015,7 @@ function _render(){
               const icon=isLost?'✕':up?'▲':'▼';
               const icol=isLost?'#ef4444':up?'#34d399':'#ef4444';
               const nOpen=S.noteOpen===mv.acct;
-              h+=`<tr class="dr ck" style="${up?'background:rgba(52,211,153,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':mv.acct.replace(/'/g,"\\'")}')">`;
+              h+=`<tr class="dr ck" style="${up?'background:rgba(52,211,153,0.07)':'background:rgba(239,68,68,0.07)'}" onclick="ss('noteOpen','${nOpen?'':mv.acct.replace(/'/g,"\\'")}')">`;
               h+=`<td style="color:#e2e8f0;font-weight:500">${mv.acct}${d&&d.icn?'<span style="font-size:10px;color:#475569;margin-left:6px">'+(nOpen?'▾':'▸')+' notes</span>':''}</td>`;
               h+=`<td style="color:#94a3b8">${d?roDisp(d.ro,d.ae):'–'}</td>`;
               h+=`<td style="font-size:11px;color:#94a3b8">${SH[mv.from]||mv.from}</td>`;
@@ -2126,7 +2126,8 @@ function _render(){
       const aPrevStg=PREV_TS?PREV[a.c]:null;
       const aStgMoved=aPrevStg&&aPrevStg!==a.s;
       const aStgUp=aStgMoved?(()=>{const pi=ST.indexOf(aPrevStg),ci=ST.indexOf(a.s);return ci>pi&&!(a.s==='8. Closed Lost (Not Renewing)');})():false;
-      h+=`<tr class="dr ck" style="${aStgUp?'background:rgba(52,211,153,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
+      const aStgDown=aStgMoved&&!aStgUp;
+      h+=`<tr class="dr ck" style="${aStgUp?'background:rgba(52,211,153,0.07)':aStgDown?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
         <td style="color:#e2e8f0;font-weight:500">${a.c}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:6px;white-space:nowrap">${nOpen?'▾':'▸'} notes</span>`:''}</td>
         <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
         <td style="color:#94a3b8">${a.ro}</td>
