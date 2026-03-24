@@ -800,26 +800,6 @@ async function _fetchFresh(token){
   S.staleWarning=null;
 }
 
-// ── HOURLY SILENT REFRESH (6:45am–8:45pm) ────────────────────────────────────
-(function scheduleHourlyRefresh(){
-  let _lastAutoRefreshHour=-1; // track which hour we last fired to avoid double-fire
-  setInterval(async()=>{
-    const now=new Date();
-    const h=now.getHours(), m=now.getMinutes();
-    // Fire in the :44–:47 window (handles browser tab throttling skipping exact :45)
-    if(m<44||m>47)return;
-    if(h<6||h>20)return; // 6:45am–8:45pm only
-    if(h===_lastAutoRefreshHour)return; // already fired this hour
-    _lastAutoRefreshHour=h;
-    if(_loadingInProgress)return;
-    try{
-      const token=await getToken().catch(()=>null);
-      if(!token)return;
-      await _fetchFresh(token);
-      render();
-    }catch(e){console.warn('Hourly auto-refresh failed:',e);}
-  },30*1000); // check every 30 seconds for better reliability
-})();
 
 async function loadData(forceRefresh=false){
   if(_loadingInProgress&&!forceRefresh){console.log('loadData: already in progress, skipping');return;}
