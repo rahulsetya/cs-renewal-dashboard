@@ -281,23 +281,29 @@ function colIdx(name){
 function getCell(row,name){const i=colIdx(name);return i!==undefined?row[i]:undefined;}
 
 // ── GRAPH API ─────────────────────────────────────────────────────────────────
-const _driveIdCache={};
+const DRIVE_ID_STORE='cs_drive_ids_v1';
+const _driveIdCache=(()=>{try{return JSON.parse(localStorage.getItem(DRIVE_ID_STORE)||'{}');}catch(e){return{};}})();
 const _driveIdPending={};
+function _saveDriveIds(){try{localStorage.setItem(DRIVE_ID_STORE,JSON.stringify(_driveIdCache));}catch(e){}}
+async function fetchWithTimeout(url,opts,ms=60000){
+  const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),ms);
+  try{return await fetch(url,{...opts,signal:ctrl.signal});}
+  finally{clearTimeout(tid);}
+}
 async function getSharePointDriveId(token, ownerUpn){
-  // Return cached result immediately — avoids 20+ redundant lookups for engagement sheets
   if(_driveIdCache[ownerUpn])return _driveIdCache[ownerUpn];
-  // Deduplicate in-flight requests for the same owner
   if(_driveIdPending[ownerUpn])return _driveIdPending[ownerUpn];
   _driveIdPending[ownerUpn]=(async()=>{
-    const siteRes=await fetch(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${ownerUpn}`,{headers:{Authorization:`Bearer ${token}`}});
+    const siteRes=await fetchWithTimeout(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${ownerUpn}`,{headers:{Authorization:`Bearer ${token}`}});
     if(!siteRes.ok){const j=await siteRes.json().catch(()=>({}));throw new Error(`Site lookup for ${ownerUpn}: ${siteRes.status} — ${j.error?.message||'unknown'}`);}
     const site=await siteRes.json();
-    const drivesRes=await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
+    const drivesRes=await fetchWithTimeout(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
     if(!drivesRes.ok){const j=await drivesRes.json().catch(()=>({}));throw new Error(`Drives for ${ownerUpn}: ${drivesRes.status} — ${j.error?.message||'unknown'}`);}
     const drives=await drivesRes.json();
     if(!drives.value||!drives.value.length)throw new Error(`No drives found for ${ownerUpn}`);
     const id=drives.value[0].id;
     _driveIdCache[ownerUpn]=id;
+    _saveDriveIds();
     delete _driveIdPending[ownerUpn];
     return id;
   })();
@@ -648,9 +654,16 @@ function processData(range, engMap){
   if(!engMap)engMap={};
   if(!range)return D; // eng-only update — return existing D unchanged
   const rows=range.values;
-  if(!rows||rows.length<=HEADER_ROW)throw new Error('Sheet appears empty or headers not at row '+(HEADER_ROW+1));
+  if(!rows||!rows.length)throw new Error('Sheet appears empty');
 
-  const rawHeaders=rows[HEADER_ROW].map(h=>String(h||'').trim());
+  // Auto-detect header row: scan first 30 rows for one containing 'Stage'
+  let detectedHeaderRow=HEADER_ROW;
+  for(let r=0;r<Math.min(30,rows.length);r++){
+    if(rows[r].some(c=>String(c||'').trim()==='Stage')){detectedHeaderRow=r;break;}
+  }
+  if(rows.length<=detectedHeaderRow)throw new Error('Sheet appears empty or headers not found');
+
+  const rawHeaders=rows[detectedHeaderRow].map(h=>String(h||'').trim());
   buildColMaps(rawHeaders);
   // Find both Notes/Closed Lost Reason columns (CE and CF) — colIdx only returns first match
   const clrIdxAll=rawHeaders.reduce((a,h,i)=>h==='Notes / Closed Lost Reason'?[...a,i]:a,[]);
@@ -667,7 +680,7 @@ function processData(range, engMap){
   const data=[];
   let stageUnmatched=[];
 
-  for(let i=HEADER_ROW+1;i<rows.length;i++){
+  for(let i=detectedHeaderRow+1;i<rows.length;i++){
     const v=rows[i];
     let company=String(getCell(v,'Contact')||'').trim();
     if(!company){
@@ -735,7 +748,7 @@ function processData(range, engMap){
   }
   if(!data.length){
     const preview=rawHeaders.slice(0,12).join(' | ');
-    throw new Error(`No valid rows found after filtering.<br><br>First 12 headers from row ${HEADER_ROW+1}:<br><small>${preview}</small><br><br>Verify HEADER_ROW constant matches the actual header row.`);
+    throw new Error(`No valid rows found after filtering.<br><br>First 12 headers from row ${detectedHeaderRow+1}:<br><small>${preview}</small><br><br>Headers auto-detected at row ${detectedHeaderRow+1}.`);
   }
 
   console.log(`Loaded ${data.length} accounts. Owners:`, [...new Set(data.map(d=>d.ro))].join(', '));
