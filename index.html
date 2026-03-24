@@ -110,7 +110,9 @@ const HEADER_ROW  = 13; // 0-based index; row 14 in Excel
 const ENG_FILE_ID = 'f3908b5a-e17e-420f-b2e6-500c5dbad32c';
 const ENG_OWNER   = 'tfischer_iconnections_io';
 const ENG_SHARE_URL = 'https://iconnections675.sharepoint.com/:x:/s/All_ClientSuccess/IQCLMNdTCQBRQbE7YQzxNvaLAdrlXfxV3UBdZ3DwOyQNiqk';
-let _engDriveId=null,_engItemId=null; // cached after first share resolution
+// Persist resolved engagement drive IDs across page loads
+let _engDriveId=null,_engItemId=null;
+(function(){try{const s=JSON.parse(localStorage.getItem(ENG_DRIVE_KEY)||'{}');_engDriveId=s.d||null;_engItemId=s.i||null;}catch(e){}}());
 const ENG_SHEETS  = {
   'Christina C':'Christina Chumak',
   'Alex C':'Alex Cherecwich',
@@ -127,9 +129,12 @@ const SNAPSHOT_SITE = 'iconnections675.sharepoint.com:/sites/All_ClientSuccess:'
 const SNAPSHOT_PATH = 'Documents/cs_snapshot.json';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
-const SNAPSHOT_KEY  = 'cs_renewal_snapshot_v1';
-const DATA_CACHE_KEY = 'cs_data_cache_v1';
-const DATA_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const SNAPSHOT_KEY    = 'cs_renewal_snapshot_v1';
+const DATA_CACHE_KEY  = 'cs_data_cache_v1';
+const ENG_CACHE_KEY   = 'cs_eng_cache_v1';
+const ENG_DRIVE_KEY   = 'cs_eng_drive_v1';
+const DATA_CACHE_TTL  = 30 * 60 * 1000;  // 30 min — pipeline data
+const ENG_CACHE_TTL   = 2 * 60 * 60 * 1000; // 2 hours — engagement data
 
 function loadDataCache(allowStale=false){
   try{
@@ -145,9 +150,21 @@ function loadDataCache(allowStale=false){
     return c;
   }catch(e){return null;}
 }
-function saveDataCache(d,er,lu){
-  try{localStorage.setItem(DATA_CACHE_KEY,JSON.stringify({ts:Date.now(),D:d,ENG_RAW:er,lastUpdated:lu}));}
+function saveDataCache(d,lu){
+  try{localStorage.setItem(DATA_CACHE_KEY,JSON.stringify({ts:Date.now(),D:d,lastUpdated:lu}));}
   catch(e){console.warn('Cache save failed (storage full?):',e);}
+}
+function loadEngCache(){
+  try{
+    const raw=localStorage.getItem(ENG_CACHE_KEY);if(!raw)return null;
+    const c=JSON.parse(raw);
+    if(Date.now()-c.ts>ENG_CACHE_TTL)return null; // stale
+    return c.ENG_RAW||null;
+  }catch(e){return null;}
+}
+function saveEngCache(er){
+  try{localStorage.setItem(ENG_CACHE_KEY,JSON.stringify({ts:Date.now(),ENG_RAW:er}));}
+  catch(e){console.warn('Eng cache save failed:',e);}
 }
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[], SNAP_HISTORY=[];
 function deriveKpisFromData(snapData,acctMap){
@@ -343,7 +360,8 @@ async function fetchEngSheet(token, sheetName){
       const shareId='u!'+btoa(ENG_SHARE_URL).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
       const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),60000);
       let rr;try{rr=await fetch(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem`,{headers:{Authorization:`Bearer ${token}`},signal:ctrl.signal});}finally{clearTimeout(tid);}
-      if(rr.ok){const item=await rr.json();_engDriveId=item.parentReference?.driveId;_engItemId=item.id;}
+      if(rr.ok){const item=await rr.json();_engDriveId=item.parentReference?.driveId;_engItemId=item.id;
+        try{localStorage.setItem(ENG_DRIVE_KEY,JSON.stringify({d:_engDriveId,i:_engItemId}));}catch(e){}}
     }
     if(_engDriveId&&_engItemId){
       const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${_engDriveId}/items/${_engItemId}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:{Authorization:`Bearer ${token}`}});
@@ -626,7 +644,9 @@ function getWow(d){
 }
 
 // ── PROCESS DATA ──────────────────────────────────────────────────────────────
-function processData(range, engMap={}){
+function processData(range, engMap){
+  if(!engMap)engMap={};
+  if(!range)return D; // eng-only update — return existing D unchanged
   const rows=range.values;
   if(!rows||rows.length<=HEADER_ROW)throw new Error('Sheet appears empty or headers not at row '+(HEADER_ROW+1));
 
@@ -753,58 +773,87 @@ function showError(msg, debugInfo=''){
 
 // ── MAIN FLOW ─────────────────────────────────────────────────────────────────
 let _loadingInProgress=false;
-async function _fetchFresh(token){
-  const [range,engMap]=await Promise.all([fetchSheet(token),fetchAllEngagement(token),loadSnapshotFromSP(token)]);
-  D=processData(range,engMap);
-  lastUpdated='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  saveDataCache(D,ENG_RAW,lastUpdated);
+let _engLoading=false;
+const ENG_TABS=new Set(['alleng','engaccts','crossref']);
+
+async function _fetchFresh(token, includeEng=false){
+  const tasks=[fetchSheet(token), loadSnapshotFromSP(token)];
+  const [range]=await Promise.all(tasks);
+  const lu='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  if(includeEng){
+    const engMap=await fetchAllEngagement(token);
+    saveEngCache(ENG_RAW);
+    D=processData(range,engMap);
+  } else {
+    const cachedEng=loadEngCache();
+    if(cachedEng){ENG_RAW=cachedEng;}
+    D=processData(range,null);
+  }
+  lastUpdated=lu;
+  saveDataCache(D,lu);
   S.staleWarning=null;
+}
+
+async function loadEngIfNeeded(forceRefresh=false){
+  if(_engLoading)return;
+  const cached=loadEngCache();
+  if(cached&&!forceRefresh){ENG_RAW=cached;render();return;}
+  _engLoading=true;
+  render(); // show spinner state if needed
+  try{
+    const token=await getToken();
+    await fetchAllEngagement(token);
+    saveEngCache(ENG_RAW);
+    render();
+  }catch(e){console.warn('Engagement load failed:',e);}
+  finally{_engLoading=false;}
 }
 async function loadData(forceRefresh=false){
   if(_loadingInProgress&&!forceRefresh){console.log('loadData: already in progress, skipping');return;}
   _loadingInProgress=true;
   loadSnapshot();
+  const onEngTab=ENG_TABS.has(S.tab);
 
-  // Always show any cached data immediately — never block on loading screen if we have something
   const cache=loadDataCache(true);
-  const cacheUsable=cache&&cache.D&&cache.D.length&&cache.ENG_RAW&&cache.ENG_RAW.length&&!forceRefresh;
+  const cacheUsable=cache&&cache.D&&cache.D.length&&!forceRefresh;
   if(cacheUsable){
-    D=cache.D;ENG_RAW=cache.ENG_RAW;lastUpdated=cache.lastUpdated+(cache.stale?' · cached':'');
+    D=cache.D;
+    const ec=loadEngCache();if(ec)ENG_RAW=ec;
+    lastUpdated=cache.lastUpdated+(cache.stale?' · cached':'');
     render();
-    if(!cache.stale){_loadingInProgress=false;return;} // fresh — done
-    // Stale: show data now, refresh silently in background
+    if(!cache.stale&&(!onEngTab||loadEngCache())){_loadingInProgress=false;return;}
     try{
       const token=await getToken();
-      await _fetchFresh(token);
-      render(); // silent update once done
+      await _fetchFresh(token, onEngTab||forceRefresh);
+      render();
     }catch(e){
       const msg=e.message||String(e);
       if(/login_required/i.test(msg)){showLogin();return;}
-      S.staleWarning=`SharePoint timed out — showing data from ${cache.staleMinutes}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
+      S.staleWarning=`SharePoint timed out — showing data from ${cache.staleMinutes||0}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
       render();
     }finally{_loadingInProgress=false;}
     return;
   }
 
-  // No cache at all — must show loading screen and wait
-  showLoading('Loading pipeline + engagement data…');
+  showLoading('Loading pipeline data…');
   try{
     const token=await getToken();
-    await _fetchFresh(token);
+    await _fetchFresh(token, onEngTab);
     render();
   }catch(e){
     const msg=e.message||String(e);
     if(/login_required|interaction/i.test(msg)){showLogin();return;}
     const stale=loadDataCache(true);
     if(stale&&stale.D&&stale.D.length){
-      D=stale.D;ENG_RAW=stale.ENG_RAW;lastUpdated=stale.lastUpdated+' · cached';
+      D=stale.D;const ec=loadEngCache();if(ec)ENG_RAW=ec;
+      lastUpdated=stale.lastUpdated+' · cached';
       S.staleWarning=`SharePoint timed out — showing data from ${stale.staleMinutes}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
       render();
     }else{showError(msg);}
   }finally{_loadingInProgress=false;}
 }
 async function refreshData(){await loadData(true);}
-function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
+function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();if(k==='tab'&&ENG_TABS.has(v))loadEngIfNeeded();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];if(col==='acctSearch')_refocusSearch='acct';render();}
 function navKpi(type){
