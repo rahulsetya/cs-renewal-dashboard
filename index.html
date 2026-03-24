@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>CS Renewal Pipeline — iConnections</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -833,6 +836,22 @@ async function loadData(forceRefresh=false){
   }finally{_loadingInProgress=false;}
 }
 async function refreshData(){await loadData(true);}
+
+// ── SILENT HOURLY AUTO-REFRESH ──
+// Re-fetches data in the background every 60 minutes.
+// Does not show a loading screen — updates numbers silently.
+let _autoRefreshTimer = null;
+function startAutoRefresh(){
+  if(_autoRefreshTimer) clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer = setInterval(async ()=>{
+    try{
+      const token = await getToken().catch(()=>null);
+      if(!token) return; // not logged in or token expired, skip silently
+      try{localStorage.removeItem(DATA_CACHE_KEY);}catch(e){} // clear cache so fresh data is fetched
+      await _fetchFresh(token);
+    }catch(e){console.warn('Auto-refresh failed silently:',e);}
+  }, 60 * 60 * 1000); // every 60 minutes
+}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];if(col==='acctSearch')_refocusSearch='acct';render();}
@@ -912,12 +931,12 @@ async function init(){
   if(code){
     showLoading('Completing sign-in…');
     history.replaceState(null,'',location.pathname+location.search);
-    try{const t=await exchangeCode(code);saveTokens(t);await loadData();}
+    try{const t=await exchangeCode(code);saveTokens(t);await loadData();startAutoRefresh();}
     catch(e){showError(e.message||String(e));}
     return;
   }
   const at=sessionStorage.getItem('at'),exp=parseInt(sessionStorage.getItem('exp')||'0');
-  if(at&&Date.now()<exp)await loadData();
+  if(at&&Date.now()<exp){await loadData();startAutoRefresh();}
   else showLogin();
 }
 
