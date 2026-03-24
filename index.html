@@ -805,7 +805,7 @@ async function _fetchFresh(token){
   setInterval(async()=>{
     const now=new Date();
     const h=now.getHours(), m=now.getMinutes();
-    if(m!==0||h<6||h>21)return; // only fire on the hour, 6am–9pm
+    if(m!==45||h<6||h>20)return; // fire at :45 past each hour, 6:45am–8:45pm
     if(_loadingInProgress)return;
     try{
       const token=await getToken().catch(()=>null);
