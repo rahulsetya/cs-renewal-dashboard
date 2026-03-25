@@ -1150,19 +1150,19 @@ function _render(){
     const snapInfo=PREV_TS
       ?`Comparing against snapshot from <strong>${snapAge()}</strong> · <button class="sb" onclick="clearSnapshot()" style="color:#ef4444;border-color:#ef444433">Clear</button>`
       :`<span style="color:#fb923c">No snapshot saved.</span> Use the <strong>📸 Save Snapshot</strong> button (top right) to record current state, then refresh later to see movement.`;
-    const movedUp=[],movedDown=[],newWon=[],newLost=[],stuckDeals=[];
+    const movedUp=[],movedDown=[],newWon=[],newLost=[],newChurned=[],stuckDeals=[];
     f.forEach(d=>{
       const w=getWow(d);
       if(w==='up')movedUp.push(d);
       if(w==='down')movedDown.push(d);
       if(w==='won')newWon.push(d);
-      if(w==='lost')newLost.push(d);
+      if(w==='lost'){newLost.push(d);if(d.s==='11. Churned')newChurned.push(d);}
       if(w==='same'&&['3. Contacted Follow-up Needed','4. Contacted Attempting Again','5. Proposal Made','6. Signature Requested'].includes(d.s))stuckDeals.push(d);
     });
     h+=`<div style="background:#172033;border:1px solid #334155;border-radius:8px;padding:10px 16px;font-size:12px;margin-bottom:16px;color:#94a3b8">${snapInfo}</div>`;
     h+=`<div class="g g4" style="margin-bottom:16px">
       <div class="kpi" style="border-left:3px solid #34d399"><div class="kl">Progressed</div><div class="kv" style="color:#34d399">${movedUp.length+newWon.length}</div><div class="ks">${movedUp.length} moved up, ${newWon.length} won</div></div>
-      <div class="kpi" style="border-left:3px solid #ef4444"><div class="kl">Regressed / Lost</div><div class="kv" style="color:#ef4444">${movedDown.length+newLost.length}</div><div class="ks">${movedDown.length} moved down, ${newLost.length} new losses</div></div>
+      <div class="kpi" style="border-left:3px solid #ef4444"><div class="kl">Regressed / Lost</div><div class="kv" style="color:#ef4444">${movedDown.length+newLost.length}</div><div class="ks">${movedDown.length} moved down, ${newLost.length-newChurned.length} new losses${newChurned.length?`, ${newChurned.length} churned`:''}</div></div>
       <div class="kpi" style="border-left:3px solid #fb923c"><div class="kl">Stuck (Stages 3-6)</div><div class="kv" style="color:#fb923c">${stuckDeals.length}</div><div class="ks">${fm(stuckDeals.reduce((a,d)=>a+d.r25,0))} 2025 rev</div></div>
       <div class="kpi" style="border-left:3px solid #64748b"><div class="kl">No Change</div><div class="kv" style="color:#64748b">${f.filter(d=>getWow(d)==='same').length}</div><div class="ks">of ${f.length} total</div></div>
     </div>`;
