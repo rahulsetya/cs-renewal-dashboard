@@ -1161,9 +1161,9 @@ function _render(){
     });
     h+=`<div style="background:#172033;border:1px solid #334155;border-radius:8px;padding:10px 16px;font-size:12px;margin-bottom:16px;color:#94a3b8">${snapInfo}</div>`;
     h+=`<div class="g g4" style="margin-bottom:16px">
-      <div class="kpi" style="border-left:3px solid #34d399"><div class="kl">Progressed</div><div class="kv" style="color:#34d399">${movedUp.length+newWon.length}</div><div class="ks">${movedUp.length} moved up, ${newWon.length} won</div></div>
-      <div class="kpi" style="border-left:3px solid #ef4444"><div class="kl">Regressed / Lost</div><div class="kv" style="color:#ef4444">${movedDown.length+newLost.length}</div><div class="ks">${movedDown.length} moved down, ${newLost.length-newChurned.length} new losses${newChurned.length?`, ${newChurned.length} churned`:''}</div></div>
-      <div class="kpi" style="border-left:3px solid #fb923c"><div class="kl">Stuck (Stages 3-6)</div><div class="kv" style="color:#fb923c">${stuckDeals.length}</div><div class="ks">${fm(stuckDeals.reduce((a,d)=>a+d.r25,0))} 2025 rev</div></div>
+      <div class="kpi ck" style="border-left:3px solid #34d399;cursor:pointer" onclick="S.mvSort={col:'type',dir:'asc'};render();requestAnimationFrame(()=>{const el=document.querySelector('.mv-deals');if(el)window.scrollTo({top:el.offsetTop-16,behavior:'smooth'});})"><div class="kl">Progressed</div><div class="kv" style="color:#34d399">${movedUp.length+newWon.length}</div><div class="ks">${movedUp.length} moved up, ${newWon.length} won</div></div>
+      <div class="kpi ck" style="border-left:3px solid #ef4444;cursor:pointer" onclick="S.mvSort={col:'type',dir:'desc'};render();requestAnimationFrame(()=>{const el=document.querySelector('.mv-deals');if(el)window.scrollTo({top:el.offsetTop-16,behavior:'smooth'});})"><div class="kl">Regressed / Lost</div><div class="kv" style="color:#ef4444">${movedDown.length+newLost.length}</div><div class="ks">${movedDown.length} moved down, ${newLost.length-newChurned.length} new losses${newChurned.length?`, ${newChurned.length} churned`:''}</div></div>
+      <div class="kpi ck" style="border-left:3px solid #fb923c;cursor:pointer" onclick="requestAnimationFrame(()=>{const el=document.querySelector('.mv-stuck');if(el)window.scrollTo({top:el.offsetTop-16,behavior:'smooth'});})"><div class="kl">Stuck (Stages 3-6)</div><div class="kv" style="color:#fb923c">${stuckDeals.length}</div><div class="ks">${fm(stuckDeals.reduce((a,d)=>a+d.r25,0))} 2025 rev</div></div>
       <div class="kpi" style="border-left:3px solid #64748b"><div class="kl">No Change</div><div class="kv" style="color:#64748b">${f.filter(d=>getWow(d)==='same').length}</div><div class="ks">of ${f.length} total</div></div>
     </div>`;
     if(movedUp.length+newWon.length+movedDown.length+newLost.length>0){
@@ -1184,7 +1184,7 @@ function _render(){
         const active=mvs.col===col,dir=active?(mvs.dir==='asc'?'▲':'▼'):'↕';
         return `<th onclick="S.mvSort={col:'${col}',dir:'${active&&mvs.dir==='asc'?'desc':'asc'}'};render()" style="cursor:pointer;user-select:none;${align?'text-align:'+align+';':''}${active?'color:#f8fafc':''}">${lbl} <span style="font-size:9px;color:${active?'#60a5fa':'#334155'}">${dir}</span></th>`;
       };
-      h+=`<div class="cd" style="padding:20px;margin-bottom:16px">
+      h+=`<div class="cd mv-deals" style="padding:20px;margin-bottom:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <h3 style="margin:0;font-size:15px;font-weight:600;color:#f8fafc">Deals That Moved</h3>
           <span style="font-size:11px;color:#475569">${mvSorted.length} deals · click column to sort</span>
@@ -1217,12 +1217,34 @@ function _render(){
       h+=`</tbody></table></div>`;
     }
     if(stuckDeals.length>0){
-      h+=`<div class="cd" style="padding:0;overflow:hidden">
-        <div style="padding:14px 18px;border-bottom:1px solid #334155;font-size:14px;font-weight:600;color:#fb923c">${stuckDeals.length} Stuck Deals · ${fm(stuckDeals.reduce((a,d)=>a+d.r25,0))} at stake</div>
+      const ss2=S.stuckSort||{col:'rev',dir:'desc'};
+      const sf2=S.stuckFilter||{};
+      const stuckSortFns={
+        acct:(a,b)=>a.c.localeCompare(b.c),
+        stage:(a,b)=>ST.indexOf(a.s)-ST.indexOf(b.s),
+        owner:(a,b)=>(a.ro||'').localeCompare(b.ro||''),
+        rev:(a,b)=>b.r25-a.r25,
+        days:(a,b)=>a.dy-b.dy
+      };
+      let stuckVisible=[...stuckDeals];
+      if(sf2.owner)stuckVisible=stuckVisible.filter(d=>(d.ro||'').toLowerCase().includes(sf2.owner.toLowerCase()));
+      if(sf2.stage)stuckVisible=stuckVisible.filter(d=>d.s===sf2.stage);
+      stuckVisible.sort((a,b)=>{const r=(stuckSortFns[ss2.col]||stuckSortFns.rev)(a,b);return ss2.dir==='asc'?r:-r;});
+      const stHd=(col,lbl,align)=>{const act=ss2.col===col,dir=act?(ss2.dir==='asc'?'▲':'▼'):'↕';return`<th onclick="S.stuckSort={col:'${col}',dir:'${act&&ss2.dir==='asc'?'desc':'asc'}'};render()" style="cursor:pointer;user-select:none;${align?'text-align:'+align+';':''}${act?'color:#f8fafc':''}">${lbl} <span style="font-size:9px;color:${act?'#60a5fa':'#334155'}">${dir}</span></th>`;};
+      const stageOpts=[...new Set(stuckDeals.map(d=>d.s))].sort((a,b)=>ST.indexOf(a)-ST.indexOf(b));
+      h+=`<div class="cd mv-stuck" style="padding:0;overflow:hidden">
+        <div style="padding:14px 18px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:14px;font-weight:600;color:#fb923c">${stuckVisible.length} Stuck Deals · ${fm(stuckVisible.reduce((a,d)=>a+d.r25,0))} at stake</span>
+          <input placeholder="Filter owner…" value="${sf2.owner||''}" oninput="S.stuckFilter={...S.stuckFilter||{},owner:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0;width:130px">
+          <select onchange="S.stuckFilter={...S.stuckFilter||{},stage:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0">
+            <option value="">All stages</option>${stageOpts.map(s=>`<option value="${s}" ${sf2.stage===s?'selected':''}>${SH[s]||s}</option>`).join('')}
+          </select>
+          ${(sf2.owner||sf2.stage)?`<button onclick="S.stuckFilter={};render()" style="background:transparent;border:1px solid #475569;border-radius:4px;padding:3px 8px;font-size:11px;color:#94a3b8;cursor:pointer">Clear</button>`:''}
+        </div>
         <div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
-          <th>Account</th><th>Stage</th><th>Owner</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">Offer</th><th>Sub End</th><th style="text-align:center">Days</th><th>Flags</th>
+          ${stHd('acct','Account','')}${stHd('stage','Stage','')}${stHd('owner','Owner','')}${stHd('rev','2025 Rev','right')}<th style="text-align:right;color:#22d3ee">Offer</th><th>Sub End</th>${stHd('days','Days','center')}<th>Flags</th>
         </tr></thead><tbody>`;
-      stuckDeals.sort((a,b)=>b.r25-a.r25).forEach(d=>{
+      stuckVisible.forEach(d=>{
         const dc=d.dy<=0?'#ef4444':d.dy<=30?'#ef4444':d.dy<=90?'#fb923c':d.dy<=180?'#fbbf24':'#94a3b8';
         h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}</td>
           <td><span style="color:${CL[d.s]};font-weight:600;font-size:11px">${SH[d.s]}</span></td>
