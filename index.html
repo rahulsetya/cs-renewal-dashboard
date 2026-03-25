@@ -644,7 +644,8 @@ function getWow(d){
   if(!ps)return'new';
   const pi=ST.indexOf(ps),ci=ST.indexOf(d.s);
   if(pi<0||ci<0)return'same';
-  if((d.s==='8. Closed Lost (Not Renewing)'||d.s==='11. Churned')&&ps!=='8. Closed Lost (Not Renewing)'&&ps!=='11. Churned')return'lost';
+  if(d.s==='11. Churned'&&ps!=='11. Churned')return'lost';
+  if(d.s==='8. Closed Lost (Not Renewing)'&&ps!=='8. Closed Lost (Not Renewing)'&&ps!=='11. Churned')return'lost';
   if((d.s==='7. Signed'||d.s==='9. Invoice Sent')&&ps!=='7. Signed'&&ps!=='9. Invoice Sent')return'won';
   if(ci>pi)return'up';if(ci<pi)return'down';return'same';
 }
