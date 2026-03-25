@@ -1003,7 +1003,7 @@ function _render(){
       <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
       ${PREV_TS?`<span style="font-size:10px;color:#475569">Last saved: ${new Date(PREV_TS).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:'<span style="font-size:10px;color:#334155">No snapshot saved</span>'}
     </div>
-    <button class="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+    <button class="btn-refresh" onclick="try{localStorage.removeItem(DATA_CACHE_KEY);}catch(e){}location.reload(true)">↻ Refresh</button>
     <select onchange="ss('owner',this.value)"><option value="ALL">All CS Owners</option>
     ${owners.map(o=>`<option value="${o}"${S.owner===o?' selected':''}>${o}</option>`).join('')}
     </select>
