@@ -1875,8 +1875,8 @@ function _render(){
   if(S.tab==='winback'){
     const wba=f.filter(d=>d.sg.includes('wb')).sort((a,b)=>b.r25-a.r25);
     const wbRev=wba.reduce((a,d)=>a+d.r25,0),wbOff=wba.reduce((a,d)=>a+d.o,0);
-    const wbo={};wba.forEach(d=>{if(!wbo[d.ro])wbo[d.ro]={n:0,rev:0};wbo[d.ro].n++;wbo[d.ro].rev+=d.r25;});
-    const wboA=Object.keys(wbo).map(k=>{const ac=wba.filter(d=>d.ro===k);return{o:k,n:wbo[k].n,rev:wbo[k].rev,days:Math.round(ac.reduce((a,d)=>a+d.dy,0)/ac.length)};}).sort((a,b)=>b.rev-a.rev);
+    const wbo={};wba.forEach(d=>{if(!wbo[d.ro])wbo[d.ro]={n:0,rev:0,off:0};wbo[d.ro].n++;wbo[d.ro].rev+=d.r25;wbo[d.ro].off+=d.o;});
+    const wboA=Object.keys(wbo).map(k=>{const ac=wba.filter(d=>d.ro===k);return{o:k,n:wbo[k].n,rev:wbo[k].rev,off:wbo[k].off,days:Math.round(ac.reduce((a,d)=>a+d.dy,0)/ac.length)};}).sort((a,b)=>b.rev-a.rev);
     h+=`<div id="wb-anchor" class="rv" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
       <div class="rc" style="border-left:3px solid #60a5fa"><h4>Win-Back Candidates</h4><div class="rb" style="color:#60a5fa">${wba.length}</div></div>
       <div class="rc" style="border-left:3px solid #fbbf24"><h4>2025 Rev Recoverable</h4><div class="rb" style="color:#fbbf24">${fm(wbRev)}</div></div>
@@ -1884,8 +1884,8 @@ function _render(){
     </div>
     <div class="cd" style="padding:0;overflow:hidden;margin-bottom:16px">
       <div style="padding:12px 18px;border-bottom:1px solid #334155;font-size:14px;font-weight:600;color:#60a5fa">By CSM</div>
-      <table><thead><tr><th>CSM</th><th style="text-align:center">Accts</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:center">Avg Days</th></tr></thead><tbody>`;
-    wboA.forEach(r=>h+=`<tr class="dr"><td style="font-weight:600;color:#f8fafc">${r.o}</td><td style="text-align:center;font-weight:600">${r.n}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${fm(r.rev)}</td><td style="text-align:center;color:#94a3b8">${r.days}d</td></tr>`);
+      <table><thead><tr><th>CSM</th><th style="text-align:center">Accts</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th><th style="text-align:center">Avg Days</th></tr></thead><tbody>`;
+    wboA.forEach(r=>h+=`<tr class="dr"><td style="font-weight:600;color:#f8fafc">${r.o}</td><td style="text-align:center;font-weight:600">${r.n}</td><td style="text-align:right;color:#fbbf24;font-weight:600">${fm(r.rev)}</td><td style="text-align:right;color:#22d3ee;font-weight:600">${r.off?fm(r.off):'–'}</td><td style="text-align:center;color:#94a3b8">${r.days}d</td></tr>`);
     h+=`</tbody></table></div>
     <div class="cd" style="padding:0;overflow:hidden">
       <div style="padding:12px 18px;border-bottom:1px solid #334155;font-size:14px;font-weight:600;color:#f8fafc">${wba.length} accounts · ${fm(wbRev)} recoverable</div>
