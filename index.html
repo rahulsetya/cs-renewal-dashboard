@@ -1255,7 +1255,7 @@ function _render(){
         </tr></thead><tbody>`;
       stuckVisible.forEach(d=>{
         const dc=d.dy<=0?'#ef4444':d.dy<=30?'#ef4444':d.dy<=90?'#fb923c':d.dy<=180?'#fbbf24':'#94a3b8';
-        const hasNote=d.nt&&d.nt.trim();
+        const hasNote=d.icn&&d.icn.trim();
         const noteOpen=S.noteOpen===('stuck_'+d.c);
         h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}${hasNote?`<span onclick="event.stopPropagation();S.noteOpen=S.noteOpen===('stuck_'+${JSON.stringify(d.c)})?null:('stuck_'+${JSON.stringify(d.c)});render()" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${noteOpen?'▲':'▼'} notes</span>`:''}</td>
           <td><span style="color:${CL[d.s]};font-weight:600;font-size:11px">${SH[d.s]}</span></td>
@@ -1265,7 +1265,7 @@ function _render(){
           <td style="color:#94a3b8;font-size:11px">${d.se||'–'}</td>
           <td style="text-align:center;font-weight:600;color:${dc}">${d.dy<=0?'PAST':d.dy+'d'}</td>
           <td>${d.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</td>
-        </tr>${noteOpen&&hasNote?`<tr style="background:#0f172a"><td colspan="8" style="padding:8px 16px;font-size:12px;color:#94a3b8;white-space:pre-wrap;line-height:1.5">${d.nt.replace(/</g,'&lt;')}</td></tr>`:''}`;
+        </tr>${noteOpen&&hasNote?`<tr style="background:#0f172a"><td colspan="8" style="padding:8px 16px;font-size:12px;color:#94a3b8;white-space:pre-wrap;line-height:1.5">${d.icn.replace(/</g,'&lt;')}</td></tr>`:''}`;
       });
       h+=`</tbody></table></div></div>`;
     }
