@@ -848,6 +848,8 @@ async function loadData(forceRefresh=false){
 async function refreshData(){await loadData(true);}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
+window._noteKeys=[];
+function toggleNoteIdx(i){const key=window._noteKeys[i];S.noteOpen=S.noteOpen===key?null:key;render();}
 function toggleStuckNote(key){S.noteOpen=S.noteOpen===key?null:key;render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];if(col==='acctSearch')_refocusSearch='acct';render();}
 function navKpi(type){
@@ -945,6 +947,7 @@ const DARK_TO_LIGHT={
   '#fbbf2422':'#fef3c7','#22d3ee22':'#cffafe'};
 function render(){try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
 function _render(){
+  window._noteKeys=[];
   // ── Shared funnel helpers (used by Pipeline×Eng and All Engagement tabs) ──
   const funnelConn=(prev,cur)=>{
     const dn=prev-cur,dp=prev>0?Math.round(dn/prev*100):100;
@@ -1211,9 +1214,11 @@ function _render(){
       </tr></thead><tbody>`;
       mvSorted.forEach(d=>{
         const w=getWow(d),ps=PREV[d.c]||'Unknown';
-        const nOpen=S.noteOpen===d.c;
-        h+=`<tr class="dr ck" style="${(w==='won'||w==='up')?'background:rgba(52,211,153,0.07)':(w==='down'||w==='lost')?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':d.c.replace(/'/g,"\\'")}') " title="${d.icn?'Click to toggle iCon Notes':'No iCon Notes'}">
-          <td style="color:#e2e8f0;font-weight:500">${d.c}</td>
+        const mvKey='mv_'+d.c;
+        const nOpen=S.noteOpen===mvKey;
+        const mvNoteIdx=window._noteKeys.length; window._noteKeys.push(mvKey);
+        h+=`<tr class="dr" style="${(w==='won'||w==='up')?'background:rgba(52,211,153,0.07)':(w==='down'||w==='lost')?'background:rgba(239,68,68,0.07)':''}">
+          <td style="color:#e2e8f0;font-weight:500">${d.c}${d.icn?`<span onclick="event.stopPropagation();toggleNoteIdx(${mvNoteIdx})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${nOpen?'▲':'▼'} notes</span>`:''}</td>
           <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
           <td style="font-size:11px;color:#94a3b8">${SH[ps]||ps}</td>
           <td style="text-align:center"><span style="color:${WOW_COLORS[w]};font-weight:700">${WOW_ICONS[w]}</span></td>
@@ -1222,7 +1227,7 @@ function _render(){
           <td style="text-align:right;color:${d.o>0?'#22d3ee':'#334155'}">${d.o>0?fm(d.o):'–'}</td>
           <td style="text-align:center"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${WOW_COLORS[w]}22;color:${WOW_COLORS[w]}">${w==='won'?'Won':w==='up'?'↑ Up':w==='down'?'↓ Down':'Lost'}</span></td>
         </tr>
-        ${nOpen&&d.icn?`<tr style="background:#0a1628"><td colspan="8" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${d.icn}</td></tr>`:''}`;
+        ${nOpen&&d.icn?`<tr style="background:#0a1628"><td colspan="8" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b;white-space:pre-wrap"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${d.icn.replace(/</g,'&lt;')}</td></tr>`:''}`;
       });
       h+=`</tbody></table></div>`;
     }
@@ -1257,9 +1262,10 @@ function _render(){
       stuckVisible.forEach(d=>{
         const dc=d.dy<=0?'#ef4444':d.dy<=30?'#ef4444':d.dy<=90?'#fb923c':d.dy<=180?'#fbbf24':'#94a3b8';
         const hasNote=d.icn&&d.icn.trim();
-        const noteOpen=S.noteOpen===('stuck_'+d.c);
         const stuckKey='stuck_'+d.c;
-        h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}${hasNote?`<span onclick="event.stopPropagation();toggleStuckNote(${JSON.stringify(stuckKey)})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${noteOpen?'▲':'▼'} notes</span>`:''}</td>
+        const noteOpen=S.noteOpen===stuckKey;
+        const stuckNoteIdx=window._noteKeys.length; window._noteKeys.push(stuckKey);
+        h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}${hasNote?`<span onclick="event.stopPropagation();toggleNoteIdx(${stuckNoteIdx})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${noteOpen?'▲':'▼'} notes</span>`:''}</td>
           <td><span style="color:${CL[d.s]};font-weight:600;font-size:11px">${SH[d.s]}</span></td>
           <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
           <td style="text-align:right;color:#fbbf24;font-weight:600">${d.r25?fm(d.r25):'–'}</td>
