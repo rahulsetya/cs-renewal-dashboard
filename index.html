@@ -911,7 +911,7 @@ let _refocusSearch=null;
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssAcctFlagsSet(vals){if(!S.acctFilter)S.acctFilter={};S.acctFilter.flags=vals||[];render();}
-function ssEngAcctFilter(col,val){if(!S.engAcctFilter)S.engAcctFilter={};if(val)S.engAcctFilter[col]=val;else delete S.engAcctFilter[col];render();}
+function ssEngAcctFilter(col,val){if(!S.engAcctFilter)S.engAcctFilter={};if(val)S.engAcctFilter[col]=val;else delete S.engAcctFilter[col];if(col==='acctSearch')_refocusSearch='engacct';render();}
 function ssEngAcctSort(col){const cur=S.engAcctSort||{};S.engAcctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
 function ssDrillSort(col){const cur=S.drillSort;S.drillSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
 function ssDrillFilter(col,val){if(!S.drillFilter)S.drillFilter={};if(val)S.drillFilter[col]=val;else delete S.drillFilter[col];if(col==='acctSearch')_refocusSearch='drill';render();}
@@ -2255,7 +2255,7 @@ function _render(){
   if(LIGHT) h=h.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
   document.getElementById('app').innerHTML=h;
   applyBodyClass();
-  if(_refocusSearch){const _rs=_refocusSearch;_refocusSearch=null;requestAnimationFrame(()=>{const val=_rs==='acct'?(S.acctFilter&&S.acctFilter.acctSearch||''):(S.drillFilter&&S.drillFilter.acctSearch||'');const inp=[...document.querySelectorAll('input[placeholder="Search..."]')].find(i=>i.value===val);if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}});}
+  if(_refocusSearch){const _rs=_refocusSearch;_refocusSearch=null;requestAnimationFrame(()=>{const val=_rs==='acct'?(S.acctFilter&&S.acctFilter.acctSearch||''):_rs==='engacct'?(S.engAcctFilter&&S.engAcctFilter.acctSearch||''):(S.drillFilter&&S.drillFilter.acctSearch||'');const inp=[...document.querySelectorAll('input[placeholder="Search..."]')].find(i=>i.value===val);if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}});}
   if(S.drill&&S.tab==='pipeline'&&S.drill!==_prevDrill){requestAnimationFrame(()=>{const el=document.querySelector('.dr2');if(el)window.scrollTo({top:el.offsetTop-16,behavior:'smooth'});});}
   _prevDrill=S.drill;
   if(_flagDDCloseListener){document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;}
