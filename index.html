@@ -848,6 +848,7 @@ async function loadData(forceRefresh=false){
 async function refreshData(){await loadData(true);}
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
+function toggleStuckNote(key){S.noteOpen=S.noteOpen===key?null:key;render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];if(col==='acctSearch')_refocusSearch='acct';render();}
 function navKpi(type){
   S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};S.drill=null;
@@ -1257,7 +1258,8 @@ function _render(){
         const dc=d.dy<=0?'#ef4444':d.dy<=30?'#ef4444':d.dy<=90?'#fb923c':d.dy<=180?'#fbbf24':'#94a3b8';
         const hasNote=d.icn&&d.icn.trim();
         const noteOpen=S.noteOpen===('stuck_'+d.c);
-        h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}${hasNote?`<span onclick="event.stopPropagation();S.noteOpen=S.noteOpen===('stuck_'+${JSON.stringify(d.c)})?null:('stuck_'+${JSON.stringify(d.c)});render()" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${noteOpen?'▲':'▼'} notes</span>`:''}</td>
+        const stuckKey='stuck_'+d.c;
+        h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}${hasNote?`<span onclick="event.stopPropagation();toggleStuckNote(${JSON.stringify(stuckKey)})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${noteOpen?'▲':'▼'} notes</span>`:''}</td>
           <td><span style="color:${CL[d.s]};font-weight:600;font-size:11px">${SH[d.s]}</span></td>
           <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
           <td style="text-align:right;color:#fbbf24;font-weight:600">${d.r25?fm(d.r25):'–'}</td>
