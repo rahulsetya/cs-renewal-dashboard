@@ -990,9 +990,18 @@ function _render(){
   const sc={};ST.forEach(s=>sc[s]={n:0,r25:0,off:0});
   f.forEach(d=>{if(sc[d.s]){sc[d.s].n++;sc[d.s].r25+=d.r25;sc[d.s].off+=d.o;}});
   const maxN=Math.max(...ST.map(s=>sc[s].n),1);
-  // snapshot stage counts (for delta badges)
+  // snapshot stage counts + per-stage inflow/outflow badges
   const prevSc={};ST.forEach(s=>prevSc[s]=0);
-  if(PREV_TS){f.forEach(d=>{const ps=PREV[d.c];if(ps!==undefined&&prevSc[ps]!==undefined)prevSc[ps]++;});}
+  const stageIn={},stageOut={};ST.forEach(s=>{stageIn[s]=0;stageOut[s]=0;});
+  if(PREV_TS){
+    f.forEach(d=>{
+      const ps=PREV[d.c];
+      if(ps!==undefined&&prevSc[ps]!==undefined)prevSc[ps]++;
+      if(ps===undefined||ps===d.s)return;
+      if(stageOut[ps]!==undefined)stageOut[ps]++;
+      if(stageIn[d.s]!==undefined)stageIn[d.s]++;
+    });
+  }
   const owners=[...new Set(D.map(d=>d.ro))].sort();
   const gap=r25T-offT;
   let h='';
@@ -1032,8 +1041,8 @@ function _render(){
     ST.forEach(s=>{
       const d=sc[s],p=d.n/maxN*100,act=S.drill===s;
       const dd=d.off>0?d.off-d.r25:-999,dp=d.off>0&&d.r25>0?(d.off-d.r25)/d.r25*100:-999;
-      const sdelta=PREV_TS?d.n-(prevSc[s]||0):null;
-      const sdeltaHtml=sdelta!==null&&sdelta!==0?`<span style="font-size:10px;font-weight:700;color:${sdelta>0?'#34d399':'#ef4444'}">${sdelta>0?'+':''}${sdelta}</span>`:'<span></span>';
+      const inN=PREV_TS?(stageIn[s]||0):0, outN=PREV_TS?(stageOut[s]||0):0;
+      const sdeltaHtml=PREV_TS&&(inN||outN)?`<span style="display:flex;gap:3px;font-size:10px;font-weight:700">${inN?`<span style="color:#34d399">+${inN}</span>`:''}${outN?`<span style="color:#ef4444">-${outN}</span>`:''}</span>`:'<span></span>';
       h+=`<div class="sg${act?' act':''}" onclick="ss('drill','${act?'':s}')">
         <div style="font-size:12px;color:${act?'#f8fafc':'#94a3b8'};text-align:right;font-weight:500">${SH[s]}</div>
         <div class="bb"><div class="bf" style="width:${p}%;background:${CL[s]};${d.n?'min-width:3px':''}"></div></div>
