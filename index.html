@@ -2167,11 +2167,42 @@ function _render(){
             });
             h+=`</tbody></table></div>`;
           }
+          if(!S.hsMoveSort)S.hsMoveSort={};
+          if(!S.hsMoveFilter)S.hsMoveFilter={};
+          const msort=S.hsMoveSort[i]||{col:'rev',dir:'desc'};
+          const mfilt=S.hsMoveFilter[i]||{};
           const compareLabel=prev?`vs ${prev.label||_snapLabel(prev.ts)}`:'vs Previous Snapshot';
-          h+=`<div><div style="padding:10px 20px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Deals That Moved — ${compareLabel}</div>`;
+          h+=`<div><div style="padding:10px 20px 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">`;
+          h+=`<span style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Deals That Moved — ${compareLabel}</span>`;
           if(moves.length){
-            h+=`<table style="width:100%"><thead><tr><th>Account</th><th>Owner</th><th>From</th><th></th><th>To</th><th style="text-align:right;color:#fbbf24">2025 Rev</th><th style="text-align:right;color:#22d3ee">2026 Offer</th><th style="color:#94a3b8">Sub End</th><th></th></tr></thead><tbody>`;
-            moves.forEach(mv=>{
+            h+=`<div style="display:flex;align-items:center;gap:8px">`;
+            h+=`<input placeholder="Search account…" value="${(mfilt.search||'').replace(/"/g,'&quot;')}" oninput="(function(v){if(!S.hsMoveFilter)S.hsMoveFilter={};S.hsMoveFilter[${i}]={...S.hsMoveFilter[${i}]||{},search:v};render()})(this.value)" style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0;width:150px">`;
+            const dirs=['up','down','lost'];const dirLabels={up:'↑ Up only',down:'↓ Down only',lost:'✕ Lost only'};
+            h+=`<select onchange="(function(v){if(!S.hsMoveFilter)S.hsMoveFilter={};S.hsMoveFilter[${i}]={...S.hsMoveFilter[${i}]||{},dir:v};render()})(this.value)" style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:3px 7px;font-size:11px;color:#e2e8f0;font-family:inherit"><option value="">All types</option><option value="up" ${mfilt.dir==='up'?'selected':''}>↑ Up only</option><option value="down" ${mfilt.dir==='down'?'selected':''}>↓ Down only</option><option value="lost" ${mfilt.dir==='lost'?'selected':''}>✕ Lost only</option></select>`;
+            if(mfilt.search||mfilt.dir)h+=`<button onclick="if(!S.hsMoveFilter)S.hsMoveFilter={};S.hsMoveFilter[${i}]={};render()" style="background:transparent;border:1px solid #475569;border-radius:4px;padding:2px 8px;font-size:11px;color:#94a3b8;cursor:pointer">Clear</button>`;
+            h+=`</div>`;
+          }
+          h+=`</div>`;
+          if(moves.length){
+            // apply filter + sort
+            const mHd=(col,lbl,align)=>{const act=msort.col===col,dir=act?(msort.dir==='asc'?'▲':'▼'):'↕';return`<th onclick="if(!S.hsMoveSort)S.hsMoveSort={};S.hsMoveSort[${i}]={col:'${col}',dir:'${act&&msort.dir==='asc'?'desc':'asc'}'};render()" style="cursor:pointer;user-select:none;${align?'text-align:'+align+';':''}${act?'color:#f8fafc':''}">${lbl} <span style="font-size:9px;color:${act?'#60a5fa':'#334155'}">${dir}</span></th>`;};
+            let visibleMoves=[...moves];
+            if(mfilt.search)visibleMoves=visibleMoves.filter(mv=>mv.acct.toLowerCase().includes(mfilt.search.toLowerCase()));
+            if(mfilt.dir==='up')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2>pi&&mv.to!=='8. Closed Lost (Not Renewing)'&&mv.to!=='11. Churned';});
+            if(mfilt.dir==='down')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2<pi&&mv.to!=='8. Closed Lost (Not Renewing)'&&mv.to!=='11. Churned';});
+            if(mfilt.dir==='lost')visibleMoves=visibleMoves.filter(mv=>mv.to==='8. Closed Lost (Not Renewing)'||mv.to==='11. Churned');
+            visibleMoves.sort((a,b)=>{
+              const da=acctMap[a.acct],db=acctMap[b.acct];
+              if(msort.col==='acct')return msort.dir==='asc'?a.acct.localeCompare(b.acct):b.acct.localeCompare(a.acct);
+              if(msort.col==='owner'){const oa=(da&&da.ro)||'',ob=(db&&db.ro)||'';return msort.dir==='asc'?oa.localeCompare(ob):ob.localeCompare(oa);}
+              if(msort.col==='from')return msort.dir==='asc'?ST.indexOf(a.from)-ST.indexOf(b.from):ST.indexOf(b.from)-ST.indexOf(a.from);
+              if(msort.col==='to')return msort.dir==='asc'?ST.indexOf(a.to)-ST.indexOf(b.to):ST.indexOf(b.to)-ST.indexOf(a.to);
+              if(msort.col==='rev'){const ra=(da&&da.r25)||0,rb=(db&&db.r25)||0;return msort.dir==='asc'?ra-rb:rb-ra;}
+              if(msort.col==='days'){const dya=(da&&da.dy)||9999,dyb=(db&&db.dy)||9999;return msort.dir==='asc'?dya-dyb:dyb-dya;}
+              return 0;
+            });
+            h+=`<table style="width:100%"><thead><tr>${mHd('acct','Account','')}${mHd('owner','Owner','')}${mHd('from','From',''')}<th></th>${mHd('to','To','')}${mHd('rev','2025 Rev','right')}<th style="text-align:right;color:#22d3ee">2026 Offer</th>${mHd('days','Sub End','')}<th></th></tr></thead><tbody>`;
+            visibleMoves.forEach(mv=>{
               const d=acctMap[mv.acct];
               const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);
               const up=ci2>pi&&mv.to!=='8. Closed Lost (Not Renewing)'&&mv.to!=='11. Churned';
