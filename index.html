@@ -1973,17 +1973,35 @@ function _render(){
 
   // ── HISTORICAL SNAPSHOTS ──
   if(S.tab==='histsnap'){
-    const hist=SNAP_HISTORY||[];
+    let hist=SNAP_HISTORY||[];
     const acctMap={};D.forEach(d=>acctMap[d.c]=d);
     if(!Array.isArray(S.hsSelected))S.hsSelected=[];
     if(!S.hsCompare||typeof S.hsCompare!=='object')S.hsCompare={};
+    if(!S.hsSort)S.hsSort={col:'date',dir:'desc'};
+    if(!S.hsFilter)S.hsFilter={};
+    const hsf=S.hsFilter;
     const hsColors=['#fbbf24','#60a5fa','#34d399','#a78bfa','#fb923c','#f472b6','#22d3ee','#4ade80'];
+    // ── apply filter ──
+    let filteredHist=[...hist.map((s,i)=>({...s,_origIdx:i}))];
+    if(hsf.search)filteredHist=filteredHist.filter(s=>(s.label||_snapLabel(s.ts)).toLowerCase().includes(hsf.search.toLowerCase()));
+    if(hsf.dateFrom)filteredHist=filteredHist.filter(s=>s.ts>=new Date(hsf.dateFrom).getTime());
+    if(hsf.dateTo)filteredHist=filteredHist.filter(s=>s.ts<=new Date(hsf.dateTo).getTime()+86399999);
+    // ── apply sort ──
+    const hss=S.hsSort;
+    filteredHist.sort((a,b)=>{
+      let r=0;
+      if(hss.col==='date')r=a.ts-b.ts;
+      else if(hss.col==='rev'){const ka=(a.kpis&&a.kpis.total)?a.kpis.total.rev:0,kb=(b.kpis&&b.kpis.total)?b.kpis.total.rev:0;r=ka-kb;}
+      else if(hss.col==='accts'){const ka=(a.kpis&&a.kpis.total)?a.kpis.total.count:0,kb=(b.kpis&&b.kpis.total)?b.kpis.total.count:0;r=ka-kb;}
+      return hss.dir==='desc'?-r:r;
+    });
     const selCount=S.hsSelected.length;
+    const hasFilter=hsf.search||hsf.dateFrom||hsf.dateTo;
     // ── header bar ──
-    h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">`;
+    h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">`;
     h+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">`;
     h+=`<span style="font-size:15px;font-weight:700;color:#f8fafc">Historical Snapshots</span>`;
-    h+=`<span style="font-size:12px;color:#475569">${hist.length} saved</span>`;
+    h+=`<span style="font-size:12px;color:#475569">${filteredHist.length}${hasFilter?` of ${hist.length}`:''} saved</span>`;
     if(selCount>=2){
       const chartLabel=S.hsShowChart?'▾ Hide Chart':'▸ Stage Chart ('+selCount+' selected)';
       h+=`<button onclick="ss('hsShowChart',!S.hsShowChart)" style="padding:5px 12px;border-radius:6px;border:1px solid ${S.hsShowChart?'#fbbf24':'#475569'};background:${S.hsShowChart?'rgba(251,191,36,.12)':'transparent'};color:${S.hsShowChart?'#fbbf24':'#64748b'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${chartLabel}</button>`;
@@ -1991,6 +2009,21 @@ function _render(){
     if(selCount>0)h+=`<button onclick="S.hsSelected=[];S.hsShowChart=false;render()" style="padding:4px 10px;border-radius:5px;border:1px solid #334155;background:transparent;color:#64748b;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear selection</button>`;
     h+=`</div>`;
     h+=`<button onclick="saveSnapshot()" style="padding:6px 14px;border-radius:6px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Save Snapshot Now</button></div>`;
+    // ── filter + sort bar ──
+    h+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:#0a1628;border-radius:8px;border:1px solid #1e293b">`;
+    h+=`<input placeholder="Search label…" value="${(hsf.search||'').replace(/"/g,'&quot;')}" oninput="S.hsFilter={...S.hsFilter,search:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:4px 9px;font-size:11px;color:#e2e8f0;width:140px">`;
+    h+=`<label style="font-size:11px;color:#475569;display:flex;align-items:center;gap:5px">From <input type="date" value="${hsf.dateFrom||''}" onchange="S.hsFilter={...S.hsFilter,dateFrom:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 6px;font-size:11px;color:#e2e8f0;font-family:inherit"></label>`;
+    h+=`<label style="font-size:11px;color:#475569;display:flex;align-items:center;gap:5px">To <input type="date" value="${hsf.dateTo||''}" onchange="S.hsFilter={...S.hsFilter,dateTo:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 6px;font-size:11px;color:#e2e8f0;font-family:inherit"></label>`;
+    h+=`<div style="display:flex;align-items:center;gap:6px;margin-left:4px">`;
+    h+=`<span style="font-size:11px;color:#475569">Sort:</span>`;
+    [['date','Date'],['rev','Revenue'],['accts','Accounts']].forEach(([col,lbl])=>{
+      const act=hss.col===col;
+      const dir=act?(hss.dir==='desc'?'↓':'↑'):'';
+      h+=`<button onclick="S.hsSort={col:'${col}',dir:${act}?S.hsSort.dir==='desc'?'asc':'desc':'desc'};render()" style="padding:3px 9px;border-radius:4px;border:1px solid ${act?'#60a5fa':'#334155'};background:${act?'rgba(96,165,250,.1)':'transparent'};color:${act?'#60a5fa':'#64748b'};font-size:11px;cursor:pointer;font-family:inherit">${lbl}${dir?` ${dir}`:''}</button>`;
+    });
+    h+=`</div>`;
+    if(hasFilter)h+=`<button onclick="S.hsFilter={};render()" style="padding:3px 9px;border-radius:4px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`;
+    h+=`</div>`;
     // ── chart ──
     if(selCount>=2&&S.hsShowChart){
       const selSnaps=S.hsSelected.map(i=>hist[i]).filter(Boolean);
@@ -2040,8 +2073,11 @@ function _render(){
     }
     if(!hist.length){
       h+=`<div class="cd" style="padding:40px;text-align:center;color:#475569">No snapshots saved yet. Click "Save Snapshot" to record the current pipeline state.</div>`;
+    }else if(!filteredHist.length){
+      h+=`<div class="cd" style="padding:40px;text-align:center;color:#475569">No snapshots match the current filters.</div>`;
     }else{
-      hist.forEach((snap,i)=>{
+      filteredHist.forEach((snap,fi)=>{
+        const i=snap._origIdx;
         const k=(snap.kpis&&Object.keys(snap.kpis).length)?snap.kpis:deriveKpisFromData(snap.data,acctMap);
         const compareIdx=S.hsCompare[i]!==undefined?S.hsCompare[i]:(i+1<hist.length?i+1:-1);
         const prev=compareIdx>=0?hist[compareIdx]:null;
