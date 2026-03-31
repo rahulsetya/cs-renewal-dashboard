@@ -1210,6 +1210,7 @@ function _render(){
         ${mvHd('to','To','')}
         ${mvHd('rev','2025 Rev','right')}
         <th style="text-align:right;color:#22d3ee">2026 Offer</th>
+        <th style="color:#94a3b8">Sub End</th>
         ${mvHd('type','Type','center')}
       </tr></thead><tbody>`;
       mvSorted.forEach(d=>{
@@ -1217,17 +1218,20 @@ function _render(){
         const mvKey='mv_'+d.c;
         const nOpen=S.noteOpen===mvKey;
         const mvNoteIdx=window._noteKeys.length; window._noteKeys.push(mvKey);
+        const dyC=d.dy<=0?'#ef4444':d.dy<=30?'#ef4444':d.dy<=90?'#fb923c':d.dy<=180?'#fbbf24':'#94a3b8';
+        const seDisp=d.se?`<span style="color:#94a3b8;font-size:11px">${d.se}</span> <span style="color:${dyC};font-size:10px;font-weight:600">(${d.dy<=0?'PAST':d.dy+'d'})</span>`:'–';
         h+=`<tr class="dr" style="${(w==='won'||w==='up')?'background:rgba(52,211,153,0.07)':(w==='down'||w==='lost')?'background:rgba(239,68,68,0.07)':''}">
-          <td style="color:#e2e8f0;font-weight:500">${d.c}${d.icn?`<span onclick="event.stopPropagation();toggleNoteIdx(${mvNoteIdx})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${nOpen?'▲':'▼'} notes</span>`:''}</td>
+          <td style="color:#e2e8f0;font-weight:500">${d.c}${d.icn?`<span onclick="event.stopPropagation();event.preventDefault();toggleNoteIdx(${mvNoteIdx})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${nOpen?'▲':'▼'} notes</span>`:''}</td>
           <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
           <td style="font-size:11px;color:#94a3b8">${SH[ps]||ps}</td>
           <td style="text-align:center"><span style="color:${WOW_COLORS[w]};font-weight:700">${WOW_ICONS[w]}</span></td>
           <td style="font-size:11px;color:${CL[d.s]};font-weight:600">${SH[d.s]}</td>
           <td style="text-align:right;color:#fbbf24;font-weight:600">${fm(d.r25)}</td>
           <td style="text-align:right;color:${d.o>0?'#22d3ee':'#334155'}">${d.o>0?fm(d.o):'–'}</td>
+          <td style="white-space:nowrap">${seDisp}</td>
           <td style="text-align:center"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${WOW_COLORS[w]}22;color:${WOW_COLORS[w]}">${w==='won'?'Won':w==='up'?'↑ Up':w==='down'?'↓ Down':'Lost'}</span></td>
         </tr>
-        ${nOpen&&d.icn?`<tr style="background:#0a1628"><td colspan="8" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b;white-space:pre-wrap"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${d.icn.replace(/</g,'&lt;')}</td></tr>`:''}`;
+        ${nOpen&&d.icn?`<tr style="background:#0a1628"><td colspan="9" style="padding:8px 14px 10px 28px;font-size:12px;color:#94a3b8;line-height:1.6;border-bottom:1px solid #1e293b;white-space:pre-wrap"><span style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">iCon Notes</span>${d.icn.replace(/</g,'&lt;')}</td></tr>`:''}`;
       });
       h+=`</tbody></table></div>`;
     }
@@ -1243,7 +1247,7 @@ function _render(){
       };
       let stuckVisible=[...stuckDeals];
       if(sf2.owner)stuckVisible=stuckVisible.filter(d=>(d.ro||'').toLowerCase().includes(sf2.owner.toLowerCase()));
-      if(sf2.stage)stuckVisible=stuckVisible.filter(d=>d.s===sf2.stage);
+      if(sf2.stages&&sf2.stages.length)stuckVisible=stuckVisible.filter(d=>sf2.stages.includes(d.s));
       stuckVisible.sort((a,b)=>{const r=(stuckSortFns[ss2.col]||stuckSortFns.rev)(a,b);return ss2.dir==='asc'?r:-r;});
       const stHd=(col,lbl,align)=>{const act=ss2.col===col,dir=act?(ss2.dir==='asc'?'▲':'▼'):'↕';return`<th onclick="S.stuckSort={col:'${col}',dir:'${act&&ss2.dir==='asc'?'desc':'asc'}'};render()" style="cursor:pointer;user-select:none;${align?'text-align:'+align+';':''}${act?'color:#f8fafc':''}">${lbl} <span style="font-size:9px;color:${act?'#60a5fa':'#334155'}">${dir}</span></th>`;};
       const stageOpts=[...new Set(stuckDeals.map(d=>d.s))].sort((a,b)=>ST.indexOf(a)-ST.indexOf(b));
@@ -1251,10 +1255,8 @@ function _render(){
         <div style="padding:14px 18px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <span style="font-size:14px;font-weight:600;color:#fb923c">${stuckVisible.length} Stuck Deals · ${fm(stuckVisible.reduce((a,d)=>a+d.r25,0))} at stake</span>
           <input placeholder="Filter owner…" value="${sf2.owner||''}" oninput="S.stuckFilter={...S.stuckFilter||{},owner:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0;width:130px">
-          <select onchange="S.stuckFilter={...S.stuckFilter||{},stage:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0">
-            <option value="">All stages</option>${stageOpts.map(s=>`<option value="${s}" ${sf2.stage===s?'selected':''}>${SH[s]||s}</option>`).join('')}
-          </select>
-          ${(sf2.owner||sf2.stage)?`<button onclick="S.stuckFilter={};render()" style="background:transparent;border:1px solid #475569;border-radius:4px;padding:3px 8px;font-size:11px;color:#94a3b8;cursor:pointer">Clear</button>`:''}
+          <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">${stageOpts.map(s=>{const sel=(sf2.stages||[]).includes(s);return`<label onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:4px;font-size:11px;color:${sel?CL[s]:'#64748b'};cursor:pointer;border:1px solid ${sel?CL[s]:'#334155'};border-radius:4px;padding:2px 7px;user-select:none"><input type="checkbox" ${sel?'checked':''} onchange="(function(e){e.stopPropagation();const cur=(S.stuckFilter||{}).stages||[];S.stuckFilter={...S.stuckFilter||{},stages:e.target.checked?[...cur,'${s}']:cur.filter(x=>x!=='${s}')};render();})(event)" style="margin:0;accent-color:${CL[s]}">${SH[s]||s}</label>`;}).join('')}</div>
+          ${(sf2.owner||(sf2.stages&&sf2.stages.length))?`<button onclick="S.stuckFilter={};render()" style="background:transparent;border:1px solid #475569;border-radius:4px;padding:3px 8px;font-size:11px;color:#94a3b8;cursor:pointer">Clear</button>`:''}
         </div>
         <div class="st"><table><thead style="position:sticky;top:0;background:#1e293b;z-index:1"><tr>
           ${stHd('acct','Account','')}${stHd('stage','Stage','')}${stHd('owner','Owner','')}${stHd('rev','2025 Rev','right')}<th style="text-align:right;color:#22d3ee">Offer</th><th>Sub End</th>${stHd('days','Days','center')}<th>Flags</th>
@@ -1265,7 +1267,7 @@ function _render(){
         const stuckKey='stuck_'+d.c;
         const noteOpen=S.noteOpen===stuckKey;
         const stuckNoteIdx=window._noteKeys.length; window._noteKeys.push(stuckKey);
-        h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}${hasNote?`<span onclick="event.stopPropagation();toggleNoteIdx(${stuckNoteIdx})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${noteOpen?'▲':'▼'} notes</span>`:''}</td>
+        h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}${hasNote?`<span onclick="event.stopPropagation();event.preventDefault();toggleNoteIdx(${stuckNoteIdx})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${noteOpen?'▲':'▼'} notes</span>`:''}</td>
           <td><span style="color:${CL[d.s]};font-weight:600;font-size:11px">${SH[d.s]}</span></td>
           <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
           <td style="text-align:right;color:#fbbf24;font-weight:600">${d.r25?fm(d.r25):'–'}</td>
