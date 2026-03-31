@@ -2201,7 +2201,7 @@ function _render(){
               if(msort.col==='days'){const dya=(da&&da.dy)||9999,dyb=(db&&db.dy)||9999;return msort.dir==='asc'?dya-dyb:dyb-dya;}
               return 0;
             });
-            h+=`<table style="width:100%"><thead><tr>${mHd('acct','Account','')}${mHd('owner','Owner','')}${mHd('from','From',''')}<th></th>${mHd('to','To','')}${mHd('rev','2025 Rev','right')}<th style="text-align:right;color:#22d3ee">2026 Offer</th>${mHd('days','Sub End','')}<th></th></tr></thead><tbody>`;
+            h+=`<table style="width:100%"><thead><tr>${mHd('acct','Account','')}${mHd('owner','Owner','')}${mHd('from','From','')}<th></th>${mHd('to','To','')}${mHd('rev','2025 Rev','right')}<th style="text-align:right;color:#22d3ee">2026 Offer</th>${mHd('days','Sub End','')}<th></th></tr></thead><tbody>`;
             visibleMoves.forEach(mv=>{
               const d=acctMap[mv.acct];
               const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);
