@@ -2078,10 +2078,14 @@ function _render(){
     }else{
       filteredHist.forEach((snap,fi)=>{
         const i=snap._origIdx;
-        const k=(snap.kpis&&Object.keys(snap.kpis).length)?snap.kpis:deriveKpisFromData(snap.data,acctMap);
+        // filter snap data by owner when not ALL
+        const ownerFilter=d=>S.owner==='ALL'||(acctMap[d]&&acctMap[d].ro===S.owner);
+        const snapDataFiltered=snap.data?Object.fromEntries(Object.entries(snap.data).filter(([acct])=>ownerFilter(acct))):snap.data;
+        const k=deriveKpisFromData(snapDataFiltered,acctMap);
         const compareIdx=S.hsCompare[i]!==undefined?S.hsCompare[i]:(i+1<hist.length?i+1:-1);
         const prev=compareIdx>=0?hist[compareIdx]:null;
-        const pk=prev?((prev.kpis&&Object.keys(prev.kpis).length)?prev.kpis:deriveKpisFromData(prev.data,acctMap)):null;
+        const prevDataFiltered=prev&&prev.data?Object.fromEntries(Object.entries(prev.data).filter(([acct])=>ownerFilter(acct))):prev&&prev.data;
+        const pk=prev?deriveKpisFromData(prevDataFiltered,acctMap):null;
         const isOpen=S.hsOpen===i;
         const isSelected=S.hsSelected.includes(i);
         const selColorIdx=S.hsSelected.indexOf(i);
@@ -2091,8 +2095,8 @@ function _render(){
         const dN=(key,sub)=>{if(!pk)return'';const dv=((k[key]||{})[sub]||0)-((pk[key]||{})[sub]||0);if(!dv)return'';return '<span style="font-size:10px;color:'+(dv>0?'#34d399':'#ef4444')+';margin-left:5px">'+(dv>0?'+':'')+dv+'</span>';};
         const dR=(cur,old)=>{if(old==null||cur==null)return'';const dv=cur-old;if(!dv)return'';return '<span style="font-size:10px;color:'+(dv>0?'#34d399':'#ef4444')+';margin-left:5px">'+(dv>0?'+':'')+fm(Math.abs(dv))+'</span>';};
         let movedCount=0;const moves=[];
-        if(prev&&snap.data&&prev.data){
-          Object.keys(snap.data).forEach(acct=>{const toS=snap.data[acct],frS=prev.data[acct];if(frS&&frS!==toS){movedCount++;moves.push({acct,from:frS,to:toS});}});
+        if(prev&&snapDataFiltered&&prevDataFiltered){
+          Object.keys(snapDataFiltered).forEach(acct=>{const toS=snapDataFiltered[acct],frS=prevDataFiltered[acct];if(frS&&frS!==toS){movedCount++;moves.push({acct,from:frS,to:toS});}});
           moves.sort((a,b)=>{const da=acctMap[a.acct],db=acctMap[b.acct];return(db?db.r25:0)-(da?da.r25:0);});
         }
         const borderStyle=isSelected?`border:1.5px solid ${hsColors[selColorIdx%hsColors.length]}`:`border:1px solid #1e293b`;
