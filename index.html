@@ -2788,7 +2788,7 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"}];
-let aTab="overview",selQ="Q2";
+let aTab="overview",selQ="Q2",selGPCSM=null;
 
 function sw(id){aTab=id;document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>{b.classList.remove('active','active-rose');if(b.dataset.t===id)b.classList.add(tabDefs.find(t=>t.id===id)?.ac?'active-rose':'active')});rT(id)}
 
@@ -2846,10 +2846,28 @@ function rGP(){
   const el=document.getElementById('tab-gp_grr');const q=selQ;
   const tKey=q;const tgt=GP_T[tKey]?.full||63;
   const pools=["Enterprise","Strategic","Scale"];
-  
+
+  // CSM filter setup
+  const qAccts=(ACCTS||[]).filter(a=>a.q===q);
+  const csmList=[...new Set(qAccts.map(a=>a.csRep).filter(Boolean))].sort();
+  if(selGPCSM&&!csmList.includes(selGPCSM))selGPCSM=null;
+  const filtAccts=selGPCSM?qAccts.filter(a=>a.csRep===selGPCSM):qAccts;
+
+  // Re-aggregate per-pool data from filtered accounts (or use global GRR when no filter)
+  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['8. Closed Lost (Not Renewing)'];
+  const grrQ=selGPCSM?(()=>{
+    const r={};pools.forEach(p=>{r[p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});
+    filtAccts.forEach(a=>{const p=a.pool;if(!r[p])return;r[p].logos++;r[p].rev+=a.rev||0;
+      if(WS.includes(a.stage)){r[p].won++;r[p].rw+=a.rev||0;}
+      else if(CS.includes(a.stage)){r[p].lost++;r[p].rl+=a.rev||0;}
+      else if(DS.includes(a.stage)){r[p].declined++;r[p].rd+=a.rev||0;}
+      else{r[p].open++;}
+    });return r;
+  })():GRR[q];
+
   // Scenario modeling
   let totalOpen=0,totalWon=0,totalLogos=0,totalDeclined=0;
-  pools.forEach(p=>{const d=GRR[q][p];totalOpen+=d.open;totalWon+=d.won;totalLogos+=d.logos;totalDeclined+=d.declined});
+  pools.forEach(p=>{const d=grrQ[p];totalOpen+=d.open;totalWon+=d.won;totalLogos+=d.logos;totalDeclined+=d.declined});
   const floorN=Math.ceil(totalLogos*GP_T[tKey]?.floor/100)||0;
   const fullN=Math.ceil(totalLogos*GP_T[tKey]?.full/100)||0;
   const accelN=Math.ceil(totalLogos*GP_T[tKey]?.accel/100)||0;
@@ -2858,9 +2876,19 @@ function rGP(){
   const gapAccel=Math.max(0,accelN-totalWon);
 
   el.innerHTML=`
-    <div style="margin-bottom:18px">${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';rT('gp_grr')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
-    <div class="cards">${pools.map(p=>poolCard(p,GRR[q][p],tgt,q==="Q1")).join('')}</div>
-    ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}</h3><div class="sh">Wins needed from ${totalOpen} open + ${totalDeclined} declined-early accounts to hit targets</div>
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';rT('gp_grr')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM:</label>
+        <select onchange="selGPCSM=this.value||null;rT('gp_grr')" style="background:var(--cd);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">
+          <option value=""${!selGPCSM?' selected':''}>All CSMs (${qAccts.length})</option>
+          ${csmList.map(c=>`<option value="${c}"${selGPCSM===c?' selected':''}>${c} (${qAccts.filter(a=>a.csRep===c).length})</option>`).join('')}
+        </select>
+        ${selGPCSM?`<button onclick="selGPCSM=null;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer">✕ Clear</button>`:''}
+      </div>
+    </div>
+    <div class="cards">${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}</div>
+    ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Wins needed from ${totalOpen} open + ${totalDeclined} declined-early accounts to hit targets</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
         ${[{l:"Floor ("+GP_T[tKey]?.floor+"%)",n:floorN,g:gapFloor,c:gapFloor<=0?"var(--green)":"var(--amber)"},{l:"Full ("+GP_T[tKey]?.full+"%)",n:fullN,g:gapFull,c:gapFull<=0?"var(--green)":"var(--amber)"},{l:"Accel ("+GP_T[tKey]?.accel+"%+)",n:accelN,g:gapAccel,c:gapAccel<=0?"var(--green)":"var(--red)"}].map(x=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;text-align:center">
           <div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">${x.l}</div>
@@ -2870,18 +2898,18 @@ function rGP(){
         </div>`).join('')}
       </div>
       <div style="margin-top:14px"><label style="font-size:12px;color:var(--muted)">Scenario: What if we convert this % of open accounts?</label>
-        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="100" value="50" oninput="updateScenario('${q}',this.value)">
+        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="100" value="50" oninput="updateScenario('${q}',this.value,${totalOpen},${totalWon},${totalLogos})">
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0% conversion</span><span id="scenario-label-${q}">50% → ${pct((totalWon+totalOpen*.5)/totalLogos*100)} retention</span><span>100% conversion</span></div>
       </div>
     </div>`:''}
-    <div class="card"><h3>${q} GP Pipeline by Pool</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>
-    <div class="card"><h3>${q} Revenue Context</h3><div class="sh">Revenue associated with each pool (for future GRR tracking)</div>
+    <div class="card"><h3>${q} GP Pipeline by Pool${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>
+    <div class="card"><h3>${q} Revenue Context${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Revenue associated with each pool (for future GRR tracking)</div>
       <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
-      <tbody>${pools.map(p=>{const d=GRR[q][p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;const stateColor=a=>{const won=['9. Invoice Sent','10. Paid'];const ch=['11. Churned'];const dc=['8. Closed Lost (Not Renewing)'];if(won.includes(a.stage))return'var(--green)';if(ch.includes(a.stage))return'var(--red)';if(dc.includes(a.stage))return'var(--orange)';return'var(--muted)';};const paccts=(ACCTS||[]).filter(a=>a.q===q&&a.pool===p).sort((a,b)=>b.rev-a.rev);const rid='acr_'+q+'_'+p.replace(/\W/g,'');return`<tr style="cursor:pointer" onclick="(function(){var e=document.getElementById('${rid}');e.style.display=e.style.display===''?'none':''})()" title="Click to expand accounts"><td style="font-weight:500"><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p} <span style="font-size:10px;color:var(--dim)">▸ ${paccts.length}</span></td><td class="mono" style="text-align:right">${d.logos}</td><td class="mono" style="text-align:right;color:var(--green)">${d.won}</td><td class="mono" style="text-align:right;color:var(--red)">${d.lost}</td><td class="mono" style="text-align:right;color:var(--orange)">${d.declined}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr><tr id="${rid}" style="display:none"><td colspan="9" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Stage</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500">Revenue</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sub End</th></tr></thead><tbody>${paccts.map(a=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${stateColor(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim)">${a.se||'—'}</td></tr>`).join('')}</tbody></table></td></tr>`;}).join('')}</tbody></table>
+      <tbody>${pools.map(p=>{const d=grrQ[p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;const stateColor=a=>{const won=['9. Invoice Sent','10. Paid'];const ch=['11. Churned'];const dc=['8. Closed Lost (Not Renewing)'];if(won.includes(a.stage))return'var(--green)';if(ch.includes(a.stage))return'var(--red)';if(dc.includes(a.stage))return'var(--orange)';return'var(--muted)';};const paccts=filtAccts.filter(a=>a.pool===p).sort((a,b)=>b.rev-a.rev);const rid='acr_'+q+'_'+p.replace(/\W/g,'');return`<tr style="cursor:pointer" onclick="(function(){var e=document.getElementById('${rid}');e.style.display=e.style.display===''?'none':''})()" title="Click to expand accounts"><td style="font-weight:500"><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p} <span style="font-size:10px;color:var(--dim)">▸ ${paccts.length}</span></td><td class="mono" style="text-align:right">${d.logos}</td><td class="mono" style="text-align:right;color:var(--green)">${d.won}</td><td class="mono" style="text-align:right;color:var(--red)">${d.lost}</td><td class="mono" style="text-align:right;color:var(--orange)">${d.declined}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr><tr id="${rid}" style="display:none"><td colspan="9" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Stage</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500">Revenue</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sub End</th></tr></thead><tbody>${paccts.map(a=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${stateColor(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim)">${a.se||'—'}</td></tr>`).join('')}</tbody></table></td></tr>`;}).join('')}</tbody></table>
     </div>`;
-  
+
   // 4-state stacked bar
-  const cData=pools.map(p=>({p,...GRR[q][p]}));
+  const cData=pools.map(p=>({p,...grrQ[p]}));
   mc('c3',{type:'bar',data:{labels:cData.map(d=>d.p),datasets:[
     {label:'Won',data:cData.map(d=>d.won),backgroundColor:'#10b981',borderRadius:3,datalabels:stackLabels},
     {label:'Open',data:cData.map(d=>d.open),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
@@ -2890,9 +2918,10 @@ function rGP(){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=cData[i];const tot=(d.won||0)+(d.open||0)+(d.declined||d.de||0)+(d.lost||0);return`──────────────\nTotal: ${tot} logos`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
 }
 
-function updateScenario(q,val){
-  let totalOpen=0,totalWon=0,totalLogos=0;
-  ["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];totalOpen+=d.open;totalWon+=d.won;totalLogos+=d.logos});
+function updateScenario(q,val,tOpen,tWon,tLogos){
+  const totalOpen=tOpen!==undefined?+tOpen:0;
+  const totalWon=tWon!==undefined?+tWon:0;
+  const totalLogos=tLogos!==undefined?+tLogos:1;
   const projected=totalWon+totalOpen*(val/100);
   const retP=totalLogos>0?(projected/totalLogos)*100:0;
   const lbl=document.getElementById('scenario-label-'+q);
