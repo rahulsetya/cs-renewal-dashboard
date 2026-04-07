@@ -2812,7 +2812,7 @@ function rOverview(){
     {label:'Open',data:qD.map(d=>d.o),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
     {label:'Declined early',data:qD.map(d=>d.de),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
     {label:'Churned',data:qD.map(d=>d.l),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3},datalabels:stackLabels}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{callbacks:{title:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`${d.q} · ${d.t} total logos · ${fmt(d.r)} revenue`},label:function(){return null},afterTitle:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`Won (renewed): ${d.w}\nOpen (in progress): ${d.o}\nDeclined early: ${d.de}\nChurned: ${d.l}\n──────────────\nTotal: ${d.t}`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t,font:{size:10}}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`──────────────\nTotal: ${d.t} logos · ${fmt(d.r)}`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t,font:{size:10}}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
 
   const tgts=[100,GP_T.Q2.full,GP_T.Q3.full,GP_T.Q4.full];
   const trD=["Q1","Q2","Q3","Q4"].map((q,i)=>{const r={};["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];r[p]=d.logos>0?+(d.won/d.logos*100).toFixed(1):0});r.tgt=tgts[i];return r});
