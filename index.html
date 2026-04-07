@@ -914,6 +914,26 @@ let _refocusSearch=null;
 let _spClicks=0;let _spClickTimer=null;
 function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_spClickTimer=setTimeout(()=>{_spClicks=0;},1500);if(_spClicks>=5){_spClicks=0;S.goalsOpen=!S.goalsOpen;render();}}
 function _closeGoals(){S.goalsOpen=false;render();}
+function _buildLiveGoalsData(){
+  const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
+  const WON_S=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
+  const LOST_S=new Set(['8. Closed Lost (Not Renewing)','11. Churned']);
+  function getQ(se){if(!se)return null;const m=parseInt((se.split('-')[1]||'0'));if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return null;}
+  const grr={};
+  ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});});
+  const churned=[];
+  D.forEach(d=>{
+    const q=getQ(d.se);if(!q)return;
+    const pool=POOL_MAP[d.ro]||'Scale';
+    const pd=grr[q][pool];
+    pd.logos++;pd.rev+=d.r25;
+    if(WON_S.has(d.s)){pd.won++;pd.rw+=d.r25;}
+    else if(LOST_S.has(d.s)){pd.lost++;pd.rl+=d.r25;churned.push({n:d.c,csm:d.ro,rev:d.r25,q,pool,renewal:d.se,notes:d.icn||''});}
+    else{pd.open++;}
+  });
+  churned.sort((a,b)=>b.rev-a.rev);
+  return{grr,churned};
+}
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssAcctFlagsSet(vals){if(!S.acctFilter)S.acctFilter={};S.acctFilter.flags=vals||[];render();}
@@ -2365,8 +2385,16 @@ function _render(){
   if(S.goalsOpen){
     if(!goalsOverlay){goalsOverlay=document.createElement('div');goalsOverlay.id='_goals_overlay';goalsOverlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(5,10,20,.92);display:flex;flex-direction:column;';document.body.appendChild(goalsOverlay);}
     goalsOverlay.style.display='flex';
-    const src=document.getElementById('_goals_tpl').value;
-    goalsOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#0B1120;border-bottom:1px solid #1e293b;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:#e2e8f0">CS Goals & Variable Comp Dashboard</span><button onclick="_closeGoals()" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div><iframe id="_goals_iframe" style="flex:1;border:none;background:#0B1120;" src="about:blank"></iframe>`;
+    let src=document.getElementById('_goals_tpl').value;
+    // Inject live GRR + CHURNED data from D
+    if(D&&D.length){
+      const live=_buildLiveGoalsData();
+      // Replace hardcoded GRR object
+      src=src.replace(/const GRR\s*=\s*\{[\s\S]*?\};\s*\nconst SP\s*=/,`const GRR=${JSON.stringify(live.grr)};\nconst SP=`);
+      // Replace hardcoded CHURNED array
+      src=src.replace(/const CHURNED\s*=\s*\[[\s\S]*?\];\s*\n/,`const CHURNED=${JSON.stringify(live.churned)};\n`);
+    }
+    goalsOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#0B1120;border-bottom:1px solid #1e293b;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:#e2e8f0">CS Goals & Variable Comp Dashboard</span><span style="font-size:11px;color:#475569">Data live from Renewal Master · SP data static</span><button onclick="_closeGoals()" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div><iframe id="_goals_iframe" style="flex:1;border:none;background:#0B1120;" src="about:blank"></iframe>`;
     requestAnimationFrame(()=>{const fr=document.getElementById('_goals_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
     if(goalsOverlay)goalsOverlay.style.display='none';
