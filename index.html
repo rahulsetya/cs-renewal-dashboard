@@ -2495,8 +2495,10 @@ function _render(){
     if(!goalsOverlay){goalsOverlay=document.createElement('div');goalsOverlay.id='_goals_overlay';goalsOverlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(5,10,20,.92);display:flex;flex-direction:column;';document.body.appendChild(goalsOverlay);}
     goalsOverlay.style.display='flex';
     let src=document.getElementById('_goals_tpl').value;
-    // Inject live GRR + CHURNED data from D
-    if(D&&D.length){
+    // Inject live GRR + CHURNED data — only when GP_RAW_ROWS is populated
+    // (GP_RAW_ROWS is empty during cache-only loads; without this guard we'd
+    //  inject all-zero GRR and overwrite the correct hardcoded template data)
+    if(GP_RAW_ROWS&&GP_RAW_ROWS.length>1){
       const live=_buildLiveGoalsData();
       // Replace hardcoded GRR object
       src=src.replace(/const GRR\s*=\s*\{[\s\S]*?\};\s*\nconst SP\s*=/,`const GRR=${JSON.stringify(live.grr)};\nconst SP=`);
