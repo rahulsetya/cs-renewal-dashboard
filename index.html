@@ -777,8 +777,9 @@ function processData(range, engMap){
     const icn=_icnRaw?_icnRaw:_clrA?_clrA:_clrB?_clrB:'';
     const clr=_clrA||_clrB;
     const ae=String(getCell(v,'Sales Rep')||'').trim();
+    const csRep=String(getCell(v,'CS Rep')||v[8]||'').trim();
     const em=subEnd?subEnd.substring(0,7):'';
-    const row={c:company,s:stage,ro,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,ae,sg:[],ct:'Manager',wow:'same'};
+    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,ae,sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
     data.push(row);
   }
@@ -959,20 +960,30 @@ function _buildLiveGoalsData(){
   const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
   const WON_S=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
   const LOST_S=new Set(['8. Closed Lost (Not Renewing)','11. Churned']);
-  function getQ(se){if(!se)return'Q4';const m=parseInt((se.split('-')[1]||'0'));if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return'Q4';}
+  function getQ(se){if(!se)return null;const m=parseInt((se.split('-')[1]||'0'));if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return null;}
   const grr={};
   ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});});
+  const grrNone={'Enterprise':{logos:0,won:0,lost:0,open:0,rev:0,rw:0,rl:0},'Strategic':{logos:0,won:0,lost:0,open:0,rev:0,rw:0,rl:0},'Scale':{logos:0,won:0,lost:0,open:0,rev:0,rw:0,rl:0}};
   const churned=[];
   D.forEach(d=>{
     const q=getQ(d.se);
-    const pool=POOL_MAP[d.ro]||'Scale';
+    const pool=POOL_MAP[d.csRep||d.ro]||POOL_MAP[d.ro]||'Scale';
+    if(!q){
+      const nd=grrNone[pool];
+      nd.logos++;nd.rev+=d.r25;
+      if(WON_S.has(d.s)){nd.won++;nd.rw+=d.r25;}
+      else if(LOST_S.has(d.s)){nd.lost++;nd.rl+=d.r25;}
+      else{nd.open++;}
+      return;
+    }
     const pd=grr[q][pool];
     pd.logos++;pd.rev+=d.r25;
     if(WON_S.has(d.s)){pd.won++;pd.rw+=d.r25;}
-    else if(LOST_S.has(d.s)){pd.lost++;pd.rl+=d.r25;churned.push({n:d.c,csm:d.ro,rev:d.r25,q,pool,renewal:d.se,notes:d.icn||''});}
+    else if(LOST_S.has(d.s)){pd.lost++;pd.rl+=d.r25;churned.push({n:d.c,csm:d.csRep||d.ro,rev:d.r25,q,pool,renewal:d.se,notes:d.icn||''});}
     else{pd.open++;}
   });
   churned.sort((a,b)=>b.rev-a.rev);
+  const totalNone=Object.values(grrNone).reduce((a,v)=>a+v.logos,0);
 
   // SP data from SP_RAW if available
   let spAgg=null;let spOwn=[];let spRisk=[];
@@ -998,7 +1009,7 @@ function _buildLiveGoalsData(){
     spOwn=Object.values(ownerMap).filter(o=>o.r>0).sort((a,b)=>b.r-a.r);
     spRisk.sort((a,b)=>b.r-a.r);
   }
-  return{grr,churned,spAgg,spOwn,spRisk};
+  return{grr,grrNone,totalNone,churned,spAgg,spOwn,spRisk};
 }
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
@@ -2465,6 +2476,24 @@ function _render(){
         src=src.replace(/const SP_OWN\s*=\s*\[[\s\S]*?\];\s*\n/,`const SP_OWN=${JSON.stringify(live.spOwn)};\n`);
         src=src.replace(/const SP_RISK\s*=\s*\[[\s\S]*?\];\s*\n/,`const SP_RISK=${JSON.stringify(live.spRisk)};\n`);
       }
+      // Inject GRR_NONE and patch rGP to render "No Sub End Date" section
+      const noneData=JSON.stringify(live.grrNone);
+      const noDatePatch=`
+const GRR_NONE=${noneData};
+const _rGP0=rGP;
+function rGP(){
+  _rGP0();
+  const el=document.getElementById('tab-gp_grr');
+  if(!el||!GRR_NONE)return;
+  const pools=['Enterprise','Strategic','Scale'];
+  let tot=0;pools.forEach(p=>tot+=(GRR_NONE[p]||{}).logos||0);
+  if(!tot)return;
+  let h='<div class="card" style="margin-top:14px;border-color:#334155"><h3 style="color:#94a3b8">No Sub End Date</h3><div class="sh">${live.totalNone} accounts with no sub end date in renewal master · shown by pool</div><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">';
+  pools.forEach(p=>{const d=GRR_NONE[p];if(!d||!d.logos)return;const ret=d.logos>0?(d.won/d.logos*100):0;h+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:160px"><div style="font-size:12px;font-weight:600;margin-bottom:8px">'+p+'</div><div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)"><span>Logos: <strong style="color:var(--text)">'+d.logos+'</strong></span><span>Won: <strong style="color:var(--green)">'+d.won+'</strong></span><span>Lost: <strong style="color:var(--red)">'+d.lost+'</strong></span><span>Open: <strong style="color:var(--amber)">'+d.open+'</strong></span><span style="color:var(--dim);font-size:11px">Rev: '+fmt(d.rev)+'</span></div></div>';});
+  h+='</div></div>';
+  el.insertAdjacentHTML('beforeend',h);
+}`;
+      src=src.replace('rOverview();',noDatePatch+'\nrOverview();');
     }
     const spNote=SP_RAW&&SP_RAW.length?'All data live from SharePoint':'GP data live · SP data static (refresh to load SP)';
     goalsOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#0B1120;border-bottom:1px solid #1e293b;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:#e2e8f0">CS Goals & Variable Comp Dashboard</span><span style="font-size:11px;color:#475569">${spNote}</span><button onclick="_closeGoals()" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div><iframe id="_goals_iframe" style="flex:1;border:none;background:#0B1120;" src="about:blank"></iframe>`;
