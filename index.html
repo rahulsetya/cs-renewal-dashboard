@@ -972,6 +972,7 @@ function _buildLiveGoalsData(){
   ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});});
   const grrNone={'Enterprise':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0},'Strategic':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0},'Scale':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0}};
   const churned=[];
+  const allAccts=[];
   const rows=GP_RAW_ROWS;
   const hdr=GP_RAW_HDR;
   // Build a column-name → index map from the header row (same approach as processData)
@@ -1007,6 +1008,7 @@ function _buildLiveGoalsData(){
     const isDeclined=DECLINED_S.has(stage);
     const target=q?grr[q][pool]:grrNone[pool];
     target.logos++;target.rev+=rev;
+    allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep});
     if(isWon){target.won++;target.rw+=rev;}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csRep,rev,q,pool,renewal:se,notes:''});}
     else if(isDeclined){target.declined++;target.rd+=rev;}
@@ -1039,7 +1041,7 @@ function _buildLiveGoalsData(){
     spOwn=Object.values(ownerMap).filter(o=>o.r>0).sort((a,b)=>b.r-a.r);
     spRisk.sort((a,b)=>b.r-a.r);
   }
-  return{grr,grrNone,totalNone,churned,spAgg,spOwn,spRisk};
+  return{grr,grrNone,totalNone,churned,allAccts,spAgg,spOwn,spRisk};
 }
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
@@ -2500,6 +2502,8 @@ function _render(){
       src=src.replace(/const GRR\s*=\s*\{[\s\S]*?\};\s*\nconst SP\s*=/,`const GRR=${JSON.stringify(live.grr)};\nconst SP=`);
       // Replace hardcoded CHURNED array
       src=src.replace(/const CHURNED\s*=\s*\[[\s\S]*?\];\s*\n/,`const CHURNED=${JSON.stringify(live.churned)};\n`);
+      // Inject per-account list for pool drilldown
+      src=src.replace(/const ACCTS\s*=\s*\[\];/,`const ACCTS=${JSON.stringify(live.allAccts)};`);
       // SP data intentionally kept as hardcoded values (101 accounts) — live SP
       // aggregation from GA 26 SPs is unreliable; hardcoded values are correct.
       // Replace hardcoded "Last refreshed" date with actual fetch timestamp
@@ -2724,6 +2728,7 @@ const CSM = [
   {n:"Emilie (SPs)",seg:"Service Provider",pod:"SPs",a:101,t:"SP"},
 ];
 
+const ACCTS = [];
 const SP_OWN = [{o:"Steven Reichard",a:43,r:2190583,w:19,wr:1344383},{o:"Rob Tappero",a:7,r:859470,w:0,wr:0},{o:"Lauren Sharabi",a:12,r:513000,w:0,wr:0},{o:"David Xuereb",a:5,r:271885,w:0,wr:0},{o:"Shelby Allen",a:6,r:235000,w:0,wr:0},{o:"Juliet Simon",a:4,r:95000,w:0,wr:0},{o:"Jennifer Milburn",a:1,r:52500,w:0,wr:0},{o:"Frank Greco",a:4,r:37500,w:0,wr:0}];
 const SP_RISK = [{n:"Clear Street",r:510000,s:"Open",o:"Rob Tappero"},{n:"ECI",r:250000,s:"Uncontacted",o:"Rob Tappero"},{n:"Marex",r:191133,s:"Invoice Sent",o:"Steven Reichard"},{n:"BitGo",r:180000,s:"Invoice Sent",o:"Steven Reichard"},{n:"DIFC",r:147450,s:"Attempting",o:"David Xuereb"},{n:"AlphaSense",r:140000,s:"Proposal",o:"Lauren Sharabi"},{n:"Ripple Prime",r:120000,s:"Uncontacted",o:"Steven Reichard"},{n:"StoneX",r:114000,s:"Invoice Sent",o:"Steven Reichard"},{n:"PitchBook",r:104435,s:"Uncontacted",o:"David Xuereb"},{n:"BTIG LLC",r:101500,s:"Uncontacted",o:"Steven Reichard"},{n:"NAV Fund Services",r:100000,s:"Invoice Sent",o:"Steven Reichard"},{n:"TD Securities",r:90000,s:"Invoice Sent",o:"Steven Reichard"},{n:"Vanguart",r:95000,s:"Open",o:"Shelby Allen"}];
 const SP_TIER = [{t:"Contributing",c:43},{t:"Silver",c:14},{t:"Gold",c:10},{t:"Platinum",c:2},{t:"Diamond",c:2},{t:"Premier",c:1},{t:"Title",c:1}];
@@ -2812,7 +2817,7 @@ function rOverview(){
     {label:'Open',data:qD.map(d=>d.o),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
     {label:'Declined early',data:qD.map(d=>d.de),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
     {label:'Churned',data:qD.map(d=>d.l),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3},datalabels:stackLabels}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`──────────────\nTotal: ${d.t} logos · ${fmt(d.r)}`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t,font:{size:10}}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,onClick:function(evt,els){if(els.length>0){selQ=['Q1','Q2','Q3','Q4'][els[0].index];sw('gp_grr');}},onHover:function(evt){evt.native.target.style.cursor=evt.chart.getElementsAtEventForMode(evt.native,'index',{intersect:false},true).length?'pointer':'default';},plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`──────────────\nTotal: ${d.t} logos · ${fmt(d.r)}`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t,font:{size:10}}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
 
   const tgts=[100,GP_T.Q2.full,GP_T.Q3.full,GP_T.Q4.full];
   const trD=["Q1","Q2","Q3","Q4"].map((q,i)=>{const r={};["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];r[p]=d.logos>0?+(d.won/d.logos*100).toFixed(1):0});r.tgt=tgts[i];return r});
@@ -2855,7 +2860,7 @@ function rGP(){
     <div class="card"><h3>${q} GP Pipeline by Pool</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>
     <div class="card"><h3>${q} Revenue Context</h3><div class="sh">Revenue associated with each pool (for future GRR tracking)</div>
       <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
-      <tbody>${pools.map(p=>{const d=GRR[q][p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;return`<tr><td style="font-weight:500"><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p}</td><td class="mono" style="text-align:right">${d.logos}</td><td class="mono" style="text-align:right;color:var(--green)">${d.won}</td><td class="mono" style="text-align:right;color:var(--red)">${d.lost}</td><td class="mono" style="text-align:right;color:var(--orange)">${d.declined}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr>`}).join('')}</tbody></table>
+      <tbody>${pools.map(p=>{const d=GRR[q][p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;const stateColor=a=>{if(WON_S&&WON_S.has(a.stage))return'var(--green)';if(CHURNED_S&&CHURNED_S.has(a.stage))return'var(--red)';if(DECLINED_S&&DECLINED_S.has(a.stage))return'var(--orange)';return'var(--muted)';};const paccts=(ACCTS||[]).filter(a=>a.q===q&&a.pool===p).sort((a,b)=>b.rev-a.rev);const rid='acr_'+q+'_'+p.replace(/\W/g,'');return`<tr style="cursor:pointer" onclick="(function(){var e=document.getElementById('${rid}');e.style.display=e.style.display===''?'none':''})()" title="Click to expand accounts"><td style="font-weight:500"><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p} <span style="font-size:10px;color:var(--dim)">▸ ${paccts.length}</span></td><td class="mono" style="text-align:right">${d.logos}</td><td class="mono" style="text-align:right;color:var(--green)">${d.won}</td><td class="mono" style="text-align:right;color:var(--red)">${d.lost}</td><td class="mono" style="text-align:right;color:var(--orange)">${d.declined}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr><tr id="${rid}" style="display:none"><td colspan="9" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Stage</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500">Revenue</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sub End</th></tr></thead><tbody>${paccts.map(a=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${stateColor(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim)">${a.se||'—'}</td></tr>`).join('')}</tbody></table></td></tr>`;}).join('')}</tbody></table>
     </div>`;
   
   // 4-state stacked bar
