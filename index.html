@@ -990,7 +990,16 @@ function _buildLiveGoalsData(){
     const csRep=String(gc(v,'CS Rep')||'').trim();
     const pool=POOL_MAP[csRep]||'Scale';
     const seRaw=gc(v,'Final Sub End Date');
-    const se=excelDateToJS(seRaw||'');
+    // Robust date parse: ISO string "YYYY-MM-DD", US slash "M/D/YYYY", or Excel serial
+    const se=(()=>{
+      if(!seRaw&&seRaw!==0)return'';
+      const s=String(seRaw).trim();
+      if(!s)return'';
+      if(/^\d{4}-\d{2}/.test(s))return s.substring(0,10);          // "2026-04-15"
+      const sl=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(sl)return`${sl[3]}-${sl[1].padStart(2,'0')}-${sl[2].padStart(2,'0')}`; // "4/15/2026"
+      return excelDateToJS(seRaw);                                   // Excel serial number
+    })();
     const rev=parseNum(v[revColIdx]||'');
     const q=getQ(se);
     const isWon=WON_S.has(stage);
