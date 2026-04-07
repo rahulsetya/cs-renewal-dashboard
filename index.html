@@ -325,17 +325,29 @@ async function fetchWithRetry(url,opts,retries=3,delay=3000){
 
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET), errors=[], hdrs={Authorization:`Bearer ${token}`};
+  // Try usedRange first (complete data); if payload too large (400) fall back to fixed range
+  async function tryRange(baseUrl){
+    const r=await fetchWithRetry(baseUrl+`/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:hdrs});
+    if(r.ok)return r.json();
+    if(r.status===400){
+      // Payload exceeded — fetch a fixed column window that covers all needed columns
+      const r2=await fetchWithRetry(baseUrl+`/workbook/worksheets/${enc}/range(address='A1:EZ1500')?$select=values`,{headers:hdrs});
+      if(r2.ok)return r2.json();
+      const j2=await r2.json().catch(()=>({}));
+      throw new Error(`${r.status} (fallback also failed: ${j2.error?.message||r2.status})`);
+    }
+    const j=await r.json().catch(()=>({}));
+    throw new Error(`${r.status} — ${j.error?.message||'unknown'}`);
+  }
 
   // Attempt 1: owner's SharePoint personal site drive (primary method)
   try{
     const driveId=await getSharePointDriveId(token, FILE_OWNER);
-    const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/range(address='A1:CZ1500')?$select=values`,{headers:hdrs});
-    if(r.ok)return r.json();
-    const j=await r.json().catch(()=>({}));
-    errors.push(`site drive workbook: ${r.status} — ${j.error?.message||'unknown'}`);
-  }catch(e){errors.push(`site drive: ${e.message}`);}
+    const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}`;
+    return await tryRange(base);
+  }catch(e){errors.push(`site drive workbook: ${e.message}`);}
 
-  // Attempt 3: sharedWithMe search
+  // Attempt 2: sharedWithMe search
   try{
     const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:{Authorization:`Bearer ${token}`}});
     const j=await r.json();
@@ -347,10 +359,8 @@ async function fetchSheet(token){
         const driveId=ri.parentReference?.driveId;
         const itemId=ri.id;
         if(driveId&&itemId){
-          const r2=await fetch(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/workbook/worksheets/${enc}/range(address='A1:CZ1500')?$select=values`,{headers:{Authorization:`Bearer ${token}`}});
-          if(r2.ok)return r2.json();
-          const j2=await r2.json().catch(()=>({}));
-          errors.push(`sharedWithMe workbook: ${r2.status} — ${j2.error?.message||'unknown'}`);
+          const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}`;
+          return await tryRange(base);
         }
       }
     }
@@ -364,8 +374,13 @@ async function fetchSPSheet(token){
   const enc=encodeURIComponent(SP_SHEET), hdrs={Authorization:`Bearer ${token}`};
   try{
     const driveId=await getSharePointDriveId(token,FILE_OWNER);
-    const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}/workbook/worksheets/${enc}/range(address='A1:CZ1500')?$select=values`,{headers:hdrs});
+    const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}`;
+    const r=await fetchWithRetry(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:hdrs});
     if(r.ok)return r.json();
+    if(r.status===400){
+      const r2=await fetchWithRetry(`${base}/workbook/worksheets/${enc}/range(address='A1:AZ500')?$select=values`,{headers:hdrs});
+      if(r2.ok)return r2.json();
+    }
   }catch(e){console.warn('SP sheet fetch failed:',e);}
   return null;
 }
