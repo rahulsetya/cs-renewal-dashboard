@@ -2629,7 +2629,7 @@ input[type=number]{-moz-appearance:textfield}
 <script>
 Chart.register(ChartDataLabels);
 Chart.defaults.plugins.datalabels = {display:false};
-const stackLabels = {display:function(ctx){return ctx.dataset.data[ctx.dataIndex]>8},color:'#fff',font:{size:11,weight:600,family:"'JetBrains Mono',monospace"},anchor:'center',align:'center'};
+const stackLabels = {display:function(ctx){return ctx.dataset.data[ctx.dataIndex]>0},color:'#fff',font:{size:11,weight:600,family:"'JetBrains Mono',monospace"},anchor:'center',align:'center'};
 
 // ── DATA (4-STATE MODEL) ────────────────────────────
 // States: won = renewed, lost = CONFIRMED CHURN (9 accounts only),
