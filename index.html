@@ -963,8 +963,6 @@ let _spClicks=0;let _spClickTimer=null;
 function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_spClickTimer=setTimeout(()=>{_spClicks=0;},1500);if(_spClicks>=5){_spClicks=0;S.goalsOpen=!S.goalsOpen;render();}}
 function _closeGoals(){S.goalsOpen=false;render();}
 function _buildLiveGoalsData(){
-  // Column indices (0-based): N=13 (stage), BJ=61 (sub end date), I=8 (CS Rep), A=0 (account)
-  const COL_STAGE=13, COL_SUBEND=61, COL_CSREP=8, COL_ACCT=0, COL_REV=3; // col D for rev (adjust if wrong)
   const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
   const WON_S=new Set(['9. Invoice Sent','10. Paid']);
   const CHURNED_S=new Set(['11. Churned']);
@@ -976,21 +974,24 @@ function _buildLiveGoalsData(){
   const churned=[];
   const rows=GP_RAW_ROWS;
   const hdr=GP_RAW_HDR;
-  // Find actual rev column from headers
-  const hdrs=(rows[hdr]||[]).map(h=>String(h||'').trim().toLowerCase());
-  const revColIdx=hdrs.findIndex(h=>h.includes('2025')&&h.includes('revenue'))||hdrs.findIndex(h=>h.includes('total revenue'))||COL_REV;
+  // Build a column-name → index map from the header row (same approach as processData)
+  const cm={};
+  (rows[hdr]||[]).forEach((h,i)=>{const k=String(h||'').trim();if(k)cm[k.toLowerCase()]=i;});
+  function gc(v,...names){for(const n of names){const i=cm[n.toLowerCase()];if(i!==undefined&&v[i]!==undefined&&v[i]!=='')return v[i];}return '';}
+  // Locate rev column by name
+  const revColIdx=(()=>{for(const k of Object.keys(cm)){if(k.includes('2025')&&k.includes('revenue'))return cm[k];}for(const k of Object.keys(cm)){if(k.includes('total revenue'))return cm[k];}return 3;})();
   for(let i=hdr+1;i<rows.length;i++){
     const v=rows[i];
-    const acct=String(v[COL_ACCT]||'').trim();
+    // Use same column names as processData for company + stage + CS Rep + sub end date
+    const acct=String(gc(v,'Contact','Company Name','Account Name')||'').trim();
     if(!acct)continue;
-    const rawStage=String(v[COL_STAGE]||'').trim();
-    if(!rawStage)continue;
-    const stage=resolveStage(rawStage)||rawStage;
-    const csRep=String(v[COL_CSREP]||'').trim();
+    const rawStage=String(gc(v,'Stage')||'').trim();
+    const stage=resolveStage(rawStage)||rawStage||'1. Uncontacted';
+    const csRep=String(gc(v,'CS Rep')||'').trim();
     const pool=POOL_MAP[csRep]||'Scale';
-    const seRaw=v[COL_SUBEND];
+    const seRaw=gc(v,'Final Sub End Date');
     const se=excelDateToJS(seRaw||'');
-    const rev=parseNum(revColIdx>=0?v[revColIdx]:'');
+    const rev=parseNum(v[revColIdx]||'');
     const q=getQ(se);
     const isWon=WON_S.has(stage);
     const isLost=CHURNED_S.has(stage);
