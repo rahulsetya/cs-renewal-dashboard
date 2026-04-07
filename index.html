@@ -966,9 +966,9 @@ function _buildLiveGoalsData(){
   // Column indices (0-based): N=13 (stage), BJ=61 (sub end date), I=8 (CS Rep), A=0 (account)
   const COL_STAGE=13, COL_SUBEND=61, COL_CSREP=8, COL_ACCT=0, COL_REV=3; // col D for rev (adjust if wrong)
   const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
-  const WON_S=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
-  const LOST_S=new Set(['8. Closed Lost (Not Renewing)','11. Churned']);
-  const DECLINED_S=new Set(['2. Contacted No Interest']);
+  const WON_S=new Set(['9. Invoice Sent','10. Paid']);
+  const CHURNED_S=new Set(['11. Churned']);
+  const DECLINED_S=new Set(['8. Closed Lost (Not Renewing)']);
   function getQ(se){if(!se)return null;const m=parseInt((se.split('-')[1]||'0'));if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return null;}
   const grr={};
   ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});});
@@ -993,7 +993,7 @@ function _buildLiveGoalsData(){
     const rev=parseNum(revColIdx>=0?v[revColIdx]:'');
     const q=getQ(se);
     const isWon=WON_S.has(stage);
-    const isLost=LOST_S.has(stage);
+    const isLost=CHURNED_S.has(stage);
     const isDeclined=DECLINED_S.has(stage);
     const target=q?grr[q][pool]:grrNone[pool];
     target.logos++;target.rev+=rev;
