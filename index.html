@@ -2865,7 +2865,7 @@ function rGP(){
     {label:'Open',data:cData.map(d=>d.open),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
     {label:'Declined early',data:cData.map(d=>d.de||d.declined),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
     {label:'Churned',data:cData.map(d=>d.lost),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3}}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=cData[i];const tot=(d.won||0)+(d.open||0)+(d.declined||d.de||0)+(d.lost||0);return`──────────────\nTotal: ${tot} logos`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
 }
 
 function updateScenario(q,val){
