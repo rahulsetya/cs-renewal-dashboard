@@ -2512,7 +2512,7 @@ rGP=function(){
   pools.forEach(p=>{const d=GRR_NONE[p];if(!d||!d.logos)return;const ret=d.logos>0?(d.won/d.logos*100):0;h+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:160px"><div style="font-size:12px;font-weight:600;margin-bottom:8px">'+p+'</div><div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)"><span>Logos: <strong style="color:var(--text)">'+d.logos+'</strong></span><span>Won: <strong style="color:var(--green)">'+d.won+'</strong></span><span>Lost: <strong style="color:var(--red)">'+d.lost+'</strong></span><span>Open: <strong style="color:var(--amber)">'+d.open+'</strong></span><span style="color:var(--dim);font-size:11px">Rev: '+fmt(d.rev)+'</span></div></div>';});
   h+='</div></div>';
   el.insertAdjacentHTML('beforeend',h);
-};
+}`;
       src=src.replace('rOverview();',noDatePatch+'\nrOverview();');
     }
     const spNote=SP_RAW&&SP_RAW.length?'All data live from SharePoint':'GP data live · SP data static (refresh to load SP)';
