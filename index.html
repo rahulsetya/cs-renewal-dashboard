@@ -2491,18 +2491,17 @@ function _render(){
       src=src.replace(/const GRR\s*=\s*\{[\s\S]*?\};\s*\nconst SP\s*=/,`const GRR=${JSON.stringify(live.grr)};\nconst SP=`);
       // Replace hardcoded CHURNED array
       src=src.replace(/const CHURNED\s*=\s*\[[\s\S]*?\];\s*\n/,`const CHURNED=${JSON.stringify(live.churned)};\n`);
-      // Replace SP aggregate if live data available
-      if(live.spAgg){
-        src=src.replace(/const SP\s*=\s*\{logos[\s\S]*?\};\s*\n/,`const SP=${JSON.stringify(live.spAgg)};\n`);
-        src=src.replace(/const SP_OWN\s*=\s*\[[\s\S]*?\];\s*\n/,`const SP_OWN=${JSON.stringify(live.spOwn)};\n`);
-        src=src.replace(/const SP_RISK\s*=\s*\[[\s\S]*?\];\s*\n/,`const SP_RISK=${JSON.stringify(live.spRisk)};\n`);
-      }
+      // SP data intentionally kept as hardcoded values (101 accounts) — live SP
+      // aggregation from GA 26 SPs is unreliable; hardcoded values are correct.
       // Inject GRR_NONE and patch rGP to render "No Sub End Date" section
+      // IMPORTANT: use assignment (rGP=function(){}) not a function declaration,
+      // because function declarations are hoisted and would overwrite the original
+      // rGP before _rGP0 is captured, causing infinite recursion.
       const noneData=JSON.stringify(live.grrNone);
       const noDatePatch=`
 const GRR_NONE=${noneData};
 const _rGP0=rGP;
-function rGP(){
+rGP=function(){
   _rGP0();
   const el=document.getElementById('tab-gp_grr');
   if(!el||!GRR_NONE)return;
@@ -2513,7 +2512,7 @@ function rGP(){
   pools.forEach(p=>{const d=GRR_NONE[p];if(!d||!d.logos)return;const ret=d.logos>0?(d.won/d.logos*100):0;h+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:160px"><div style="font-size:12px;font-weight:600;margin-bottom:8px">'+p+'</div><div style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)"><span>Logos: <strong style="color:var(--text)">'+d.logos+'</strong></span><span>Won: <strong style="color:var(--green)">'+d.won+'</strong></span><span>Lost: <strong style="color:var(--red)">'+d.lost+'</strong></span><span>Open: <strong style="color:var(--amber)">'+d.open+'</strong></span><span style="color:var(--dim);font-size:11px">Rev: '+fmt(d.rev)+'</span></div></div>';});
   h+='</div></div>';
   el.insertAdjacentHTML('beforeend',h);
-}`;
+};
       src=src.replace('rOverview();',noDatePatch+'\nrOverview();');
     }
     const spNote=SP_RAW&&SP_RAW.length?'All data live from SharePoint':'GP data live · SP data static (refresh to load SP)';
