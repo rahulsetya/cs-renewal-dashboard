@@ -911,6 +911,9 @@ function navRiskKpi(sigKey){
 let _flagDDCloseListener=null;
 let _prevDrill=null;
 let _refocusSearch=null;
+let _spClicks=0;let _spClickTimer=null;
+function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_spClickTimer=setTimeout(()=>{_spClicks=0;},1500);if(_spClicks>=5){_spClicks=0;S.goalsOpen=!S.goalsOpen;render();}}
+function _closeGoals(){S.goalsOpen=false;render();}
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssAcctFlagsSet(vals){if(!S.acctFilter)S.acctFilter={};S.acctFilter.flags=vals||[];render();}
@@ -1009,7 +1012,7 @@ function _render(){
   const owners=[...new Set(D.map(d=>d.ro))].sort();
   const gap=r25T-offT;
   let h='';
-  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><h1 onclick="ss('tab','pipeline')" style="cursor:pointer" title="Back to Pipeline">CS Renewal Pipeline</h1><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button><button onclick="ss('hideChurned',${!S.hideChurned})" style="background:${S.hideChurned?'#10b981':'#1e293b'};border:1px solid ${S.hideChurned?'#059669':'#334155'};color:${S.hideChurned?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideChurned?'✓ Hiding Churned':'Hide Churned'}</button><button onclick="ss('showAE',${!S.showAE})" style="background:${S.showAE?'#2563eb':'#1e293b'};border:1px solid ${S.showAE?'#1d4ed8':'#334155'};color:${S.showAE?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.showAE?'✓ Show AE':'Show AE'}</button>${[0,1,2].map(off=>{const m=new Date((new Date()).getFullYear(),(new Date()).getMonth()+off,1);const lbl=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m.getMonth()];const sel=(S.subMonths||[]).includes(off);return`<button onclick="(function(){var a=[...(S.subMonths||[])],idx=a.indexOf(${off});if(idx>=0)a.splice(idx,1);else a.push(${off});S.subMonths=a;render();})()" style="background:${sel?'#0369a1':'#1e293b'};border:1px solid ${sel?'#0284c7':'#334155'};color:${sel?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${sel?'✓ ':''} ${lbl}</button>`;}).join('')}</div><p class="sub">${tot} accounts · Live from SharePoint · ${lastUpdated}</p></div>
+  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><h1 onclick="ss('tab','pipeline')" style="cursor:pointer" title="Back to Pipeline">CS Renewal Pipeline</h1><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button><button onclick="ss('hideChurned',${!S.hideChurned})" style="background:${S.hideChurned?'#10b981':'#1e293b'};border:1px solid ${S.hideChurned?'#059669':'#334155'};color:${S.hideChurned?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideChurned?'✓ Hiding Churned':'Hide Churned'}</button><button onclick="ss('showAE',${!S.showAE})" style="background:${S.showAE?'#2563eb':'#1e293b'};border:1px solid ${S.showAE?'#1d4ed8':'#334155'};color:${S.showAE?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.showAE?'✓ Show AE':'Show AE'}</button>${[0,1,2].map(off=>{const m=new Date((new Date()).getFullYear(),(new Date()).getMonth()+off,1);const lbl=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m.getMonth()];const sel=(S.subMonths||[]).includes(off);return`<button onclick="(function(){var a=[...(S.subMonths||[])],idx=a.indexOf(${off});if(idx>=0)a.splice(idx,1);else a.push(${off});S.subMonths=a;render();})()" style="background:${sel?'#0369a1':'#1e293b'};border:1px solid ${sel?'#0284c7':'#334155'};color:${sel?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${sel?'✓ ':''} ${lbl}</button>`;}).join('')}</div><p class="sub">${tot} accounts · Live from <span onclick="_spClick()" style="cursor:default;user-select:none">SharePoint</span> · ${lastUpdated}</p></div>
   <div style="display:flex;gap:8px;align-items:flex-start">
     <button onclick="ssTheme()" title="Toggle light/dark mode" style="display:flex;align-items:center;gap:6px;background:${LIGHT?'#ffffff':'#1e293b'};color:${LIGHT?'#475569':'#94a3b8'};border:1px solid ${LIGHT?'#cbd5e1':'#334155'};padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button>
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px">
@@ -2357,8 +2360,725 @@ function _render(){
   _prevDrill=S.drill;
   if(_flagDDCloseListener){document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;}
   if(S.acctFlagOpen||S.drillFlagOpen){requestAnimationFrame(()=>{_flagDDCloseListener=function(){S.acctFlagOpen=false;S.drillFlagOpen=false;document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;render();};document.addEventListener('click',_flagDDCloseListener);});}
+  // Goals overlay
+  let goalsOverlay=document.getElementById('_goals_overlay');
+  if(S.goalsOpen){
+    if(!goalsOverlay){goalsOverlay=document.createElement('div');goalsOverlay.id='_goals_overlay';goalsOverlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(5,10,20,.92);display:flex;flex-direction:column;';document.body.appendChild(goalsOverlay);}
+    goalsOverlay.style.display='flex';
+    const src=document.getElementById('_goals_tpl').value;
+    goalsOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#0B1120;border-bottom:1px solid #1e293b;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:#e2e8f0">CS Goals & Variable Comp Dashboard</span><button onclick="_closeGoals()" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div><iframe id="_goals_iframe" style="flex:1;border:none;background:#0B1120;" src="about:blank"></iframe>`;
+    requestAnimationFrame(()=>{const fr=document.getElementById('_goals_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
+  }else{
+    if(goalsOverlay)goalsOverlay.style.display='none';
+  }
 } // end _render
 init();
 </script>
+
+<textarea id="_goals_tpl" style="display:none"><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Goals & Variable Comp Dashboard — iConnections H1 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0B1120;--card:#111827;--border:#1e293b;--borderL:#334155;--text:#e2e8f0;--muted:#94a3b8;--dim:#64748b;--accent:#3b82f6;--accentG:rgba(59,130,246,.15);--green:#10b981;--greenG:rgba(16,185,129,.15);--red:#ef4444;--redG:rgba(239,68,68,.12);--amber:#f59e0b;--amberG:rgba(245,158,11,.12);--purple:#8b5cf6;--cyan:#06b6d4;--rose:#f43f5e;--roseG:rgba(244,63,94,.12);--orange:#f97316;--orangeG:rgba(249,115,22,.12);--mono:'JetBrains Mono',monospace}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow-x:hidden}
+.wrap{max-width:1200px;margin:0 auto;padding:22px 24px}
+.header{display:flex;align-items:center;gap:11px;margin-bottom:22px}
+.logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff}
+.header h1{font-size:19px;font-weight:700;color:#fff}
+.header .sub{font-size:11px;color:var(--dim)}
+.tabs{display:flex;gap:3px;margin-bottom:22px;background:var(--card);border-radius:9px;padding:3px;border:1px solid var(--border);flex-wrap:wrap}
+.tabs button{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500;background:transparent;color:var(--muted);font-family:inherit;transition:all .2s}
+.tabs button.active{background:var(--accent);color:#fff}
+.tabs button.active-rose{background:var(--rose);color:#fff}
+.tab-content{display:none}.tab-content.active{display:block}
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;flex:1;min-width:150px;position:relative;overflow:hidden}
+.stat .bar{position:absolute;top:0;left:0;right:0;height:2px}
+.stat .label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;font-weight:600}
+.stat .val{font-size:24px;font-weight:700;font-family:var(--mono)}
+.stat .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+.card h3{font-size:15px;font-weight:600;margin:0 0 3px}
+.card .sh{font-size:11px;color:var(--dim);margin-bottom:14px}
+.grid2{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.grid2>div{flex:1;min-width:280px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+.pool-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;flex:1;min-width:230px}
+.pool-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pool-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px}
+.bar-stack{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--border);margin:8px 0}
+.bar-stack div{transition:width .5s}
+.pill{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;font-family:var(--mono)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:7px 10px;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-weight:600;border-bottom:2px solid var(--borderL)}
+td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.mono{font-family:var(--mono)}
+.chart-wrap{position:relative;width:100%;margin-top:14px}
+.qbtn{padding:5px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;margin-right:7px}
+.qbtn.active{border-color:var(--accent);background:var(--accentG);color:var(--accent)}
+.target-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.target-row label{font-size:12px;color:var(--muted);min-width:130px}
+.target-row .fg{display:flex;align-items:center;gap:3px}
+.target-row .fg span{font-size:10px;color:var(--dim);text-transform:uppercase;width:32px}
+.target-row input[type=number]{width:48px;padding:3px 5px;border-radius:5px;border:1px solid var(--borderL);background:var(--bg);color:var(--text);font-size:13px;font-family:var(--mono);text-align:center;outline:none}
+.info-box{background:var(--bg);border-radius:8px;padding:13px;border:1px solid var(--border)}
+.info-box .title{font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;font-weight:600}
+.info-box .desc{font-size:12px;color:var(--muted);line-height:1.7}
+.footer{margin-top:28px;padding:14px 0;border-top:1px solid var(--border);font-size:10px;color:var(--dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.dim-label{font-size:11px;color:var(--dim);margin-top:4px}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#111827}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+.callout{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:12px;color:var(--muted);line-height:1.6}
+.callout strong{color:var(--text)}
+.legend-row{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--dim);margin-top:10px}
+.legend-row span{display:flex;align-items:center;gap:4px}
+.legend-dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+.scenario-slider{width:100%;margin:8px 0;accent-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="logo">iC</div>
+    <div><h1>CS Goals & Variable Comp Dashboard</h1><div class="sub">iConnections · H1 2026 · Tim Fischer, VP Client Success</div></div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div id="tab-overview" class="tab-content active"></div>
+  <div id="tab-gp_grr" class="tab-content"></div>
+  <div id="tab-sp_grr" class="tab-content"></div>
+  <div id="tab-cadence" class="tab-content"></div>
+  <div id="tab-payout" class="tab-content"></div>
+  <div id="tab-targets" class="tab-content"></div>
+  <div id="tab-risk" class="tab-content"></div>
+  <div id="tab-rules" class="tab-content"></div>
+  <div class="footer">
+    <span>Sources: 2026_Renewal_Master.xlsx · CS_Engagement_Tracker_2026.xlsx · Master_Renewal_Workbook_26_.xlsx | 2025 baseline: 52.7% logo retention | Path: 62% → 67% → 72% → 80% | Q2 = logo retention, Q3+ evolving to GRR</span>
+    <span>Last refreshed: March 29, 2026</span>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script>
+Chart.register(ChartDataLabels);
+Chart.defaults.plugins.datalabels = {display:false};
+const stackLabels = {display:function(ctx){return ctx.dataset.data[ctx.dataIndex]>8},color:'#fff',font:{size:11,weight:600,family:"'JetBrains Mono',monospace"},anchor:'center',align:'center'};
+
+// ── DATA (4-STATE MODEL) ────────────────────────────
+// States: won = renewed, lost = CONFIRMED CHURN (9 accounts only),
+//         declined = declined early outreach but renewal date is future (re-engageable),
+//         open = not yet contacted or in progress
+// Revenue: rev=total, rw=won rev, rl=confirmed lost rev, rd=declined rev
+
+const GP_T = {Q1:{floor:null,full:100,accel:null},Q2:{floor:55,full:62,accel:68},Q3:{floor:58,full:67,accel:73},Q4:{floor:62,full:72,accel:78}};
+const SP_T = {Q1:{floor:null,full:100,accel:null},Q2:{floor:45,full:55,accel:65},Q3:{floor:50,full:62,accel:70},Q4:{floor:55,full:68,accel:75}};
+
+// Activity floor thresholds — ramping (new program, no tracking history)
+const ACT_FLOOR = {Q1:null,Q2:50,Q3:65,Q4:75};
+
+// ── PAYOUT ENGINE ──────────────────────────────────
+// Retention: below floor=0%, floor→full linear 0→100%, full→accel linear 100→125%, cap 125%
+function retPayout(retPct,q,isSP){
+  const t=isSP?SP_T[q]:GP_T[q];
+  if(!t||!t.floor)return{pct:100,tier:"GIFTED"};
+  if(retPct<t.floor)return{pct:0,tier:"Below floor"};
+  if(retPct>=t.accel)return{pct:125,tier:"Capped 125%"};
+  if(retPct>=t.full){const extra=((retPct-t.full)/(t.accel-t.full))*25;return{pct:Math.min(100+extra,125),tier:"Accelerator"};}
+  const p=((retPct-t.floor)/(t.full-t.floor))*100;
+  return{pct:Math.max(0,Math.min(p,100)),tier:p>=50?"Progressing":"Below full"};
+}
+// Activity: below floor = GATE (zeroes both components), above floor = linear 0→100%
+function actPayout(cadPct,q){
+  const floor=ACT_FLOOR[q];
+  if(!floor)return{pct:100,tier:"GIFTED",gate:false};
+  if(cadPct<floor)return{pct:0,tier:"Below gate",gate:true};
+  const p=((cadPct-floor)/(100-floor))*100;
+  return{pct:Math.min(p,100),tier:p>=100?"Full":"Scaling",gate:false};
+}
+// Combined: activity gates everything
+function totalPayout(cadPct,retPct,q,isSP){
+  const act=actPayout(cadPct,q);const ret=retPayout(retPct,q,isSP);
+  if(act.gate)return{actPct:0,retPct:0,totalPct:0,gated:true,actTier:"GATED",retTier:"GATED"};
+  return{actPct:act.pct,retPct:ret.pct,totalPct:(act.pct*.5+ret.pct*.5),gated:false,actTier:act.tier,retTier:ret.tier};
+}
+
+// 9 confirmed churned accounts mapped to quarters/pools:
+// Q1 Ent: Parabilis ($87K) = 1 churn, 14 declined | Q1 Str: New North ($18K) = 1 churn, 1 declined | Q1 Scale: 0 churn, 5 declined
+// Q2 Ent: RD Legal ($87K), Gray Harbor ($32K), Shrewsbury ($25K) = 3 churn, 25 declined | Q2 Str: 0 churn, 1 declined | Q2 Scale: Prime Meridian ($30K) = 1 churn, 2 declined
+// Q3 Ent: Liquibit ($37K) = 1 churn, 32 declined | Q3 Str: 0 churn, 5 declined | Q3 Scale: 0 churn, 12 declined
+// Q4 Ent: Locust Point ($48K), Apex ($20K) = 2 churn, 54 declined | Q4 Str: 0 churn, 11 declined | Q4 Scale: 0 churn, 24 declined
+
+const GRR = {
+  Q1:{
+    Enterprise:{logos:64,won:28,lost:1,declined:14,open:21,rev:2179450,rw:1079950,rl:87000,rd:402000},
+    Strategic:{logos:6,won:0,lost:1,declined:1,open:4,rev:146925,rw:0,rl:18000,rd:0},
+    Scale:{logos:47,won:20,lost:0,declined:5,open:22,rev:1163775,rw:551100,rl:0,rd:111350}
+  },
+  Q2:{
+    Enterprise:{logos:138,won:51,lost:3,declined:25,open:59,rev:4570375,rw:1830775,rl:144000,rd:811500},
+    Strategic:{logos:8,won:2,lost:0,declined:1,open:5,rev:558925,rw:85400,rl:0,rd:46500},
+    Scale:{logos:29,won:10,lost:1,declined:2,open:16,rev:701950,rw:301000,rl:30000,rd:37500}
+  },
+  Q3:{
+    Enterprise:{logos:169,won:59,lost:1,declined:32,open:77,rev:5195025,rw:1831750,rl:37000,rd:787375},
+    Strategic:{logos:13,won:0,lost:0,declined:5,open:8,rev:1293300,rw:0,rl:0,rd:495500},
+    Scale:{logos:73,won:17,lost:0,declined:12,open:44,rev:1792450,rw:446050,rl:0,rd:287500}
+  },
+  Q4:{
+    Enterprise:{logos:277,won:90,lost:2,declined:54,open:131,rev:9894264,rw:2889493,rl:68000,rd:1675214},
+    Strategic:{logos:44,won:4,lost:0,declined:11,open:29,rev:4643516,rw:400326,rl:0,rd:931405},
+    Scale:{logos:150,won:42,lost:0,declined:24,open:84,rev:3389148,rw:979378,rl:0,rd:554846}
+  }
+};
+const SP = {logos:101,won:19,lost:3,declined:0,open:79,rev:4256938,rw:1344383,rl:120000,rd:0};
+
+const CHURNED = [
+  {n:"Parabilis",csm:"Courtney Krieg",rev:87000,q:"Q1",pool:"Enterprise",notes:"No outreach tracked, no meetings, high rev no engagement"},
+  {n:"RD Legal Capital",csm:"Alex Cherecwich",rev:87000,q:"Q2",pool:"Enterprise",renewal:"2026-05-30"},
+  {n:"Locust Point Capital",csm:"Alex Cherecwich",rev:48000,q:"Q4",pool:"Enterprise",renewal:"2026-11-30"},
+  {n:"Liquibit",csm:"Andreas Santikos",rev:37000,q:"Q3",pool:"Enterprise",renewal:"2026-08-31"},
+  {n:"Gray Harbor Capital",csm:"Courtney Krieg",rev:32000,q:"Q2",pool:"Enterprise",renewal:"2026-04-30"},
+  {n:"Prime Meridian Capital",csm:"Support iConnections",rev:30000,q:"Q2",pool:"Scale",renewal:"2026-05-31"},
+  {n:"Shrewsbury River Capital",csm:"Alex Cherecwich",rev:25000,q:"Q2",pool:"Enterprise",renewal:"2026-05-31"},
+  {n:"Apex Healthcare Systems",csm:"Courtney Krieg",rev:20000,q:"Q4",pool:"Enterprise",renewal:"2026-11-30"},
+  {n:"New North Ventures",csm:"Joe Romanoff",rev:18000,q:"Q1",pool:"Strategic",renewal:"2026-03-31",notes:"No outreach tracked, no meetings, risk flagged"}
+];
+
+const CSM = [
+  {n:"Christina Chumak",seg:"Enterprise",pod:"Pod 1",a:134,t:"GP"},
+  {n:"Lucy Garber",seg:"Enterprise",pod:"Pod 1",a:82,t:"GP"},
+  {n:"Courtney Krieg",seg:"Enterprise",pod:"Pod 2",a:143,t:"GP"},
+  {n:"Juwan Pryce",seg:"Enterprise",pod:"Pod 2",a:6,t:"GP"},
+  {n:"Alex Cherecwich",seg:"Enterprise",pod:"Pod 3",a:98,t:"GP"},
+  {n:"Helen Ramsay",seg:"Enterprise",pod:"Europe",a:115,t:"GP"},
+  {n:"Andreas Santikos",seg:"Enterprise",pod:"Asia",a:75,t:"GP"},
+  {n:"Joe Romanoff",seg:"Strategic",pod:"Top 35",a:71,t:"GP"},
+  {n:"Scale Team",seg:"Scale",pod:"Scale",a:299,t:"GP"},
+  {n:"Emilie (SPs)",seg:"Service Provider",pod:"SPs",a:101,t:"SP"},
+];
+
+const SP_OWN = [{o:"Steven Reichard",a:43,r:2190583,w:19,wr:1344383},{o:"Rob Tappero",a:7,r:859470,w:0,wr:0},{o:"Lauren Sharabi",a:12,r:513000,w:0,wr:0},{o:"David Xuereb",a:5,r:271885,w:0,wr:0},{o:"Shelby Allen",a:6,r:235000,w:0,wr:0},{o:"Juliet Simon",a:4,r:95000,w:0,wr:0},{o:"Jennifer Milburn",a:1,r:52500,w:0,wr:0},{o:"Frank Greco",a:4,r:37500,w:0,wr:0}];
+const SP_RISK = [{n:"Clear Street",r:510000,s:"Open",o:"Rob Tappero"},{n:"ECI",r:250000,s:"Uncontacted",o:"Rob Tappero"},{n:"Marex",r:191133,s:"Invoice Sent",o:"Steven Reichard"},{n:"BitGo",r:180000,s:"Invoice Sent",o:"Steven Reichard"},{n:"DIFC",r:147450,s:"Attempting",o:"David Xuereb"},{n:"AlphaSense",r:140000,s:"Proposal",o:"Lauren Sharabi"},{n:"Ripple Prime",r:120000,s:"Uncontacted",o:"Steven Reichard"},{n:"StoneX",r:114000,s:"Invoice Sent",o:"Steven Reichard"},{n:"PitchBook",r:104435,s:"Uncontacted",o:"David Xuereb"},{n:"BTIG LLC",r:101500,s:"Uncontacted",o:"Steven Reichard"},{n:"NAV Fund Services",r:100000,s:"Invoice Sent",o:"Steven Reichard"},{n:"TD Securities",r:90000,s:"Invoice Sent",o:"Steven Reichard"},{n:"Vanguart",r:95000,s:"Open",o:"Shelby Allen"}];
+const SP_TIER = [{t:"Contributing",c:43},{t:"Silver",c:14},{t:"Gold",c:10},{t:"Platinum",c:2},{t:"Diamond",c:2},{t:"Premier",c:1},{t:"Title",c:1}];
+const PC = {Enterprise:"#3b82f6",Strategic:"#8b5cf6",Scale:"#06b6d4","Service Provider":"#f43f5e"};
+
+// ── HELPERS ─────────────────────────────────────────
+const fmt = n => n>=1e6?`$${(n/1e6).toFixed(1)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}K`:`$${Math.round(n)}`;
+const pct = n => `${n.toFixed(1)}%`;
+const stC = s => {if(["Invoice","Paid","Signed"].some(x=>s.includes(x)))return{c:"var(--green)",b:"var(--greenG)"};if(s.includes("Lost"))return{c:"var(--red)",b:"var(--redG)"};if(["Proposal","Attempting"].some(x=>s.includes(x)))return{c:"var(--amber)",b:"var(--amberG)"};if(s==="Uncontacted")return{c:"var(--rose)",b:"var(--roseG)"};return{c:"var(--dim)",b:"transparent"}};
+
+// Totals (4-state)
+let gL=0,gW=0,gLo=0,gDe=0,gOp=0,gR=0,gRW=0,gRL=0,gRD=0;
+["Q1","Q2","Q3","Q4"].forEach(q=>["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];gL+=d.logos;gW+=d.won;gLo+=d.lost;gDe+=d.declined;gOp+=d.open;gR+=d.rev;gRW+=d.rw;gRL+=d.rl;gRD+=d.rd}));
+const tL=gL+SP.logos,tW=gW+SP.won,tLo=gLo+SP.lost,tDe=gDe+SP.declined,tR=gR+SP.rev;
+
+let charts={};
+function mc(id,cfg){if(charts[id])charts[id].destroy();const c=document.getElementById(id);if(c)charts[id]=new Chart(c,cfg)}
+const cD={g:'rgba(255,255,255,.07)',t:'#94a3b8'};
+
+function sc(label,value,sub,color){return`<div class="stat"><div class="bar" style="background:linear-gradient(90deg,${color},transparent)"></div><div class="label">${label}</div><div class="val">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`}
+
+// Pool card (4-state: won/open/declined/lost)
+function poolCard(pool,d,target,gifted){
+  const ret=d.logos>0?(d.won/d.logos)*100:0;
+  const retOpt=d.logos>0?((d.won+d.open*.5+d.declined*.25)/d.logos)*100:0;
+  const at=gifted||ret>=target;
+  const tot=d.logos||1;
+  const segs=[{l:"Won",v:d.won,c:"var(--green)"},{l:"Open",v:d.open,c:"var(--amber)"},{l:"Declined early",v:d.declined,c:"var(--orange)"},{l:"Churned",v:d.lost,c:"var(--red)"}];
+  return`<div class="pool-card">
+    <div class="pool-hdr"><div><span class="pool-dot" style="background:${PC[pool]}"></span><span style="font-size:14px;font-weight:600">${pool}</span></div><span style="font-size:11px;color:var(--dim)">${d.logos} logos</span></div>
+    <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:3px"><span style="font-size:28px;font-weight:700;color:${at?'var(--green)':'var(--amber)'};font-family:var(--mono)">${gifted?'GIFTED':pct(ret)}</span>${!gifted?`<span style="font-size:12px;color:var(--dim)">/ ${target}% target</span>`:''}</div>
+    ${!gifted?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Optimistic (50% open + 25% declined): ${pct(retOpt)}</div>`:''}
+    <div class="bar-stack">${segs.filter(s=>s.v>0).map(s=>`<div style="width:${(s.v/tot)*100}%;background:${s.c}"></div>`).join('')}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--dim)">${segs.filter(s=>s.v>0).map(s=>`<span><span style="width:5px;height:5px;border-radius:50%;background:${s.c};display:inline-block;margin-right:3px"></span>${s.l}: ${s.v}</span>`).join('')}</div>
+    ${d.rev?`<div style="margin-top:8px;font-size:11px;color:var(--dim)">Revenue at risk: <span style="color:var(--text);font-weight:600">${fmt(d.rev)}</span></div>`:''}
+  </div>`}
+
+// 4-color legend
+function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(--green)"},{l:"Open (in progress)",c:"var(--amber)"},{l:"Declined early (re-engageable)",c:"var(--orange)"},{l:"Churned (confirmed lost)",c:"var(--red)"}].map(x=>`<span><span class="legend-dot" style="background:${x.c}"></span>${x.l}</span>`).join('')}</div>`}
+
+// ── TAB SYSTEM ──────────────────────────────────────
+const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"}];
+let aTab="overview",selQ="Q2";
+
+function sw(id){aTab=id;document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>{b.classList.remove('active','active-rose');if(b.dataset.t===id)b.classList.add(tabDefs.find(t=>t.id===id)?.ac?'active-rose':'active')});rT(id)}
+
+const tabsEl=document.getElementById('tabs');
+tabDefs.forEach(t=>{const b=document.createElement('button');b.textContent=t.l;b.dataset.t=t.id;if(t.id===aTab)b.classList.add('active');b.onclick=()=>sw(t.id);tabsEl.appendChild(b)});
+
+// ── OVERVIEW ────────────────────────────────────────
+function rOverview(){
+  const el=document.getElementById('tab-overview');
+  const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;
+  el.innerHTML=`
+    <div class="cards">
+      ${sc("Total Logos",tL.toLocaleString(),(gL)+" GPs + "+SP.logos+" SPs","var(--accent)")}
+      ${sc("Revenue at Risk",fmt(tR),"$39.8M tracked of ~$41.2M","var(--amber)")}
+      ${sc("Renewed YTD",tW+" logos",pct(tW/tL*100)+" logo retention","var(--green)")}
+      ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
+    </div>
+    <div class="callout">
+      <strong>📊 4-State Pipeline Model:</strong> This dashboard distinguishes between <strong style="color:var(--red)">confirmed churn</strong> (${gLo} GP + ${SP.lost} SP = ${tLo} total, ${fmt(gRL+SP.rl)} revenue) and <strong style="color:var(--orange)">declined early outreach</strong> (${tDe} GP accounts that said no to early renewal but whose renewal dates are still future — re-engageable). The prior "195 lost" GP figure counted both; true confirmed GP churn is just 9 logos ($384K).
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>GP Renewal Pipeline</h3><div class="sh">Logo count by quarter — 4-state: won / open / declined early / churned</div><div class="chart-wrap" style="height:240px"><canvas id="c1"></canvas></div>${legend4()}</div>
+      <div class="card" style="min-width:250px;flex:.55"><h3>SP Renewal Pipeline</h3><div class="sh">Emilie · 101 logos · Annual cycle</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px"><span style="font-size:32px;font-weight:700;color:var(--rose);font-family:var(--mono)">${pct(spRet)}</span><span style="font-size:12px;color:var(--dim)">logo retention</span></div>
+        <div class="bar-stack" style="height:8px"><div style="width:${SP.won/SP.logos*100}%;background:var(--green)"></div><div style="width:${SP.open/SP.logos*100}%;background:var(--amber)"></div><div style="width:${SP.lost/SP.logos*100}%;background:var(--red)"></div></div>
+        ${[{l:"Won",v:SP.won,c:"var(--green)"},{l:"Open",v:SP.open,c:"var(--amber)"},{l:"Churned",v:SP.lost,c:"var(--red)"}].map(x=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--muted)"><span><span style="width:6px;height:6px;border-radius:50%;background:${x.c};display:inline-block;margin-right:5px"></span>${x.l}</span><span class="mono" style="color:var(--text)">${x.v} logos</span></div>`).join('')}
+        <div class="dim-label">Revenue at risk: <span style="color:var(--text);font-weight:600">${fmt(SP.rev)}</span></div>
+      </div>
+    </div>
+    <div class="card"><h3>GP Logo Retention Trajectory</h3><div class="sh">Solid = current | Dashed = target | 2025 baseline: 52.7% → Q4 target: 72% → Path to 80%</div><div class="chart-wrap" style="height:250px"><canvas id="c2"></canvas></div></div>
+    <div class="card"><h3>H1 '26 Variable Comp Structure</h3>
+      <div class="grid3">
+        <div class="info-box"><div class="title" style="color:var(--accent)">Activity Gate · 50%</div><div class="desc">Meeting cadence % per CSM. Below floor = <strong>both components zero</strong>. Above floor = linear 0→100%.<br>Floor ramps: <span style="color:var(--amber)">Q2: 50% · Q3: 65% · Q4: 75%</span></div></div>
+        <div class="info-box"><div class="title" style="color:var(--green)">GP Retention · 50%</div><div class="desc">Team logo retention by pool. Floor→Full = linear 0→100%. Full→Accel = linear 100→125% cap.<br><span style="color:var(--amber)">Q1 GIFTED · Q2: 55%/62%/68%</span></div></div>
+        <div class="info-box"><div class="title" style="color:var(--rose)">SP Retention · 50%</div><div class="desc">Separate SP pool. Emilie goaled independently. Same payout curve, different thresholds.<br><span style="color:var(--amber)">Q1 GIFTED · Q2: 45%/55%/65%</span></div></div>
+      </div>
+    </div>`;
+
+  // 4-state stacked bar chart
+  const qD=["Q1","Q2","Q3","Q4"].map(q=>{let w=0,o=0,l=0,de=0,r=0;["Enterprise","Strategic","Scale"].forEach(p=>{w+=GRR[q][p].won;o+=GRR[q][p].open;l+=GRR[q][p].lost;de+=GRR[q][p].declined;r+=GRR[q][p].rev});return{q,w,o,l,de,t:w+o+l+de,r}});
+  mc('c1',{type:'bar',data:{labels:qD.map(d=>`${d.q} (${d.t} logos · ${fmt(d.r)})`),datasets:[
+    {label:'Won',data:qD.map(d=>d.w),backgroundColor:'#10b981',borderRadius:3,datalabels:stackLabels},
+    {label:'Open',data:qD.map(d=>d.o),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
+    {label:'Declined early',data:qD.map(d=>d.de),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
+    {label:'Churned',data:qD.map(d=>d.l),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3},datalabels:stackLabels}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{callbacks:{afterTitle:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`${d.t} total logos · ${fmt(d.r)} revenue\nChurned: ${d.l} · Declined early: ${d.de}`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t,font:{size:10}}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
+
+  const tgts=[100,GP_T.Q2.full,GP_T.Q3.full,GP_T.Q4.full];
+  const trD=["Q1","Q2","Q3","Q4"].map((q,i)=>{const r={};["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];r[p]=d.logos>0?+(d.won/d.logos*100).toFixed(1):0});r.tgt=tgts[i];return r});
+  mc('c2',{type:'line',data:{labels:["Q1","Q2","Q3","Q4"],datasets:[{label:'Target',data:trD.map(d=>d.tgt),borderColor:'#fff',borderWidth:2,borderDash:[8,4],pointRadius:0,fill:false},{label:'Enterprise',data:trD.map(d=>d.Enterprise),borderColor:PC.Enterprise,borderWidth:2.5,pointRadius:4,fill:false},{label:'Strategic',data:trD.map(d=>d.Strategic),borderColor:PC.Strategic,borderWidth:2.5,pointRadius:4,fill:false},{label:'Scale',data:trD.map(d=>d.Scale),borderColor:PC.Scale,borderWidth:2.5,pointRadius:4,fill:false},{label:'2025 Baseline',data:[52.7,52.7,52.7,52.7],borderColor:'var(--dim)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}}},scales:{x:{grid:{display:false},ticks:{color:cD.t}},y:{min:0,max:100,grid:{color:cD.g},ticks:{color:cD.t,callback:v=>v+'%'}}}}});
+}
+
+// ── GP RETENTION ────────────────────────────────────
+function rGP(){
+  const el=document.getElementById('tab-gp_grr');const q=selQ;
+  const tKey=q;const tgt=GP_T[tKey]?.full||63;
+  const pools=["Enterprise","Strategic","Scale"];
+  
+  // Scenario modeling
+  let totalOpen=0,totalWon=0,totalLogos=0,totalDeclined=0;
+  pools.forEach(p=>{const d=GRR[q][p];totalOpen+=d.open;totalWon+=d.won;totalLogos+=d.logos;totalDeclined+=d.declined});
+  const floorN=Math.ceil(totalLogos*GP_T[tKey]?.floor/100)||0;
+  const fullN=Math.ceil(totalLogos*GP_T[tKey]?.full/100)||0;
+  const accelN=Math.ceil(totalLogos*GP_T[tKey]?.accel/100)||0;
+  const gapFloor=Math.max(0,floorN-totalWon);
+  const gapFull=Math.max(0,fullN-totalWon);
+  const gapAccel=Math.max(0,accelN-totalWon);
+
+  el.innerHTML=`
+    <div style="margin-bottom:18px">${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';rT('gp_grr')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
+    <div class="cards">${pools.map(p=>poolCard(p,GRR[q][p],tgt,q==="Q1")).join('')}</div>
+    ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}</h3><div class="sh">Wins needed from ${totalOpen} open + ${totalDeclined} declined-early accounts to hit targets</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
+        ${[{l:"Floor ("+GP_T[tKey]?.floor+"%)",n:floorN,g:gapFloor,c:gapFloor<=0?"var(--green)":"var(--amber)"},{l:"Full ("+GP_T[tKey]?.full+"%)",n:fullN,g:gapFull,c:gapFull<=0?"var(--green)":"var(--amber)"},{l:"Accel ("+GP_T[tKey]?.accel+"%+)",n:accelN,g:gapAccel,c:gapAccel<=0?"var(--green)":"var(--red)"}].map(x=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;text-align:center">
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">${x.l}</div>
+          <div style="font-size:22px;font-weight:700;color:${x.c};font-family:var(--mono)">${x.g<=0?'✓ Hit':'Need '+x.g}</div>
+          <div style="font-size:11px;color:var(--dim)">${x.n} logos required of ${totalLogos}</div>
+          ${x.g>0?`<div style="font-size:10px;color:var(--muted);margin-top:4px">${pct(x.g/totalOpen*100)} of open pool</div>`:''}
+        </div>`).join('')}
+      </div>
+      <div style="margin-top:14px"><label style="font-size:12px;color:var(--muted)">Scenario: What if we convert this % of open accounts?</label>
+        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="100" value="50" oninput="updateScenario('${q}',this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0% conversion</span><span id="scenario-label-${q}">50% → ${pct((totalWon+totalOpen*.5)/totalLogos*100)} retention</span><span>100% conversion</span></div>
+      </div>
+    </div>`:''}
+    <div class="card"><h3>${q} GP Pipeline by Pool</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>
+    <div class="card"><h3>${q} Revenue Context</h3><div class="sh">Revenue associated with each pool (for future GRR tracking)</div>
+      <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
+      <tbody>${pools.map(p=>{const d=GRR[q][p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;return`<tr><td style="font-weight:500"><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p}</td><td class="mono" style="text-align:right">${d.logos}</td><td class="mono" style="text-align:right;color:var(--green)">${d.won}</td><td class="mono" style="text-align:right;color:var(--red)">${d.lost}</td><td class="mono" style="text-align:right;color:var(--orange)">${d.declined}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr>`}).join('')}</tbody></table>
+    </div>`;
+  
+  // 4-state stacked bar
+  const cData=pools.map(p=>({p,...GRR[q][p]}));
+  mc('c3',{type:'bar',data:{labels:cData.map(d=>d.p),datasets:[
+    {label:'Won',data:cData.map(d=>d.won),backgroundColor:'#10b981',borderRadius:3,datalabels:stackLabels},
+    {label:'Open',data:cData.map(d=>d.open),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
+    {label:'Declined early',data:cData.map(d=>d.de||d.declined),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
+    {label:'Churned',data:cData.map(d=>d.lost),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3}}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
+}
+
+function updateScenario(q,val){
+  let totalOpen=0,totalWon=0,totalLogos=0;
+  ["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];totalOpen+=d.open;totalWon+=d.won;totalLogos+=d.logos});
+  const projected=totalWon+totalOpen*(val/100);
+  const retP=totalLogos>0?(projected/totalLogos)*100:0;
+  const lbl=document.getElementById('scenario-label-'+q);
+  if(lbl)lbl.textContent=val+'% → '+pct(retP)+' retention';
+}
+
+// ── SP RETENTION ────────────────────────────────────
+function rSP(){
+  const el=document.getElementById('tab-sp_grr');const ret=SP.logos>0?(SP.won/SP.logos)*100:0;const retOpt=SP.logos>0?((SP.won+SP.open*.5)/SP.logos)*100:0;
+  const uncontacted=SP_RISK.filter(a=>a.s==="Uncontacted");
+  const uncontactedRev=uncontacted.reduce((s,a)=>s+a.r,0);
+  el.innerHTML=`
+    <div class="cards">${sc("SP Logos","101","Managed by Emilie","var(--rose)")}${sc("2025 Revenue",fmt(SP.rev),"Annual renewal pool","var(--rose)")}${sc("Logo Retention",pct(ret),"Optimistic: "+pct(retOpt),ret>=55?"var(--green)":"var(--amber)")}${sc("Won",SP.won+" logos",SP.open+" still open","var(--green)")}</div>
+    ${poolCard("Service Provider",SP,SP_T.Q2.full,false)}
+    ${uncontacted.length>0?`<div class="callout" style="border-color:var(--rose);margin-top:12px">
+      <strong style="color:var(--rose)">⚠ ${uncontacted.length} Uncontacted Accounts — ${fmt(uncontactedRev)} at risk:</strong> ${uncontacted.map(a=>a.n+' ('+fmt(a.r)+', '+a.o+')').join(' · ')}
+    </div>`:''}
+    <div class="card" style="margin-top:18px;overflow-x:auto"><h3>Pipeline by Sales Owner</h3><div class="sh">SP renewals by sales rep — conversion rate shows % of their logos won</div>
+      <table><thead><tr><th style="text-align:left">Owner</th><th style="text-align:right">Logos</th><th style="text-align:right">2025 Rev</th><th style="text-align:right">Won</th><th style="text-align:right">Conv. %</th><th style="text-align:right">Won Rev</th></tr></thead>
+      <tbody>${SP_OWN.filter(o=>o.r>0).map(o=>{const conv=o.a>0?(o.w/o.a*100):0;return`<tr><td style="font-weight:500">${o.o}</td><td class="mono" style="text-align:right;color:var(--muted)">${o.a}</td><td class="mono" style="text-align:right">${fmt(o.r)}</td><td class="mono" style="text-align:right;color:${o.w>0?'var(--green)':'var(--dim)'}">${o.w}</td><td class="mono" style="text-align:right;color:${conv>30?'var(--green)':conv>0?'var(--amber)':'var(--dim)'}">${pct(conv)}</td><td class="mono" style="text-align:right;color:${o.wr>0?'var(--green)':'var(--dim)'}">${fmt(o.wr)}</td></tr>`}).join('')}</tbody></table></div>
+    <div class="card" style="overflow-x:auto"><h3>Top At-Risk SP Accounts</h3><div class="sh">Largest not yet renewed — by 2025 revenue · Sorted by revenue descending</div>
+      <table><thead><tr><th style="text-align:left">Account</th><th style="text-align:right">2025 Rev</th><th style="text-align:right">Stage</th><th style="text-align:left">Owner</th></tr></thead>
+      <tbody>${SP_RISK.sort((a,b)=>b.r-a.r).map(a=>{const sc2=stC(a.s);return`<tr${a.s==='Uncontacted'?' style="background:var(--roseG)"':''}><td style="font-weight:500">${a.n}${a.s==='Uncontacted'?'<span style="font-size:9px;color:var(--rose);margin-left:5px">NEEDS OUTREACH</span>':''}</td><td class="mono" style="text-align:right;font-weight:600">${fmt(a.r)}</td><td style="text-align:right"><span class="pill" style="color:${sc2.c};background:${sc2.b}">${a.s}</span></td><td style="color:var(--muted)">${a.o}</td></tr>`}).join('')}</tbody></table></div>
+    <div class="grid2">
+      <div class="card"><h3>Sponsor Tiers</h3><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${SP_TIER.map(t=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center;min-width:65px"><div style="font-size:18px;font-weight:700;color:var(--rose);font-family:var(--mono)">${t.c}</div><div style="font-size:10px;color:var(--dim);text-transform:uppercase">${t.t}</div></div>`).join('')}</div></div>
+      <div class="card"><h3>SP Logo Retention Targets</h3><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${[45,50,55,60,65,70].map(p=>{const needed=Math.ceil(SP.logos*p/100);const fromOpen=Math.max(0,needed-SP.won);return`<div style="background:${ret>=p?'var(--greenG)':'var(--bg)'};border:1px solid ${ret>=p?'var(--green)':'var(--border)'};border-radius:8px;padding:8px 14px;text-align:center;min-width:80px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:2px">@ ${p}%</div><div style="font-size:15px;font-weight:700;color:${ret>=p?'var(--green)':'var(--text)'};font-family:var(--mono)">${needed}</div><div style="font-size:10px;color:var(--dim)">${fromOpen>0?fromOpen+' from open':'hit'}</div></div>`}).join('')}</div></div>
+    </div>`;
+}
+
+// ── CADENCE ─────────────────────────────────────────
+function rCadence(){
+  const el=document.getElementById('tab-cadence');const ms=["Mar","Apr","May","Jun"];
+  el.innerHTML=`<div class="card" style="overflow-x:auto"><h3>Meeting Cadence by CSM — H1 2026</h3><div class="sh">Activity gate (hybrid): below floor = both components zero. Floor ramps: Q2 50% · Q3 65% · Q4 75%. Above floor = linear 0→100%.</div>
+    <table style="min-width:600px"><thead><tr><th style="text-align:left">CSM</th><th style="text-align:left">Pool</th>${ms.map(m=>`<th style="text-align:center">${m}</th>`).join('')}<th style="text-align:center">H1 Avg</th></tr></thead>
+    <tbody>${CSM.map(c=>{const isSP=c.t==="SP";return`<tr style="background:${isSP?'var(--roseG)':'transparent'}"><td style="font-size:13px;font-weight:500">${c.n}<div style="font-size:10px;color:var(--dim)">${c.pod} · ${c.a} accts</div></td><td><span class="pill" style="color:${PC[c.seg]||'var(--rose)'};background:${isSP?'var(--roseG)':'transparent'}">${isSP?'SP':c.seg}</span></td>${ms.map(()=>`<td style="text-align:center"><span class="pill" style="color:var(--dim)">—</span></td>`).join('')}<td style="text-align:center"><span class="pill" style="color:var(--dim)">—</span></td></tr>`}).join('')}
+    <tr style="border-top:2px solid var(--borderL)"><td style="font-weight:600;color:var(--accent)">Team Average</td><td></td>${ms.map(()=>`<td style="text-align:center"><span class="pill" style="color:var(--dim)">—</span></td>`).join('')}<td style="text-align:center"><span class="pill" style="color:var(--dim)">—</span></td></tr>
+    </tbody></table>
+    <div style="margin-top:14px;font-size:10px;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap">${[{l:"≥ 100%",c:"var(--green)",b:"var(--greenG)"},{l:"75–99%",c:"var(--amber)",b:"var(--amberG)"},{l:"< 75%",c:"var(--red)",b:"var(--redG)"},{l:"SP Row",c:"var(--rose)",b:"var(--roseG)"}].map(x=>`<span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${x.b};border:1px solid ${x.c};vertical-align:middle;margin-right:4px"></span>${x.l}</span>`).join('')}</div></div>`}
+
+// ── PAYOUT ──────────────────────────────────────────
+function rPayout(){
+  const el=document.getElementById('tab-payout');const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;
+  const selPQ=selPayQ||"Q2";
+
+  function pr(c,gp){
+    const pool=gp?(c.seg==="Scale"?"Scale":c.seg==="Strategic"?"Strategic":"Enterprise"):"SP";
+    const isSP=!gp;
+    const t=isSP?SP_T:GP_T;
+    let retR=0;
+    if(gp){const d=GRR[selPQ][pool];retR=d&&d.logos>0?(d.won/d.logos)*100:0}else{retR=spRet}
+    const rp=retPayout(retR,selPQ,isSP);
+    // Activity: all dashes for now (awaiting engagement tracker data)
+    const ap=actPayout(null,selPQ);// null cadence = show as pending
+    const cadAvail=false;
+    const retC=rp.pct>=100?'var(--green)':rp.pct>0?'var(--amber)':'var(--red)';
+    const retFloor=isSP?SP_T[selPQ]?.floor:GP_T[selPQ]?.floor;
+    const retFull=isSP?SP_T[selPQ]?.full:GP_T[selPQ]?.full;
+    return`<tr>
+      <td style="font-weight:500">${c.n}<div style="font-size:10px;color:var(--dim)">${pool} · ${c.pod}</div></td>
+      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':'<span class="pill" style="color:var(--dim)">— awaiting data</span>'}</td>
+      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':`<span class="mono" style="color:${retC};font-weight:600">${pct(retR)}</span>`}</td>
+      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">100%</span>':`<span class="mono" style="color:${retC};font-weight:600">${rp.pct.toFixed(0)}%</span>`}</td>
+      <td style="text-align:center"><span class="pill" style="color:${rp.pct>=100?'var(--green)':rp.pct>0?'var(--amber)':'var(--red)'};font-size:10px">${rp.tier}</span></td>
+      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">100%</span>':'<span class="pill" style="color:var(--dim);font-size:10px">Pending</span>'}</td>
+    </tr>`}
+
+  const thd=`<thead><tr><th style="text-align:left">CSM</th><th style="text-align:center">Activity<br><span style="font-weight:400;text-transform:none;letter-spacing:0">cadence %</span></th><th style="text-align:center">Retention<br><span style="font-weight:400;text-transform:none;letter-spacing:0">pool %</span></th><th style="text-align:center">Ret. Payout<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% of component</span></th><th style="text-align:center">Ret. Tier</th><th style="text-align:center">Combined<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% of variable</span></th></tr></thead>`;
+
+  // Payout curve data for chart
+  const curveT=GP_T[selPQ]||GP_T.Q2;
+
+  el.innerHTML=`
+    <div style="margin-bottom:18px">${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selPQ?'active':''}" onclick="selPayQ='${qq}';rT('payout')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
+
+    <div class="card"><h3>Comp Model — ${selPQ} 2026</h3><div class="sh">87% base / 13% variable · 50% activity + 50% retention · Both components weighted equally</div>
+      <div class="grid3" style="margin-top:14px">
+        <div class="info-box"><div class="title" style="color:var(--accent)">Activity Gate · 50%</div><div class="desc">
+          Cadence floor: <strong style="color:var(--text)">${ACT_FLOOR[selPQ]?ACT_FLOOR[selPQ]+'%':'GIFTED'}</strong>${ACT_FLOOR[selPQ]?` (ramping: Q2 50% → Q3 65% → Q4 75%)`:''}<br>
+          Below floor → <span style="color:var(--red)">both components zero</span><br>
+          Above floor → linear 0→100% of activity component
+        </div></div>
+        <div class="info-box"><div class="title" style="color:var(--green)">Retention Payout · 50%</div><div class="desc">
+          Floor: <strong style="color:var(--text)">${curveT.floor||'—'}%</strong> → 0% payout (gate)<br>
+          Full: <strong style="color:var(--text)">${curveT.full||'—'}%</strong> → 100% payout<br>
+          Accel: <strong style="color:var(--text)">${curveT.accel||'—'}%</strong> → 125% cap<br>
+          <span style="color:var(--muted)">Linear interpolation between tiers</span>
+        </div></div>
+        <div class="info-box"><div class="title" style="color:var(--rose)">Hybrid Gate</div><div class="desc">
+          Activity floor is a <strong style="color:var(--text)">hard gate</strong><br>
+          Miss activity floor → $0 on <em>both</em> components<br>
+          Hit activity floor → each component pays independently<br>
+          <span style="color:var(--amber)">This protects against "no meetings, lucky retention"</span>
+        </div></div>
+      </div>
+    </div>
+
+    ${selPQ!=="Q1"&&curveT.floor?`<div class="card"><h3>Retention Payout Curve — ${selPQ}</h3><div class="sh">Shows payout % of retention component by logo retention achieved</div><div class="chart-wrap" style="height:220px"><canvas id="cPayout"></canvas></div></div>`:''}
+
+    <div class="card" style="overflow-x:auto"><h3>GP Variable Comp Projection — ${selPQ}</h3><div class="sh">${selPQ==="Q1"?'Q1 is GIFTED — all components pay 100%':'Activity data pending · Retention based on current pool performance'}</div><table>${thd}<tbody>${CSM.filter(c=>c.t==="GP").map(c=>pr(c,true)).join('')}</tbody></table></div>
+    <div class="card" style="overflow-x:auto"><h3>SP Variable Comp Projection — ${selPQ}</h3><div class="sh">SP pool goaled separately · ${selPQ}: ${SP_T[selPQ]?.floor||'—'}% floor / ${SP_T[selPQ]?.full||'—'}% full / ${SP_T[selPQ]?.accel||'—'}%+ accel</div><table>${thd}<tbody>${CSM.filter(c=>c.t==="SP").map(c=>pr(c,false)).join('')}</tbody></table></div>
+    <div class="callout"><strong>Note on 4-state model:</strong> Retention % for comp uses <strong>confirmed churn only</strong> (9 GP accounts) — not the 186 declined-early accounts. Pool-level retention rates are significantly higher than the prior 3-state model showed.</div>`;
+
+  // Draw payout curve chart
+  if(selPQ!=="Q1"&&curveT.floor){
+    const pts=[];
+    for(let r=Math.max(0,curveT.floor-5);r<=Math.min(100,curveT.accel+5);r+=0.5){
+      const rp=retPayout(r,selPQ,false);
+      pts.push({x:r,y:rp.pct});
+    }
+    mc('cPayout',{type:'line',data:{datasets:[{
+      data:pts,borderColor:'#10b981',borderWidth:2.5,pointRadius:0,fill:{target:'origin',above:'rgba(16,185,129,.1)'},tension:0
+    }]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.x.toFixed(1)}% retention → ${ctx.parsed.y.toFixed(0)}% payout`}}},scales:{
+      x:{type:'linear',title:{display:true,text:'Logo Retention %',color:cD.t,font:{size:11}},grid:{color:cD.g},ticks:{color:cD.t,callback:v=>v+'%'},min:pts[0].x,max:pts[pts.length-1].x},
+      y:{title:{display:true,text:'Payout % of Retention Component',color:cD.t,font:{size:11}},grid:{color:cD.g},ticks:{color:cD.t,callback:v=>v+'%'},min:0,max:140,
+        afterDataLimits:function(scale){
+          // Add reference lines as annotations via plugin
+        }
+      }
+    },annotation:{annotations:{
+      floorLine:{type:'line',xMin:curveT.floor,xMax:curveT.floor,borderColor:'var(--amber)',borderWidth:1,borderDash:[4,4],label:{display:true,content:'Floor '+curveT.floor+'%',position:'start',color:cD.t,font:{size:10}}},
+      fullLine:{type:'line',xMin:curveT.full,xMax:curveT.full,borderColor:'var(--green)',borderWidth:1,borderDash:[4,4],label:{display:true,content:'Full '+curveT.full+'%',position:'start',color:cD.t,font:{size:10}}},
+      accelLine:{type:'line',xMin:curveT.accel,xMax:curveT.accel,borderColor:'var(--cyan)',borderWidth:1,borderDash:[4,4],label:{display:true,content:'Accel '+curveT.accel+'%',position:'start',color:cD.t,font:{size:10}}},
+      capLine:{type:'line',yMin:125,yMax:125,borderColor:'var(--red)',borderWidth:1,borderDash:[6,3],label:{display:true,content:'125% cap',position:'end',color:cD.t,font:{size:10}}}
+    }}}});
+  }
+}
+let selPayQ="Q2";
+
+// ── TARGETS ─────────────────────────────────────────
+function rTargets(){
+  const el=document.getElementById('tab-targets');
+  const periods=[{k:"Q2",l:"Q2 2026 (Apr–Jun)"},{k:"Q3",l:"Q3 2026 (Jul–Sep)"},{k:"Q4",l:"Q4 2026 (Oct–Dec)"}];
+  function ed(title,tgts,pfx){
+    return`<div class="card"><h3>${title}</h3><div class="sh">Q1 is GIFTED. Adjust Q2+ below. Q2 = logo retention. Q3+ evolving to GRR.</div>${periods.map(p=>`<div class="target-row"><label>${p.l}</label>${["floor","full","accel"].map(f=>`<div class="fg"><span>${f==="floor"?"Floor":f==="full"?"Full":"Accel"}</span><input type="number" id="${pfx}_${p.k}_${f}" value="${tgts[p.k]?.[f]||''}" onchange="updateTargets('${pfx}')"><span class="pct">%</span></div>`).join('')}</div>`).join('')}</div>`}
+  const qs=["Q1","Q2","Q3","Q4"];
+  let rows=qs.map(q=>{
+    let tl=0,tw=0,tlo=0,tde=0;["Enterprise","Strategic","Scale"].forEach(p=>{tl+=GRR[q][p].logos;tw+=GRR[q][p].won;tlo+=GRR[q][p].lost;tde+=GRR[q][p].declined});
+    const ret=tl>0?(tw/tl)*100:0;const tgt=GP_T[q]?.full||63;
+    const needed=Math.ceil(tl*tgt/100);const gap=needed-tw;
+    return`<tr><td style="font-weight:500">${q} 2026${q==="Q1"?'<span style="font-size:10px;color:var(--green);margin-left:5px">GIFTED</span>':''}</td><td class="mono" style="text-align:right">${tl}</td><td class="mono" style="text-align:right;color:var(--green)">${tw}</td><td class="mono" style="text-align:right;color:var(--red)">${tlo}</td><td class="mono" style="text-align:right;color:var(--orange)">${tde}</td><td class="mono" style="text-align:right;color:${ret>=tgt?'var(--green)':'var(--amber)'}">${pct(ret)}</td><td class="mono" style="text-align:right;color:var(--muted)">${q==="Q1"?"GIFTED":tgt+"%"}</td><td class="mono" style="text-align:right;color:var(--muted)">${q==="Q1"?"—":needed}</td><td class="mono" style="text-align:right;color:${gap>0?'var(--red)':'var(--green)'}">${q==="Q1"?"—":gap>0?"−"+gap:"+"+Math.abs(gap)}</td></tr>`}).join('');
+  const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;const spTgt=SP_T.Q2?.full||55;const spNeed=Math.ceil(SP.logos*spTgt/100);const spGap=spNeed-SP.won;
+  el.innerHTML=`
+    <div class="grid2"><div>${ed("GP Retention Targets",GP_T,"gp")}</div><div>${ed("SP Retention Targets",SP_T,"sp")}</div></div>
+    <div class="card" style="overflow-x:auto"><h3>GP Quarterly Logo Retention Modeling</h3><div class="sh">Logos up for renewal — 4-state breakdown with gap analysis</div>
+      <table><thead><tr><th style="text-align:left">Period</th><th style="text-align:right">Logos Up</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined</th><th style="text-align:right">Current</th><th style="text-align:right">Target</th><th style="text-align:right">Logos Needed</th><th style="text-align:right">Gap</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="card"><h3>SP Retention Modeling</h3><div class="sh">SP annual renewal pool — logo-based</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px">${[{l:"Total Logos",v:SP.logos,c:"var(--text)"},{l:"Current Ret.",v:pct(spRet),c:spRet>=spTgt?"var(--green)":"var(--amber)"},{l:"Target",v:spTgt+"%",c:"var(--muted)"},{l:"Logos Needed",v:spNeed,c:"var(--muted)"},{l:"Gap",v:spGap>0?"−"+spGap:"+"+Math.abs(spGap),c:spGap>0?"var(--red)":"var(--green)"}].map(x=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;min-width:90px;flex:1"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:3px">${x.l}</div><div style="font-size:18px;font-weight:700;color:${x.c};font-family:var(--mono)">${x.v}</div></div>`).join('')}</div></div>`}
+
+// Wire editable targets to recalculate
+function updateTargets(pfx){
+  const tgts=pfx==='gp'?GP_T:SP_T;
+  ["Q2","Q3","Q4"].forEach(q=>{
+    ["floor","full","accel"].forEach(f=>{
+      const inp=document.getElementById(pfx+'_'+q+'_'+f);
+      if(inp&&inp.value)tgts[q][f]=parseFloat(inp.value);
+    });
+  });
+  // Re-render targets tab and any other open tab
+  rTargets();
+}
+
+// ── RISK REGISTER ──────────────────────────────────
+function rRisk(){
+  const el=document.getElementById('tab-risk');
+  // Build consolidated risk list from GP (churned accounts) + SP at-risk
+  const gpAtRisk=[];
+  ["Q2","Q3","Q4"].forEach(q=>{
+    ["Enterprise","Strategic","Scale"].forEach(pool=>{
+      const d=GRR[q][pool];
+      if(d.declined>0){
+        gpAtRisk.push({type:'GP',pool,q,status:'Declined Early',count:d.declined,rev:d.rd||0});
+      }
+    });
+  });
+  
+  el.innerHTML=`
+    <div class="card"><h3>Confirmed Churned Accounts</h3><div class="sh">9 GP accounts confirmed lost — $384K total revenue impact</div>
+      <table><thead><tr><th style="text-align:left">Account</th><th style="text-align:left">CSM</th><th style="text-align:left">Pool</th><th style="text-align:right">Revenue</th><th style="text-align:left">Quarter</th><th style="text-align:left">Notes</th></tr></thead>
+      <tbody>${CHURNED.sort((a,b)=>b.rev-a.rev).map(a=>`<tr><td style="font-weight:500">${a.n}</td><td style="color:var(--muted)">${a.csm}</td><td><span class="pill" style="color:${PC[a.pool]||'var(--dim)'}">${a.pool}</span></td><td class="mono" style="text-align:right;color:var(--red);font-weight:600">${fmt(a.rev)}</td><td class="mono">${a.q}</td><td style="font-size:11px;color:var(--dim);max-width:200px">${a.notes||'—'}</td></tr>`).join('')}</tbody></table>
+    </div>
+    <div class="card"><h3>Declined Early — Re-engagement Opportunities</h3><div class="sh">${tDe} GP accounts declined early outreach but renewal dates are still future. ${fmt(gRD)} total revenue.</div>
+      <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:left">Quarter</th><th style="text-align:right">Declined Count</th><th style="text-align:right">Revenue</th><th style="text-align:right">% of Pool</th></tr></thead>
+      <tbody>${gpAtRisk.filter(a=>a.count>0).map(a=>{const d=GRR[a.q][a.pool];const pctP=d.logos>0?(a.count/d.logos*100):0;return`<tr><td style="font-weight:500"><span class="pool-dot" style="background:${PC[a.pool]};width:7px;height:7px"></span>${a.pool}</td><td class="mono">${a.q}</td><td class="mono" style="text-align:right;color:var(--orange)">${a.count}</td><td class="mono" style="text-align:right">${fmt(a.rev)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(pctP)}</td></tr>`}).join('')}</tbody></table>
+      <div class="callout" style="margin-top:14px"><strong>Re-engagement strategy:</strong> These ${tDe} accounts were surfaced through Miami outreach and declined to renew early. As their actual renewal dates approach, they enter the standard renewal cycle. The optimistic model assumes 25% conversion of declined-early accounts. Key focus: Q3 has ${GRR.Q3.Enterprise.declined+GRR.Q3.Strategic.declined+GRR.Q3.Scale.declined} declined and Q4 has ${GRR.Q4.Enterprise.declined+GRR.Q4.Strategic.declined+GRR.Q4.Scale.declined} — these represent the largest re-engagement opportunity.</div>
+    </div>
+    <div class="card"><h3>SP At-Risk Accounts</h3><div class="sh">Top SP accounts not yet renewed — focus on uncontacted pipeline</div>
+      <table><thead><tr><th style="text-align:left">Account</th><th style="text-align:right">2025 Rev</th><th style="text-align:right">Stage</th><th style="text-align:left">Owner</th></tr></thead>
+      <tbody>${SP_RISK.sort((a,b)=>b.r-a.r).map(a=>{const sc2=stC(a.s);return`<tr${a.s==='Uncontacted'?' style="background:var(--roseG)"':''}><td style="font-weight:500">${a.n}${a.s==='Uncontacted'?'<span style="font-size:9px;color:var(--rose);margin-left:5px">NEEDS OUTREACH</span>':''}</td><td class="mono" style="text-align:right;font-weight:600">${fmt(a.r)}</td><td style="text-align:right"><span class="pill" style="color:${sc2.c};background:${sc2.b}">${a.s}</span></td><td style="color:var(--muted)">${a.o}</td></tr>`}).join('')}</tbody></table>
+    </div>`;
+}
+
+// ── COMP RULES ─────────────────────────────────────
+function rRules(){
+  const el=document.getElementById('tab-rules');
+  function exRow(retPct,q,isSP){
+    const rp=retPayout(retPct,q,isSP);
+    return`<tr><td class="mono" style="text-align:center">${retPct.toFixed(1)}%</td><td class="mono" style="text-align:center;color:${rp.pct>=100?'var(--green)':rp.pct>0?'var(--amber)':'var(--red)'}">${rp.pct.toFixed(1)}%</td><td style="text-align:center"><span class="pill" style="color:${rp.pct>=100?'var(--green)':rp.pct>0?'var(--amber)':'var(--red)'}; font-size:10px">${rp.tier}</span></td></tr>`;
+  }
+  function actRow(cadPct,q){
+    const ap=actPayout(cadPct,q);
+    return`<tr><td class="mono" style="text-align:center">${cadPct}%</td><td class="mono" style="text-align:center;color:${ap.gate?'var(--red)':ap.pct>=100?'var(--green)':'var(--amber)'}">${ap.pct.toFixed(0)}%</td><td style="text-align:center">${ap.gate?'<span class="pill" style="color:var(--red);font-size:10px">GATED — both components $0</span>':'<span class="pill" style="color:var(--green);font-size:10px">'+ap.tier+'</span>'}</td></tr>`;
+  }
+  
+  el.innerHTML=`
+    <div class="card" style="border-color:var(--accent)"><h3 style="font-size:18px">CS Variable Compensation Rules — H1/H2 2026</h3><div class="sh">Formalized comp plan logic · Reference document · Last updated March 30, 2026</div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:16px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">1. Compensation Split</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.8">
+        Total compensation = <strong style="color:var(--text)">87% base salary</strong> + <strong style="color:var(--text)">13% variable</strong><br>
+        Variable is split into two equally-weighted components:<br>
+        <span style="margin-left:16px">• <strong style="color:var(--accent)">Activity (50%)</strong> — meeting cadence percentage per CSM</span><br>
+        <span style="margin-left:16px">• <strong style="color:var(--green)">Retention (50%)</strong> — team logo retention by pool (GP or SP)</span><br><br>
+        Each component is evaluated <strong style="color:var(--text)">quarterly</strong>. Q1 2026 is <strong style="color:var(--green)">GIFTED</strong> (both components pay 100%).
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:14px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">2. Activity Component — Hybrid Gate</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.8">
+        The activity component uses a <strong style="color:var(--text)">hybrid gate model</strong>:<br><br>
+        <strong style="color:var(--red)">IF cadence % < activity floor → BOTH components pay $0</strong><br>
+        <span style="color:var(--dim)">(Activity is a hard gate — miss it and you lose retention comp too)</span><br><br>
+        <strong style="color:var(--green)">IF cadence % ≥ activity floor → components pay independently:</strong><br>
+        <span style="margin-left:16px">Activity payout = linear scale from <strong style="color:var(--text)">0%</strong> (at floor) to <strong style="color:var(--text)">100%</strong> (at 100% cadence)</span><br>
+        <span style="margin-left:16px">Retention payout = based on pool retention (see Section 3)</span><br><br>
+        <strong style="color:var(--text)">Activity floor ramps progressively</strong> (new program, no prior tracking history):<br>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px 16px">
+          ${[{q:"Q1",v:"GIFTED",c:"var(--green)"},{q:"Q2",v:"50%",c:"var(--amber)"},{q:"Q3",v:"65%",c:"var(--amber)"},{q:"Q4",v:"75%",c:"var(--amber)"}].map(x=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 14px;text-align:center;min-width:70px"><div style="font-size:10px;color:var(--dim)">${x.q}</div><div style="font-size:15px;font-weight:700;color:${x.c};font-family:var(--mono)">${x.v}</div></div>`).join('')}
+        </div>
+        <span style="color:var(--dim);font-size:12px;margin-left:16px">Rationale: CSMs need time to adjust to formal cadence tracking before the gate becomes strict.</span>
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:14px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">3. Retention Component — Payout Curve</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.8">
+        Retention is measured as <strong style="color:var(--text)">logo retention %</strong> at the pool level (Enterprise, Strategic, Scale, or SP).<br>
+        Q2 metric is logo retention. Evolving to revenue-based GRR in Q3+.<br><br>
+        The payout curve has three zones:<br><br>
+        <span style="margin-left:16px"><strong style="color:var(--red)">Below floor → 0% payout</strong></span><br>
+        <span style="margin-left:32px;color:var(--dim)">No partial credit below the floor threshold.</span><br><br>
+        <span style="margin-left:16px"><strong style="color:var(--amber)">Floor → Full = Linear 0% → 100%</strong></span><br>
+        <span style="margin-left:32px;color:var(--dim)">Each percentage point of retention above floor earns a proportional share.</span><br>
+        <span style="margin-left:32px;color:var(--dim)">Formula: payout = (retention − floor) ÷ (full − floor) × 100%</span><br><br>
+        <span style="margin-left:16px"><strong style="color:var(--green)">Full → Accelerator = Linear 100% → 125% (CAPPED)</strong></span><br>
+        <span style="margin-left:32px;color:var(--dim)">Above full target, payout scales to 125% at the accel threshold.</span><br>
+        <span style="margin-left:32px;color:var(--dim)">Formula: payout = 100% + (retention − full) ÷ (accel − full) × 25%</span><br>
+        <span style="margin-left:32px;color:var(--dim)">Hard cap at <strong style="color:var(--text)">125%</strong> of the retention component. No payout above 125% regardless of performance.</span>
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:14px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--purple);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">4. Quarterly Thresholds</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px">GP Retention Thresholds</div>
+          <table><thead><tr><th>Quarter</th><th style="text-align:center">Floor<br><span style="font-weight:400;color:var(--dim)">(0% payout)</span></th><th style="text-align:center">Full<br><span style="font-weight:400;color:var(--dim)">(100% payout)</span></th><th style="text-align:center">Accel<br><span style="font-weight:400;color:var(--dim)">(125% cap)</span></th></tr></thead>
+          <tbody>
+            <tr><td>Q1</td><td style="text-align:center" colspan="3"><span style="color:var(--green);font-weight:600">GIFTED — 100% payout</span></td></tr>
+            ${["Q2","Q3","Q4"].map(q=>`<tr><td style="font-weight:500">${q}</td><td class="mono" style="text-align:center;color:var(--red)">${GP_T[q].floor}%</td><td class="mono" style="text-align:center;color:var(--green)">${GP_T[q].full}%</td><td class="mono" style="text-align:center;color:var(--cyan)">${GP_T[q].accel}%</td></tr>`).join('')}
+          </tbody></table>
+        </div>
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:12px;font-weight:600;color:var(--rose);margin-bottom:8px">SP Retention Thresholds</div>
+          <table><thead><tr><th>Quarter</th><th style="text-align:center">Floor<br><span style="font-weight:400;color:var(--dim)">(0% payout)</span></th><th style="text-align:center">Full<br><span style="font-weight:400;color:var(--dim)">(100% payout)</span></th><th style="text-align:center">Accel<br><span style="font-weight:400;color:var(--dim)">(125% cap)</span></th></tr></thead>
+          <tbody>
+            <tr><td>Q1</td><td style="text-align:center" colspan="3"><span style="color:var(--green);font-weight:600">GIFTED — 100% payout</span></td></tr>
+            ${["Q2","Q3","Q4"].map(q=>`<tr><td style="font-weight:500">${q}</td><td class="mono" style="text-align:center;color:var(--red)">${SP_T[q].floor}%</td><td class="mono" style="text-align:center;color:var(--green)">${SP_T[q].full}%</td><td class="mono" style="text-align:center;color:var(--cyan)">${SP_T[q].accel}%</td></tr>`).join('')}
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:14px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">5. Pool Assignments</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.8">
+        Retention is measured at the <strong style="color:var(--text)">pool level</strong>, not per-CSM. CSMs in the same pool share the same retention outcome.<br><br>
+        <strong style="color:var(--text)">GP Pools:</strong><br>
+        <span style="margin-left:16px">Enterprise — Christina Chumak, Lucy Garber, Courtney Krieg, Juwan Pryce, Alex Cherecwich, Helen Ramsay, Andreas Santikos</span><br>
+        <span style="margin-left:16px">Strategic — Joe Romanoff</span><br>
+        <span style="margin-left:16px">Scale — Scale Team</span><br><br>
+        <strong style="color:var(--text)">SP Pool:</strong><br>
+        <span style="margin-left:16px">Service Provider — Emilie (goaled separately, does not blend into GP pools)</span>
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:14px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--cyan);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">6. Worked Examples — Q2 2026</div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:12px">GP thresholds: Floor 55% · Full 62% · Accel 68% · Activity floor: 50%</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">Retention Payout Examples</div>
+          <table><thead><tr><th style="text-align:center">Retention %</th><th style="text-align:center">Payout %</th><th style="text-align:center">Tier</th></tr></thead>
+          <tbody>
+            ${[50,53,55,57,58.5,60,62,65,68,72].map(r=>exRow(r,"Q2",false)).join('')}
+          </tbody></table>
+        </div>
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px">Activity Payout Examples (Q2 floor: 50%)</div>
+          <table><thead><tr><th style="text-align:center">Cadence %</th><th style="text-align:center">Activity Payout %</th><th style="text-align:center">Status</th></tr></thead>
+          <tbody>
+            ${[30,45,50,60,70,75,85,100].map(c=>actRow(c,"Q2")).join('')}
+          </tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:14px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">7. Combined Payout Scenarios — Q2 2026</div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:12px">Shows how activity gate + retention combine. Variable = Activity (50%) + Retention (50%).</div>
+      <table><thead><tr><th style="text-align:left">Scenario</th><th style="text-align:center">Cadence</th><th style="text-align:center">Retention</th><th style="text-align:center">Act. Payout</th><th style="text-align:center">Ret. Payout</th><th style="text-align:center">Combined</th><th style="text-align:center">Outcome</th></tr></thead>
+      <tbody>
+        ${[
+          {s:"Perfect quarter",cad:100,ret:68},
+          {s:"Strong performer",cad:90,ret:65},
+          {s:"Hits full target",cad:80,ret:62},
+          {s:"Mid-range",cad:75,ret:58.5},
+          {s:"Just above floor",cad:60,ret:56},
+          {s:"Retention miss, good activity",cad:85,ret:52},
+          {s:"Activity miss — GATED",cad:40,ret:65},
+          {s:"Both miss",cad:35,ret:50}
+        ].map(sc=>{
+          const act=actPayout(sc.cad,"Q2");
+          const ret=retPayout(sc.ret,"Q2",false);
+          const gated=act.gate;
+          const actP=gated?0:act.pct;
+          const retP=gated?0:ret.pct;
+          const combined=actP*.5+retP*.5;
+          return`<tr>
+            <td style="font-weight:500;font-size:12px">${sc.s}</td>
+            <td class="mono" style="text-align:center">${sc.cad}%</td>
+            <td class="mono" style="text-align:center">${sc.ret}%</td>
+            <td class="mono" style="text-align:center;color:${gated?'var(--red)':actP>=80?'var(--green)':'var(--amber)'}">${gated?'GATED':actP.toFixed(0)+'%'}</td>
+            <td class="mono" style="text-align:center;color:${gated?'var(--red)':retP>=100?'var(--green)':retP>0?'var(--amber)':'var(--red)'}">${gated?'GATED':retP.toFixed(0)+'%'}</td>
+            <td class="mono" style="text-align:center;font-weight:700;color:${gated?'var(--red)':combined>=80?'var(--green)':combined>0?'var(--amber)':'var(--red)'}">${gated?'0%':combined.toFixed(0)+'%'}</td>
+            <td style="text-align:center;font-size:11px;color:${gated?'var(--red)':'var(--muted)'}">${gated?'Activity gate blocks ALL payout':combined>=100?'At or above full target':'Partial payout'}</td>
+          </tr>`}).join('')}
+      </tbody></table>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:14px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--rose);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">8. Key Definitions</div>
+      <div style="font-size:13px;color:var(--muted);line-height:2">
+        <strong style="color:var(--text)">Logo Retention</strong> — (renewed logos ÷ total logos up for renewal) × 100. Denominator includes only the current quarter's renewal cohort.<br>
+        <strong style="color:var(--text)">Confirmed Churn</strong> — Account has passed its renewal date OR explicitly confirmed non-renewal. Only 9 GP accounts currently qualify.<br>
+        <strong style="color:var(--text)">Declined Early</strong> — Account declined early outreach (e.g., Miami) but renewal date is still future. Re-engageable and <em>not</em> counted as churn for comp purposes.<br>
+        <strong style="color:var(--text)">GRR (Gross Revenue Retention)</strong> — Revenue from renewed accounts ÷ total renewal revenue. Planned metric for Q3+ replacing logo retention.<br>
+        <strong style="color:var(--text)">Meeting Cadence</strong> — % of required meetings completed. Enterprise = monthly. Strategic = bi-weekly + QBRs. Scale = bi-monthly + onboarding SLA.<br>
+        <strong style="color:var(--text)">2025 Baseline</strong> — 52.7% logo retention. The starting point the program is designed to improve from.
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border-radius:10px;padding:18px;margin-top:14px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">9. Future Considerations</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.8">
+        <span style="margin-left:16px">• Accelerator cap (125%) can be revisited for H2 if retention trajectory exceeds expectations</span><br>
+        <span style="margin-left:16px">• Q3 transition from logo retention to revenue-based GRR will require updated thresholds</span><br>
+        <span style="margin-left:16px">• Activity floor ramping (50% → 65% → 75%) assumes engagement tracker data will be reliable by Q3</span><br>
+        <span style="margin-left:16px">• Per-CSM retention differentiation (vs. pool-level) may be considered for 2027 planning</span>
+      </div>
+    </div>
+    </div>`;
+}
+
+function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break}}
+rOverview();
+</script>
+</body>
+</html>
+</textarea>
 </body>
 </html>
