@@ -2493,6 +2493,9 @@ function _render(){
       src=src.replace(/const CHURNED\s*=\s*\[[\s\S]*?\];\s*\n/,`const CHURNED=${JSON.stringify(live.churned)};\n`);
       // SP data intentionally kept as hardcoded values (101 accounts) — live SP
       // aggregation from GA 26 SPs is unreliable; hardcoded values are correct.
+      // Replace hardcoded "Last refreshed" date with actual fetch timestamp
+      const refreshLabel=lastUpdated?lastUpdated.replace('Updated ',''):'just now';
+      src=src.replace(/Last refreshed:[^<"]+/,`Last refreshed: ${refreshLabel}`);
       // Inject GRR_NONE and patch rGP to render "No Sub End Date" section
       // IMPORTANT: use assignment (rGP=function(){}) not a function declaration,
       // because function declarations are hoisted and would overwrite the original
