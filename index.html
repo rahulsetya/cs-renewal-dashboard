@@ -2788,7 +2788,7 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"}];
-let aTab="overview",selQ="Q2",selGPCSM=null;
+let aTab="overview",selQ="Q2",selGPCSM=null,selGPMonth=null;
 
 function sw(id){aTab=id;document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>{b.classList.remove('active','active-rose');if(b.dataset.t===id)b.classList.add(tabDefs.find(t=>t.id===id)?.ac?'active-rose':'active')});rT(id)}
 
@@ -2846,7 +2846,7 @@ let _acctSort={},_acctFilt={};
 function _acctTableHTML(rid,q,pool){
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['8. Closed Lost (Not Renewing)'];
   const sc=a=>{if(WS.includes(a.stage))return'var(--green)';if(CS.includes(a.stage))return'var(--red)';if(DS.includes(a.stage))return'var(--orange)';return'var(--muted)';};
-  let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&(!selGPCSM||a.csRep===selGPCSM));
+  let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&(!selGPCSM||a.csRep===selGPCSM)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth));
   const allStages=[...new Set(rows.map(a=>a.stage).filter(Boolean))].sort();
   const filt=_acctFilt[rid]||'';
   if(filt==='_won')rows=rows.filter(a=>WS.includes(a.stage));
@@ -2883,15 +2883,22 @@ function rGP(){
   const tKey=q;const tgt=GP_T[tKey]?.full||63;
   const pools=["Enterprise","Strategic","Scale"];
 
-  // CSM filter setup
+  // Quarter → month mapping
+  const QML={Q1:[['01','Jan'],['02','Feb'],['03','Mar']],Q2:[['04','Apr'],['05','May'],['06','Jun']],Q3:[['07','Jul'],['08','Aug'],['09','Sep']],Q4:[['10','Oct'],['11','Nov'],['12','Dec']]};
+
+  // Filter setup: all accounts in quarter
   const qAccts=(ACCTS||[]).filter(a=>a.q===q);
   const csmList=[...new Set(qAccts.map(a=>a.csRep).filter(Boolean))].sort();
   if(selGPCSM&&!csmList.includes(selGPCSM))selGPCSM=null;
-  const filtAccts=selGPCSM?qAccts.filter(a=>a.csRep===selGPCSM):qAccts;
+  // CSM-filtered only (used for month button counts)
+  const csmFiltered=selGPCSM?qAccts.filter(a=>a.csRep===selGPCSM):qAccts;
+  // Full filtered (CSM + month) used everywhere else
+  const filtAccts=selGPMonth?csmFiltered.filter(a=>(a.se||'').substring(5,7)===selGPMonth):csmFiltered;
 
-  // Re-aggregate per-pool data from filtered accounts (or use global GRR when no filter)
+  // Re-aggregate per-pool data from filtered accounts (or use global GRR when no active filters)
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['8. Closed Lost (Not Renewing)'];
-  const grrQ=selGPCSM?(()=>{
+  const needsReagg=selGPCSM||selGPMonth;
+  const grrQ=needsReagg?(()=>{
     const r={};pools.forEach(p=>{r[p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});
     filtAccts.forEach(a=>{const p=a.pool;if(!r[p])return;r[p].logos++;r[p].rev+=a.rev||0;
       if(WS.includes(a.stage)){r[p].won++;r[p].rw+=a.rev||0;}
@@ -2912,13 +2919,17 @@ function rGP(){
   const gapAccel=Math.max(0,accelN-totalWon);
 
   el.innerHTML=`
-    <div style="margin-bottom:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';rT('gp_grr')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
+    <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
+        ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.se||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
+      </div>
       <div style="display:flex;align-items:center;gap:8px">
         <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM:</label>
         <select onchange="selGPCSM=this.value||null;rT('gp_grr')" style="background:var(--cd);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">
-          <option value=""${!selGPCSM?' selected':''}>All CSMs (${qAccts.length})</option>
-          ${csmList.map(c=>`<option value="${c}"${selGPCSM===c?' selected':''}>${c} (${qAccts.filter(a=>a.csRep===c).length})</option>`).join('')}
+          <option value=""${!selGPCSM?' selected':''}>All CSMs (${csmFiltered.length})</option>
+          ${csmList.map(c=>`<option value="${c}"${selGPCSM===c?' selected':''}>${c} (${csmFiltered.filter(a=>a.csRep===c).length})</option>`).join('')}
         </select>
         ${selGPCSM?`<button onclick="selGPCSM=null;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer">✕ Clear</button>`:''}
       </div>
