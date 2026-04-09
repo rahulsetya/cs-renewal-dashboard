@@ -610,6 +610,7 @@ async function loadSnapshotFromSP(token){
 // ── REVENUE CONTEXT SNAPSHOT (SharePoint) ─────────────────────────────────────
 const RC_SNAP_PATH='Documents/cs_rc_snapshot.json';
 let RC_SNAP_DATA={};
+function getRCSnapData(){return RC_SNAP_DATA;}
 async function _spRCSnapUrl(token){const sid=await _getSnapSiteId(token);return sid?`https://graph.microsoft.com/v1.0/sites/${sid}/drive/root:/${RC_SNAP_PATH}:/content`:null;}
 async function readRCSnapshotFile(token){
   try{const url=await _spRCSnapUrl(token);if(!url)return{};const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});if(!r.ok)return{};const txt=await r.text();if(!txt||txt.trim()===''||txt.trim()==='{}')return{};return JSON.parse(txt);}catch(e){return{};}
@@ -2844,8 +2845,8 @@ function _rcSaveSnap(){
   window.parent.saveRCSnapshot(snap);
 }
 function _rcClearSnap(){window.parent.clearRCSnapshot();}
-function _rcLoadSnap(){try{const d=window.parent.RC_SNAP_DATA;return d&&d.latest&&d.latest.ts?d.latest:null;}catch(e){return null;}}
-function _rcLoadHistory(){try{return(window.parent.RC_SNAP_DATA||{}).history||[];}catch(e){return[];}}
+function _rcLoadSnap(){try{const d=window.parent.getRCSnapData();return d&&d.latest&&d.latest.ts?d.latest:null;}catch(e){return null;}}
+function _rcLoadHistory(){try{return(window.parent.getRCSnapData()||{}).history||[];}catch(e){return[];}}
 const pct = n => `${n.toFixed(1)}%`;
 const stC = s => {if(["Invoice","Paid","Signed"].some(x=>s.includes(x)))return{c:"var(--green)",b:"var(--greenG)"};if(s.includes("Lost"))return{c:"var(--red)",b:"var(--redG)"};if(["Proposal","Attempting"].some(x=>s.includes(x)))return{c:"var(--amber)",b:"var(--amberG)"};if(s==="Uncontacted")return{c:"var(--rose)",b:"var(--roseG)"};return{c:"var(--dim)",b:"transparent"}};
 
