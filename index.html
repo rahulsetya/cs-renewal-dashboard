@@ -607,6 +607,32 @@ async function loadSnapshotFromSP(token){
     }
   }catch(e){console.warn('Could not load SP snapshot:',e);}
 }
+// ── REVENUE CONTEXT SNAPSHOT (SharePoint) ─────────────────────────────────────
+const RC_SNAP_PATH='Documents/cs_rc_snapshot.json';
+let RC_SNAP_DATA={};
+async function _spRCSnapUrl(token){const sid=await _getSnapSiteId(token);return sid?`https://graph.microsoft.com/v1.0/sites/${sid}/drive/root:/${RC_SNAP_PATH}:/content`:null;}
+async function readRCSnapshotFile(token){
+  try{const url=await _spRCSnapUrl(token);if(!url)return{};const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});if(!r.ok)return{};const txt=await r.text();if(!txt||txt.trim()===''||txt.trim()==='{}')return{};return JSON.parse(txt);}catch(e){return{};}
+}
+async function writeRCSnapshotFile(token,data){
+  const url=await _spRCSnapUrl(token);if(!url)throw new Error('Could not resolve SP site for RC snapshot');
+  const r=await fetch(url,{method:'PUT',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(`SP write failed ${r.status}: ${j.error?.message||'unknown'}`);}
+}
+async function loadRCSnapshotFromSP(token){
+  try{RC_SNAP_DATA=await readRCSnapshotFile(token)||{};console.log('✓ RC snapshot loaded from SharePoint');}
+  catch(e){console.warn('Could not load RC snapshot from SP:',e);try{RC_SNAP_DATA=JSON.parse(localStorage.getItem('cs_rc_snap')||'{}');}catch(ex){RC_SNAP_DATA={};}}
+}
+async function saveRCSnapshot(q,pools){
+  const pw=prompt('Enter password to save Revenue Context snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
+  try{const token=await getToken();RC_SNAP_DATA[q]={ts:Date.now(),pools};await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap',JSON.stringify(RC_SNAP_DATA));render();alert('Revenue Context snapshot saved!');}
+  catch(e){alert('Could not save RC snapshot: '+e.message);}
+}
+async function clearRCSnapshot(q){
+  const pw=prompt('Enter password to clear snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
+  try{const token=await getToken();delete RC_SNAP_DATA[q];await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap',JSON.stringify(RC_SNAP_DATA));render();}
+  catch(e){alert('Could not clear RC snapshot: '+e.message);}
+}
 function snapAge(){
   if(!PREV_TS)return null;
   const ms=Date.now()-PREV_TS,h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);
@@ -863,7 +889,7 @@ async function _fetchFresh(token){
   const engMap=await fetchAllEngagement(token);
   const spRange=await fetchSPSheet(token);
   if(spRange)SP_RAW=processSPData(spRange);
-  await loadSnapshotFromSP(token);
+  await Promise.all([loadSnapshotFromSP(token),loadRCSnapshotFromSP(token)]);
   D=processData(range,engMap);
   saveEngCache(ENG_RAW);
   const lu='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -2789,10 +2815,9 @@ const PC = {Enterprise:"#3b82f6",Strategic:"#8b5cf6",Scale:"#06b6d4","Service Pr
 // ── HELPERS ─────────────────────────────────────────
 const fmt = n => n>=1e6?`$${(n/1e6).toFixed(1)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}K`:`$${Math.round(n)}`;
 const fmtSE = s => {if(!s)return'—';const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1];};
-const _RC_SNAP_KEY='cs_rc_snap';
-function _rcSaveSnap(q){const pw=prompt('Enter password to save Revenue Context snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}try{const all=JSON.parse(localStorage.getItem(_RC_SNAP_KEY)||'{}');all[q]={ts:Date.now(),pools:window._rcCurrentData||{}};localStorage.setItem(_RC_SNAP_KEY,JSON.stringify(all));}catch(e){alert('Save failed: '+e.message);}rT('gp_grr');}
-function _rcClearSnap(q){const pw=prompt('Enter password to clear snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}try{const all=JSON.parse(localStorage.getItem(_RC_SNAP_KEY)||'{}');delete all[q];localStorage.setItem(_RC_SNAP_KEY,JSON.stringify(all));}catch(e){}rT('gp_grr');}
-function _rcLoadSnap(q){try{const all=JSON.parse(localStorage.getItem(_RC_SNAP_KEY)||'{}');return all[q]||null;}catch(e){return null;}}
+function _rcSaveSnap(q){window.parent.saveRCSnapshot(q,window._rcCurrentData||{});}
+function _rcClearSnap(q){window.parent.clearRCSnapshot(q);}
+function _rcLoadSnap(q){try{return(window.parent.RC_SNAP_DATA||{})[q]||null;}catch(e){return null;}}
 const pct = n => `${n.toFixed(1)}%`;
 const stC = s => {if(["Invoice","Paid","Signed"].some(x=>s.includes(x)))return{c:"var(--green)",b:"var(--greenG)"};if(s.includes("Lost"))return{c:"var(--red)",b:"var(--redG)"};if(["Proposal","Attempting"].some(x=>s.includes(x)))return{c:"var(--amber)",b:"var(--amberG)"};if(s==="Uncontacted")return{c:"var(--rose)",b:"var(--roseG)"};return{c:"var(--dim)",b:"transparent"}};
 
