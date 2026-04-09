@@ -2895,10 +2895,10 @@ function _updateSnapBar(){
   const snap=_rcLoadSnap();
   const ts=snap?new Date(snap.ts).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):null;
   el.innerHTML=`<div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
-    ${ts?`<span style="font-size:10px;color:var(--dim);white-space:nowrap">📸 ${ts}</span><button onclick="_rcClearSnap()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit">Clear</button>`:''}
+    ${ts?`<button onclick="_rcClearSnap()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit">Clear</button>`:''}
     <button onclick="_rcSaveSnap()" style="background:var(--bg);border:1px solid var(--borderL);color:var(--accent);border-radius:6px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📸 Snapshot</button>
   </div>
-  <div style="font-size:10px;color:var(--dim);margin-top:4px">Saves GP Retention (all quarters, per pool) &amp; Cadence call counts per CSM · shared with all users via SharePoint</div>`;
+  <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:right">${ts?`Last saved: <span style="color:var(--text)">${ts}</span>`:'Saves GP Retention (all quarters, per pool) &amp; Cadence call counts per CSM · shared via SharePoint'}</div>`;
 }
 _updateSnapBar();
 
