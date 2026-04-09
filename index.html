@@ -481,7 +481,8 @@ async function fetchAllEngagement(token){
           gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
           gm:yesNo(ec(row,'GM Completed? (Y/N)')||ec(row,'GM Completed?')),
           ap:yesNo(ec(row,'AP Delivered? (Y/N)')||ec(row,'AP Delivered?')),
-          rsk:yesNo(ec(row,'Risk? (Y/N)')||ec(row,'Risk?')),
+          rsk:yesNo(ec(row,'Risk? (Y/N)')||ec(row,'Risk?')||row[16]),
+          notes:String(row[17]||'').trim(),
           mt:parseNum(ec(row,'Miami Mtgs')||ec(row,'Miami Meetings')),
           sentiment:String(ec(row,'Sentiment')||'')
         };
@@ -995,6 +996,9 @@ function _buildLiveGoalsData(){
   const grrNone={'Enterprise':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0},'Strategic':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0},'Scale':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0}};
   const churned=[];
   const allAccts=[];
+  // Build engagement lookup (notes + risk) from ENG_RAW for GP Retention notes column
+  const _engLookup={};
+  (ENG_RAW||[]).forEach(r=>{if(r.acct)_engLookup[r.acct.toLowerCase()]={rsk:r.rsk||0,notes:r.notes||''};});
   const rows=GP_RAW_ROWS;
   const hdr=GP_RAW_HDR;
   // Build a column-name → index map from the header row (same approach as processData)
@@ -1030,7 +1034,8 @@ function _buildLiveGoalsData(){
     const isDeclined=DECLINED_S.has(stage);
     const target=q?grr[q][pool]:grrNone[pool];
     target.logos++;target.rev+=rev;
-    allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep});
+    const _eng=_engLookup[acct.toLowerCase()]||{};
+    allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep,rsk:_eng.rsk||0,notes:_eng.notes||''});
     if(isWon){target.won++;target.rw+=rev;}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csRep,rev,q,pool,renewal:se,notes:''});}
     else if(isDeclined){target.declined++;target.rd+=rev;}
@@ -1075,9 +1080,10 @@ function _buildCadenceData(){
   ENG_RAW.forEach(r=>{
     const csm=r.ro||'';if(!csm)return;
     if(!csmMap[csm]){csmMap[csm]={total:0,months:{},allAccts:[]};cols.forEach(c=>{csmMap[csm].months[c]={yes:0,accts:[]};});}
+    const acctObj={acct:r.acct,rsk:r.rsk||0,notes:r.notes||'',calls:r.calls||{},se:r.rawEnd||''};
     csmMap[csm].total++;
-    csmMap[csm].allAccts.push(r.acct);
-    cols.forEach(c=>{const v=String((r.calls&&r.calls[c])||'').trim();if(v.toLowerCase().startsWith('y')){csmMap[csm].months[c].yes++;csmMap[csm].months[c].accts.push(r.acct);}});
+    csmMap[csm].allAccts.push(acctObj);
+    cols.forEach(c=>{const v=String((r.calls&&r.calls[c])||'').trim();if(v.toLowerCase().startsWith('y')){csmMap[csm].months[c].yes++;csmMap[csm].months[c].accts.push(acctObj);}});
   });
   return{cols,csm:csmMap};
 }
@@ -2818,6 +2824,8 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"}];
 let aTab="overview",selQ="Q2",selGPCSM=null,selGPMonth=null;
+const _nowQ=(()=>{const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';})();
+let selCadQ=_nowQ;
 
 function sw(id){aTab=id;document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>{b.classList.remove('active','active-rose');if(b.dataset.t===id)b.classList.add(tabDefs.find(t=>t.id===id)?.ac?'active-rose':'active')});rT(id)}
 
@@ -2893,7 +2901,7 @@ function _acctTableHTML(rid,q,pool){
   const grpOpts=[{v:'_won',l:'Won'},{v:'_ch',l:'Churned'},{v:'_dc',l:'Declined Early'}].map(g=>`<option value="${g.v}"${filt===g.v?' selected':''}>${g.l}</option>`).join('');
   const stOpts=allStages.map(s=>`<option value="${s}"${filt===s?' selected':''}>${s.replace(/^\d+\.\s*/,'')}</option>`).join('');
   const filtActive=filt?`color:var(--accent);border-color:var(--accent)`:`color:var(--dim)`;
-  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> <select onclick="event.stopPropagation()" onchange="_filtAcct('${rid}','${q}','${pool}',this.value)" style="font-size:10px;background:var(--cd);border:1px solid var(--border);${filtActive};border-radius:4px;padding:1px 4px;cursor:pointer;vertical-align:middle;font-family:inherit"><option value="">all</option>${grpOpts}${stOpts?'<option disabled>──────</option>'+stOpts:''}</select></th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','se')">Sub End ${sa('se')}</th></tr></thead><tbody>${rows.map(a=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim)">${a.se||'—'}</td></tr>`).join('')}</tbody></table>`;
+  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> <select onclick="event.stopPropagation()" onchange="_filtAcct('${rid}','${q}','${pool}',this.value)" style="font-size:10px;background:var(--cd);border:1px solid var(--border);${filtActive};border-radius:4px;padding:1px 4px;cursor:pointer;vertical-align:middle;font-family:inherit"><option value="">all</option>${grpOpts}${stOpts?'<option disabled>──────</option>'+stOpts:''}</select></th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','se')">Sub End ${sa('se')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim)">${a.se||'—'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="7" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
 function _sortAcct(rid,q,pool,col){const cur=_acctSort[rid]||{col:'rev',dir:-1};_acctSort[rid]={col,dir:cur.col===col?-cur.dir:1};_rAcctTable(rid,q,pool);}
@@ -3028,73 +3036,104 @@ function rSP(){
 }
 
 // ── CADENCE ─────────────────────────────────────────
-let _cadFilt={};
-function _cadBodyHTML(csmName,month){
+const _QM_LC={Q1:['jan','feb','mar'],Q2:['apr','may','jun'],Q3:['jul','aug','sep'],Q4:['oct','nov','dec']};
+let _cadFilt={},_cadSort={};
+function _cadVisibleCols(){
+  const cd=CADENCE_DATA;if(!cd||!cd.cols)return[];
+  const qm=_QM_LC[selCadQ]||[];
+  return cd.cols.filter(c=>qm.some(m=>c.toLowerCase().includes(m)));
+}
+function _cadBodyHTML(rid,csmName){
   const cd=CADENCE_DATA;
   if(!cd||!cd.csm||!cd.csm[csmName])return'<div style="padding:10px 16px;color:var(--dim);font-size:12px">No engagement data for this CSM.</div>';
+  const month=_cadFilt.hasOwnProperty(rid)?_cadFilt[rid]:null;
   const cData=cd.csm[csmName];
-  const accts=month?(cData.months[month]?.accts||[]):(cData.allAccts||[]);
-  const label=month?month+' — accounts with call recorded':'All accounts in engagement tracker';
-  return`<div style="padding:0"><div style="font-size:11px;color:var(--dim);padding:6px 16px">${label} · <strong style="color:var(--text)">${accts.length}</strong></div><table style="width:100%;font-size:11px;border-collapse:collapse"><tbody>${accts.map(a=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:4px 16px;color:var(--text)">${a}</td></tr>`).join('')||'<tr><td style="padding:8px 16px;color:var(--dim)">None</td></tr>'}</tbody></table></div>`;
+  const visCols=_cadVisibleCols();
+  let accts=month?(cData.months[month]?.accts||[]):[...(cData.allAccts||[])];
+  const sort=_cadSort[rid]||{col:'se',dir:1};
+  accts=[...accts].sort((a,b)=>{
+    if(sort.col==='se')return sort.dir*((a.se||'').localeCompare(b.se||''));
+    if(sort.col==='acct')return sort.dir*((a.acct||'').localeCompare(b.acct||''));
+    return 0;
+  });
+  const sa=col=>{const s=_cadSort[rid];return s&&s.col===col?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
+  const label=month?`${month} — accounts with call`:'All accounts in engagement tracker';
+  const colSpan=visCols.length+4;
+  return`<div style="padding:0"><div style="font-size:11px;color:var(--dim);padding:6px 16px 4px">${label} · <strong style="color:var(--text)">${accts.length}</strong></div>
+    <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
+      <thead><tr style="background:rgba(255,255,255,.04)">
+        <th style="text-align:left;padding:5px 16px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','acct')">Account ${sa('acct')}</th>
+        ${visCols.map(c=>`<th style="text-align:center;padding:5px 8px;color:var(--dim);white-space:nowrap">${c}</th>`).join('')}
+        <th style="text-align:left;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','se')">Sub End ${sa('se')}</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--dim)">Risk</th>
+        <th style="text-align:left;padding:5px 8px;color:var(--dim)">Notes</th>
+      </tr></thead>
+      <tbody>${accts.map((a,idx)=>{
+        const noteId='cdn_'+rid+'_'+idx;
+        const hasNote=a.notes&&a.notes.trim();
+        return`<tr style="border-top:1px solid rgba(255,255,255,.05)">
+          <td style="padding:4px 16px;color:var(--text)">${a.acct||a}</td>
+          ${visCols.map(c=>{const v=String((a.calls&&a.calls[c])||'').trim();const isY=v.toLowerCase().startsWith('y');return`<td style="text-align:center;padding:4px 8px;color:${isY?'var(--green)':'var(--dim)'}"><strong>${isY?'✓':'—'}</strong></td>`;}).join('')}
+          <td style="padding:4px 8px;color:var(--dim);font-family:var(--mono);font-size:10px">${a.se||'—'}</td>
+          <td style="text-align:center;padding:4px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td>
+          <td style="padding:4px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td>
+        </tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${colSpan}" style="padding:3px 16px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`;
+      }).join('')||`<tr><td colspan="${colSpan}" style="padding:8px 16px;color:var(--dim)">None</td></tr>`}
+      </tbody></table></div></div>`;
+}
+function _cadSortFn(rid,csmName,col){
+  const cur=_cadSort[rid]||{col:'se',dir:1};
+  _cadSort[rid]={col,dir:cur.col===col?-cur.dir:1};
+  const b=document.getElementById(rid+'_body');if(b)b.innerHTML=_cadBodyHTML(rid,csmName);
 }
 function _cadOpen(rid,csmName,month){
   var e=document.getElementById(rid);if(!e)return;
   const wasOpen=e.style.display==='';
   const cur=_cadFilt.hasOwnProperty(rid)?_cadFilt[rid]:null;
-  const sameFilt=cur===month;
-  if(wasOpen&&sameFilt){e.style.display='none';}
-  else{e.style.display='';_cadFilt[rid]=month;const b=document.getElementById(rid+'_body');if(b)b.innerHTML=_cadBodyHTML(csmName,month);}
+  if(wasOpen&&cur===month){e.style.display='none';}
+  else{e.style.display='';_cadFilt[rid]=month;const b=document.getElementById(rid+'_body');if(b)b.innerHTML=_cadBodyHTML(rid,csmName);}
 }
 function rCadence(){
   const el=document.getElementById('tab-cadence');
   const cd=CADENCE_DATA;
   if(!cd||!cd.cols||!cd.cols.length){
-    el.innerHTML=`<div class="card"><h3>Meeting Cadence by CSM</h3><div class="sh" style="color:var(--amber)">Engagement data not yet loaded — open Goals after a live data refresh to see cadence data.</div></div>`;
+    el.innerHTML=`<div class="card"><h3>Meeting Cadence by CSM</h3><div class="sh" style="color:var(--amber)">Engagement data not yet loaded.</div></div>`;
     return;
   }
-  const cols=cd.cols;
-  // Team totals
-  let teamTotal=0;
-  const teamMo={};cols.forEach(c=>{teamMo[c]=0;});
-  Object.values(cd.csm).forEach(d=>{teamTotal+=d.total;cols.forEach(c=>{teamMo[c]+=(d.months[c]?.yes||0);});});
-
+  const visCols=_cadVisibleCols();
   el.innerHTML=`
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--dim)">Quarter:</span>
+      ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="selCadQ='${qq}';rT('cadence')">${qq}</button>`).join('')}
+    </div>
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
-      <div class="sh">Call activity from engagement tracker (columns T–AC). Click a <span style="color:var(--accent)">CSM name</span> to see all their accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts.</div>
-      <table style="border-collapse:collapse;width:100%;min-width:700px">
-        <thead>
-          <tr style="border-bottom:1px solid var(--borderL)">
-            <th style="text-align:left;padding:8px 12px;font-size:11px">CSM</th>
-            <th style="text-align:left;padding:8px 8px;font-size:11px">Pool</th>
-            ${cols.map(c=>`<th style="text-align:center;padding:8px 6px;font-size:11px;white-space:nowrap">${c}</th>`).join('')}
-            <th style="text-align:center;padding:8px 10px;font-size:11px">H1 Total</th>
-          </tr>
-          <tr style="border-bottom:2px solid var(--border);background:rgba(255,255,255,.02)">
-            <td style="padding:4px 12px;font-size:10px;color:var(--dim);font-style:italic">Team total</td>
-            <td></td>
-            ${cols.map(c=>{const t=teamMo[c];const pv=teamTotal>0?pct(t/teamTotal*100):'—';return`<td style="text-align:center;padding:4px 6px"><span style="font-weight:700;font-size:13px;color:var(--accent);font-family:var(--mono)">${t}</span><div style="font-size:10px;color:var(--dim)">${pv}</div></td>`;}).join('')}
-            <td style="text-align:center;padding:4px 10px;font-weight:700;color:var(--accent);font-family:var(--mono)">${cols.reduce((s,c)=>s+teamMo[c],0)}</td>
-          </tr>
-        </thead>
+      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts.</div>
+      <table style="border-collapse:collapse;width:100%;min-width:500px">
+        <thead><tr style="border-bottom:1px solid var(--borderL)">
+          <th style="text-align:left;padding:8px 12px;font-size:11px">CSM</th>
+          <th style="text-align:left;padding:8px 8px;font-size:11px">Pool</th>
+          ${visCols.map(c=>`<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap">${c}</th>`).join('')}
+          <th style="text-align:center;padding:8px 10px;font-size:11px">${selCadQ} Total</th>
+        </tr></thead>
         <tbody>
           ${CSM.map(c=>{
             const isSP=c.t==='SP';
             const cData=cd.csm[c.n]||{total:0,months:{},allAccts:[]};
             const rid='cad_'+c.n.replace(/\W/g,'_');
             const tot=cData.total||1;
-            const h1=cols.reduce((s,m)=>s+(cData.months[m]?.yes||0),0);
+            const qTot=visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0),0);
             return`<tr style="border-top:1px solid var(--border);background:${isSP?'var(--roseG)':'transparent'}">
               <td style="padding:7px 12px;cursor:pointer" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}',null)">
                 <span style="font-size:13px;font-weight:500;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)">${c.n}</span>
                 <div style="font-size:10px;color:var(--dim)">${c.pod} · ${cData.total||c.a} accts</div>
               </td>
               <td style="padding:7px 8px"><span class="pill" style="color:${PC[c.seg]||'var(--rose)'}">${isSP?'SP':c.seg}</span></td>
-              ${cols.map(m=>{const cnt=cData.months[m]?.yes||0;const pv=pct(cnt/tot*100);return`<td style="text-align:center;padding:7px 6px"><span style="cursor:pointer;font-weight:700;font-size:14px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')" title="${m}: ${cnt} calls">${cnt}</span><div style="font-size:10px;color:var(--dim)">${pv}</div></td>`;}).join('')}
-              <td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${h1}</td>
+              ${visCols.map(m=>{const cnt=cData.months[m]?.yes||0;const pv=pct(cnt/tot*100);return`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span><div style="font-size:10px;color:var(--dim)">${pv}</div></td>`;}).join('')}
+              <td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}</td>
             </tr>
             <tr id="${rid}" style="display:none">
-              <td colspan="${cols.length+3}" style="padding:0;background:rgba(0,0,0,.25)"><div id="${rid}_body"></div></td>
+              <td colspan="${visCols.length+3}" style="padding:0;background:rgba(0,0,0,.2)"><div id="${rid}_body"></div></td>
             </tr>`;
           }).join('')}
         </tbody>
