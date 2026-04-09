@@ -640,7 +640,7 @@ async function saveRCSnapshot(snap){
     const token=await getToken();
     const ts=Date.now(),label=_rcSnapLabel(ts);
     const entry={ts,label,gpRetention:snap.gpRetention||{},cadence:snap.cadence||{}};
-    const history=[entry,...(RC_SNAP_DATA.history||[])].slice(0,50);
+    const history=[entry,...(RC_SNAP_DATA.history||[])].slice(0,500);
     RC_SNAP_DATA={latest:entry,history};
     await writeRCSnapshotFile(token,RC_SNAP_DATA);
     localStorage.setItem('cs_rc_snap',JSON.stringify(RC_SNAP_DATA));
@@ -3560,7 +3560,7 @@ function rRCHistory(){
   const latest=_rcLoadSnap();
   const pools=['Enterprise','Strategic','Scale'],qs=['Q1','Q2','Q3','Q4'];
   if(!history.length){
-    el.innerHTML=`<div class="card"><h3>📸 Snapshot History</h3><div class="sh" style="margin-top:8px">No snapshots saved yet. Click <strong style="color:var(--accent)">📸 Snapshot</strong> in the header to record GP Retention and Cadence data. Up to 50 snapshots are kept.</div></div>`;
+    el.innerHTML=`<div class="card"><h3>📸 Snapshot History</h3><div class="sh" style="margin-top:8px">No snapshots saved yet. Click <strong style="color:var(--accent)">📸 Snapshot</strong> in the header to record GP Retention and Cadence data. Up to 500 snapshots are kept.</div></div>`;
     return;
   }
   // Get all cadence month columns from first snapshot that has them
@@ -3568,7 +3568,7 @@ function rRCHistory(){
   const cadMonths=firstCad?Object.keys(Object.values(firstCad.cadence)[0]?.months||{}):[];
   el.innerHTML=`<div class="card">
     <h3>📸 Snapshot History</h3>
-    <div class="sh" style="margin-top:4px">${history.length} snapshot${history.length!==1?'s':''} · Most recent is used for ▲/▼ delta comparisons on GP Retention &amp; Cadence tabs · Saves GP Retention (all 4 quarters, per pool) + Cadence call counts per CSM/month</div>
+    <div class="sh" style="margin-top:4px">${history.length} snapshot${history.length!==1?'s':''} · Most recent is used for ▲/▼ delta comparisons on GP Retention &amp; Cadence tabs · Saves GP Retention (all 4 quarters, per pool) + Cadence call counts per CSM/month · up to 500 kept</div>
     <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
     ${history.map((snap,i)=>{
       const sid='rch_'+i;
