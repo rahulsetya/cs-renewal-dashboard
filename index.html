@@ -619,18 +619,38 @@ async function writeRCSnapshotFile(token,data){
   const r=await fetch(url,{method:'PUT',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(data)});
   if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(`SP write failed ${r.status}: ${j.error?.message||'unknown'}`);}
 }
+function _rcSnapLabel(ts){return new Date(ts).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function _rcNormalize(raw){
+  // Migrate old flat format {ts,gpRetention,cadence} → new {latest,history}
+  if(!raw||!raw.ts&&!raw.latest)return{latest:null,history:[]};
+  if(raw.latest)return raw; // already new format
+  const entry={ts:raw.ts,label:_rcSnapLabel(raw.ts),gpRetention:raw.gpRetention||{},cadence:raw.cadence||{}};
+  return{latest:entry,history:[entry]};
+}
 async function loadRCSnapshotFromSP(token){
-  try{RC_SNAP_DATA=await readRCSnapshotFile(token)||{};console.log('✓ RC snapshot loaded from SharePoint');}
-  catch(e){console.warn('Could not load RC snapshot from SP:',e);try{RC_SNAP_DATA=JSON.parse(localStorage.getItem('cs_rc_snap')||'{}');}catch(ex){RC_SNAP_DATA={};}}
+  try{const raw=await readRCSnapshotFile(token)||{};RC_SNAP_DATA=_rcNormalize(raw);console.log('✓ RC snapshot loaded from SharePoint');}
+  catch(e){console.warn('Could not load RC snapshot from SP:',e);try{RC_SNAP_DATA=_rcNormalize(JSON.parse(localStorage.getItem('cs_rc_snap')||'{}'));}catch(ex){RC_SNAP_DATA={latest:null,history:[]};}}
+}
+function _rcUpdateIframeSnapBar(){
+  try{const fr=document.getElementById('_goals_iframe');if(fr&&fr.contentWindow&&typeof fr.contentWindow._updateSnapBar==='function'){fr.contentWindow._updateSnapBar();if(typeof fr.contentWindow.rT==='function'&&fr.contentWindow.aTab==='rc_history')fr.contentWindow.rT('rc_history');}}catch(e){}
 }
 async function saveRCSnapshot(snap){
   const pw=prompt('Enter password to save snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
-  try{const token=await getToken();RC_SNAP_DATA={ts:Date.now(),...snap};await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap',JSON.stringify(RC_SNAP_DATA));render();alert('Snapshot saved — GP Retention & Cadence data recorded for all users.');}
-  catch(e){alert('Could not save snapshot: '+e.message);}
+  try{
+    const token=await getToken();
+    const ts=Date.now(),label=_rcSnapLabel(ts);
+    const entry={ts,label,gpRetention:snap.gpRetention||{},cadence:snap.cadence||{}};
+    const history=[entry,...(RC_SNAP_DATA.history||[])].slice(0,50);
+    RC_SNAP_DATA={latest:entry,history};
+    await writeRCSnapshotFile(token,RC_SNAP_DATA);
+    localStorage.setItem('cs_rc_snap',JSON.stringify(RC_SNAP_DATA));
+    _rcUpdateIframeSnapBar();
+    alert('✓ Snapshot saved — '+label+'\nGP Retention (all quarters) & Cadence call counts recorded for all users.');
+  }catch(e){alert('Could not save snapshot: '+e.message);}
 }
 async function clearRCSnapshot(){
-  const pw=prompt('Enter password to clear snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
-  try{const token=await getToken();RC_SNAP_DATA={};await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap','{}');render();}
+  const pw=prompt('Enter password to clear all snapshots:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
+  try{const token=await getToken();RC_SNAP_DATA={latest:null,history:[]};await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap','{}');_rcUpdateIframeSnapBar();}
   catch(e){alert('Could not clear snapshot: '+e.message);}
 }
 function snapAge(){
@@ -2701,6 +2721,7 @@ input[type=number]{-moz-appearance:textfield}
   <div id="tab-targets" class="tab-content"></div>
   <div id="tab-risk" class="tab-content"></div>
   <div id="tab-rules" class="tab-content"></div>
+  <div id="tab-rc_history" class="tab-content"></div>
   <div class="footer">
     <span>Sources: 2026_Renewal_Master.xlsx · CS_Engagement_Tracker_2026.xlsx · Master_Renewal_Workbook_26_.xlsx | 2025 baseline: 52.7% logo retention | Path: 62% → 67% → 72% → 80% | Q2 = logo retention, Q3+ evolving to GRR</span>
     <span>Last refreshed: March 29, 2026</span>
@@ -2823,7 +2844,8 @@ function _rcSaveSnap(){
   window.parent.saveRCSnapshot(snap);
 }
 function _rcClearSnap(){window.parent.clearRCSnapshot();}
-function _rcLoadSnap(){try{const d=window.parent.RC_SNAP_DATA;return d&&d.ts?d:null;}catch(e){return null;}}
+function _rcLoadSnap(){try{const d=window.parent.RC_SNAP_DATA;return d&&d.latest&&d.latest.ts?d.latest:null;}catch(e){return null;}}
+function _rcLoadHistory(){try{return(window.parent.RC_SNAP_DATA||{}).history||[];}catch(e){return[];}}
 const pct = n => `${n.toFixed(1)}%`;
 const stC = s => {if(["Invoice","Paid","Signed"].some(x=>s.includes(x)))return{c:"var(--green)",b:"var(--greenG)"};if(s.includes("Lost"))return{c:"var(--red)",b:"var(--redG)"};if(["Proposal","Attempting"].some(x=>s.includes(x)))return{c:"var(--amber)",b:"var(--amberG)"};if(s==="Uncontacted")return{c:"var(--rose)",b:"var(--roseG)"};return{c:"var(--dim)",b:"transparent"}};
 
@@ -2858,7 +2880,7 @@ function poolCard(pool,d,target,gifted){
 function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(--green)"},{l:"Open (in progress)",c:"var(--amber)"},{l:"Declined early (re-engageable)",c:"var(--orange)"},{l:"Churned (confirmed lost)",c:"var(--red)"}].map(x=>`<span><span class="legend-dot" style="background:${x.c}"></span>${x.l}</span>`).join('')}</div>`}
 
 // ── TAB SYSTEM ──────────────────────────────────────
-const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"}];
+const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
 let aTab="overview",selQ="Q2",selGPCSM=null,selGPMonth=null;
 const _nowQ=(()=>{const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';})();
 let selCadQ=_nowQ;
@@ -3532,7 +3554,70 @@ function rRules(){
     </div>`;
 }
 
-function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break}}
+function rRCHistory(){
+  const el=document.getElementById('tab-rc_history');
+  const history=_rcLoadHistory();
+  const latest=_rcLoadSnap();
+  const pools=['Enterprise','Strategic','Scale'],qs=['Q1','Q2','Q3','Q4'];
+  if(!history.length){
+    el.innerHTML=`<div class="card"><h3>📸 Snapshot History</h3><div class="sh" style="margin-top:8px">No snapshots saved yet. Click <strong style="color:var(--accent)">📸 Snapshot</strong> in the header to record GP Retention and Cadence data. Up to 50 snapshots are kept.</div></div>`;
+    return;
+  }
+  // Get all cadence month columns from first snapshot that has them
+  const firstCad=history.find(s=>s.cadence&&Object.keys(s.cadence).length>0);
+  const cadMonths=firstCad?Object.keys(Object.values(firstCad.cadence)[0]?.months||{}):[];
+  el.innerHTML=`<div class="card">
+    <h3>📸 Snapshot History</h3>
+    <div class="sh" style="margin-top:4px">${history.length} snapshot${history.length!==1?'s':''} · Most recent is used for ▲/▼ delta comparisons on GP Retention &amp; Cadence tabs · Saves GP Retention (all 4 quarters, per pool) + Cadence call counts per CSM/month</div>
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+    ${history.map((snap,i)=>{
+      const sid='rch_'+i;
+      const isLatest=latest&&snap.ts===latest.ts;
+      const gpSum={logos:0,won:0,lost:0,declined:0};
+      qs.forEach(q=>pools.forEach(p=>{const d=(snap.gpRetention?.[q]||{})[p]||{};gpSum.logos+=d.logos||0;gpSum.won+=d.won||0;gpSum.lost+=d.lost||0;gpSum.declined+=d.declined||0;}));
+      const lr=gpSum.logos>0?pct(gpSum.won/gpSum.logos*100):'—';
+      const cadTotal=Object.values(snap.cadence||{}).reduce((s,d)=>s+Object.values(d.months||{}).reduce((ms,v)=>ms+v,0),0);
+      return`<div style="border:1px solid ${isLatest?'var(--accent)':'var(--border)'};border-radius:8px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;background:${isLatest?'rgba(99,102,241,.08)':'var(--bg)'}" onclick="(function(){var b=document.getElementById('${sid}');b.style.display=b.style.display===''?'none':''})()">
+          <div style="flex:0 0 auto;min-width:160px">
+            <div style="font-size:12px;font-weight:600;color:var(--text)">${snap.label||new Date(snap.ts).toLocaleString()}</div>
+            ${isLatest?`<span style="font-size:10px;color:var(--accent);font-weight:700">● LATEST · used for deltas</span>`:`<span style="font-size:10px;color:var(--dim)">snapshot #${i+1}</span>`}
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;flex:1;align-items:center">
+            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Logos</div><strong style="color:var(--text);font-family:var(--mono)">${gpSum.logos}</strong></div>
+            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Won</div><strong style="color:var(--green);font-family:var(--mono)">${gpSum.won}</strong></div>
+            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Churned</div><strong style="color:var(--red);font-family:var(--mono)">${gpSum.lost}</strong></div>
+            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Declined</div><strong style="color:var(--orange);font-family:var(--mono)">${gpSum.declined}</strong></div>
+            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Logo Ret.</div><strong style="color:var(--amber);font-family:var(--mono)">${lr}</strong></div>
+            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Cad. Calls</div><strong style="color:var(--accent);font-family:var(--mono)">${cadTotal}</strong></div>
+          </div>
+          <span style="color:var(--dim);font-size:12px;flex-shrink:0">▸ expand</span>
+        </div>
+        <div id="${sid}" style="display:none;padding:14px;background:rgba(0,0,0,.15);border-top:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">GP Retention — all quarters</div>
+          <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px;min-width:500px">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:4px 10px;color:var(--dim)">Pool</th>${qs.map(q=>`<th colspan="4" style="text-align:center;padding:4px 8px;color:var(--dim);border-left:1px solid var(--border)">${q}</th>`).join('')}</tr>
+              <tr style="border-bottom:1px solid var(--border)"><th></th>${qs.map(()=>`<th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--dim);border-left:1px solid var(--border)">Logos</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--green)">Won</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--red)">Churn</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--orange)">Decl</th>`).join('')}</tr>
+            </thead>
+            <tbody>${pools.map(p=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:5px 10px;font-weight:500">${p}</td>${qs.map(q=>{const d=(snap.gpRetention?.[q]||{})[p]||{};const lr2=d.logos>0?pct(d.won/d.logos*100):'—';return`<td class="mono" style="text-align:right;padding:5px 6px;border-left:1px solid var(--border)">${d.logos||0}</td><td class="mono" style="text-align:right;padding:5px 6px;color:var(--green)">${d.won||0}</td><td class="mono" style="text-align:right;padding:5px 6px;color:var(--red)">${d.lost||0}</td><td class="mono" style="text-align:right;padding:5px 6px;color:var(--orange)">${d.declined||0}</td>`;}).join('')}</tr>`).join('')}
+            </tbody></table></div>
+          <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Cadence — call counts per CSM</div>
+          <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px">
+            <thead><tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:4px 10px;color:var(--dim)">CSM</th>
+              <th style="text-align:right;padding:4px 8px;color:var(--dim)">Accts</th>
+              ${cadMonths.map(m=>`<th style="text-align:center;padding:4px 6px;color:var(--dim);white-space:nowrap;font-size:10px">${m}</th>`).join('')}
+            </tr></thead>
+            <tbody>${Object.entries(snap.cadence||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([csm,d])=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:4px 10px;font-weight:500">${csm}</td><td class="mono" style="text-align:right;padding:4px 8px;color:var(--dim)">${d.total||0}</td>${cadMonths.map(m=>{const cnt=(d.months||{})[m]||0;return`<td class="mono" style="text-align:center;padding:4px 6px;color:${cnt>0?'var(--green)':'var(--dim)'}">${cnt||'—'}</td>`;}).join('')}</tr>`).join('')||`<tr><td colspan="${cadMonths.length+2}" style="padding:8px 10px;color:var(--dim)">No cadence data in this snapshot.</td></tr>`}
+            </tbody></table></div>
+        </div>
+      </div>`;
+    }).join('')}
+    </div>
+  </div>`;
+}
+function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
 rOverview();
 </script>
 </body>
