@@ -623,15 +623,15 @@ async function loadRCSnapshotFromSP(token){
   try{RC_SNAP_DATA=await readRCSnapshotFile(token)||{};console.log('✓ RC snapshot loaded from SharePoint');}
   catch(e){console.warn('Could not load RC snapshot from SP:',e);try{RC_SNAP_DATA=JSON.parse(localStorage.getItem('cs_rc_snap')||'{}');}catch(ex){RC_SNAP_DATA={};}}
 }
-async function saveRCSnapshot(q,pools){
-  const pw=prompt('Enter password to save Revenue Context snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
-  try{const token=await getToken();RC_SNAP_DATA[q]={ts:Date.now(),pools};await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap',JSON.stringify(RC_SNAP_DATA));render();alert('Revenue Context snapshot saved!');}
-  catch(e){alert('Could not save RC snapshot: '+e.message);}
+async function saveRCSnapshot(snap){
+  const pw=prompt('Enter password to save snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
+  try{const token=await getToken();RC_SNAP_DATA={ts:Date.now(),...snap};await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap',JSON.stringify(RC_SNAP_DATA));render();alert('Snapshot saved — GP Retention & Cadence data recorded for all users.');}
+  catch(e){alert('Could not save snapshot: '+e.message);}
 }
-async function clearRCSnapshot(q){
+async function clearRCSnapshot(){
   const pw=prompt('Enter password to clear snapshot:');if(pw===null)return;if(pw!=='Tim Fischer'){alert('Incorrect password.');return;}
-  try{const token=await getToken();delete RC_SNAP_DATA[q];await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap',JSON.stringify(RC_SNAP_DATA));render();}
-  catch(e){alert('Could not clear RC snapshot: '+e.message);}
+  try{const token=await getToken();RC_SNAP_DATA={};await writeRCSnapshotFile(token,RC_SNAP_DATA);localStorage.setItem('cs_rc_snap','{}');render();}
+  catch(e){alert('Could not clear snapshot: '+e.message);}
 }
 function snapAge(){
   if(!PREV_TS)return null;
@@ -2815,9 +2815,14 @@ const PC = {Enterprise:"#3b82f6",Strategic:"#8b5cf6",Scale:"#06b6d4","Service Pr
 // ── HELPERS ─────────────────────────────────────────
 const fmt = n => n>=1e6?`$${(n/1e6).toFixed(1)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}K`:`$${Math.round(n)}`;
 const fmtSE = s => {if(!s)return'—';const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1];};
-function _rcSaveSnap(q){window.parent.saveRCSnapshot(q,window._rcCurrentData||{});}
-function _rcClearSnap(q){window.parent.clearRCSnapshot(q);}
-function _rcLoadSnap(q){try{return(window.parent.RC_SNAP_DATA||{})[q]||null;}catch(e){return null;}}
+function _rcSaveSnap(){
+  const snap={gpRetention:{},cadence:{}};
+  ['Q1','Q2','Q3','Q4'].forEach(q=>{snap.gpRetention[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{const d=(GRR[q]||{})[p]||{};snap.gpRetention[q][p]={logos:d.logos||0,won:d.won||0,lost:d.lost||0,declined:d.declined||0};});});
+  if(CADENCE_DATA&&CADENCE_DATA.csm){Object.entries(CADENCE_DATA.csm).forEach(([csm,d])=>{snap.cadence[csm]={total:d.total||0,months:{}};Object.entries(d.months||{}).forEach(([m,md])=>{snap.cadence[csm].months[m]=md.yes||0;});});}
+  window.parent.saveRCSnapshot(snap);
+}
+function _rcClearSnap(){window.parent.clearRCSnapshot();}
+function _rcLoadSnap(){try{const d=window.parent.RC_SNAP_DATA;return d&&d.ts?d:null;}catch(e){return null;}}
 const pct = n => `${n.toFixed(1)}%`;
 const stC = s => {if(["Invoice","Paid","Signed"].some(x=>s.includes(x)))return{c:"var(--green)",b:"var(--greenG)"};if(s.includes("Lost"))return{c:"var(--red)",b:"var(--redG)"};if(["Proposal","Attempting"].some(x=>s.includes(x)))return{c:"var(--amber)",b:"var(--amberG)"};if(s==="Uncontacted")return{c:"var(--rose)",b:"var(--roseG)"};return{c:"var(--dim)",b:"transparent"}};
 
@@ -2985,17 +2990,20 @@ function rGP(){
   const gapFull=Math.max(0,fullN-totalWon);
   const gapAccel=Math.max(0,accelN-totalWon);
 
-  // Revenue Context snapshot state
-  window._rcCurrentData=pools.reduce((o,p)=>{const d=grrQ[p]||{};o[p]={logos:d.logos||0,won:d.won||0,lost:d.lost||0,declined:d.declined||0,rev:d.rev||0,rw:d.rw||0};return o;},{});
-  const _rcSnap=_rcLoadSnap(q);
-  const _rcPools=_rcSnap?_rcSnap.pools:null;
+  // Snapshot state (covers GP Retention + Cadence)
+  const _rcSnap=_rcLoadSnap();
   const _rcTs=_rcSnap?new Date(_rcSnap.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):null;
+  const _rcPools=(_rcSnap?.gpRetention||{})[q]||null;
   const _rcD=(p,k)=>{if(!_rcPools||!_rcPools[p])return'';const d=(grrQ[p]||{})[k]||0,old=_rcPools[p][k]||0,diff=d-old;if(!diff)return'';return`<span style="font-size:9px;font-weight:700;color:${diff>0?'var(--green)':'var(--red)'};margin-left:3px">${diff>0?'▲':'▼'}${Math.abs(diff)}</span>`;};
   const _rcDPct=(p,num,den)=>{if(!_rcPools||!_rcPools[p])return'';const cd=(grrQ[p]||{})[den]||0,cn=(grrQ[p]||{})[num]||0,od=_rcPools[p][den]||0,on_=_rcPools[p][num]||0;if(!cd||!od)return'';const diff=(cd>0?cn/cd*100:0)-(od>0?on_/od*100:0);if(Math.abs(diff)<0.05)return'';return`<span style="font-size:9px;font-weight:700;color:${diff>0?'var(--green)':'var(--red)'};margin-left:3px">${diff>0?'▲':'▼'}${Math.abs(diff).toFixed(1)}pp</span>`;};
 
   el.innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        ${_rcTs?`<span style="font-size:10px;color:var(--dim);white-space:nowrap">📸 snapped ${_rcTs}</span><button onclick="_rcClearSnap()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer">Clear</button>`:''}
+        <button onclick="_rcSaveSnap()" style="background:var(--bg);border:1px solid var(--borderL);color:var(--accent);border-radius:6px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📸 Snapshot</button>
+      </div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
         ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.se||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
@@ -3026,10 +3034,8 @@ function rGP(){
     </div>`:''}
     <div class="card"><h3>${q} GP Pipeline by Pool${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>
     <div class="card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px">
-        <div><h3 style="margin:0 0 4px">${q} Revenue Context${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh" style="margin:0">Revenue associated with each pool (for future GRR tracking)${_rcTs?` · <span style="color:var(--dim)">📸 snapped ${_rcTs}</span>`:''}${_rcTs?` <button onclick="_rcClearSnap('${q}')" style="background:transparent;border:none;color:var(--dim);font-size:10px;cursor:pointer;padding:0 2px;text-decoration:underline">clear</button>`:''}</div></div>
-        <button onclick="_rcSaveSnap('${q}')" style="flex-shrink:0;background:var(--bg);border:1px solid var(--borderL);color:var(--accent);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📸 Snapshot</button>
-      </div>
+      <h3>${q} Revenue Context${selGPCSM?' · '+selGPCSM:''}</h3>
+      <div class="sh">Revenue associated with each pool (for future GRR tracking)${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
       <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
       <tbody>${pools.map(p=>{const d=grrQ[p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;const pcount=filtAccts.filter(a=>a.pool===p).length;const rid='acr_'+q+'_'+p.replace(/\W/g,'');return`<tr><td style="font-weight:500;cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','')" title="Show all accounts"><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p} <span style="font-size:10px;color:var(--dim)">▸ ${pcount}</span></td><td class="mono" style="text-align:right">${d.logos}${_rcD(p,'logos')}</td><td class="mono" style="text-align:right;color:var(--green);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_won')" title="Show won accounts">${d.won}${_rcD(p,'won')}</td><td class="mono" style="text-align:right;color:var(--red);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_ch')" title="Show churned accounts">${d.lost}${_rcD(p,'lost')}</td><td class="mono" style="text-align:right;color:var(--orange);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_dc')" title="Show declined accounts">${d.declined}${_rcD(p,'declined')}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}${_rcDPct(p,'won','logos')}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr><tr id="${rid}" style="display:none"><td colspan="9" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><div id="${rid}_acct">${_acctTableHTML(rid,q,p)}</div></td></tr>`;}).join('')}</tbody></table>
     </div>`;
@@ -3145,14 +3151,22 @@ function rCadence(){
     return;
   }
   const visCols=_cadVisibleCols();
+  const _rcSnap=_rcLoadSnap();
+  const _rcTs=_rcSnap?new Date(_rcSnap.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):null;
+  const _rcCad=_rcSnap?.cadence||null;
+  const _rcCadD=(csm,month,cur)=>{if(!_rcCad||!_rcCad[csm])return'';const old=(_rcCad[csm].months||{})[month]||0,diff=cur-old;if(!diff)return'';return`<span style="font-size:9px;font-weight:700;color:${diff>0?'var(--green)':'var(--red)'};display:block">${diff>0?'▲':'▼'}${Math.abs(diff)}</span>`;};
   el.innerHTML=`
     <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--dim)">Quarter:</span>
       ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="selCadQ='${qq}';rT('cadence')">${qq}</button>`).join('')}
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        ${_rcTs?`<span style="font-size:10px;color:var(--dim);white-space:nowrap">📸 snapped ${_rcTs}</span><button onclick="_rcClearSnap()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer">Clear</button>`:''}
+        <button onclick="_rcSaveSnap()" style="background:var(--bg);border:1px solid var(--borderL);color:var(--accent);border-radius:6px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📸 Snapshot</button>
+      </div>
     </div>
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
-      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts.</div>
+      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts.${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
       <table style="border-collapse:collapse;width:100%;min-width:500px">
         <thead><tr style="border-bottom:1px solid var(--borderL)">
           <th style="text-align:left;padding:8px 12px;font-size:11px">CSM</th>
@@ -3167,14 +3181,16 @@ function rCadence(){
             const rid='cad_'+c.n.replace(/\W/g,'_');
             const tot=cData.total||1;
             const qTot=visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0),0);
+            const snapQTot=_rcCad?.[c.n]?visCols.reduce((s,m)=>s+((_rcCad[c.n].months||{})[m]||0),0):null;
+            const qTotDiff=snapQTot!==null?qTot-snapQTot:0;
             return`<tr style="border-top:1px solid var(--border);background:${isSP?'var(--roseG)':'transparent'}">
               <td style="padding:7px 12px;cursor:pointer" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}',null)">
                 <span style="font-size:13px;font-weight:500;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)">${c.n}</span>
                 <div style="font-size:10px;color:var(--dim)">${c.pod} · ${cData.total||c.a} accts</div>
               </td>
               <td style="padding:7px 8px"><span class="pill" style="color:${PC[c.seg]||'var(--rose)'}">${isSP?'SP':c.seg}</span></td>
-              ${visCols.map(m=>{const cnt=cData.months[m]?.yes||0;const pv=pct(cnt/tot*100);return`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span><div style="font-size:10px;color:var(--dim)">${pv}</div></td>`;}).join('')}
-              <td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}</td>
+              ${visCols.map(m=>{const cnt=cData.months[m]?.yes||0;const pv=pct(cnt/tot*100);return`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div></td>`;}).join('')}
+              <td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}${qTotDiff?`<span style="font-size:9px;font-weight:700;color:${qTotDiff>0?'var(--green)':'var(--red)'};display:block">${qTotDiff>0?'▲':'▼'}${Math.abs(qTotDiff)}</span>`:''}</td>
             </tr>
             <tr id="${rid}" style="display:none">
               <td colspan="${visCols.length+3}" style="padding:0;background:rgba(0,0,0,.2)"><div id="${rid}_body"></div></td>
