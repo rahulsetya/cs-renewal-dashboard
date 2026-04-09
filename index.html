@@ -2898,7 +2898,8 @@ function _updateSnapBar(){
     ${ts?`<button onclick="_rcClearSnap()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit">Clear</button>`:''}
     <button onclick="_rcSaveSnap()" style="background:var(--bg);border:1px solid var(--borderL);color:var(--accent);border-radius:6px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📸 Snapshot</button>
   </div>
-  <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:right">${ts?`Last saved: <span style="color:var(--text)">${ts}</span>`:'Saves GP Retention (all quarters, per pool) &amp; Cadence call counts per CSM · shared via SharePoint'}</div>`;
+  <div style="font-size:10px;color:var(--dim);margin-top:4px;text-align:right">Saves GP Retention (all quarters, per pool) &amp; Cadence call counts per CSM</div>
+  <div style="font-size:10px;margin-top:2px;text-align:right">${ts?`Last saved: <span style="color:var(--text)">${ts}</span>`:'<span style="color:var(--dim);font-style:italic">No snapshot saved yet</span>'}</div>`;
 }
 _updateSnapBar();
 
