@@ -2690,6 +2690,7 @@ input[type=number]{-moz-appearance:textfield}
   <div class="header">
     <div class="logo">iC</div>
     <div><h1>CS Goals & Variable Comp Dashboard</h1><div class="sub">iConnections · H1 2026</div></div>
+    <div id="snap-bar" style="margin-left:auto;text-align:right"></div>
   </div>
   <div class="tabs" id="tabs"></div>
   <div id="tab-overview" class="tab-content active"></div>
@@ -2867,6 +2868,18 @@ function sw(id){aTab=id;document.querySelectorAll('.tab-content').forEach(e=>e.c
 const tabsEl=document.getElementById('tabs');
 tabDefs.forEach(t=>{const b=document.createElement('button');b.textContent=t.l;b.dataset.t=t.id;if(t.id===aTab)b.classList.add('active');b.onclick=()=>sw(t.id);tabsEl.appendChild(b)});
 
+function _updateSnapBar(){
+  const el=document.getElementById('snap-bar');if(!el)return;
+  const snap=_rcLoadSnap();
+  const ts=snap?new Date(snap.ts).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}):null;
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+    ${ts?`<span style="font-size:10px;color:var(--dim);white-space:nowrap">📸 ${ts}</span><button onclick="_rcClearSnap()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:inherit">Clear</button>`:''}
+    <button onclick="_rcSaveSnap()" style="background:var(--bg);border:1px solid var(--borderL);color:var(--accent);border-radius:6px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📸 Snapshot</button>
+  </div>
+  <div style="font-size:10px;color:var(--dim);margin-top:4px">Saves GP Retention (all quarters, per pool) &amp; Cadence call counts per CSM · shared with all users via SharePoint</div>`;
+}
+_updateSnapBar();
+
 // ── OVERVIEW ────────────────────────────────────────
 function rOverview(){
   const el=document.getElementById('tab-overview');
@@ -3000,10 +3013,6 @@ function rGP(){
   el.innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        ${_rcTs?`<span style="font-size:10px;color:var(--dim);white-space:nowrap">📸 snapped ${_rcTs}</span><button onclick="_rcClearSnap()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer">Clear</button>`:''}
-        <button onclick="_rcSaveSnap()" style="background:var(--bg);border:1px solid var(--borderL);color:var(--accent);border-radius:6px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📸 Snapshot</button>
-      </div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
         ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.se||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
@@ -3159,10 +3168,6 @@ function rCadence(){
     <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--dim)">Quarter:</span>
       ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="selCadQ='${qq}';rT('cadence')">${qq}</button>`).join('')}
-      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        ${_rcTs?`<span style="font-size:10px;color:var(--dim);white-space:nowrap">📸 snapped ${_rcTs}</span><button onclick="_rcClearSnap()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer">Clear</button>`:''}
-        <button onclick="_rcSaveSnap()" style="background:var(--bg);border:1px solid var(--borderL);color:var(--accent);border-radius:6px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📸 Snapshot</button>
-      </div>
     </div>
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
