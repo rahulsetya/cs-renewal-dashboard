@@ -1043,47 +1043,51 @@ function _buildLiveGoalsData(){
   const grrNone={'Enterprise':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0},'Strategic':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0},'Scale':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0}};
   const churned=[];
   const allAccts=[];
-  // Build engagement lookup (notes + risk) from ENG_RAW for GP Retention notes column
-  const _engLookup={};
-  (ENG_RAW||[]).forEach(r=>{if(r.acct)_engLookup[r.acct.toLowerCase()]={rsk:r.rsk||0,notes:r.notes||'',csm:r.ro||''};});
+  // Build renewal master lookup: account name → {stage, rev, se}
+  const renewalLookup={};
   const rows=GP_RAW_ROWS;
   const hdr=GP_RAW_HDR;
-  // Build a column-name → index map from the header row (same approach as processData)
   const cm={};
   (rows[hdr]||[]).forEach((h,i)=>{const k=String(h||'').trim();if(k)cm[k.toLowerCase()]=i;});
   function gc(v,...names){for(const n of names){const i=cm[n.toLowerCase()];if(i!==undefined&&v[i]!==undefined&&v[i]!=='')return v[i];}return '';}
-  // Locate rev column by name
   const revColIdx=(()=>{for(const k of Object.keys(cm)){if(k.includes('2025')&&k.includes('revenue'))return cm[k];}for(const k of Object.keys(cm)){if(k.includes('total revenue'))return cm[k];}return 3;})();
   for(let i=hdr+1;i<rows.length;i++){
     const v=rows[i];
-    // Use same column names as processData for company + stage + CS Rep + sub end date
     const acct=String(gc(v,'Contact','Company Name','Account Name')||'').trim();
     if(!acct)continue;
     const rawStage=String(gc(v,'Stage')||'').trim();
     const stage=resolveStage(rawStage)||rawStage||'1. Uncontacted';
-    const csRep=String(gc(v,'CS Rep')||'').trim();
-    const pool=POOL_MAP[csRep]||'Scale';
     const seRaw=gc(v,'Final Sub End Date');
-    // Robust date parse: ISO string "YYYY-MM-DD", US slash "M/D/YYYY", or Excel serial
     const se=(()=>{
       if(!seRaw&&seRaw!==0)return'';
       const s=String(seRaw).trim();
       if(!s)return'';
-      if(/^\d{4}-\d{2}/.test(s))return s.substring(0,10);          // "2026-04-15"
+      if(/^\d{4}-\d{2}/.test(s))return s.substring(0,10);
       const sl=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if(sl)return`${sl[3]}-${sl[1].padStart(2,'0')}-${sl[2].padStart(2,'0')}`; // "4/15/2026"
-      return excelDateToJS(seRaw);                                   // Excel serial number
+      if(sl)return`${sl[3]}-${sl[1].padStart(2,'0')}-${sl[2].padStart(2,'0')}`;
+      return excelDateToJS(seRaw);
     })();
     const rev=parseNum(v[revColIdx]||'');
+    renewalLookup[acct.toLowerCase()]={stage,rev,se};
+  }
+
+  // Drive account list from Engagement Tracker (column A = account name, column AI = CSM)
+  for(const r of (ENG_RAW||[])){
+    const acct=r.acct;
+    if(!acct)continue;
+    const renewal=renewalLookup[acct.toLowerCase()]||{};
+    const stage=renewal.stage||'1. Uncontacted';
+    const rev=renewal.rev||0;
+    const se=renewal.se||'';
+    const csm=r.ro||'';
+    const pool=POOL_MAP[csm]||'Scale';
     const q=getQ(se);
     const isWon=WON_S.has(stage);
     const isLost=CHURNED_S.has(stage);
     const isDeclined=DECLINED_S.has(stage);
     const target=q?grr[q][pool]:grrNone[pool];
     target.logos++;target.rev+=rev;
-    const _eng=_engLookup[acct.toLowerCase()]||{};
-    const csm=_eng.csm||'';
-    allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep:csm,rsk:_eng.rsk||0,notes:_eng.notes||''});
+    allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep:csm,rsk:r.rsk||0,notes:r.notes||''});
     if(isWon){target.won++;target.rw+=rev;}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
     else if(isDeclined){target.declined++;target.rd+=rev;}
