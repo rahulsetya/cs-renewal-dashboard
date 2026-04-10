@@ -211,8 +211,8 @@ function buildSnapshotKpis(){
 }
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
-let LIGHT=localStorage.getItem('cs_theme')==='light'||(!localStorage.getItem('cs_theme')&&matchMedia('(prefers-color-scheme:light)').matches);
-matchMedia('(prefers-color-scheme:light)').addEventListener('change',e=>{if(!localStorage.getItem('cs_theme')){LIGHT=e.matches;applyBodyClass();render();}});
+let LIGHT=localStorage.getItem('cs_theme')==='light';
+// No system preference follow — always defaults to dark
 function applyBodyClass(){document.body.classList.toggle('light',LIGHT);}
 function ssTheme(){LIGHT=!LIGHT;localStorage.setItem('cs_theme',LIGHT?'light':'dark');applyBodyClass();render();}
 
