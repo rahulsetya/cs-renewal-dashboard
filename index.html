@@ -1045,7 +1045,7 @@ function _buildLiveGoalsData(){
   const allAccts=[];
   // Build engagement lookup (notes + risk) from ENG_RAW for GP Retention notes column
   const _engLookup={};
-  (ENG_RAW||[]).forEach(r=>{if(r.acct)_engLookup[r.acct.toLowerCase()]={rsk:r.rsk||0,notes:r.notes||''};});
+  (ENG_RAW||[]).forEach(r=>{if(r.acct)_engLookup[r.acct.toLowerCase()]={rsk:r.rsk||0,notes:r.notes||'',csm:r.ro||''};});
   const rows=GP_RAW_ROWS;
   const hdr=GP_RAW_HDR;
   // Build a column-name → index map from the header row (same approach as processData)
@@ -1082,9 +1082,10 @@ function _buildLiveGoalsData(){
     const target=q?grr[q][pool]:grrNone[pool];
     target.logos++;target.rev+=rev;
     const _eng=_engLookup[acct.toLowerCase()]||{};
-    allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep,rsk:_eng.rsk||0,notes:_eng.notes||''});
+    const csm=_eng.csm||csRep;
+    allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep:csm,rsk:_eng.rsk||0,notes:_eng.notes||''});
     if(isWon){target.won++;target.rw+=rev;}
-    else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csRep,rev,q,pool,renewal:se,notes:''});}
+    else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
   }
