@@ -2842,7 +2842,17 @@ const fmt = n => n>=1e6?`$${(n/1e6).toFixed(1)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}
 const fmtSE = s => {if(!s)return'—';const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1];};
 function _rcSaveSnap(){
   const snap={gpRetention:{},cadence:{}};
-  ['Q1','Q2','Q3','Q4'].forEach(q=>{snap.gpRetention[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{const d=(GRR[q]||{})[p]||{};snap.gpRetention[q][p]={logos:d.logos||0,won:d.won||0,lost:d.lost||0,declined:d.declined||0};});});
+  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=['8. Closed Lost (Not Renewing)'];
+  ['Q1','Q2','Q3','Q4'].forEach(function(q){snap.gpRetention[q]={};['Enterprise','Strategic','Scale'].forEach(function(p){
+    const d=(GRR[q]||{})[p]||{};
+    snap.gpRetention[q][p]={
+      logos:d.logos||0,won:d.won||0,lost:d.lost||0,declined:d.declined||0,
+      accounts:(ACCTS||[]).filter(function(a){return a.q===q&&a.pool===p;}).map(function(a){
+        return{n:a.n,rev:a.rev||0,csRep:a.csRep||'',
+          status:_WS.includes(a.stage)?'won':_CS.includes(a.stage)?'churned':_DS.includes(a.stage)?'declined':'open'};
+      })
+    };
+  });});
   if(CADENCE_DATA&&CADENCE_DATA.csm){Object.entries(CADENCE_DATA.csm).forEach(([csm,d])=>{snap.cadence[csm]={total:d.total||0,months:{}};Object.entries(d.months||{}).forEach(([m,md])=>{snap.cadence[csm].months[m]=md.yes||0;});});}
   window.parent.saveRCSnapshot(snap);
 }
@@ -3654,32 +3664,66 @@ function rRCHistory(){
           const od=(cmpSnap.gpRetention&&cmpSnap.gpRetention[q]&&cmpSnap.gpRetention[q][p])||{};
           ['logos','won','lost','declined'].forEach(function(k){const diff=(d[k]||0)-(od[k]||0);if(diff!==0)mvs.push({q:q,p:p,k:k,diff:diff,cur:d[k]||0,prev:od[k]||0});});
         });});
-        h+='<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pool Changes — '+cmpLabel+' <span style="font-weight:400;text-transform:none;letter-spacing:0">· click to see accounts</span></div>';
+        h+='<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pool Changes — '+cmpLabel+' <span style="font-weight:400;text-transform:none;letter-spacing:0">· click to see moved accounts</span></div>';
         if(!mvs.length){
           h+='<div style="font-size:11px;color:var(--dim);padding:4px 0">No GP changes between these snapshots.</div>';
         }else{
           const kL={logos:'Logos',won:'Won',lost:'Churned',declined:'Declined'};
-          const filtM={logos:'',won:'_won',lost:'_ch',declined:'_dc'};
-          const poolCtrMap={};
-          h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+          // Each pill + its own inline diff panel (unique rid per metric)
           mvs.forEach(function(mv){
             const isInv=mv.k==='lost'||mv.k==='declined';
             const good=isInv?mv.diff<0:mv.diff>0;
-            const filtCode=filtM[mv.k]||'';
-            const rid='rchp_'+i+'_'+mv.q+'_'+mv.p.replace(/\s+/g,'');
-            poolCtrMap[rid]={q:mv.q,pool:mv.p};
-            h+='<div style="padding:5px 10px;border-radius:6px;background:'+(good?'rgba(52,211,153,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(good?'rgba(52,211,153,.2)':'rgba(239,68,68,.2)')+';font-size:11px;cursor:pointer;user-select:none" onclick="_openPool(\''+rid+'\',\''+mv.q+'\',\''+mv.p+'\',\''+filtCode+'\')">';
+            const rid='rchp_'+i+'_'+mv.q+'_'+mv.p.replace(/\s+/g,'')+'_'+mv.k;
+            h+='<div style="margin-bottom:4px">';
+            // Pill
+            h+='<div style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:6px;background:'+(good?'rgba(52,211,153,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(good?'rgba(52,211,153,.2)':'rgba(239,68,68,.2)')+';font-size:11px;cursor:pointer;user-select:none" onclick="(function(){var e=document.getElementById(\''+rid+'\');if(e)e.style.display=e.style.display===\'none\'?\'\':\'none\';})()">';
             h+='<span style="color:var(--dim)">'+mv.q+' '+mv.p+' '+kL[mv.k]+'</span>';
             h+='<span style="font-weight:700;color:'+(good?'var(--green)':'var(--red)')+';margin-left:6px">'+(mv.diff>0?'+':'')+mv.diff+'</span>';
             h+='<span style="font-size:10px;color:var(--dim);margin-left:4px">'+mv.prev+'→'+mv.cur+'</span>';
             h+='<span style="font-size:10px;color:var(--dim);margin-left:5px">▸</span>';
             h+='</div>';
-          });
-          h+='</div>';
-          // Hidden account sub-table containers (one per unique q+pool)
-          Object.entries(poolCtrMap).forEach(function(e2){
-            const rid2=e2[0];
-            h+='<div id="'+rid2+'" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:6px;overflow:hidden"><div id="'+rid2+'_acct"></div></div>';
+            // Inline diff panel (hidden by default)
+            h+='<div id="'+rid+'" style="display:none;margin-top:4px;padding:10px 12px;background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:6px">';
+            const s1Accts=(snap.gpRetention&&snap.gpRetention[mv.q]&&snap.gpRetention[mv.q][mv.p]&&snap.gpRetention[mv.q][mv.p].accounts)||null;
+            const s2Accts=(cmpSnap&&cmpSnap.gpRetention&&cmpSnap.gpRetention[mv.q]&&cmpSnap.gpRetention[mv.q][mv.p]&&cmpSnap.gpRetention[mv.q][mv.p].accounts)||null;
+            if(s1Accts===null||s2Accts===null){
+              h+='<div style="font-size:11px;color:var(--dim);font-style:italic">No account-level data in one or both snapshots. Save a new snapshot to enable account comparison.</div>';
+            }else{
+              // Build sets for diff
+              const statusKey=mv.k==='lost'?'churned':mv.k==='declined'?'declined':mv.k==='won'?'won':null;
+              var gained=[],lostAccts=[];
+              if(statusKey){
+                const s1Set=new Set(s1Accts.filter(function(a){return a.status===statusKey;}).map(function(a){return a.n;}));
+                const s2Set=new Set(s2Accts.filter(function(a){return a.status===statusKey;}).map(function(a){return a.n;}));
+                gained=s1Accts.filter(function(a){return a.status===statusKey&&!s2Set.has(a.n);});
+                lostAccts=s2Accts.filter(function(a){return a.status===statusKey&&!s1Set.has(a.n);});
+              }else{
+                // logos: net new or removed accounts
+                const s1Names=new Set(s1Accts.map(function(a){return a.n;}));
+                const s2Names=new Set(s2Accts.map(function(a){return a.n;}));
+                gained=s1Accts.filter(function(a){return!s2Names.has(a.n);});
+                lostAccts=s2Accts.filter(function(a){return!s1Names.has(a.n);});
+              }
+              if(!gained.length&&!lostAccts.length){
+                h+='<div style="font-size:11px;color:var(--dim);font-style:italic">Account names are unchanged — the count shift may reflect re-categorization without name changes.</div>';
+              }else{
+                const acctRow=function(a,color){
+                  const fmt=function(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+Math.round(n);};
+                  return'<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 10px 3px 0;color:'+color+';font-weight:500">'+a.n+'</td><td style="padding:3px 10px;color:var(--dim)">'+( a.csRep||'—')+'</td><td style="padding:3px 10px;text-align:right;color:var(--dim)">'+( a.rev?fmt(a.rev):'—')+'</td></tr>';
+                };
+                h+='<table style="border-collapse:collapse;font-size:11px;width:100%"><thead><tr><th style="text-align:left;padding:3px 10px 3px 0;color:var(--dim)">Account</th><th style="text-align:left;padding:3px 10px;color:var(--dim)">CSM</th><th style="text-align:right;padding:3px 10px;color:var(--dim)">Rev</th></tr></thead><tbody>';
+                if(gained.length){
+                  h+='<tr><td colspan="3" style="padding:5px 0 2px;font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px">▲ Gained ('+gained.length+')</td></tr>';
+                  gained.sort(function(a,b){return(b.rev||0)-(a.rev||0);}).forEach(function(a){h+=acctRow(a,'var(--green)');});
+                }
+                if(lostAccts.length){
+                  h+='<tr><td colspan="3" style="padding:5px 0 2px;font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px">▼ Lost ('+lostAccts.length+')</td></tr>';
+                  lostAccts.sort(function(a,b){return(b.rev||0)-(a.rev||0);}).forEach(function(a){h+=acctRow(a,'var(--red)');});
+                }
+                h+='</tbody></table>';
+              }
+            }
+            h+='</div></div>';
           });
         }
         h+='</div>';
