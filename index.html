@@ -3562,63 +3562,172 @@ function rRCHistory(){
   const history=_rcLoadHistory();
   const latest=_rcLoadSnap();
   const pools=['Enterprise','Strategic','Scale'],qs=['Q1','Q2','Q3','Q4'];
+  if(!window._rchSt)window._rchSt={open:{},compare:{},search:''};
+  const RCS=window._rchSt;
+  if(!RCS.open)RCS.open={};if(!RCS.compare)RCS.compare={};if(!RCS.search)RCS.search='';
   if(!history.length){
-    el.innerHTML=`<div class="card"><h3>📸 Snapshot History</h3><div class="sh" style="margin-top:8px">No snapshots saved yet. Click <strong style="color:var(--accent)">📸 Snapshot</strong> in the header to record GP Retention and Cadence data. Up to 500 snapshots are kept.</div></div>`;
+    el.innerHTML='<div class="card"><h3>📸 Snapshot History</h3><div class="sh" style="margin-top:8px">No snapshots saved yet. Click <strong style="color:var(--accent)">📸 Snapshot</strong> in the header to record GP Retention and Cadence data. Up to 500 snapshots are kept.</div></div>';
     return;
   }
-  // Get all cadence month columns from first snapshot that has them
-  const firstCad=history.find(s=>s.cadence&&Object.keys(s.cadence).length>0);
-  const cadMonths=firstCad?Object.keys(Object.values(firstCad.cadence)[0]?.months||{}):[];
-  el.innerHTML=`<div class="card">
-    <h3>📸 Snapshot History</h3>
-    <div class="sh" style="margin-top:4px">${history.length} snapshot${history.length!==1?'s':''} · Most recent is used for ▲/▼ delta comparisons on GP Retention &amp; Cadence tabs · Saves GP Retention (all 4 quarters, per pool) + Cadence call counts per CSM/month · up to 500 kept</div>
-    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
-    ${history.map((snap,i)=>{
-      const sid='rch_'+i;
-      const isLatest=latest&&snap.ts===latest.ts;
-      const gpSum={logos:0,won:0,lost:0,declined:0};
-      qs.forEach(q=>pools.forEach(p=>{const d=(snap.gpRetention?.[q]||{})[p]||{};gpSum.logos+=d.logos||0;gpSum.won+=d.won||0;gpSum.lost+=d.lost||0;gpSum.declined+=d.declined||0;}));
-      const lr=gpSum.logos>0?pct(gpSum.won/gpSum.logos*100):'—';
-      const cadTotal=Object.values(snap.cadence||{}).reduce((s,d)=>s+Object.values(d.months||{}).reduce((ms,v)=>ms+v,0),0);
-      return`<div style="border:1px solid ${isLatest?'var(--accent)':'var(--border)'};border-radius:8px;overflow:hidden">
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;background:${isLatest?'rgba(99,102,241,.08)':'var(--bg)'}" onclick="(function(){var b=document.getElementById('${sid}');b.style.display=b.style.display===''?'none':''})()">
-          <div style="flex:0 0 auto;min-width:160px">
-            <div style="font-size:12px;font-weight:600;color:var(--text)">${snap.label||new Date(snap.ts).toLocaleString()}</div>
-            ${isLatest?`<span style="font-size:10px;color:var(--accent);font-weight:700">● LATEST · used for deltas</span>`:`<span style="font-size:10px;color:var(--dim)">snapshot #${i+1}</span>`}
-          </div>
-          <div style="display:flex;gap:16px;flex-wrap:wrap;flex:1;align-items:center">
-            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Logos</div><strong style="color:var(--text);font-family:var(--mono)">${gpSum.logos}</strong></div>
-            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Won</div><strong style="color:var(--green);font-family:var(--mono)">${gpSum.won}</strong></div>
-            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Churned</div><strong style="color:var(--red);font-family:var(--mono)">${gpSum.lost}</strong></div>
-            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Declined</div><strong style="color:var(--orange);font-family:var(--mono)">${gpSum.declined}</strong></div>
-            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Logo Ret.</div><strong style="color:var(--amber);font-family:var(--mono)">${lr}</strong></div>
-            <div style="font-size:11px;text-align:center"><div style="color:var(--dim);margin-bottom:2px">Cad. Calls</div><strong style="color:var(--accent);font-family:var(--mono)">${cadTotal}</strong></div>
-          </div>
-          <span style="color:var(--dim);font-size:12px;flex-shrink:0">▸ expand</span>
-        </div>
-        <div id="${sid}" style="display:none;padding:14px;background:rgba(0,0,0,.15);border-top:1px solid var(--border)">
-          <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">GP Retention — all quarters</div>
-          <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px;min-width:500px">
-            <thead>
-              <tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:4px 10px;color:var(--dim)">Pool</th>${qs.map(q=>`<th colspan="4" style="text-align:center;padding:4px 8px;color:var(--dim);border-left:1px solid var(--border)">${q}</th>`).join('')}</tr>
-              <tr style="border-bottom:1px solid var(--border)"><th></th>${qs.map(()=>`<th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--dim);border-left:1px solid var(--border)">Logos</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--green)">Won</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--red)">Churn</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--orange)">Decl</th>`).join('')}</tr>
-            </thead>
-            <tbody>${pools.map(p=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:5px 10px;font-weight:500">${p}</td>${qs.map(q=>{const d=(snap.gpRetention?.[q]||{})[p]||{};const lr2=d.logos>0?pct(d.won/d.logos*100):'—';return`<td class="mono" style="text-align:right;padding:5px 6px;border-left:1px solid var(--border)">${d.logos||0}</td><td class="mono" style="text-align:right;padding:5px 6px;color:var(--green)">${d.won||0}</td><td class="mono" style="text-align:right;padding:5px 6px;color:var(--red)">${d.lost||0}</td><td class="mono" style="text-align:right;padding:5px 6px;color:var(--orange)">${d.declined||0}</td>`;}).join('')}</tr>`).join('')}
-            </tbody></table></div>
-          <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Cadence — call counts per CSM</div>
-          <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px">
-            <thead><tr style="border-bottom:1px solid var(--border)">
-              <th style="text-align:left;padding:4px 10px;color:var(--dim)">CSM</th>
-              <th style="text-align:right;padding:4px 8px;color:var(--dim)">Accts</th>
-              ${cadMonths.map(m=>`<th style="text-align:center;padding:4px 6px;color:var(--dim);white-space:nowrap;font-size:10px">${m}</th>`).join('')}
-            </tr></thead>
-            <tbody>${Object.entries(snap.cadence||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([csm,d])=>`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:4px 10px;font-weight:500">${csm}</td><td class="mono" style="text-align:right;padding:4px 8px;color:var(--dim)">${d.total||0}</td>${cadMonths.map(m=>{const cnt=(d.months||{})[m]||0;return`<td class="mono" style="text-align:center;padding:4px 6px;color:${cnt>0?'var(--green)':'var(--dim)'}">${cnt||'—'}</td>`;}).join('')}</tr>`).join('')||`<tr><td colspan="${cadMonths.length+2}" style="padding:8px 10px;color:var(--dim)">No cadence data in this snapshot.</td></tr>`}
-            </tbody></table></div>
-        </div>
-      </div>`;
-    }).join('')}
-    </div>
-  </div>`;
+  function gpS(sn){const r={logos:0,won:0,lost:0,declined:0};qs.forEach(function(q){pools.forEach(function(p){const d=(sn.gpRetention&&sn.gpRetention[q]&&sn.gpRetention[q][p])||{};r.logos+=d.logos||0;r.won+=d.won||0;r.lost+=d.lost||0;r.declined+=d.declined||0;});});r.lr=r.logos>0?Math.round(r.won/r.logos*100):null;return r;}
+  function cadT(sn){return Object.values(sn.cadence||{}).reduce(function(s,d){return s+Object.values(d.months||{}).reduce(function(ms,v){return ms+v;},0);},0);}
+  function dB(cur,prv,inv){if(prv==null)return'';const diff=cur-prv;if(!diff)return'';const good=inv?diff<0:diff>0;return'<span style="font-size:9px;font-weight:700;color:'+(good?'var(--green)':'var(--red)')+';margin-left:3px">'+(diff>0?'+':'')+diff+'</span>';}
+  const firstCad=history.find(function(s){return s.cadence&&Object.keys(s.cadence).length>0;});
+  const cadMonths=firstCad?Object.keys(Object.values(firstCad.cadence)[0]&&Object.values(firstCad.cadence)[0].months||{}):[];
+  let filtHist=history.map(function(s,i){return Object.assign({},s,{_oi:i});});
+  if(RCS.search)filtHist=filtHist.filter(function(s){return(s.label||'').toLowerCase().includes(RCS.search.toLowerCase())||new Date(s.ts).toLocaleString().toLowerCase().includes(RCS.search.toLowerCase());});
+  let h='';
+  h+='<div class="card">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">';
+  h+='<div><h3 style="margin:0 0 4px">📸 Snapshot History</h3><div class="sh">'+history.length+' snapshot'+(history.length!==1?'s':'')+' · Select "vs" to compare any two snapshots and see movement · GP Retention (all 4 quarters × pools) + Cadence per CSM · up to 500 kept</div></div>';
+  h+='<input placeholder="Search snapshots…" value="'+(RCS.search||'').replace(/"/g,'&quot;')+'" oninput="window._rchSt.search=this.value;rRCHistory()" style="background:var(--bg);border:1px solid var(--borderL);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--text);width:160px;font-family:inherit">';
+  h+='</div>';
+  if(!filtHist.length){h+='<div class="sh" style="padding:20px 0;text-align:center">No snapshots match the search.</div></div>';el.innerHTML=h;return;}
+  h+='<div style="display:flex;flex-direction:column;gap:8px">';
+  filtHist.forEach(function(snap){
+    const i=snap._oi;
+    const isLatest=latest&&snap.ts===latest.ts;
+    const gs=gpS(snap);
+    const ct=cadT(snap);
+    const isOpen=RCS.open[i]||false;
+    const cmpIdx=RCS.compare[i]!==undefined?RCS.compare[i]:(i+1<history.length?i+1:-1);
+    const cmpSnap=cmpIdx>=0?history[cmpIdx]:null;
+    const cmpGs=cmpSnap?gpS(cmpSnap):null;
+    const cmpCt=cmpSnap?cadT(cmpSnap):null;
+    const cmpLabel=cmpSnap?('vs '+(cmpSnap.label||new Date(cmpSnap.ts).toLocaleString())):'';
+    h+='<div style="border:1.5px solid '+(isLatest?'var(--accent)':'var(--border)')+';border-radius:8px;overflow:hidden">';
+    // Header row
+    h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap;background:'+(isLatest?'rgba(99,102,241,.08)':'transparent')+'">';
+    h+='<div style="flex:0 0 auto;min-width:155px;cursor:pointer" onclick="window._rchSt.open['+i+']=!window._rchSt.open['+i+'];rRCHistory()">';
+    h+='<div style="font-size:12px;font-weight:600;color:var(--text)">'+(snap.label||new Date(snap.ts).toLocaleString())+'</div>';
+    h+=isLatest?'<div style="font-size:10px;color:var(--accent);font-weight:700">● LATEST · used for deltas</div>':'<div style="font-size:10px;color:var(--dim)">snapshot #'+(i+1)+'</div>';
+    h+='</div>';
+    // KPIs with deltas
+    h+='<div style="display:flex;gap:12px;flex-wrap:wrap;flex:1;align-items:center;cursor:pointer" onclick="window._rchSt.open['+i+']=!window._rchSt.open['+i+'];rRCHistory()">';
+    h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Logos</div><strong style="color:var(--text)">'+gs.logos+dB(gs.logos,cmpGs?cmpGs.logos:null,false)+'</strong></div>';
+    h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Won</div><strong style="color:var(--green)">'+gs.won+dB(gs.won,cmpGs?cmpGs.won:null,false)+'</strong></div>';
+    h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Churned</div><strong style="color:var(--red)">'+gs.lost+dB(gs.lost,cmpGs?cmpGs.lost:null,true)+'</strong></div>';
+    h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Declined</div><strong style="color:var(--orange)">'+gs.declined+dB(gs.declined,cmpGs?cmpGs.declined:null,true)+'</strong></div>';
+    h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Logo Ret.</div><strong style="color:var(--amber)">'+(gs.lr!=null?gs.lr+'%':'—')+(gs.lr!=null&&cmpGs?dB(gs.lr,cmpGs.lr!=null?cmpGs.lr:null,false):'')+'</strong></div>';
+    h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Cad. Calls</div><strong style="color:var(--accent)">'+ct+dB(ct,cmpCt!=null?cmpCt:null,false)+'</strong></div>';
+    h+='</div>';
+    // Compare vs dropdown
+    if(history.length>1){
+      h+='<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">';
+      h+='<span style="font-size:10px;color:var(--dim)">vs</span>';
+      h+='<select onclick="event.stopPropagation()" onchange="window._rchSt.compare['+i+']=parseInt(this.value);rRCHistory()" style="background:var(--bg);border:1px solid var(--borderL);color:var(--dim);font-size:10px;padding:2px 6px;border-radius:4px;font-family:inherit;cursor:pointer">';
+      h+='<option value="-1" '+(cmpIdx===-1?'selected':'')+'>None</option>';
+      history.forEach(function(s2,j){if(j!==i)h+='<option value="'+j+'" '+(cmpIdx===j?'selected':'')+'>'+(s2.label||new Date(s2.ts).toLocaleString())+'</option>';});
+      h+='</select></div>';
+    }
+    h+='<span style="color:var(--dim);font-size:13px;cursor:pointer;flex-shrink:0" onclick="window._rchSt.open['+i+']=!window._rchSt.open['+i+'];rRCHistory()">'+(isOpen?'▾':'▸')+'</span>';
+    h+='</div>';
+    // Expanded detail
+    if(isOpen){
+      h+='<div style="padding:14px;background:rgba(0,0,0,.15);border-top:1px solid var(--border)">';
+      // GP Retention table with delta columns
+      h+='<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">GP Retention — all quarters'+(cmpLabel?' <span style="font-weight:400;text-transform:none;letter-spacing:0">('+cmpLabel+')</span>':'')+'</div>';
+      h+='<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px;min-width:500px">';
+      h+='<thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:4px 10px;color:var(--dim)">Pool</th>';
+      qs.forEach(function(q){h+='<th colspan="4" style="text-align:center;padding:4px 8px;color:var(--dim);border-left:1px solid var(--border)">'+q+'</th>';});
+      h+='</tr><tr style="border-bottom:1px solid var(--border)"><th></th>';
+      qs.forEach(function(){h+='<th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--dim);border-left:1px solid var(--border)">Logos</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--green)">Won</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--red)">Churn</th><th style="text-align:right;padding:3px 6px;font-size:10px;color:var(--orange)">Decl</th>';});
+      h+='</tr></thead><tbody>';
+      pools.forEach(function(p){
+        h+='<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:5px 10px;font-weight:500">'+p+'</td>';
+        qs.forEach(function(q){
+          const d=(snap.gpRetention&&snap.gpRetention[q]&&snap.gpRetention[q][p])||{};
+          const od=cmpSnap?(cmpSnap.gpRetention&&cmpSnap.gpRetention[q]&&cmpSnap.gpRetention[q][p])||{}:null;
+          h+='<td class="mono" style="text-align:right;padding:5px 6px;border-left:1px solid var(--border)">'+(d.logos||0)+(od?dB(d.logos||0,od.logos||0,false):'')+'</td>';
+          h+='<td class="mono" style="text-align:right;padding:5px 6px;color:var(--green)">'+(d.won||0)+(od?dB(d.won||0,od.won||0,false):'')+'</td>';
+          h+='<td class="mono" style="text-align:right;padding:5px 6px;color:var(--red)">'+(d.lost||0)+(od?dB(d.lost||0,od.lost||0,true):'')+'</td>';
+          h+='<td class="mono" style="text-align:right;padding:5px 6px;color:var(--orange)">'+(d.declined||0)+(od?dB(d.declined||0,od.declined||0,true):'')+'</td>';
+        });
+        h+='</tr>';
+      });
+      h+='</tbody></table></div>';
+      // Pool movement pills (when comparing)
+      if(cmpSnap){
+        const mvs=[];
+        qs.forEach(function(q){pools.forEach(function(p){
+          const d=(snap.gpRetention&&snap.gpRetention[q]&&snap.gpRetention[q][p])||{};
+          const od=(cmpSnap.gpRetention&&cmpSnap.gpRetention[q]&&cmpSnap.gpRetention[q][p])||{};
+          ['logos','won','lost','declined'].forEach(function(k){const diff=(d[k]||0)-(od[k]||0);if(diff!==0)mvs.push({q:q,p:p,k:k,diff:diff,cur:d[k]||0,prev:od[k]||0});});
+        });});
+        h+='<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pool Changes — '+cmpLabel+'</div>';
+        if(!mvs.length){
+          h+='<div style="font-size:11px;color:var(--dim);padding:4px 0">No GP changes between these snapshots.</div>';
+        }else{
+          const kL={logos:'Logos',won:'Won',lost:'Churned',declined:'Declined'};
+          h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+          mvs.forEach(function(mv){
+            const isInv=mv.k==='lost'||mv.k==='declined';
+            const good=isInv?mv.diff<0:mv.diff>0;
+            h+='<div style="padding:5px 10px;border-radius:6px;background:'+(good?'rgba(52,211,153,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(good?'rgba(52,211,153,.2)':'rgba(239,68,68,.2)')+';font-size:11px">';
+            h+='<span style="color:var(--dim)">'+mv.q+' '+mv.p+' '+kL[mv.k]+'</span>';
+            h+='<span style="font-weight:700;color:'+(good?'var(--green)':'var(--red)')+';margin-left:6px">'+(mv.diff>0?'+':'')+mv.diff+'</span>';
+            h+='<span style="font-size:10px;color:var(--dim);margin-left:4px">'+mv.prev+'→'+mv.cur+'</span>';
+            h+='</div>';
+          });
+          h+='</div>';
+        }
+        h+='</div>';
+      }
+      // Cadence table with deltas
+      h+='<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Cadence — call counts per CSM'+(cmpSnap?' (Δ shown)':'')+'</div>';
+      h+='<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px">';
+      h+='<thead><tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:4px 10px;color:var(--dim)">CSM</th><th style="text-align:right;padding:4px 8px;color:var(--dim)">Total</th>';
+      cadMonths.forEach(function(m){h+='<th style="text-align:center;padding:4px 6px;color:var(--dim);white-space:nowrap;font-size:10px">'+m+'</th>';});
+      h+='</tr></thead><tbody>';
+      const cadEntries=Object.entries(snap.cadence||{}).sort(function(a,b){return a[0].localeCompare(b[0]);});
+      if(cadEntries.length){
+        cadEntries.forEach(function(entry){
+          const csm=entry[0],d=entry[1];
+          const od=cmpSnap&&cmpSnap.cadence&&cmpSnap.cadence[csm]?cmpSnap.cadence[csm]:null;
+          h+='<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:4px 10px;font-weight:500">'+csm+'</td>';
+          h+='<td class="mono" style="text-align:right;padding:4px 8px;color:var(--dim)">'+(d.total||0)+(od?dB(d.total||0,od.total||0,false):'')+'</td>';
+          cadMonths.forEach(function(m){
+            const cnt=(d.months||{})[m]||0;
+            const ocnt=od?(od.months||{})[m]||0:null;
+            h+='<td class="mono" style="text-align:center;padding:4px 6px"><span style="color:'+(cnt>0?'var(--green)':'var(--dim)')+'">'+( cnt||'—')+'</span>';
+            if(ocnt!=null){const diff=cnt-ocnt;if(diff!==0)h+='<span style="font-size:9px;font-weight:700;color:'+(diff>0?'var(--green)':'var(--red)')+';margin-left:2px">'+(diff>0?'+':'')+diff+'</span>';}
+            h+='</td>';
+          });
+          h+='</tr>';
+        });
+        // CSM cadence movement summary
+        if(cmpSnap){
+          const csmMvs=[];
+          const allCsms=new Set(Object.keys(snap.cadence||{}).concat(Object.keys((cmpSnap&&cmpSnap.cadence)||{})));
+          allCsms.forEach(function(csm){
+            const ct1=Object.values(((snap.cadence&&snap.cadence[csm]&&snap.cadence[csm].months)||{})).reduce(function(s,v){return s+v;},0);
+            const ct2=Object.values(((cmpSnap&&cmpSnap.cadence&&cmpSnap.cadence[csm]&&cmpSnap.cadence[csm].months)||{})).reduce(function(s,v){return s+v;},0);
+            const diff=ct1-ct2;if(diff!==0)csmMvs.push({csm:csm,diff:diff,cur:ct1,prev:ct2});
+          });
+          if(csmMvs.length){
+            csmMvs.sort(function(a,b){return Math.abs(b.diff)-Math.abs(a.diff);});
+            h+='<tr><td colspan="'+(cadMonths.length+2)+'" style="padding:10px 10px 4px;border-top:1px solid var(--border)">';
+            h+='<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">CSM Cadence Changes</div>';
+            h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+            csmMvs.forEach(function(mv){
+              h+='<div style="padding:4px 8px;border-radius:5px;background:'+(mv.diff>0?'rgba(52,211,153,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(mv.diff>0?'rgba(52,211,153,.2)':'rgba(239,68,68,.2)')+';font-size:11px">';
+              h+='<span style="color:var(--dim)">'+mv.csm+'</span>';
+              h+='<span style="font-weight:700;color:'+(mv.diff>0?'var(--green)':'var(--red)')+';margin-left:5px">'+(mv.diff>0?'+':'')+mv.diff+'</span>';
+              h+='<span style="font-size:10px;color:var(--dim);margin-left:4px">('+mv.prev+'→'+mv.cur+')</span>';
+              h+='</div>';
+            });
+            h+='</div></td></tr>';
+          }
+        }
+      }else{
+        h+='<tr><td colspan="'+(cadMonths.length+2)+'" style="padding:8px 10px;color:var(--dim)">No cadence data in this snapshot.</td></tr>';
+      }
+      h+='</tbody></table></div></div>';
+    }
+    h+='</div>';
+  });
+  h+='</div></div>';
+  el.innerHTML=h;
 }
 function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
 rOverview();
