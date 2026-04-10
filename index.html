@@ -1082,7 +1082,7 @@ function _buildLiveGoalsData(){
     const target=q?grr[q][pool]:grrNone[pool];
     target.logos++;target.rev+=rev;
     const _eng=_engLookup[acct.toLowerCase()]||{};
-    const csm=_eng.csm||csRep;
+    const csm=_eng.csm||'';
     allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep:csm,rsk:_eng.rsk||0,notes:_eng.notes||''});
     if(isWon){target.won++;target.rw+=rev;}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
