@@ -3359,8 +3359,14 @@ function rTargets(){
   function ed(title,tgts,pfx){
     return`<div class="card"><h3>${title}</h3><div class="sh">Q1 is GIFTED. Adjust Q2+ below. Q2 = logo retention. Q3+ evolving to GRR.</div>${periods.map(p=>`<div class="target-row"><label>${p.l}</label>${["floor","full","accel"].map(f=>`<div class="fg"><span>${f==="floor"?"Floor":f==="full"?"Full":"Accel"}</span><input type="number" id="${pfx}_${p.k}_${f}" value="${tgts[p.k]?.[f]||''}" onchange="updateTargets('${pfx}')"><span class="pct">%</span></div>`).join('')}</div>`).join('')}</div>`}
   const qs=["Q1","Q2","Q3","Q4"];
+  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=['8. Closed Lost (Not Renewing)'];
   let rows=qs.map(q=>{
-    let tl=0,tw=0,tlo=0,tde=0;["Enterprise","Strategic","Scale"].forEach(p=>{tl+=GRR[q][p].logos;tw+=GRR[q][p].won;tlo+=GRR[q][p].lost;tde+=GRR[q][p].declined});
+    let tl=0,tw=0,tlo=0,tde=0;
+    if(ACCTS&&ACCTS.length){
+      ACCTS.filter(function(a){return a.q===q;}).forEach(function(a){tl++;if(_WS.includes(a.stage))tw++;else if(_CS.includes(a.stage))tlo++;else if(_DS.includes(a.stage))tde++;});
+    }else{
+      ["Enterprise","Strategic","Scale"].forEach(p=>{tl+=GRR[q][p].logos;tw+=GRR[q][p].won;tlo+=GRR[q][p].lost;tde+=GRR[q][p].declined});
+    }
     const ret=tl>0?(tw/tl)*100:0;const tgt=GP_T[q]?.full||63;
     const needed=Math.ceil(tl*tgt/100);const gap=needed-tw;
     return`<tr><td style="font-weight:500">${q} 2026${q==="Q1"?'<span style="font-size:10px;color:var(--green);margin-left:5px">GIFTED</span>':''}</td><td class="mono" style="text-align:right">${tl}</td><td class="mono" style="text-align:right;color:var(--green)">${tw}</td><td class="mono" style="text-align:right;color:var(--red)">${tlo}</td><td class="mono" style="text-align:right;color:var(--orange)">${tde}</td><td class="mono" style="text-align:right;color:${ret>=tgt?'var(--green)':'var(--amber)'}">${pct(ret)}</td><td class="mono" style="text-align:right;color:var(--muted)">${q==="Q1"?"GIFTED":tgt+"%"}</td><td class="mono" style="text-align:right;color:var(--muted)">${q==="Q1"?"—":needed}</td><td class="mono" style="text-align:right;color:${gap>0?'var(--red)':'var(--green)'}">${q==="Q1"?"—":gap>0?"−"+gap:"+"+Math.abs(gap)}</td></tr>`}).join('');
