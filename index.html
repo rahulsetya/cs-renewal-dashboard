@@ -2705,7 +2705,13 @@ input[type=number]{-moz-appearance:textfield}
 .legend-row{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--dim);margin-top:10px}
 .legend-row span{display:flex;align-items:center;gap:4px}
 .legend-dot{width:8px;height:8px;border-radius:2px;display:inline-block}
-.scenario-slider{width:100%;margin:8px 0;accent-color:var(--accent)}
+.scenario-slider{width:100%;margin:8px 0;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:linear-gradient(to right,var(--accent) 50%,#1e293b 50%);outline:none;cursor:pointer;transition:background .05s}
+.scenario-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid #0f172a;box-shadow:0 0 0 2px var(--accent);transition:transform .1s}
+.scenario-slider::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.scenario-slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid #0f172a;box-shadow:0 0 0 2px var(--accent)}
+.scenario-slider::-webkit-slider-runnable-track{height:6px;border-radius:3px}
+.scenario-slider::-moz-range-track{height:6px;border-radius:3px;background:#1e293b}
+.scenario-slider::-moz-range-progress{height:6px;border-radius:3px;background:var(--accent)}
 </style>
 </head>
 <body>
@@ -3076,7 +3082,9 @@ function rGP(){
           <label style="font-size:12px;color:var(--muted)">Scenario: What if we convert this % of open accounts?</label>
           <span style="font-size:11px;color:var(--dim)">Today (0% conversion): <strong style="color:var(--amber)">${pct(totalWon/totalLogos*100)}</strong> · Max (100%): <strong style="color:var(--green)">${pct((totalWon+totalOpen)/totalLogos*100)}</strong></span>
         </div>
-        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="100" value="50" oninput="updateScenario('${q}',this.value,${totalOpen},${totalWon},${totalLogos})">
+        <div style="padding:8px 0;cursor:pointer">
+        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="100" value="50" oninput="updateScenario('${q}',this.value,${totalOpen},${totalWon},${totalLogos})" onmousedown="this.focus()" style="touch-action:none">
+        </div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0%</span><span id="scenario-label-${q}">50% conversion → <strong style="color:var(--accent)">${pct((totalWon+totalOpen*.5)/totalLogos*100)}</strong></span><span>100%</span></div>
       </div>
     </div>`:''}
@@ -3106,6 +3114,8 @@ function updateScenario(q,val,tOpen,tWon,tLogos){
   const retP=totalLogos>0?(projected/totalLogos)*100:0;
   const lbl=document.getElementById('scenario-label-'+q);
   if(lbl)lbl.innerHTML=val+'% conversion → <strong style="color:var(--accent)">'+pct(retP)+'</strong>';
+  const sl=document.getElementById('scenario-'+q);
+  if(sl)sl.style.background='linear-gradient(to right,var(--accent) '+val+'%,#1e293b '+val+'%)';
 }
 
 // ── SP RETENTION ────────────────────────────────────
