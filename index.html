@@ -1068,17 +1068,20 @@ function _buildLiveGoalsData(){
       return excelDateToJS(seRaw);
     })();
     const rev=parseNum(v[revColIdx]||'');
-    renewalLookup[acct.toLowerCase()]={stage,rev,se};
+    renewalLookup[acct.toLowerCase()]={stage,rev,se,name:acct};
   }
 
   // Drive account list from Engagement Tracker (column A = account name, column AI = CSM)
+  const _matchedRenewal=new Set();
   for(const r of (ENG_RAW||[])){
     const acct=r.acct;
     if(!acct)continue;
-    const renewal=renewalLookup[acct.toLowerCase()]||{};
-    const stage=renewal.stage||'1. Uncontacted';
-    const rev=renewal.rev||0;
-    const se=renewal.se||'';
+    const renewalKey=acct.toLowerCase();
+    const renewal=renewalLookup[renewalKey]||null;
+    if(renewal)_matchedRenewal.add(renewalKey);
+    const stage=renewal?renewal.stage:'Not in renewal master';
+    const rev=renewal?renewal.rev:0;
+    const se=renewal?renewal.se:'';
     const csm=r.ro||'';
     const pool=POOL_MAP[csm]||'Scale';
     const q=getQ(se);
@@ -1090,6 +1093,24 @@ function _buildLiveGoalsData(){
     allAccts.push({n:acct,pool,q:q||'none',stage,se,rev,csRep:csm,rsk:r.rsk||0,notes:r.notes||''});
     if(isWon){target.won++;target.rw+=rev;}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
+    else if(isDeclined){target.declined++;target.rd+=rev;}
+    else{target.open++;}
+  }
+  // Include Renewal Master accounts not found in Engagement Tracker
+  for(const [key,renewal] of Object.entries(renewalLookup)){
+    if(_matchedRenewal.has(key))continue;
+    const stage=renewal.stage;
+    const rev=renewal.rev||0;
+    const se=renewal.se||'';
+    const q=getQ(se);
+    const isWon=WON_S.has(stage);
+    const isLost=CHURNED_S.has(stage);
+    const isDeclined=DECLINED_S.has(stage);
+    const target=q?grr[q]['Scale']:grrNone['Scale'];
+    target.logos++;target.rev+=rev;
+    allAccts.push({n:renewal.name,pool:'Scale',q:q||'none',stage,se,rev,csRep:'',rsk:0,notes:'Not in engagement tracker'});
+    if(isWon){target.won++;target.rw+=rev;}
+    else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:renewal.name,csm:'',rev,q,pool:'Scale',renewal:se,notes:'Not in engagement tracker'});}
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
   }
