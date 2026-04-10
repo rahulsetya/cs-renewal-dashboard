@@ -3079,13 +3079,13 @@ function rGP(){
       </div>
       <div style="margin-top:14px">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
-          <label style="font-size:12px;color:var(--muted)">Scenario: What if we convert this % of open accounts (${totalOpen})?</label>
-          <span style="font-size:11px;color:var(--dim)">Today (0% conversion): <strong style="color:var(--amber)">${pct(totalWon/totalLogos*100)}</strong> · Max (100%): <strong style="color:var(--green)">${pct((totalWon+totalOpen)/totalLogos*100)}</strong></span>
+          <label style="font-size:12px;color:var(--muted)">Scenario: How many open accounts (${totalOpen}) do we need to close to hit X%?</label>
+          <span style="font-size:11px;color:var(--dim)">Today (0 closed): <strong style="color:var(--amber)">${pct(totalWon/totalLogos*100)}</strong> · Max (${totalOpen} closed): <strong style="color:var(--green)">${pct((totalWon+totalOpen)/totalLogos*100)}</strong></span>
         </div>
         <div style="padding:8px 0;cursor:pointer">
-        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="100" value="50" oninput="updateScenario('${q}',this.value,${totalOpen},${totalWon},${totalLogos})" onmousedown="this.focus()" style="touch-action:none">
+        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="${totalOpen}" value="${Math.min(gapFloor,totalOpen)}" oninput="updateScenario('${q}',this.value,${totalOpen},${totalWon},${totalLogos})" onmousedown="this.focus()" style="touch-action:none;background:linear-gradient(to right,var(--accent) ${totalOpen>0?Math.round(Math.min(gapFloor,totalOpen)/totalOpen*100):0}%,#1e293b ${totalOpen>0?Math.round(Math.min(gapFloor,totalOpen)/totalOpen*100):0}%)">
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0%</span><span id="scenario-label-${q}">50% conversion → <strong style="color:var(--accent)">${pct((totalWon+totalOpen*.5)/totalLogos*100)}</strong></span><span>100%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0 closed</span><span id="scenario-label-${q}">${Math.min(gapFloor,totalOpen)} accounts closed → <strong style="color:var(--accent)">${pct((totalWon+Math.min(gapFloor,totalOpen))/totalLogos*100)}</strong></span><span>${totalOpen} closed</span></div>
       </div>
     </div>`:''}
     <div class="card"><h3>${q} GP Pipeline by Pool${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>
@@ -3112,12 +3112,14 @@ function updateScenario(q,val,tOpen,tWon,tLogos){
   const totalOpen=tOpen!==undefined?+tOpen:0;
   const totalWon=tWon!==undefined?+tWon:0;
   const totalLogos=tLogos!==undefined?+tLogos:1;
-  const projected=totalWon+totalOpen*(val/100);
+  const count=+val;
+  const projected=totalWon+count;
   const retP=totalLogos>0?(projected/totalLogos)*100:0;
   const lbl=document.getElementById('scenario-label-'+q);
-  if(lbl)lbl.innerHTML=val+'% conversion → <strong style="color:var(--accent)">'+pct(retP)+'</strong>';
+  if(lbl)lbl.innerHTML=count+' account'+(count!==1?'s':'')+' closed → <strong style="color:var(--accent)">'+pct(retP)+'</strong>';
   const sl=document.getElementById('scenario-'+q);
-  if(sl)sl.style.background='linear-gradient(to right,var(--accent) '+val+'%,#1e293b '+val+'%)';
+  const fillPct=totalOpen>0?(count/totalOpen*100):0;
+  if(sl)sl.style.background='linear-gradient(to right,var(--accent) '+fillPct+'%,#1e293b '+fillPct+'%)';
 }
 
 // ── SP RETENTION ────────────────────────────────────
