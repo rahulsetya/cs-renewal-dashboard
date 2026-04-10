@@ -3071,9 +3071,13 @@ function rGP(){
           ${x.g>0?`<div style="font-size:10px;color:var(--muted);margin-top:4px">${pct(x.g/totalOpen*100)} of open pool</div>`:''}
         </div>`).join('')}
       </div>
-      <div style="margin-top:14px"><label style="font-size:12px;color:var(--muted)">Scenario: What if we convert this % of open accounts?</label>
+      <div style="margin-top:14px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+          <label style="font-size:12px;color:var(--muted)">Scenario: What if we convert this % of open accounts?</label>
+          <span style="font-size:11px;color:var(--dim)">Today (0% conversion): <strong style="color:var(--amber)">${pct(totalWon/totalLogos*100)}</strong> · Max (100%): <strong style="color:var(--green)">${pct((totalWon+totalOpen)/totalLogos*100)}</strong></span>
+        </div>
         <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="100" value="50" oninput="updateScenario('${q}',this.value,${totalOpen},${totalWon},${totalLogos})">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0% conversion</span><span id="scenario-label-${q}">50% → ${pct((totalWon+totalOpen*.5)/totalLogos*100)} retention</span><span>100% conversion</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0%</span><span id="scenario-label-${q}">50% conversion → <strong style="color:var(--accent)">${pct((totalWon+totalOpen*.5)/totalLogos*100)}</strong></span><span>100%</span></div>
       </div>
     </div>`:''}
     <div class="card"><h3>${q} GP Pipeline by Pool${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>
@@ -3101,7 +3105,7 @@ function updateScenario(q,val,tOpen,tWon,tLogos){
   const projected=totalWon+totalOpen*(val/100);
   const retP=totalLogos>0?(projected/totalLogos)*100:0;
   const lbl=document.getElementById('scenario-label-'+q);
-  if(lbl)lbl.textContent=val+'% → '+pct(retP)+' retention';
+  if(lbl)lbl.innerHTML=val+'% conversion → <strong style="color:var(--accent)">'+pct(retP)+'</strong>';
 }
 
 // ── SP RETENTION ────────────────────────────────────
