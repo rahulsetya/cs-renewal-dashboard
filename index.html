@@ -3267,19 +3267,27 @@ function rPayout(){
     let retR=0;
     if(gp){const d=GRR[selPQ][pool];retR=d&&d.logos>0?(d.won/d.logos)*100:0}else{retR=spRet}
     const rp=retPayout(retR,selPQ,isSP);
-    // Activity: all dashes for now (awaiting engagement tracker data)
-    const ap=actPayout(null,selPQ);// null cadence = show as pending
-    const cadAvail=false;
+    // Activity: read from CADENCE_DATA for this CSM + quarter
+    const _cd=CADENCE_DATA;
+    const _cData=(_cd&&_cd.csm&&_cd.csm[c.n])||{total:0,months:{}};
+    const _qmLc={Q1:['jan','feb','mar'],Q2:['apr','may','jun'],Q3:['jul','aug','sep'],Q4:['oct','nov','dec']};
+    const _vCols=(_cd&&_cd.cols||[]).filter(function(col){return(_qmLc[selPQ]||[]).some(function(m){return col.toLowerCase().includes(m);});});
+    const _tot=Math.max(_cData.total||0,1);
+    const _qTot=_vCols.reduce(function(s,m){return s+((_cData.months&&_cData.months[m]&&_cData.months[m].yes)||0);},0);
+    const cadPct=_vCols.length>0?Math.min(_qTot/_tot*100,100):null;
+    const cadAvail=cadPct!==null;
+    const ap=actPayout(cadAvail?cadPct:null,selPQ);
+    const tp=cadAvail?totalPayout(cadPct,retR,selPQ,isSP):{totalPct:null};
     const retC=rp.pct>=100?'var(--green)':rp.pct>0?'var(--amber)':'var(--red)';
-    const retFloor=isSP?SP_T[selPQ]?.floor:GP_T[selPQ]?.floor;
-    const retFull=isSP?SP_T[selPQ]?.full:GP_T[selPQ]?.full;
+    const actC=!cadAvail?'var(--dim)':ap.gate?'var(--red)':ap.pct>=100?'var(--green)':ap.pct>0?'var(--amber)':'var(--red)';
+    const totC=tp.totalPct==null?'var(--dim)':tp.gated?'var(--red)':tp.totalPct>=100?'var(--green)':tp.totalPct>0?'var(--amber)':'var(--red)';
     return`<tr>
       <td style="font-weight:500">${c.n}<div style="font-size:10px;color:var(--dim)">${pool} · ${c.pod}</div></td>
-      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':'<span class="pill" style="color:var(--dim)">— awaiting data</span>'}</td>
+      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':cadAvail?`<span class="mono" style="color:${actC};font-weight:600">${pct(cadPct)}</span>`:'<span class="pill" style="color:var(--dim)">— awaiting data</span>'}</td>
       <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':`<span class="mono" style="color:${retC};font-weight:600">${pct(retR)}</span>`}</td>
       <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">100%</span>':`<span class="mono" style="color:${retC};font-weight:600">${rp.pct.toFixed(0)}%</span>`}</td>
       <td style="text-align:center"><span class="pill" style="color:${rp.pct>=100?'var(--green)':rp.pct>0?'var(--amber)':'var(--red)'};font-size:10px">${rp.tier}</span></td>
-      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">100%</span>':'<span class="pill" style="color:var(--dim);font-size:10px">Pending</span>'}</td>
+      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">100%</span>':tp.totalPct!=null?`<span class="mono" style="color:${totC};font-weight:600">${tp.totalPct.toFixed(0)}%${tp.gated?'<span style="font-size:9px;display:block;color:var(--red)">GATED</span>':''}</span>`:'<span class="pill" style="color:var(--dim);font-size:10px">Pending</span>'}</td>
     </tr>`}
 
   const thd=`<thead><tr><th style="text-align:left">CSM</th><th style="text-align:center">Activity<br><span style="font-weight:400;text-transform:none;letter-spacing:0">cadence %</span></th><th style="text-align:center">Retention<br><span style="font-weight:400;text-transform:none;letter-spacing:0">pool %</span></th><th style="text-align:center">Ret. Payout<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% of component</span></th><th style="text-align:center">Ret. Tier</th><th style="text-align:center">Combined<br><span style="font-weight:400;text-transform:none;letter-spacing:0">% of variable</span></th></tr></thead>`;
