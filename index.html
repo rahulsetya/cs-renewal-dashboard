@@ -3646,7 +3646,7 @@ function rRCHistory(){
         h+='</tr>';
       });
       h+='</tbody></table></div>';
-      // Pool movement pills (when comparing)
+      // Pool movement pills (when comparing) — clickable to show account sub-table
       if(cmpSnap){
         const mvs=[];
         qs.forEach(function(q){pools.forEach(function(p){
@@ -3654,22 +3654,33 @@ function rRCHistory(){
           const od=(cmpSnap.gpRetention&&cmpSnap.gpRetention[q]&&cmpSnap.gpRetention[q][p])||{};
           ['logos','won','lost','declined'].forEach(function(k){const diff=(d[k]||0)-(od[k]||0);if(diff!==0)mvs.push({q:q,p:p,k:k,diff:diff,cur:d[k]||0,prev:od[k]||0});});
         });});
-        h+='<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pool Changes — '+cmpLabel+'</div>';
+        h+='<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pool Changes — '+cmpLabel+' <span style="font-weight:400;text-transform:none;letter-spacing:0">· click to see accounts</span></div>';
         if(!mvs.length){
           h+='<div style="font-size:11px;color:var(--dim);padding:4px 0">No GP changes between these snapshots.</div>';
         }else{
           const kL={logos:'Logos',won:'Won',lost:'Churned',declined:'Declined'};
+          const filtM={logos:'',won:'_won',lost:'_ch',declined:'_dc'};
+          const poolCtrMap={};
           h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
           mvs.forEach(function(mv){
             const isInv=mv.k==='lost'||mv.k==='declined';
             const good=isInv?mv.diff<0:mv.diff>0;
-            h+='<div style="padding:5px 10px;border-radius:6px;background:'+(good?'rgba(52,211,153,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(good?'rgba(52,211,153,.2)':'rgba(239,68,68,.2)')+';font-size:11px">';
+            const filtCode=filtM[mv.k]||'';
+            const rid='rchp_'+i+'_'+mv.q+'_'+mv.p.replace(/\s+/g,'');
+            poolCtrMap[rid]={q:mv.q,pool:mv.p};
+            h+='<div style="padding:5px 10px;border-radius:6px;background:'+(good?'rgba(52,211,153,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(good?'rgba(52,211,153,.2)':'rgba(239,68,68,.2)')+';font-size:11px;cursor:pointer;user-select:none" onclick="_openPool(\''+rid+'\',\''+mv.q+'\',\''+mv.p+'\',\''+filtCode+'\')">';
             h+='<span style="color:var(--dim)">'+mv.q+' '+mv.p+' '+kL[mv.k]+'</span>';
             h+='<span style="font-weight:700;color:'+(good?'var(--green)':'var(--red)')+';margin-left:6px">'+(mv.diff>0?'+':'')+mv.diff+'</span>';
             h+='<span style="font-size:10px;color:var(--dim);margin-left:4px">'+mv.prev+'→'+mv.cur+'</span>';
+            h+='<span style="font-size:10px;color:var(--dim);margin-left:5px">▸</span>';
             h+='</div>';
           });
           h+='</div>';
+          // Hidden account sub-table containers (one per unique q+pool)
+          Object.entries(poolCtrMap).forEach(function(e2){
+            const rid2=e2[0];
+            h+='<div id="'+rid2+'" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:6px;overflow:hidden"><div id="'+rid2+'_acct"></div></div>';
+          });
         }
         h+='</div>';
       }
@@ -3706,17 +3717,47 @@ function rRCHistory(){
           });
           if(csmMvs.length){
             csmMvs.sort(function(a,b){return Math.abs(b.diff)-Math.abs(a.diff);});
-            h+='<tr><td colspan="'+(cadMonths.length+2)+'" style="padding:10px 10px 4px;border-top:1px solid var(--border)">';
-            h+='<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">CSM Cadence Changes</div>';
-            h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+            h+='<tr><td colspan="'+(cadMonths.length+2)+'" style="padding:10px 10px 8px;border-top:1px solid var(--border)">';
+            h+='<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">CSM Cadence Changes <span style="font-weight:400;text-transform:none;letter-spacing:0">· click to see month breakdown</span></div>';
+            h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">';
             csmMvs.forEach(function(mv){
-              h+='<div style="padding:4px 8px;border-radius:5px;background:'+(mv.diff>0?'rgba(52,211,153,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(mv.diff>0?'rgba(52,211,153,.2)':'rgba(239,68,68,.2)')+';font-size:11px">';
+              const csmRid='rcch_'+i+'_'+mv.csm.replace(/\W/g,'_');
+              h+='<div style="padding:4px 8px;border-radius:5px;background:'+(mv.diff>0?'rgba(52,211,153,.08)':'rgba(239,68,68,.08)')+';border:1px solid '+(mv.diff>0?'rgba(52,211,153,.2)':'rgba(239,68,68,.2)')+';font-size:11px;cursor:pointer;user-select:none" onclick="(function(){var e=document.getElementById(\''+csmRid+'\');if(e)e.style.display=e.style.display===\'none\'?\'\':\'none\';})()">';
               h+='<span style="color:var(--dim)">'+mv.csm+'</span>';
               h+='<span style="font-weight:700;color:'+(mv.diff>0?'var(--green)':'var(--red)')+';margin-left:5px">'+(mv.diff>0?'+':'')+mv.diff+'</span>';
               h+='<span style="font-size:10px;color:var(--dim);margin-left:4px">('+mv.prev+'→'+mv.cur+')</span>';
+              h+='<span style="font-size:10px;color:var(--dim);margin-left:5px">▸</span>';
               h+='</div>';
             });
-            h+='</div></td></tr>';
+            h+='</div>';
+            // Hidden month breakdown panels
+            csmMvs.forEach(function(mv){
+              const csmRid='rcch_'+i+'_'+mv.csm.replace(/\W/g,'_');
+              const d1=snap.cadence&&snap.cadence[mv.csm]?snap.cadence[mv.csm]:null;
+              const d2=cmpSnap&&cmpSnap.cadence&&cmpSnap.cadence[mv.csm]?cmpSnap.cadence[mv.csm]:null;
+              const allMs=Array.from(new Set(Object.keys((d1&&d1.months)||{}).concat(Object.keys((d2&&d2.months)||{})))).sort();
+              h+='<div id="'+csmRid+'" style="display:none;margin-bottom:6px;padding:10px 12px;background:rgba(0,0,0,.25);border-radius:6px;border:1px solid var(--border)">';
+              h+='<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">'+mv.csm+' — Month Breakdown</div>';
+              h+='<table style="border-collapse:collapse;font-size:11px"><thead><tr>';
+              h+='<th style="padding:3px 10px 3px 0;color:var(--dim);text-align:left">Month</th>';
+              h+='<th style="padding:3px 10px;color:var(--dim);text-align:center">This Snap</th>';
+              h+='<th style="padding:3px 10px;color:var(--dim);text-align:center">Prev Snap</th>';
+              h+='<th style="padding:3px 10px;color:var(--dim);text-align:center">Δ</th>';
+              h+='</tr></thead><tbody>';
+              allMs.forEach(function(m){
+                const c1=(d1&&d1.months&&d1.months[m])||0;
+                const c2=(d2&&d2.months&&d2.months[m])||0;
+                const diff=c1-c2;
+                h+='<tr style="border-top:1px solid rgba(255,255,255,.05)">';
+                h+='<td style="padding:3px 10px 3px 0;color:var(--dim)">'+m+'</td>';
+                h+='<td style="padding:3px 10px;text-align:center;color:'+(c1>0?'var(--green)':'var(--dim)')+'">'+( c1||'—')+'</td>';
+                h+='<td style="padding:3px 10px;text-align:center;color:'+(c2>0?'var(--green)':'var(--dim)')+'">'+( c2||'—')+'</td>';
+                h+='<td style="padding:3px 10px;text-align:center;font-weight:700;color:'+(diff>0?'var(--green)':diff<0?'var(--red)':'var(--dim)')+'">'+( diff!==0?(diff>0?'+':'')+diff:'—')+'</td>';
+                h+='</tr>';
+              });
+              h+='</tbody></table></div>';
+            });
+            h+='</td></tr>';
           }
         }
       }else{
