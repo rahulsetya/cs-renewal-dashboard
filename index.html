@@ -1169,7 +1169,7 @@ const DARK_TO_LIGHT={
   '#422006':'#fff3e0','#92400e':'#d97706','#fbbf24':'#b45309','#22d3ee':'#0369a1',
   '#fbbf2422':'#fef3c7','#22d3ee22':'#cffafe'};
 function render(){
-  if(sessionStorage.getItem('_reopen_goals')){sessionStorage.removeItem('_reopen_goals');S.goalsOpen=true;}
+  if(D&&D.length&&sessionStorage.getItem('_reopen_goals')){sessionStorage.removeItem('_reopen_goals');S.goalsOpen=true;}
   try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
 function _render(){
   window._noteKeys=[];
