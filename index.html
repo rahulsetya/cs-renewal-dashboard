@@ -3410,7 +3410,7 @@ function rRisk(){
   });
   
   el.innerHTML=`
-    <div class="card"><h3>Confirmed Churned Accounts</h3><div class="sh">9 GP accounts confirmed lost — $384K total revenue impact</div>
+    <div class="card"><h3>Confirmed Churned Accounts</h3><div class="sh">${CHURNED.length} GP account${CHURNED.length!==1?'s':''} confirmed lost — ${fmt(CHURNED.reduce((s,a)=>s+(a.rev||0),0))} total revenue impact</div>
       <table><thead><tr><th style="text-align:left">Account</th><th style="text-align:left">CSM</th><th style="text-align:left">Pool</th><th style="text-align:right">Revenue</th><th style="text-align:left">Quarter</th><th style="text-align:left">Notes</th></tr></thead>
       <tbody>${CHURNED.sort((a,b)=>b.rev-a.rev).map(a=>`<tr><td style="font-weight:500">${a.n}</td><td style="color:var(--muted)">${a.csm}</td><td><span class="pill" style="color:${PC[a.pool]||'var(--dim)'}">${a.pool}</span></td><td class="mono" style="text-align:right;color:var(--red);font-weight:600">${fmt(a.rev)}</td><td class="mono">${a.q}</td><td style="font-size:11px;color:var(--dim);max-width:200px">${a.notes||'—'}</td></tr>`).join('')}</tbody></table>
     </div>
