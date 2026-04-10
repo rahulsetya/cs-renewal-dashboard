@@ -3409,6 +3409,9 @@ function rRisk(){
     });
   });
   
+  const tDe=gpAtRisk.reduce((s,a)=>s+a.count,0);
+  const gRD=gpAtRisk.reduce((s,a)=>s+(a.rev||0),0);
+
   el.innerHTML=`
     <div class="card"><h3>Confirmed Churned Accounts</h3><div class="sh">${CHURNED.length} GP account${CHURNED.length!==1?'s':''} confirmed lost — ${fmt(CHURNED.reduce((s,a)=>s+(a.rev||0),0))} total revenue impact</div>
       <table><thead><tr><th style="text-align:left">Account</th><th style="text-align:left">CSM</th><th style="text-align:left">Pool</th><th style="text-align:right">Revenue</th><th style="text-align:left">Quarter</th><th style="text-align:left">Notes</th></tr></thead>
