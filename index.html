@@ -1081,14 +1081,32 @@ function _buildLiveGoalsData(){
   if(_renewalDupes.length)console.warn(`Renewal Master duplicates (${_renewalDupes.length}):`,_renewalDupes);
   console.log(`Engagement Tracker accounts: ${(ENG_RAW||[]).length}`);
 
+  // Fuzzy matching: normalize names for comparison
+  const _normName=s=>s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\b(asset|management|capital|partners|partner|funds|fund|inc|llc|ltd|group|advisors|advisory|limited|formerly|and|the|alts|systematic|trading|fitzgerald)\b/g,' ').replace(/\s+/g,' ').trim();
+  const _fuzzyScore=(a,b)=>{const na=_normName(a),nb=_normName(b);if(na===nb)return 1;if(na.startsWith(nb)||nb.startsWith(na))return 0.9;if(na.includes(nb)||nb.includes(na))return 0.85;const ta=new Set(na.split(' ').filter(Boolean)),tb=new Set(nb.split(' ').filter(Boolean));const inter=[...ta].filter(t=>tb.has(t)).length;const uni=new Set([...ta,...tb]).size;return uni>0?inter/uni:0;};
+  // Build fuzzy lookup map: ET name → best matching renewal master key (if score ≥ 0.6)
+  const _fuzzyMap={};
+  const _renewalKeys=Object.keys(renewalLookup);
+  for(const r of (ENG_RAW||[])){
+    if(!r.acct||renewalLookup[r.acct.toLowerCase()])continue;
+    let best=null,bestScore=0;
+    for(const rk of _renewalKeys){const sc=_fuzzyScore(r.acct,renewalLookup[rk].name);if(sc>bestScore){bestScore=sc;best=rk;}}
+    if(bestScore>=0.6)_fuzzyMap[r.acct.toLowerCase()]={renewalKey:best,score:bestScore,etName:r.acct,rmName:renewalLookup[best].name};
+  }
+  if(Object.keys(_fuzzyMap).length){
+    console.log(`=== PROPOSED FUZZY MATCHES (verify these) ===`);
+    Object.values(_fuzzyMap).sort((a,b)=>b.score-a.score).forEach(m=>console.log(`  ${Math.round(m.score*100)}%  "${m.etName}"  →  "${m.rmName}"`));
+  }
+
   // Drive account list from Engagement Tracker (column A = account name, column AI = CSM)
   const _matchedRenewal=new Set();
   for(const r of (ENG_RAW||[])){
     const acct=r.acct;
     if(!acct)continue;
     const renewalKey=acct.toLowerCase();
-    const renewal=renewalLookup[renewalKey]||null;
-    if(renewal)_matchedRenewal.add(renewalKey);
+    const fuzzyMatch=!renewalLookup[renewalKey]?_fuzzyMap[renewalKey]:null;
+    const renewal=renewalLookup[renewalKey]||(fuzzyMatch?renewalLookup[fuzzyMatch.renewalKey]:null)||null;
+    if(renewal)_matchedRenewal.add(fuzzyMatch?fuzzyMatch.renewalKey:renewalKey);
     const stage=renewal?renewal.stage:'Not in renewal master';
     const rev=renewal?renewal.rev:0;
     const se=renewal?renewal.se:'';
