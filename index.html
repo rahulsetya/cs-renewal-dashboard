@@ -1046,16 +1046,19 @@ function _buildLiveGoalsData(){
   const allAccts=[];
   // Build renewal master lookup: account name → {stage, rev, se}
   const renewalLookup={};
+  const _renewalDupes=[];
   const rows=GP_RAW_ROWS;
   const hdr=GP_RAW_HDR;
   const cm={};
   (rows[hdr]||[]).forEach((h,i)=>{const k=String(h||'').trim();if(k)cm[k.toLowerCase()]=i;});
   function gc(v,...names){for(const n of names){const i=cm[n.toLowerCase()];if(i!==undefined&&v[i]!==undefined&&v[i]!=='')return v[i];}return '';}
   const revColIdx=(()=>{for(const k of Object.keys(cm)){if(k.includes('2025')&&k.includes('revenue'))return cm[k];}for(const k of Object.keys(cm)){if(k.includes('total revenue'))return cm[k];}return 3;})();
+  let _renewalRawCount=0;
   for(let i=hdr+1;i<rows.length;i++){
     const v=rows[i];
     const acct=String(gc(v,'Contact','Company Name','Account Name')||'').trim();
     if(!acct)continue;
+    _renewalRawCount++;
     const rawStage=String(gc(v,'Stage')||'').trim();
     const stage=resolveStage(rawStage)||rawStage||'1. Uncontacted';
     const seRaw=gc(v,'Final Sub End Date');
@@ -1069,8 +1072,14 @@ function _buildLiveGoalsData(){
       return excelDateToJS(seRaw);
     })();
     const rev=parseNum(v[revColIdx]||'');
+    if(renewalLookup[acct.toLowerCase()])_renewalDupes.push(acct);
     renewalLookup[acct.toLowerCase()]={stage,rev,se,name:acct};
   }
+  console.log(`=== ACCOUNT RECONCILIATION ===`);
+  console.log(`Renewal Master rows (non-blank): ${_renewalRawCount}`);
+  console.log(`Renewal Master unique names: ${Object.keys(renewalLookup).length}`);
+  if(_renewalDupes.length)console.warn(`Renewal Master duplicates (${_renewalDupes.length}):`,_renewalDupes);
+  console.log(`Engagement Tracker accounts: ${(ENG_RAW||[]).length}`);
 
   // Drive account list from Engagement Tracker (column A = account name, column AI = CSM)
   const _matchedRenewal=new Set();
@@ -1097,6 +1106,8 @@ function _buildLiveGoalsData(){
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
   }
+  const _engNotInRenewal=(ENG_RAW||[]).filter(r=>r.acct&&!renewalLookup[r.acct.toLowerCase()]).map(r=>r.acct);
+  if(_engNotInRenewal.length)console.warn(`Engagement Tracker accounts NOT in Renewal Master (${_engNotInRenewal.length}):`,_engNotInRenewal);
   // Include Renewal Master accounts not found in Engagement Tracker
   for(const [key,renewal] of Object.entries(renewalLookup)){
     if(_matchedRenewal.has(key))continue;
@@ -1115,6 +1126,9 @@ function _buildLiveGoalsData(){
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
   }
+  const _renewalNotInEng=Object.keys(renewalLookup).filter(k=>!_matchedRenewal.has(k)).map(k=>renewalLookup[k].name);
+  if(_renewalNotInEng.length)console.warn(`Renewal Master accounts NOT in Engagement Tracker (${_renewalNotInEng.length}):`,_renewalNotInEng);
+  console.log(`Total accounts in dashboard: ${allAccts.length}`);
   churned.sort((a,b)=>b.rev-a.rev);
   const totalNone=Object.values(grrNone).reduce((a,v)=>a+v.logos,0);
 
