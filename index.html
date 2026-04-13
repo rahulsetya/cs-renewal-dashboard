@@ -1106,8 +1106,6 @@ function _buildLiveGoalsData(){
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
   }
-  const _engNotInRenewal=(ENG_RAW||[]).filter(r=>r.acct&&!renewalLookup[r.acct.toLowerCase()]).map(r=>r.acct);
-  if(_engNotInRenewal.length)console.warn(`Engagement Tracker accounts NOT in Renewal Master (${_engNotInRenewal.length}):`,_engNotInRenewal);
   // Include Renewal Master accounts not found in Engagement Tracker
   for(const [key,renewal] of Object.entries(renewalLookup)){
     if(_matchedRenewal.has(key))continue;
@@ -1129,6 +1127,8 @@ function _buildLiveGoalsData(){
   const _renewalNotInEng=Object.keys(renewalLookup).filter(k=>!_matchedRenewal.has(k)).map(k=>renewalLookup[k].name);
   if(_renewalNotInEng.length)console.warn(`Renewal Master accounts NOT in Engagement Tracker (${_renewalNotInEng.length}):`,_renewalNotInEng);
   console.log(`Total accounts in dashboard: ${allAccts.length}`);
+  const _engNotInRenewal=(ENG_RAW||[]).filter(r=>r.acct&&!renewalLookup[r.acct.toLowerCase()]).map(r=>r.acct);
+  window._acctMismatches={engNotInRenewal:_engNotInRenewal,renewalNotInEng:_renewalNotInEng};
   churned.sort((a,b)=>b.rev-a.rev);
   const totalNone=Object.values(grrNone).reduce((a,v)=>a+v.logos,0);
 
@@ -2919,6 +2919,7 @@ function mc(id,cfg){if(charts[id])charts[id].destroy();const c=document.getEleme
 const cD={g:'rgba(255,255,255,.07)',t:'#94a3b8'};
 
 function sc(label,value,sub,color){return`<div class="stat"><div class="bar" style="background:linear-gradient(90deg,${color},transparent)"></div><div class="label">${label}</div><div class="val">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`}
+function _toggleMismatch(id){const el=document.getElementById('mismatch-'+id);const ar=document.getElementById('mismatch-'+id+'-arrow');if(!el)return;const open=el.style.display==='';el.style.display=open?'none':'';if(ar)ar.textContent=open?'▸':'▾';}
 
 // Pool card (4-state: won/open/declined/lost)
 function poolCard(pool,d,target,gifted){
@@ -2968,7 +2969,16 @@ function rOverview(){
   const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;
   el.innerHTML=`
     <div class="cards">
-      ${sc("Total Logos",tL.toLocaleString(),(gL)+" GPs + "+SP.logos+" SPs","var(--accent)")}
+      <div class="stat" style="position:relative">
+        <div class="bar" style="background:linear-gradient(90deg,var(--accent),transparent)"></div>
+        <div class="label">Total Logos</div>
+        <div class="val">${tL.toLocaleString()}</div>
+        <div class="sub">${gL} GPs + ${SP.logos} SPs</div>
+        ${(()=>{const m=window._acctMismatches||{};const e2r=m.engNotInRenewal||[];const r2e=m.renewalNotInEng||[];if(!e2r.length&&!r2e.length)return'';return`<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px;display:flex;flex-direction:column;gap:4px">
+          ${e2r.length?`<div style="cursor:pointer;font-size:10px;color:var(--amber);display:flex;justify-content:space-between;align-items:center" onclick="_toggleMismatch('etr')"><span>⚠ ${e2r.length} in ET, not in Renewal Master</span><span id="mismatch-etr-arrow">▸</span></div><div id="mismatch-etr" style="display:none;max-height:160px;overflow-y:auto;margin-top:2px">${e2r.map(n=>`<div style="font-size:10px;color:var(--dim);padding:1px 0;padding-left:8px">${n}</div>`).join('')}</div>`:''}
+          ${r2e.length?`<div style="cursor:pointer;font-size:10px;color:var(--orange);display:flex;justify-content:space-between;align-items:center" onclick="_toggleMismatch('rme')"><span>⚠ ${r2e.length} in Renewal Master, not in ET</span><span id="mismatch-rme-arrow">▸</span></div><div id="mismatch-rme" style="display:none;max-height:160px;overflow-y:auto;margin-top:2px">${r2e.map(n=>`<div style="font-size:10px;color:var(--dim);padding:1px 0;padding-left:8px">${n}</div>`).join('')}</div>`:''}
+        </div>`;})()}
+      </div>
       ${sc("Revenue at Risk",fmt(tR),"$39.8M tracked of ~$41.2M","var(--amber)")}
       ${sc("Renewed YTD",tW+" logos",pct(tW/tL*100)+" logo retention","var(--green)")}
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
