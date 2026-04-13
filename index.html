@@ -473,10 +473,11 @@ async function fetchAllEngagement(token){
         if(!acct)continue;
         const ro=normCsm(row[CSM_COL]);               // column AI → full CSM name
         const ae=String(row[1]||'').trim();          // column B = Sales Rep
+        const seg=String(row[2]||'').trim();         // column C = Enterprise/Strategic/Scale
         const rawEnd=String(row[5]||'').trim();      // column F = contract end
         const rev=parseNum(row[4]);                  // column E = 2025 revenue
         const rec={
-          acct,ro,ae,endMonth:parseEngEndMonth(rawEnd),rawEnd,rev,
+          acct,ro,ae,seg,endMonth:parseEngEndMonth(rawEnd),rawEnd,rev,
           out:yesNo(ec(row,'Outreach Sent? (Y/N)')||ec(row,'Outreach Sent?')),
           gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
           gm:yesNo(ec(row,'GM Completed? (Y/N)')||ec(row,'GM Completed?')),
@@ -1083,7 +1084,7 @@ function _buildLiveGoalsData(){
     const rev=renewal?renewal.rev:0;
     const se=renewal?renewal.se:'';
     const csm=r.ro||'';
-    const pool=POOL_MAP[csm]||'Scale';
+    const pool=r.seg||POOL_MAP[csm]||'Scale';
     const q=getQ(se);
     const isWon=WON_S.has(stage);
     const isLost=CHURNED_S.has(stage);
