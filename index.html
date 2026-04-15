@@ -3092,6 +3092,8 @@ function rGP(){
   // Scenario modeling
   let totalOpen=0,totalWon=0,totalLogos=0,totalDeclined=0;
   pools.forEach(p=>{const d=grrQ[p];totalOpen+=d.open;totalWon+=d.won;totalLogos+=d.logos;totalDeclined+=d.declined});
+  const totalWinback=(filtAccts||[]).filter(a=>a.stage==='4a. Attempting again Q2').length;
+  const totalTrulyOpen=Math.max(0,totalOpen-totalWinback);
   const floorN=Math.ceil(totalLogos*GP_T[tKey]?.floor/100)||0;
   const fullN=Math.ceil(totalLogos*GP_T[tKey]?.full/100)||0;
   const accelN=Math.ceil(totalLogos*GP_T[tKey]?.accel/100)||0;
@@ -3123,7 +3125,7 @@ function rGP(){
       </div>
     </div>
     <div class="cards">${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}</div>
-    ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Wins needed from ${totalOpen} open + ${totalDeclined} declined-early accounts to hit targets</div>
+    ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Wins needed from ${totalTrulyOpen} open + ${totalWinback} Win-back accounts to hit targets</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
         ${[{l:"Floor ("+GP_T[tKey]?.floor+"%)",n:floorN,g:gapFloor,c:gapFloor<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.floor/100},{l:"Full ("+GP_T[tKey]?.full+"%)",n:fullN,g:gapFull,c:gapFull<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.full/100},{l:"Accel ("+GP_T[tKey]?.accel+"%+)",n:accelN,g:gapAccel,c:gapAccel<=0?"var(--green)":"var(--red)",t:GP_T[tKey]?.accel/100}].map(x=>{const convNeeded=totalOpen>0?Math.max(0,(x.t*totalLogos-totalWon)/totalOpen*100):0;return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;text-align:center">
           <div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">${x.l}</div>
