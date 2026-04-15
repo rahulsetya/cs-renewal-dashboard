@@ -174,7 +174,7 @@ function deriveKpisFromData(snapData,acctMap){
   const deals=Object.entries(snapData).map(([c,s])=>({...(acctMap[c]||{}),s}));
   const won=deals.filter(d=>['7. Signed','9. Invoice Sent','10. Paid'].includes(d.s));
   const pipe=deals.filter(d=>['5. Proposal Made','6. Signature Requested'].includes(d.s));
-  const lost=deals.filter(d=>d.s==='8. Closed Lost (Not Renewing)'||d.s==='11. Churned');
+  const lost=deals.filter(d=>d.s==='11. Churned');
   const unc=deals.filter(d=>d.s==='1. Uncontacted');
   const stages={};
   (typeof ST!=='undefined'?ST:[]).forEach(s=>{const sa=deals.filter(d=>d.s===s);if(sa.length)stages[s]={count:sa.length,rev:sum(sa,'r25'),offer:sum(sa,'o'),offerCount:sa.filter(d=>d.o>0).length};});
@@ -192,7 +192,7 @@ function buildSnapshotKpis(){
   const sum=(arr,k)=>arr.reduce((a,d)=>a+(d[k]||0),0);
   const won=D.filter(d=>['7. Signed','9. Invoice Sent','10. Paid'].includes(d.s));
   const pipe=D.filter(d=>['5. Proposal Made','6. Signature Requested'].includes(d.s));
-  const lost=D.filter(d=>d.s==='8. Closed Lost (Not Renewing)'||d.s==='11. Churned');
+  const lost=D.filter(d=>d.s==='11. Churned');
   const unc=D.filter(d=>d.s==='1. Uncontacted');
   const risk=D.filter(d=>d.sg&&d.sg.length>0);
   const wb=D.filter(d=>d.sg&&d.sg.includes('wb'));
@@ -687,9 +687,9 @@ function excelDateToJS(v){
 }
 function daysDiff(v){if(!v)return 0;const d=new Date(v);return isNaN(d)?0:Math.round((d-new Date())/864e5);}
 
-const ST=['1. Uncontacted','2. Contacted No Interest','3. Contacted Follow-up Needed','4. Contacted Attempting Again','5. Proposal Made','6. Signature Requested','7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent','10. Paid','11. Churned'];
-const SH={'1. Uncontacted':'1. Uncontacted','2. Contacted No Interest':'2. No Interest','3. Contacted Follow-up Needed':'3. Follow-up Needed','4. Contacted Attempting Again':'4. Attempting Again','5. Proposal Made':'5. Proposal Made','6. Signature Requested':'6. Sig Requested','7. Signed':'7. Signed','8. Closed Lost (Not Renewing)':'8. Closed Lost','9. Invoice Sent':'9. Invoice Sent','10. Paid':'10. Paid','11. Churned':'11. Churned'};
-const CL={'1. Uncontacted':'#94a3b8','2. Contacted No Interest':'#f87171','3. Contacted Follow-up Needed':'#fbbf24','4. Contacted Attempting Again':'#fb923c','5. Proposal Made':'#a78bfa','6. Signature Requested':'#60a5fa','7. Signed':'#34d399','8. Closed Lost (Not Renewing)':'#ef4444','9. Invoice Sent':'#22d3ee','10. Paid':'#10b981','11. Churned':'#7f1d1d'};
+const ST=['1. Uncontacted','2. Contacted No Interest','3. Contacted Follow-up Needed','4. Contacted Attempting Again','4a. Attempting again Q2','5. Proposal Made','6. Signature Requested','7. Signed','9. Invoice Sent','10. Paid','11. Churned'];
+const SH={'1. Uncontacted':'1. Uncontacted','2. Contacted No Interest':'2. No Interest','3. Contacted Follow-up Needed':'3. Follow-up Needed','4. Contacted Attempting Again':'4. Attempting Again','4a. Attempting again Q2':'4a. Attempting Q2','5. Proposal Made':'5. Proposal Made','6. Signature Requested':'6. Sig Requested','7. Signed':'7. Signed','9. Invoice Sent':'9. Invoice Sent','10. Paid':'10. Paid','11. Churned':'11. Churned'};
+const CL={'1. Uncontacted':'#94a3b8','2. Contacted No Interest':'#f87171','3. Contacted Follow-up Needed':'#fbbf24','4. Contacted Attempting Again':'#fb923c','4a. Attempting again Q2':'#f59e0b','5. Proposal Made':'#a78bfa','6. Signature Requested':'#60a5fa','7. Signed':'#34d399','9. Invoice Sent':'#22d3ee','10. Paid':'#10b981','11. Churned':'#7f1d1d'};
 const SIG_L={ue:'Uncontacted Expiring',en:'Expiring No Offer',co:'No Outreach Tracked',pp:'Proposal No Price',se:'Sig Req Expiring',nm:'No Meetings',rf:'Risk Flagged',hr:'High Rev No Engagement',wb:'Win-Back'};
 const SIG_C={ue:'b-red',en:'b-red',co:'b-orange',pp:'b-purple',se:'b-yellow',nm:'b-orange',rf:'b-red',hr:'b-red',wb:'b-blue'};
 const MO=['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'];
@@ -746,7 +746,7 @@ function computeSignals(row){
   if(mt===0)sg.push('nm');
   if(rsk)sg.push('rf');
   if(r25>=50000&&mt===0)sg.push('hr');
-  if(s==='8. Closed Lost (Not Renewing)')sg.push('wb');
+  if(s==='4a. Attempting again Q2')sg.push('wb');
   return[...new Set(sg)];
 }
 function getWow(d){
@@ -755,7 +755,7 @@ function getWow(d){
   const pi=ST.indexOf(ps),ci=ST.indexOf(d.s);
   if(pi<0||ci<0)return'same';
   if(d.s==='11. Churned'&&ps!=='11. Churned')return'lost';
-  if(d.s==='8. Closed Lost (Not Renewing)'&&ps!=='8. Closed Lost (Not Renewing)'&&ps!=='11. Churned')return'lost';
+  if(d.s==='11. Churned'&&ps!=='11. Churned')return'lost';
   if((d.s==='7. Signed'||d.s==='9. Invoice Sent')&&ps!=='7. Signed'&&ps!=='9. Invoice Sent')return'won';
   if(ci>pi)return'up';if(ci<pi)return'down';return'same';
 }
@@ -1037,7 +1037,7 @@ function _buildLiveGoalsData(){
   const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
   const WON_S=new Set(['9. Invoice Sent','10. Paid']);
   const CHURNED_S=new Set(['11. Churned']);
-  const DECLINED_S=new Set(['8. Closed Lost (Not Renewing)']);
+  const DECLINED_S=new Set([]);
   function getQ(se){if(!se)return null;const m=parseInt((se.split('-')[1]||'0'));if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return null;}
   const grr={};
   ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});});
@@ -1249,7 +1249,7 @@ function _render(){
 
   const f=gf(),tot=f.length;
   const won=f.filter(d=>d.s==='7. Signed'||d.s==='9. Invoice Sent'||d.s==='10. Paid');
-  const lost=f.filter(d=>d.s==='8. Closed Lost (Not Renewing)'||d.s==='11. Churned');
+  const lost=f.filter(d=>d.s==='11. Churned');
   const pipe=f.filter(d=>d.s==='5. Proposal Made'||d.s==='6. Signature Requested');
   const unc=f.filter(d=>d.s==='1. Uncontacted');
   const r25T=f.reduce((a,d)=>a+d.r25,0),offT=f.reduce((a,d)=>a+d.o,0);
@@ -1402,7 +1402,7 @@ function _render(){
           const nOpen=S.noteOpen===a.c;
           const prevStg=PREV_TS?PREV[a.c]:null;
           const stgMoved=prevStg&&prevStg!==a.s;
-          const stgUp=stgMoved?(()=>{const pi=ST.indexOf(prevStg),ci=ST.indexOf(a.s);return ci>pi&&a.s!=='8. Closed Lost (Not Renewing)'&&a.s!=='11. Churned';})():false;
+          const stgUp=stgMoved?(()=>{const pi=ST.indexOf(prevStg),ci=ST.indexOf(a.s);return ci>pi&&a.s!=='11. Churned';})():false;
           const movedFrom=stgMoved?`<span style="font-size:10px;font-weight:600;color:${stgUp?'#34d399':'#ef4444'};margin-left:8px;white-space:nowrap">${stgUp?'↑':'↓'} from ${SH[prevStg]||prevStg}</span>`:'';
           const stgDown=stgMoved&&!stgUp;
           h+=`<tr class="dr ck" style="${stgUp?'background:rgba(52,211,153,0.07)':stgDown?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,'\\\'')}')" title="Click to toggle iCon Notes">
@@ -1549,7 +1549,7 @@ function _render(){
 
   // ── EXPIRY TIMELINE ──
   if(S.tab==='timeline'){
-    const active=f.filter(d=>!['7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent','10. Paid','11. Churned'].includes(d.s));
+    const active=f.filter(d=>!['7. Signed','9. Invoice Sent','10. Paid','11. Churned'].includes(d.s));
     const mo_data={};const mo_accts={};
     MO.forEach(m=>{mo_data[m]={n:0,r25:0,off:0,noOffer:0,noOfferR:0};mo_accts[m]=[];});
     active.forEach(d=>{if(d.em&&mo_data[d.em]){mo_data[d.em].n++;mo_data[d.em].r25+=d.r25;mo_data[d.em].off+=d.o;if(d.o===0){mo_data[d.em].noOffer++;mo_data[d.em].noOfferR+=d.r25;}mo_accts[d.em].push(d);}});
@@ -1624,7 +1624,7 @@ function _render(){
       om[d.ro].tot++;om[d.ro].st[d.s]=(om[d.ro].st[d.s]||0)+1;
       om[d.ro].r25+=d.r25;om[d.ro].off+=d.o;
       if(d.s==='7. Signed'||d.s==='9. Invoice Sent')om[d.ro].won++;
-      if(d.s==='8. Closed Lost (Not Renewing)'||d.s==='11. Churned')om[d.ro].lost++;
+      if(d.s==='11. Churned')om[d.ro].lost++;
       if(d.s==='5. Proposal Made'||d.s==='6. Signature Requested')om[d.ro].pipe++;
       if(d.sg.length)om[d.ro].flags++;
     });
@@ -1649,8 +1649,8 @@ function _render(){
       if(!wl[d.ro])wl[d.ro]={o:d.ro,renew:0,r25:0,off:0,won:0,lost:0,active:0};
       wl[d.ro].renew++;wl[d.ro].r25+=d.r25;wl[d.ro].off+=d.o;
       if(d.s==='7. Signed'||d.s==='9. Invoice Sent')wl[d.ro].won++;
-      if(d.s==='8. Closed Lost (Not Renewing)'||d.s==='11. Churned')wl[d.ro].lost++;
-      if(!['7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent','10. Paid','11. Churned'].includes(d.s))wl[d.ro].active++;
+      if(d.s==='11. Churned')wl[d.ro].lost++;
+      if(!['7. Signed','9. Invoice Sent','10. Paid','11. Churned'].includes(d.s))wl[d.ro].active++;
     });
     const wa=Object.values(wl).sort((a,b)=>b.r25-a.r25);
     h+=`<div class="cd" style="padding:20px;margin-top:16px"><h3 style="margin:0 0 16px;font-size:15px;font-weight:600;color:#f8fafc">CSM Workload vs. Outcome</h3>
@@ -2198,7 +2198,7 @@ function _render(){
 
   // ── LOST ANALYSIS ──
   if(S.tab==='lostanalysis'){
-    const la=f.filter(d=>d.s==='8. Closed Lost (Not Renewing)'||d.s==='11. Churned').sort((a,b)=>b.r25-a.r25);
+    const la=f.filter(d=>d.s==='11. Churned').sort((a,b)=>b.r25-a.r25);
     const laRev=la.reduce((a,d)=>a+d.r25,0);
     const withOff=la.filter(d=>d.o>0),hadOut=la.filter(d=>d.out===1),noOut=la.filter(d=>d.out===0);
     const lo={};la.forEach(d=>{if(!lo[d.ro])lo[d.ro]={n:0,rev:0};lo[d.ro].n++;lo[d.ro].rev+=d.r25;});
@@ -2458,9 +2458,9 @@ function _render(){
             const mHd=(col,lbl,align)=>{const act=msort.col===col,dir=act?(msort.dir==='asc'?'▲':'▼'):'↕';return`<th onclick="if(!S.hsMoveSort)S.hsMoveSort={};S.hsMoveSort[${i}]={col:'${col}',dir:'${act&&msort.dir==='asc'?'desc':'asc'}'};render()" style="cursor:pointer;user-select:none;${align?'text-align:'+align+';':''}${act?'color:#f8fafc':''}">${lbl} <span style="font-size:9px;color:${act?'#60a5fa':'#334155'}">${dir}</span></th>`;};
             let visibleMoves=[...moves];
             if(mfilt.search)visibleMoves=visibleMoves.filter(mv=>mv.acct.toLowerCase().includes(mfilt.search.toLowerCase()));
-            if(mfilt.dir==='up')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2>pi&&mv.to!=='8. Closed Lost (Not Renewing)'&&mv.to!=='11. Churned';});
-            if(mfilt.dir==='down')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2<pi&&mv.to!=='8. Closed Lost (Not Renewing)'&&mv.to!=='11. Churned';});
-            if(mfilt.dir==='lost')visibleMoves=visibleMoves.filter(mv=>mv.to==='8. Closed Lost (Not Renewing)'||mv.to==='11. Churned');
+            if(mfilt.dir==='up')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2>pi&&mv.to!=='11. Churned';});
+            if(mfilt.dir==='down')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2<pi&&mv.to!=='11. Churned';});
+            if(mfilt.dir==='lost')visibleMoves=visibleMoves.filter(mv=>mv.to==='11. Churned');
             visibleMoves.sort((a,b)=>{
               const da=acctMap[a.acct],db=acctMap[b.acct];
               if(msort.col==='acct')return msort.dir==='asc'?a.acct.localeCompare(b.acct):b.acct.localeCompare(a.acct);
@@ -2469,15 +2469,15 @@ function _render(){
               if(msort.col==='to')return msort.dir==='asc'?ST.indexOf(a.to)-ST.indexOf(b.to):ST.indexOf(b.to)-ST.indexOf(a.to);
               if(msort.col==='rev'){const ra=(da&&da.r25)||0,rb=(db&&db.r25)||0;return msort.dir==='asc'?ra-rb:rb-ra;}
               if(msort.col==='days'){const dya=(da&&da.dy)||9999,dyb=(db&&db.dy)||9999;return msort.dir==='asc'?dya-dyb:dyb-dya;}
-              if(msort.col==='type'){const to=mv=>{const isLost=mv.to==='8. Closed Lost (Not Renewing)'||mv.to==='11. Churned';const up=ST.indexOf(mv.to)>ST.indexOf(mv.from)&&!isLost;return isLost?2:up?0:1;};return msort.dir==='asc'?to(a)-to(b):to(b)-to(a);}
+              if(msort.col==='type'){const to=mv=>{const isLost=mv.to==='11. Churned';const up=ST.indexOf(mv.to)>ST.indexOf(mv.from)&&!isLost;return isLost?2:up?0:1;};return msort.dir==='asc'?to(a)-to(b):to(b)-to(a);}
               return 0;
             });
             h+=`<table style="width:100%"><thead><tr>${mHd('acct','Account','')}${mHd('owner','Owner','')}${mHd('from','From','')}${mHd('type','','center')}${mHd('to','To','')}${mHd('rev','2025 Rev','right')}<th style="text-align:right;color:#22d3ee">2026 Offer</th>${mHd('days','Sub End','')}<th></th></tr></thead><tbody>`;
             visibleMoves.forEach(mv=>{
               const d=acctMap[mv.acct];
               const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);
-              const up=ci2>pi&&mv.to!=='8. Closed Lost (Not Renewing)'&&mv.to!=='11. Churned';
-              const isLost=mv.to==='8. Closed Lost (Not Renewing)'||mv.to==='11. Churned';
+              const up=ci2>pi&&mv.to!=='11. Churned';
+              const isLost=mv.to==='11. Churned';
               const icon=isLost?'✕':up?'▲':'▼';
               const icol=isLost?'#ef4444':up?'#34d399':'#ef4444';
               const hsNoteIdx=window._noteKeys.length;const hsNoteKey='hs_mv_'+mv.acct;window._noteKeys.push(hsNoteKey);
@@ -2515,7 +2515,7 @@ function _render(){
     const thStyle='cursor:pointer;user-select:none;vertical-align:top;padding:3px 6px 4px';
     const aCtrlS='width:75%;margin-top:2px;background:#0a1628;border:1px solid #1e3a5f;border-radius:3px;color:#64748b;font-size:9px;padding:1px 4px;font-family:inherit;box-sizing:border-box;outline:none';
     const fSelect=(col,opts)=>{const cur=af[col]||'';return`<select onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" style="${aCtrlS};padding:1px 3px"><option value="">All</option>${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;};
-    const fStageSelect=()=>{const cur=af.stage||'';const groups=[{v:'__active__',l:'Active (excl. Signed/Lost)'},{v:'__won__',l:'Won (Signed/Invoiced/Paid)'},{v:'__pipeline__',l:'Pipeline (Proposals)'},{v:'__lost__',l:'Lost (Closed Lost + Churned)'}];return`<select onclick="event.stopPropagation()" onchange="ssAcctFilter('stage',this.value)" style="${aCtrlS};padding:1px 3px"><option value="">All</option><optgroup label="── Groups ──">${groups.map(g=>`<option value="${g.v}"${cur===g.v?' selected':''}>${g.l}</option>`).join('')}</optgroup><optgroup label="── Stages ──">${uStages.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</optgroup></select>`;};
+    const fStageSelect=()=>{const cur=af.stage||'';const groups=[{v:'__active__',l:'Active (excl. Signed/Lost)'},{v:'__won__',l:'Won (Signed/Invoiced/Paid)'},{v:'__pipeline__',l:'Pipeline (Proposals)'},{v:'__lost__',l:'Lost (Churned)'}];return`<select onclick="event.stopPropagation()" onchange="ssAcctFilter('stage',this.value)" style="${aCtrlS};padding:1px 3px"><option value="">All</option><optgroup label="── Groups ──">${groups.map(g=>`<option value="${g.v}"${cur===g.v?' selected':''}>${g.l}</option>`).join('')}</optgroup><optgroup label="── Stages ──">${uStages.map(o=>`<option value="${o.replace(/"/g,'&quot;')}"${cur===o?' selected':''}>${o}</option>`).join('')}</optgroup></select>`;};
     const fInput=(col,ph)=>`<input onclick="event.stopPropagation()" onchange="ssAcctFilter('${col}',this.value)" value="${(af[col]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${aCtrlS}">`;
     // Unique sorted values for dropdown filters
     const uStages=[...new Set(f.map(a=>a.s))].sort((a,b)=>ST.indexOf(a)-ST.indexOf(b));
@@ -2549,10 +2549,10 @@ function _render(){
 
     // Apply filters
     let rows=[...f];
-    if(af.stage==='__active__')rows=rows.filter(a=>!['7. Signed','8. Closed Lost (Not Renewing)','9. Invoice Sent','10. Paid','11. Churned'].includes(a.s));
+    if(af.stage==='__active__')rows=rows.filter(a=>!['7. Signed','9. Invoice Sent','10. Paid','11. Churned'].includes(a.s));
     else if(af.stage==='__won__')rows=rows.filter(a=>['7. Signed','9. Invoice Sent','10. Paid'].includes(a.s));
     else if(af.stage==='__pipeline__')rows=rows.filter(a=>['5. Proposal Made','6. Signature Requested'].includes(a.s));
-    else if(af.stage==='__lost__')rows=rows.filter(a=>['8. Closed Lost (Not Renewing)','11. Churned'].includes(a.s));
+    else if(af.stage==='__lost__')rows=rows.filter(a=>['11. Churned'].includes(a.s));
     else if(af.stageIn)rows=rows.filter(a=>af.stageIn.includes(a.s));
     else if(af.stage)rows=rows.filter(a=>a.s===af.stage);
     if(af.stageNotIn)rows=rows.filter(a=>!af.stageNotIn.includes(a.s));
@@ -2596,7 +2596,7 @@ function _render(){
       const nOpen=S.noteOpen===a.c;
       const aPrevStg=PREV_TS?PREV[a.c]:null;
       const aStgMoved=aPrevStg&&aPrevStg!==a.s;
-      const aStgUp=aStgMoved?(()=>{const pi=ST.indexOf(aPrevStg),ci=ST.indexOf(a.s);return ci>pi&&a.s!=='8. Closed Lost (Not Renewing)'&&a.s!=='11. Churned';})():false;
+      const aStgUp=aStgMoved?(()=>{const pi=ST.indexOf(aPrevStg),ci=ST.indexOf(a.s);return ci>pi&&a.s!=='11. Churned';})():false;
       const aStgDown=aStgMoved&&!aStgUp;
       h+=`<tr class="dr ck" style="${aStgUp?'background:rgba(52,211,153,0.07)':aStgDown?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
         <td style="color:#e2e8f0;font-weight:500">${a.c}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:6px;white-space:nowrap">${nOpen?'▾':'▸'} notes</span>`:''}</td>
@@ -2889,7 +2889,7 @@ const fmt = n => n>=1e6?`$${(n/1e6).toFixed(1)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}
 const fmtSE = s => {if(!s)return'—';const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1];};
 function _rcSaveSnap(){
   const snap={gpRetention:{},cadence:{}};
-  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=['8. Closed Lost (Not Renewing)'];
+  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=[];
   ['Q1','Q2','Q3','Q4'].forEach(function(q){snap.gpRetention[q]={};['Enterprise','Strategic','Scale'].forEach(function(p){
     const d=(GRR[q]||{})[p]||{};
     snap.gpRetention[q][p]={
@@ -3021,7 +3021,7 @@ function rOverview(){
 // ── ACCOUNT SUB-TABLE (sortable + filterable) ────────
 let _acctSort={},_acctFilt={};
 function _acctTableHTML(rid,q,pool){
-  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['8. Closed Lost (Not Renewing)'];
+  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=[];
   const sc=a=>{if(WS.includes(a.stage))return'var(--green)';if(CS.includes(a.stage))return'var(--red)';if(DS.includes(a.stage))return'var(--orange)';return'var(--muted)';};
   let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&(!selGPCSM||a.csRep===selGPCSM)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth));
   const allStages=[...new Set(rows.map(a=>a.stage).filter(Boolean))].sort();
@@ -3073,7 +3073,7 @@ function rGP(){
   const filtAccts=selGPMonth?csmFiltered.filter(a=>(a.se||'').substring(5,7)===selGPMonth):csmFiltered;
 
   // Re-aggregate per-pool data from filtered accounts (or use global GRR when no active filters)
-  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['8. Closed Lost (Not Renewing)'];
+  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=[];
   const needsReagg=selGPCSM||selGPMonth;
   const grrQ=needsReagg?(()=>{
     const r={};pools.forEach(p=>{r[p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});
@@ -3414,7 +3414,7 @@ function rTargets(){
   function ed(title,tgts,pfx){
     return`<div class="card"><h3>${title}</h3><div class="sh">Q1 is GIFTED. Adjust Q2+ below. Q2 = logo retention. Q3+ evolving to GRR.</div>${periods.map(p=>`<div class="target-row"><label>${p.l}</label>${["floor","full","accel"].map(f=>`<div class="fg"><span>${f==="floor"?"Floor":f==="full"?"Full":"Accel"}</span><input type="number" id="${pfx}_${p.k}_${f}" value="${tgts[p.k]?.[f]||''}" onchange="updateTargets('${pfx}')"><span class="pct">%</span></div>`).join('')}</div>`).join('')}</div>`}
   const qs=["Q1","Q2","Q3","Q4"];
-  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=['8. Closed Lost (Not Renewing)'];
+  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=[];
   let rows=qs.map(q=>{
     let tl=0,tw=0,tlo=0,tde=0;
     if(ACCTS&&ACCTS.length){
