@@ -709,6 +709,10 @@ ST.forEach(s=>{
   const m=s.match(/^(\d+)\./);
   if(m)STAGE_NORM_MAP.set(m[1],s);
 });
+// Legacy stage aliases (old spreadsheet values → new dashboard names)
+STAGE_NORM_MAP.set(normKey('8. Closed Lost (Not Renewing)'),'4a. Attempting again Q2');
+STAGE_NORM_MAP.set(normKey('Closed Lost (Not Renewing)'),'4a. Attempting again Q2');
+STAGE_NORM_MAP.set(normKey('Closed Lost'),'4a. Attempting again Q2');
 
 function resolveStage(rawStage){
   if(!rawStage)return null;
