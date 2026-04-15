@@ -1402,7 +1402,7 @@ function _render(){
           const nOpen=S.noteOpen===a.c;
           const prevStg=PREV_TS?PREV[a.c]:null;
           const stgMoved=prevStg&&prevStg!==a.s;
-          const stgUp=stgMoved?(()=>{const pi=ST.indexOf(prevStg),ci=ST.indexOf(a.s);return ci>pi&&a.s!=='11. Churned';})():false;
+          const stgUp=stgMoved?(()=>{const pi=ST.indexOf(prevStg),ci=ST.indexOf(a.s);return ci>pi&&a.s!=='11. Churned'&&a.s!=='4a. Attempting again Q2';})():false;
           const movedFrom=stgMoved?`<span style="font-size:10px;font-weight:600;color:${stgUp?'#34d399':'#ef4444'};margin-left:8px;white-space:nowrap">${stgUp?'↑':'↓'} from ${SH[prevStg]||prevStg}</span>`:'';
           const stgDown=stgMoved&&!stgUp;
           h+=`<tr class="dr ck" style="${stgUp?'background:rgba(52,211,153,0.07)':stgDown?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,'\\\'')}')" title="Click to toggle iCon Notes">
@@ -2458,8 +2458,8 @@ function _render(){
             const mHd=(col,lbl,align)=>{const act=msort.col===col,dir=act?(msort.dir==='asc'?'▲':'▼'):'↕';return`<th onclick="if(!S.hsMoveSort)S.hsMoveSort={};S.hsMoveSort[${i}]={col:'${col}',dir:'${act&&msort.dir==='asc'?'desc':'asc'}'};render()" style="cursor:pointer;user-select:none;${align?'text-align:'+align+';':''}${act?'color:#f8fafc':''}">${lbl} <span style="font-size:9px;color:${act?'#60a5fa':'#334155'}">${dir}</span></th>`;};
             let visibleMoves=[...moves];
             if(mfilt.search)visibleMoves=visibleMoves.filter(mv=>mv.acct.toLowerCase().includes(mfilt.search.toLowerCase()));
-            if(mfilt.dir==='up')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2>pi&&mv.to!=='11. Churned';});
-            if(mfilt.dir==='down')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2<pi&&mv.to!=='11. Churned';});
+            if(mfilt.dir==='up')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return ci2>pi&&mv.to!=='11. Churned'&&mv.to!=='4a. Attempting again Q2';});
+            if(mfilt.dir==='down')visibleMoves=visibleMoves.filter(mv=>{const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);return(ci2<pi||mv.to==='4a. Attempting again Q2')&&mv.to!=='11. Churned';});
             if(mfilt.dir==='lost')visibleMoves=visibleMoves.filter(mv=>mv.to==='11. Churned');
             visibleMoves.sort((a,b)=>{
               const da=acctMap[a.acct],db=acctMap[b.acct];
@@ -2469,14 +2469,14 @@ function _render(){
               if(msort.col==='to')return msort.dir==='asc'?ST.indexOf(a.to)-ST.indexOf(b.to):ST.indexOf(b.to)-ST.indexOf(a.to);
               if(msort.col==='rev'){const ra=(da&&da.r25)||0,rb=(db&&db.r25)||0;return msort.dir==='asc'?ra-rb:rb-ra;}
               if(msort.col==='days'){const dya=(da&&da.dy)||9999,dyb=(db&&db.dy)||9999;return msort.dir==='asc'?dya-dyb:dyb-dya;}
-              if(msort.col==='type'){const to=mv=>{const isLost=mv.to==='11. Churned';const up=ST.indexOf(mv.to)>ST.indexOf(mv.from)&&!isLost;return isLost?2:up?0:1;};return msort.dir==='asc'?to(a)-to(b):to(b)-to(a);}
+              if(msort.col==='type'){const to=mv=>{const isLost=mv.to==='11. Churned';const up=ST.indexOf(mv.to)>ST.indexOf(mv.from)&&!isLost&&mv.to!=='4a. Attempting again Q2';return isLost?2:up?0:1;};return msort.dir==='asc'?to(a)-to(b):to(b)-to(a);}
               return 0;
             });
             h+=`<table style="width:100%"><thead><tr>${mHd('acct','Account','')}${mHd('owner','Owner','')}${mHd('from','From','')}${mHd('type','','center')}${mHd('to','To','')}${mHd('rev','2025 Rev','right')}<th style="text-align:right;color:#22d3ee">2026 Offer</th>${mHd('days','Sub End','')}<th></th></tr></thead><tbody>`;
             visibleMoves.forEach(mv=>{
               const d=acctMap[mv.acct];
               const pi=ST.indexOf(mv.from),ci2=ST.indexOf(mv.to);
-              const up=ci2>pi&&mv.to!=='11. Churned';
+              const up=ci2>pi&&mv.to!=='11. Churned'&&mv.to!=='4a. Attempting again Q2';
               const isLost=mv.to==='11. Churned';
               const icon=isLost?'✕':up?'▲':'▼';
               const icol=isLost?'#ef4444':up?'#34d399':'#ef4444';
@@ -2596,7 +2596,7 @@ function _render(){
       const nOpen=S.noteOpen===a.c;
       const aPrevStg=PREV_TS?PREV[a.c]:null;
       const aStgMoved=aPrevStg&&aPrevStg!==a.s;
-      const aStgUp=aStgMoved?(()=>{const pi=ST.indexOf(aPrevStg),ci=ST.indexOf(a.s);return ci>pi&&a.s!=='11. Churned';})():false;
+      const aStgUp=aStgMoved?(()=>{const pi=ST.indexOf(aPrevStg),ci=ST.indexOf(a.s);return ci>pi&&a.s!=='11. Churned'&&a.s!=='4a. Attempting again Q2';})():false;
       const aStgDown=aStgMoved&&!aStgUp;
       h+=`<tr class="dr ck" style="${aStgUp?'background:rgba(52,211,153,0.07)':aStgDown?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
         <td style="color:#e2e8f0;font-weight:500">${a.c}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:6px;white-space:nowrap">${nOpen?'▾':'▸'} notes</span>`:''}</td>
