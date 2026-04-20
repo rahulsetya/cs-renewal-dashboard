@@ -3082,7 +3082,7 @@ const CADENCE_DATA = {};
 const SP_OWN = [{o:"Steven Reichard",a:43,r:2190583,w:19,wr:1344383},{o:"Rob Tappero",a:7,r:859470,w:0,wr:0},{o:"Lauren Sharabi",a:12,r:513000,w:0,wr:0},{o:"David Xuereb",a:5,r:271885,w:0,wr:0},{o:"Shelby Allen",a:6,r:235000,w:0,wr:0},{o:"Juliet Simon",a:4,r:95000,w:0,wr:0},{o:"Jennifer Milburn",a:1,r:52500,w:0,wr:0},{o:"Frank Greco",a:4,r:37500,w:0,wr:0}];
 const SP_RISK = [{n:"Clear Street",r:510000,s:"Open",o:"Rob Tappero"},{n:"ECI",r:250000,s:"Uncontacted",o:"Rob Tappero"},{n:"Marex",r:191133,s:"Invoice Sent",o:"Steven Reichard"},{n:"BitGo",r:180000,s:"Invoice Sent",o:"Steven Reichard"},{n:"DIFC",r:147450,s:"Attempting",o:"David Xuereb"},{n:"AlphaSense",r:140000,s:"Proposal",o:"Lauren Sharabi"},{n:"Ripple Prime",r:120000,s:"Uncontacted",o:"Steven Reichard"},{n:"StoneX",r:114000,s:"Invoice Sent",o:"Steven Reichard"},{n:"PitchBook",r:104435,s:"Uncontacted",o:"David Xuereb"},{n:"BTIG LLC",r:101500,s:"Uncontacted",o:"Steven Reichard"},{n:"NAV Fund Services",r:100000,s:"Invoice Sent",o:"Steven Reichard"},{n:"TD Securities",r:90000,s:"Invoice Sent",o:"Steven Reichard"},{n:"Vanguart",r:95000,s:"Open",o:"Shelby Allen"}];
 const SP_TIER = [{t:"Contributing",c:43},{t:"Silver",c:14},{t:"Gold",c:10},{t:"Platinum",c:2},{t:"Diamond",c:2},{t:"Premier",c:1},{t:"Title",c:1}];
-const PC = {Enterprise:"#3b82f6",Strategic:"#8b5cf6",Scale:"#06b6d4","Service Provider":"#f43f5e"};
+const PC = {Enterprise:"#3b82f6",Strategic:"#8b5cf6",Scale:"#06b6d4","Service Provider":"#f43f5e",Total:"#10b981"};
 
 // ── HELPERS ─────────────────────────────────────────
 const fmt = n => n>=1e6?`$${(n/1e6).toFixed(1)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}K`:`$${Math.round(n)}`;
@@ -3320,7 +3320,7 @@ function rGP(){
         ${selGPCSM?`<button onclick="selGPCSM=null;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer">✕ Clear</button>`:''}
       </div>
     </div>
-    <div class="cards">${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}</div>
+    <div class="cards">${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}${(()=>{const tot={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};pools.forEach(p=>{const d=grrQ[p]||{};for(const k in tot)tot[k]+=(d[k]||0);});return poolCard('Total',tot,tgt,q==="Q1");})()}</div>
     ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Wins needed from ${totalTrulyOpen} open + ${totalWinback} Win-back accounts to hit targets</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
         ${[{l:"Floor ("+GP_T[tKey]?.floor+"%)",n:floorN,g:gapFloor,c:gapFloor<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.floor/100},{l:"Full ("+GP_T[tKey]?.full+"%)",n:fullN,g:gapFull,c:gapFull<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.full/100},{l:"Accel ("+GP_T[tKey]?.accel+"%+)",n:accelN,g:gapAccel,c:gapAccel<=0?"var(--green)":"var(--red)",t:GP_T[tKey]?.accel/100}].map(x=>{const convNeeded=totalOpen>0?Math.max(0,x.g/totalOpen*100):0;return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;text-align:center">
