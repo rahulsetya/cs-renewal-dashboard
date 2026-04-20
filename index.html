@@ -216,7 +216,7 @@ let LIGHT=localStorage.getItem('cs_theme')==='light';
 function applyBodyClass(){document.body.classList.toggle('light',LIGHT);}
 function ssTheme(){LIGHT=!LIGHT;localStorage.setItem('cs_theme',LIGHT?'light':'dark');applyBodyClass();render();}
 
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'}};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastUnlocked:false,fcTab:'quarterly',fcSeg:'total',fcOC:50,fcDC:15,fcSC:40,fcExp:130};
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -1036,6 +1036,12 @@ let _prevDrill=null;
 let _refocusSearch=null;
 let _spClicks=0;let _spClickTimer=null;
 function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_spClickTimer=setTimeout(()=>{_spClicks=0;},1500);if(_spClicks>=5){_spClicks=0;S.goalsOpen=!S.goalsOpen;render();}}
+let _acctTabClicks=0,_acctTabTimer=null;
+function _acctTabClick(){_acctTabClicks++;if(_acctTabTimer)clearTimeout(_acctTabTimer);_acctTabTimer=setTimeout(()=>{_acctTabClicks=0;},1500);if(_acctTabClicks>=5){_acctTabClicks=0;S.forecastUnlocked=!S.forecastUnlocked;ss('tab',S.forecastUnlocked?'forecast':'accounts');}else{ss('tab','accounts');}}
+function setFcTab(t){S.fcTab=t;render();}
+function setFcSeg(v){S.fcSeg=v;render();}
+function setFcS(k,v){S[k]=v;render();}
+function applyFcSc(oc,dc,sc,exp){S.fcOC=oc;S.fcDC=dc;S.fcSC=sc;S.fcExp=exp;render();}
 function _closeGoals(){S.goalsOpen=false;render();}
 function _buildLiveGoalsData(){
   const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
@@ -1301,11 +1307,13 @@ function _render(){
   h+=`</div>`;
   if(S.staleWarning)h+=`<div style="background:#422006;border:1px solid #92400e;border-radius:8px;padding:8px 16px;font-size:12px;color:#fbbf24;margin-bottom:8px;display:flex;align-items:center">${S.staleWarning}</div>`;
   const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard / Workload'],['crossref','Pipeline × Eng'],['alleng','All Engagement'],['engaccts','All ENG Accounts'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts'],['histsnap','Historical Snapshots']];
+  if(S.forecastUnlocked)tabs.push(['forecast','NRR/GRR Forecast']);
   h+=`<div class="tabs">`;
   tabs.forEach(([tid,lbl])=>{
     const mvCount=PREV_TS?f.filter(d=>{const w=getWow(d);return w==='up'||w==='down'||w==='won'||w==='lost';}).length:0;
     const bc=tid==='risk'?flagged.length:tid==='winback'?wbAll.length:tid==='movement'?mvCount:0;
-    h+=`<button class="tab${S.tab===tid?' a':''}${bc>0?' al':''}"${bc>0?` data-count="${bc}"`:''}  onclick="ss('tab','${tid}')">${lbl}</button>`;
+    const oc=tid==='accounts'?'_acctTabClick()':`ss('tab','${tid}')`;
+    h+=`<button class="tab${S.tab===tid?' a':''}${bc>0?' al':''}"${bc>0?` data-count="${bc}"`:''}  onclick="${oc}">${lbl}</button>`;
   });
   h+=`</div>`;
   // ── PIPELINE ──
@@ -2617,6 +2625,194 @@ function _render(){
     });
     h+=`</tbody></table></div></div>`;
     if(S.acctFlagOpen&&S.acctFlagRect){const _am=S.acctFlagMode;const _aBtnS=(active)=>`font-size:9px;padding:2px 10px;border-radius:3px;cursor:pointer;font-family:inherit;border:1px solid ${active?'#3b82f6':'#1e3a5f'};background:${active?'#1e3a5f':'transparent'};color:${active?'#60a5fa':'#475569'}`;h+=`<div onclick="event.stopPropagation()" style="position:fixed;top:${S.acctFlagRect.top}px;left:${S.acctFlagRect.left}px;z-index:9999;background:#0a1628;border:1px solid #334155;border-radius:4px;min-width:200px;max-height:300px;overflow-y:auto;box-shadow:0 6px 24px rgba(0,0,0,.8)"><div onclick="event.stopPropagation();ssAcctFlagToggle('__any__',${!afFlags.includes('__any__')})" style="padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${afFlags.includes('__any__')?'#1e3a5f':'transparent'};color:${afFlags.includes('__any__')?'#60a5fa':'#94a3b8'};border-bottom:1px solid #0f1f33"><span style="font-size:11px;width:13px;flex-shrink:0;text-align:center">${afFlags.includes('__any__')?'✓':''}</span><span style="font-size:11px;font-style:italic">Has Any Flag</span></div>${uFlags.map(o=>{const on=afFlags.includes(o);return`<div onclick="event.stopPropagation();ssAcctFlagToggle('${o.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${!on})" style="padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;background:${on?'#1e3a5f':'transparent'};color:${on?'#60a5fa':'#94a3b8'}"><span style="font-size:11px;width:13px;flex-shrink:0;text-align:center">${on?'✓':''}</span><span style="font-size:11px">${o}</span></div>`;}).join('')}<div onclick="event.stopPropagation()" style="padding:6px 10px;border-top:1px solid #0f1f33;display:flex;align-items:center;gap:6px"><span style="font-size:9px;color:#475569;flex:1">Match:</span><button onclick="event.stopPropagation();S.acctFlagMode='any';render()" style="${_aBtnS(_am==='any')}">Any</button><button onclick="event.stopPropagation();S.acctFlagMode='all';render()" style="${_aBtnS(_am==='all')}">All</button></div></div>`;}
+  }
+
+  // ── NRR/GRR FORECAST (hidden — unlocked via 5 clicks on Accounts tab) ──
+  if(S.tab==='forecast'&&S.forecastUnlocked){
+    const _FC_WON=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
+    const _FC_CHR=new Set(['11. Churned']);
+    const _FC_DCL=new Set([]);
+    const _fcQ=se=>{if(!se)return null;const m=parseInt((se.substring(5,7)||'0'));return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
+    const _fcAll=D;
+    const GP={T:_fcAll.length,W:_fcAll.filter(x=>_FC_WON.has(x.s)).length,O:_fcAll.filter(x=>!_FC_WON.has(x.s)&&!_FC_CHR.has(x.s)&&!_FC_DCL.has(x.s)).length,D:_fcAll.filter(x=>_FC_DCL.has(x.s)).length,C:_fcAll.filter(x=>_FC_CHR.has(x.s)).length,base:_fcAll.reduce((a,x)=>a+(x.r25||0),0),churnRev:_fcAll.filter(x=>_FC_CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0)};
+    const GPQ={},GPQR={};
+    const _qMo={Q1:'Jan–Mar',Q2:'Apr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dec'};
+    const _qSt={Q1:'closed',Q2:'active',Q3:'upcoming',Q4:'future'};
+    for(const qk of['Q1','Q2','Q3','Q4']){
+      const rows=_fcAll.filter(x=>_fcQ(x.se)===qk);
+      const t=rows.length,w=rows.filter(x=>_FC_WON.has(x.s)).length,c=rows.filter(x=>_FC_CHR.has(x.s)).length,dec=rows.filter(x=>_FC_DCL.has(x.s)).length;
+      GPQ[qk]={t,w,o:t-w-c-dec,d:dec,c,mo:_qMo[qk],st:_qSt[qk]};
+      const base=rows.reduce((a,x)=>a+(x.r25||0),0);
+      const wonRows=rows.filter(x=>_FC_WON.has(x.s));
+      const openRows=rows.filter(x=>!_FC_WON.has(x.s)&&!_FC_CHR.has(x.s)&&!_FC_DCL.has(x.s));
+      const declRows=rows.filter(x=>_FC_DCL.has(x.s));
+      const wonOff=wonRows.reduce((a,x)=>a+(x.o||0),0);
+      const openWOff=openRows.filter(x=>x.o>0).reduce((a,x)=>a+(x.o||0),0);
+      const openBase=openRows.reduce((a,x)=>a+(x.r25||0),0);
+      const declBase=declRows.reduce((a,x)=>a+(x.r25||0),0);
+      GPQR[qk]={base,wonOff,openWOff,openBase,declBase};
+    }
+    // SP static — no source in renewal master
+    const SP={T:101,W:19,O:79,D:0,C:3};
+    const SPQ={t:101,w:19,o:79,d:0,c:3};
+    const SP_REV={base:5671000,wonOffer:1004000,wonBase:1113000,openBase:3434000,openMiami:1987000,churnRev:120000};
+    const GP_TH={Q2:[55,62,68],Q3:[58,67,73],Q4:[62,72,78]};
+    const SP_TH={Q2:[45,55,65],Q3:[50,62,70],Q4:[55,68,75]};
+    const RNRR={gp:137.2,sp:83.0};
+    const SCEN={worst:{l:"Worst",c:"#ff4757",oc:30,dc:8,sc:25,exp:120},base:{l:"Base",c:"#ffa502",oc:50,dc:15,sc:40,exp:130},best:{l:"Best",c:"#2ed573",oc:65,dc:25,sc:55,exp:140}};
+    const _fcCalc=(oc,dc,sc,exp)=>{
+      const ocR=oc/100,dcR=dc/100,scR=sc/100,ef=exp/100;
+      const gpL={};let gcT=0,gcW=0;
+      for(const qk of['Q1','Q2','Q3','Q4']){
+        const q=GPQ[qk];const pO=Math.round(q.o*ocR),pD=Math.round(q.d*dcR),qW=q.w+pO+pD;
+        gcT+=q.t;gcW+=qW;const th=GP_TH[qk]||[0,0,0];const cR=gcT>0?gcW/gcT*100:0;
+        let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125;}
+        gpL[qk]={...q,pO,pD,qW,qR:q.t>0?qW/q.t*100:0,cT:gcT,cW:gcW,cR,th,pay};
+      }
+      const spPO=Math.round(SPQ.o*scR),spTW=SPQ.w+spPO,spRet=SPQ.t>0?spTW/SPQ.t*100:0;
+      const spPay={};
+      for(const qk of['Q2','Q3','Q4']){const th=SP_TH[qk];let p=0;if(spRet<th[0])p=0;else if(spRet<=th[1])p=(spRet-th[0])/(th[1]-th[0])*100;else if(spRet<=th[2])p=100+(spRet-th[1])/(th[2]-th[1])*25;else p=125;spPay[qk]=p;}
+      const gpR={};let gcB=0,gcE=0,gcRt=0;
+      for(const qk of['Q1','Q2','Q3','Q4']){
+        const qr=GPQR[qk];const wonRev=qr.wonOff;
+        const openOffRev=qr.openWOff*ocR;
+        const openNoOffBase=qr.openBase-(qr.openWOff>0?qr.openWOff/1.1:0);
+        const openNoOffRev=openNoOffBase*ocR*ef;
+        const declRev=qr.declBase*dcR*ef;
+        const qExp=wonRev+openOffRev+openNoOffRev+declRev;
+        const qRet=(wonRev/1.37)+(qr.openBase*ocR)+(qr.declBase*dcR);
+        gcB+=qr.base;gcE+=qExp;gcRt+=qRet;
+        gpR[qk]={base:qr.base,wonRev,openOffRev,openNoOffRev,declRev,qExp,qRet,qGrr:qr.base>0?qRet/qr.base*100:0,qNrr:qr.base>0?qExp/qr.base*100:0,cB:gcB,cE:gcE,cRt:gcRt,cGrr:gcB>0?gcRt/gcB*100:0,cNrr:gcB>0?gcE/gcB*100:0};
+      }
+      const spWonRev=SP_REV.wonOffer;const spOpenRev=SP_REV.openMiami*scR;
+      const spOpenEstRev=(SP_REV.openBase-SP_REV.openMiami)*scR*ef*0.8;
+      const spTotExp=spWonRev+spOpenRev+spOpenEstRev;
+      const spTotRet=SP_REV.wonBase*0.83+(SP_REV.openBase*scR);
+      const spRev={base:SP_REV.base,wonRev:spWonRev,openRev:spOpenRev+spOpenEstRev,totExp:spTotExp,totRet:spTotRet,grr:SP_REV.base>0?spTotRet/SP_REV.base*100:0,nrr:SP_REV.base>0?spTotExp/SP_REV.base*100:0};
+      const allBase=GP.base+SP_REV.base,allExp=gcE+spTotExp,allRet=gcRt+spTotRet;
+      return{gpL,gpR,spRet,spPO,spTW,spPay,spRev,allBase,allExp,allRet,allGrr:allBase>0?allRet/allBase*100:0,allNrr:allBase>0?allExp/allBase*100:0,allLogos:{won:GP.W+SP.W,total:GP.T+SP.T,projWon:gcW+spTW,projRet:(gcW+spTW)/(GP.T+SP.T)*100},gpBase:GP.base,gpExp:gcE,gpRet:gcRt,gpGrr:gpR.Q4.cGrr,gpNrr:gpR.Q4.cNrr};
+    };
+    const m=_fcCalc(S.fcOC,S.fcDC,S.fcSC,S.fcExp);
+    const seg=S.fcSeg;
+    const _fc$=v=>`$${(v/1e6).toFixed(1)}M`;const _fc$2=v=>`$${(v/1e6).toFixed(2)}M`;
+    const _fcS=v=>v>=1e6?`$${(v/1e6).toFixed(1)}M`:`$${(v/1000).toFixed(0)}K`;
+    const _fcP=v=>`${v.toFixed(1)}%`;
+    const _fcCl=(v,g)=>v>=g?'#2ed573':v>=g-5?'#ffa502':'#ff4757';
+    const _fcBar=(v,mx,c,ht=10)=>`<div style="width:100%;background:#141428;border-radius:3px;overflow:hidden;height:${ht}px"><div style="height:100%;border-radius:3px;width:${mx>0?Math.min(v/mx*100,100):0}%;background:${c}"></div></div>`;
+    const _fcQCl={closed:"#7c6cff",active:"#ffa502",upcoming:"#c77dff",future:"#66668a"};
+    const _fcQLb={closed:"Past",active:"Active",upcoming:"Upcoming",future:"Future"};
+    const sBase=seg==='gp'?m.gpBase:seg==='sp'?m.spRev.base:m.allBase;
+    const sExp=seg==='gp'?m.gpExp:seg==='sp'?m.spRev.totExp:m.allExp;
+    const sGrr=seg==='gp'?m.gpGrr:seg==='sp'?m.spRev.grr:m.allGrr;
+    const sNrr=seg==='gp'?m.gpNrr:seg==='sp'?m.spRev.nrr:m.allNrr;
+    const sRNRR=seg==='sp'?RNRR.sp:RNRR.gp;
+    const sWon=seg==='gp'?GP.W:seg==='sp'?SP.W:GP.W+SP.W;
+    const sTotal=seg==='gp'?GP.T:seg==='sp'?SP.T:GP.T+SP.T;
+    const sProjWon=seg==='gp'?m.gpL.Q4.cW:seg==='sp'?m.spTW:m.allLogos.projWon;
+    const sProjRet=sTotal>0?sProjWon/sTotal*100:0;
+    const sChurnRev=seg==='gp'?GP.churnRev:seg==='sp'?SP_REV.churnRev:GP.churnRev+SP_REV.churnRev;
+    const sChurnN=seg==='gp'?GP.C:seg==='sp'?SP.C:GP.C+SP.C;
+    const _fcCd='background:#0b0b1c;border:1px solid #1a1a35;border-radius:10px;padding:14px;margin-bottom:10px';
+    const _fcCt='font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.04)';
+    const _fcQc='background:#08081a;border-radius:7px;padding:10px';
+    h+=`<div style="background:#07071a;color:#d0d0ec;font-family:'DM Sans',-apple-system,sans-serif;padding:14px 18px;border-radius:10px;margin-top:8px">`;
+    h+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+      <div><div style="font-size:18px;font-weight:800;background:linear-gradient(135deg,#7c6cff,#e040fb,#ff6b81);-webkit-background-clip:text;-webkit-text-fill-color:transparent">iConnections — Retention & Revenue Forecast</div>
+      <div style="font-size:9px;color:#4a4a6e;margin-top:2px">2026 · ${GP.T} GP + ${SP.T} SP · ${_fc$(GP.base+SP_REV.base)} · Live from renewal master</div></div>
+      <div style="display:flex;gap:3px">
+        ${[['total','Total'],['gp','GP'],['sp','SP']].map(([k,l])=>`<button onclick="setFcSeg('${k}')" style="padding:4px 11px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;cursor:pointer;font-family:inherit;border:1px solid ${seg===k?'#7c6cff':'#222240'};background:${seg===k?'rgba(124,108,255,.09)':'transparent'};color:${seg===k?'#7c6cff':'#55557a'}">${l}</button>`).join('')}
+      </div></div>`;
+    const tiles=[
+      {l:"Won Today",v:`${sWon}/${sTotal}`,c:'#d0d0ec',s:_fcP(sWon/sTotal*100)+' current'},
+      {l:"Proj Logo Ret",v:_fcP(sProjRet),c:_fcCl(sProjRet,seg==='sp'?SP_TH.Q4[1]:GP_TH.Q4[1]),s:`${sProjWon}/${sTotal} logos`},
+      {l:"Renewal NRR",v:_fcP(sRNRR),c:sRNRR>=100?'#2ed573':'#ff4757',s:'closed deals'},
+      {l:"Projected NRR",v:_fcP(sNrr),c:_fcCl(sNrr,90),s:'full book w/ pipeline'},
+      {l:"Projected GRR",v:_fcP(sGrr),c:_fcCl(sGrr,70),s:'rev at 2025 price'},
+      {l:"Expected Rev",v:_fc$2(sExp),c:'#e040fb',s:`of ${_fc$(sBase)} base`},
+      {l:"Confirmed Churn",v:`${sChurnN} accts`,c:'#ff4757',s:_fcS(sChurnRev)}];
+    h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:8px">${tiles.map(t=>`<div style="background:#0b0b1c;border:1px solid #1a1a35;border-radius:6px;padding:4px 3px;text-align:center"><div style="font-size:7px;color:#5a5a7e;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px">${t.l}</div><div style="font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${t.c}">${t.v}</div>${t.s?`<div style="font-size:7px;color:#4a4a6e;margin-top:1px">${t.s}</div>`:''}</div>`).join('')}</div>`;
+    h+=`<div style="display:flex;gap:2px;margin-bottom:10px;border-bottom:1px solid #1a1a35;padding-bottom:4px">${['quarterly','comp','scenarios'].map(k=>`<button onclick="setFcTab('${k}')" style="padding:5px 14px;border-radius:5px 5px 0 0;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:${S.fcTab===k?'#1a1a35':'transparent'};color:${S.fcTab===k?'#d0d0ec':'#4a4a6e'}">${k==='quarterly'?'Quarterly':k==='comp'?'Comp Plan':'Scenarios'}</button>`).join('')}</div>`;
+    // Sidebar HTML (reused)
+    const _fcSidebar=()=>{
+      let sh=`<div style="${_fcCd}"><div style="${_fcCt};color:#ffa502">Assumptions</div>`;
+      for(const[k,sk,l,cc]of[['fcOC','oc','GP Open Conv','#7c6cff'],['fcDC','dc','GP Declined Re-eng','#ffa502'],['fcSC','sc','SP Open Conv','#e040fb'],['fcExp','exp','Expansion Factor','#2ed573']]){
+        const v=S[k],mx=sk==='exp'?180:100,mn=sk==='exp'?80:0;
+        sh+=`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px"><div style="width:95px;font-size:9px;color:#8888aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}</div><input type="range" min="${mn}" max="${mx}" value="${v}" oninput="setFcS('${k}',+this.value)" style="flex:1;height:3px;-webkit-appearance:none;background:#141428;border-radius:4px;cursor:pointer"><div style="width:32px;font-size:10px;font-weight:700;text-align:right;font-family:'JetBrains Mono',monospace;color:${cc}">${v}%</div></div>`;
+      }
+      sh+=`<div style="display:flex;gap:3px;margin-top:5px">${Object.entries(SCEN).map(([k,s])=>`<button onclick="applyFcSc(${s.oc},${s.dc},${s.sc},${s.exp})" style="flex:1;padding:3px;border-radius:3px;font-size:8px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid ${s.c}30;background:${s.c}08;color:${s.c}">${s.l}</button>`).join('')}</div></div>`;
+      sh+=`<div style="${_fcCd}"><div style="${_fcCt};color:#c77dff">Scenarios</div><table style="width:100%;border-collapse:collapse;font-size:8px;color:#7777aa"><thead><tr><th style="text-align:left;padding:2px"></th>${Object.entries(SCEN).map(([k,s])=>`<th style="text-align:right;padding:2px;color:${s.c};font-size:7px">${s.l}</th>`).join('')}</tr></thead><tbody>`;
+      for(const qk of['Q2','Q3','Q4']){const th=GP_TH[qk];sh+=`<tr><td style="padding:2px;font-weight:600;color:#b0b0d0">${qk} Logo</td>`;for(const[k,s]of Object.entries(SCEN)){const sm=_fcCalc(s.oc,s.dc,s.sc,s.exp);const v=sm.gpL[qk].cR;sh+=`<td style="text-align:right;padding:2px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${v>=th[1]?'#2ed573':v>=th[0]?'#ffa502':'#ff4757'}">${_fcP(v)}</td>`;}sh+=`</tr>`;}
+      sh+=`<tr style="border-top:1px solid #2a2a45"><td style="padding:2px;font-weight:600;color:#b0b0d0">NRR</td>`;for(const[k,s]of Object.entries(SCEN)){const sm=_fcCalc(s.oc,s.dc,s.sc,s.exp);sh+=`<td style="text-align:right;padding:2px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${_fcCl(sm.allNrr,90)}">${_fcP(sm.allNrr)}</td>`;}sh+=`</tr><tr><td style="padding:2px;font-weight:600;color:#b0b0d0">Rev</td>`;for(const[k,s]of Object.entries(SCEN)){const sm=_fcCalc(s.oc,s.dc,s.sc,s.exp);sh+=`<td style="text-align:right;padding:2px;font-family:'JetBrains Mono',monospace;font-weight:700;color:#e040fb">${_fc$(sm.allExp)}</td>`;}sh+=`</tr></tbody></table></div>`;
+      sh+=`<div style="${_fcCd}"><div style="${_fcCt};color:#55557a">Universe (live)</div><div style="font-size:8px;color:#7777aa;line-height:1.8">GP: <b>${GP.T}</b> · ${GP.W}W ${GP.O}O ${GP.D}D ${GP.C}C · ${_fc$(GP.base)}<br>SP: <b>${SP.T}</b> · ${SP.W}W ${SP.O}O ${SP.C}C · ~${_fc$(SP_REV.base)}<br>Total: <b>${GP.T+SP.T}</b> · ${_fc$(GP.base+SP_REV.base)} · NRR: GP ${_fcP(RNRR.gp)}, SP ${_fcP(RNRR.sp)}</div></div>`;
+      return sh;
+    };
+    // Quarterly tab
+    if(S.fcTab==='quarterly'){
+      h+=`<div style="display:grid;grid-template-columns:1fr 260px;gap:10px;align-items:start"><div>`;
+      if(seg!=='sp'){
+        h+=`<div style="${_fcCd}"><div style="${_fcCt};color:#ffa502">GP Logo Retention Staircase</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">`;
+        for(const qk of['Q1','Q2','Q3','Q4']){
+          const q=m.gpL[qk],th=GP_TH[qk]||[0,0,0],cc=_fcQCl[q.st],fl=th[0],fu=th[1],ac=th[2];
+          h+=`<div style="${_fcQc};border:1px solid ${cc}22"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:12px;font-weight:800;color:${cc}">${qk}</span><span style="font-size:7px;color:${cc};background:${cc}12;padding:1px 5px;border-radius:3px">${_fcQLb[q.st]}</span></div><div style="font-size:22px;font-weight:800;color:${q.cR>=fu?'#2ed573':q.cR>=fl?'#ffa502':'#ff4757'};font-family:'JetBrains Mono',monospace">${_fcP(q.cR)}</div><div style="font-size:8px;color:#7777aa">${q.cW}/${q.cT}</div>`;
+          if(fu>0){h+=`<div style="position:relative;height:7px;background:#141428;border-radius:4px;margin-top:3px;overflow:visible"><div style="width:${Math.min(q.cR,100)}%;height:100%;background:${q.cR>=fu?'#2ed573':q.cR>=fl?'#ffa502':'#ff4757'};border-radius:4px"></div><div style="position:absolute;left:${fl}%;top:-1px;width:1.5px;height:9px;background:#ff4757"></div><div style="position:absolute;left:${fu}%;top:-1px;width:1.5px;height:9px;background:#2ed573"></div><div style="position:absolute;left:${ac}%;top:-1px;width:1.5px;height:9px;background:#e040fb"></div></div><div style="display:flex;justify-content:space-between;font-size:7px;color:#4a4a6e;margin-top:1px"><span style="color:#ff4757">${fl}</span><span style="color:#2ed573">${fu}</span><span style="color:#e040fb">${ac}</span></div><div style="font-size:8px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.pay>=100?'rgba(46,213,115,.05)':q.pay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">Comp: <b style="color:${q.pay>=100?'#2ed573':q.pay>0?'#ffa502':'#ff4757'};font-family:'JetBrains Mono',monospace">${Math.round(q.pay)}%</b></div>`;}else{h+=`<div style="font-size:8px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:#7c6cff">100%</b> gifted</div>`;}
+          h+=`</div>`;
+        }
+        h+=`</div></div>`;
+      }
+      if(seg!=='gp'){
+        h+=`<div style="${_fcCd}"><div style="${_fcCt};color:#e040fb">SP Logo Retention</div><div style="display:flex;gap:12px;align-items:center"><div><div style="font-size:22px;font-weight:800;color:${_fcCl(m.spRet,SP_TH.Q4[1])};font-family:'JetBrains Mono',monospace">${_fcP(m.spRet)}</div><div style="font-size:8px;color:#7777aa">${m.spTW}/${SPQ.t} (${SPQ.w}W + ${m.spPO} proj)</div></div><div style="font-size:8px;color:#7777aa;line-height:1.7">${['Q2','Q3','Q4'].map(qk=>{const th=SP_TH[qk],p=m.spPay[qk];return`${qk} ${th.join('/')}: <b style="color:${p>=100?'#2ed573':p>0?'#ffa502':'#ff4757'}">${Math.round(p)}%</b>`;}).join(' · ')}</div></div></div>`;
+      }
+      h+=`<div style="${_fcCd}"><div style="${_fcCt};color:#e040fb">${seg==='gp'?'GP':seg==='sp'?'SP':'Combined'} Revenue by Quarter</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">`;
+      if(seg!=='sp'){
+        for(const qk of['Q1','Q2','Q3','Q4']){const r=m.gpR[qk];h+=`<div style="${_fcQc};font-size:8px;color:#7777aa;line-height:1.8"><div style="font-weight:700;color:#b0b0d0;margin-bottom:1px">${qk} · ${_fcS(r.base)}</div><div>Won: <b style="color:#2ed573">${_fcS(r.wonRev)}</b></div><div>Pipeline: <b style="color:#7c6cff">${_fcS(r.openOffRev+r.openNoOffRev)}</b></div><div>Re-eng: <b style="color:#ffa502">${_fcS(r.declRev)}</b></div><div style="border-top:1px solid #1a1a35;padding-top:1px;margin-top:1px">${seg==='total'?`GP: <b style="color:#e040fb">${_fcS(r.qExp)}</b>`:`Total: <b style="color:#e040fb">${_fcS(r.qExp)}</b>`}</div><div style="font-size:7px;color:#4a4a6e">GRR ${_fcP(r.qGrr)} · NRR ${_fcP(r.qNrr)}</div><div style="font-size:7px;color:#4a4a6e">Cum: ${_fcP(r.cGrr)} / ${_fcP(r.cNrr)}</div></div>`;}
+      }
+      if(seg==='sp'||seg==='total'){
+        if(seg==='total'){h+=`</div><div style="font-size:9px;font-weight:600;color:#e040fb;margin:6px 0 4px">+ SP Revenue</div><div style="display:flex;gap:6px">`;}
+        h+=`<div style="${_fcQc};font-size:8px;color:#7777aa;line-height:1.8;${seg==='sp'?'':'flex:1'}"><div style="font-weight:700;color:#e040fb;margin-bottom:1px">SP · ${_fcS(m.spRev.base)} base</div><div>Won: <b style="color:#2ed573">${_fcS(m.spRev.wonRev)}</b> (${SPQ.w} accts)</div><div>Pipeline: <b style="color:#7c6cff">${_fcS(m.spRev.openRev)}</b> (${SPQ.o} accts)</div><div>Churn: <b style="color:#ff4757">-${_fcS(SP_REV.churnRev)}</b></div><div style="border-top:1px solid #1a1a35;padding-top:1px;margin-top:1px">Total: <b style="color:#e040fb">${_fcS(m.spRev.totExp)}</b></div><div style="font-size:7px;color:#4a4a6e">GRR ${_fcP(m.spRev.grr)} · NRR ${_fcP(m.spRev.nrr)}</div></div>`;
+        if(seg==='total'){h+=`<div style="${_fcQc};flex:1;font-size:8px;color:#7777aa;line-height:1.8"><div style="font-weight:700;color:#d0d0ec;margin-bottom:1px">COMBINED</div><div>GP: <b style="color:#7c6cff">${_fc$2(m.gpExp)}</b></div><div>SP: <b style="color:#e040fb">${_fc$2(m.spRev.totExp)}</b></div><div style="border-top:1px solid #1a1a35;padding-top:1px;margin-top:1px">Total: <b style="color:#d0d0ec;font-size:10px">${_fc$2(m.allExp)}</b></div><div>GRR: <b style="color:${_fcCl(m.allGrr,70)}">${_fcP(m.allGrr)}</b> · NRR: <b style="color:${_fcCl(m.allNrr,90)}">${_fcP(m.allNrr)}</b></div></div></div>`;}
+      }
+      h+=`</div></div>`;
+      if(seg!=='sp'){for(const qk of['Q1','Q2','Q3','Q4']){const q=m.gpL[qk],cc=_fcQCl[q.st],r=m.gpR[qk];h+=`<div style="${_fcCd}"><div style="${_fcCt};color:${cc}">${qk} — ${q.mo}</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(75px,1fr));gap:3px;margin-bottom:4px">${[{l:"Logos",v:q.t},{l:"Won",v:q.w,c:'#2ed573'},{l:"Open",v:q.o,c:'#7c6cff'},{l:"Proj+",v:`+${q.pO+q.pD}`,c:'#c77dff'},{l:"Decl",v:q.d,c:'#ffa502'},{l:"Churn",v:q.c,c:'#ff4757'},{l:"Q Ret",v:_fcP(q.qR),c:_fcCl(q.qR,55)},{l:"Rev",v:_fcS(r.qExp),c:'#e040fb'}].map(x=>`<div style="background:#07071a;padding:3px 5px;border-radius:3px"><div style="font-size:6px;color:#4a4a6e;text-transform:uppercase">${x.l}</div><div style="font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${x.c||'#d0d0ec'}">${x.v}</div></div>`).join('')}</div></div>`;}}
+      h+=`</div><div>${_fcSidebar()}</div></div>`;
+    }
+    // Comp Plan tab
+    if(S.fcTab==='comp'){
+      h+=`<div style="display:grid;grid-template-columns:1fr 260px;gap:10px;align-items:start"><div>`;
+      h+=`<div style="${_fcCd}"><div style="${_fcCt};color:#ffa502">CS Variable Comp — Retention</div><div style="font-size:9px;color:#7777aa;line-height:1.6;margin-bottom:10px">80/20 split · Variable = 50% Activity + 50% Retention · Q1 gifted · Below floor = $0 · Floor→Full = 0→100% · Full→Accel = 100→125% cap</div>`;
+      const _tableStyle='width:100%;border-collapse:collapse';const _thStyle='color:#4a4a6e;text-align:right;font-size:8px;padding:3px 4px;border-bottom:1px solid #1a1a35';const _tdStyle='padding:3px 4px;font-size:9px;border-bottom:1px solid #0e0e22';
+      if(seg!=='sp'){
+        h+=`<div style="font-size:10px;font-weight:700;color:#7c6cff;margin-bottom:5px">GP (${GP.T} logos · ${_fc$(GP.base)})</div><table style="${_tableStyle}"><thead><tr><th style="${_thStyle};text-align:left">Q</th><th style="${_thStyle}">Floor</th><th style="${_thStyle}">Full</th><th style="${_thStyle}">Accel</th><th style="${_thStyle}">Logo Ret</th><th style="${_thStyle}">Payout</th><th style="${_thStyle}">Cum Rev</th><th style="${_thStyle}">Cum NRR</th></tr></thead><tbody><tr style="background:rgba(124,108,255,.03)"><td style="${_tdStyle};font-weight:600;color:#7c6cff">Q1</td><td colspan="3" style="${_tdStyle};text-align:right;color:#4a4a6e">gifted</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace">${_fcP(m.gpL.Q1.cR)}</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:#7c6cff">100%</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;color:#e040fb">${_fc$(m.gpR.Q1.cE)}</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;color:${_fcCl(m.gpR.Q1.cNrr,90)}">${_fcP(m.gpR.Q1.cNrr)}</td></tr>`;
+        for(const qk of['Q2','Q3','Q4']){const q=m.gpL[qk],th=GP_TH[qk],r=m.gpR[qk];h+=`<tr><td style="${_tdStyle};font-weight:600">${qk}</td><td style="${_tdStyle};text-align:right;color:#ff4757;font-family:'JetBrains Mono',monospace">${th[0]}%</td><td style="${_tdStyle};text-align:right;color:#2ed573;font-family:'JetBrains Mono',monospace">${th[1]}%</td><td style="${_tdStyle};text-align:right;color:#e040fb;font-family:'JetBrains Mono',monospace">${th[2]}%</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:${_fcCl(q.cR,th[1])}">${_fcP(q.cR)}</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:${q.pay>=100?'#2ed573':q.pay>0?'#ffa502':'#ff4757'}">${Math.round(q.pay)}%</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;color:#e040fb">${_fc$(r.cE)}</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;color:${_fcCl(r.cNrr,90)}">${_fcP(r.cNrr)}</td></tr>`;}
+        h+=`</tbody></table>`;
+      }
+      if(seg!=='gp'){
+        h+=`<div style="font-size:10px;font-weight:700;color:#e040fb;margin:12px 0 5px">SP (${SP.T} logos · ${_fc$(SP_REV.base)})</div><table style="${_tableStyle}"><thead><tr><th style="${_thStyle};text-align:left">Q</th><th style="${_thStyle}">Floor</th><th style="${_thStyle}">Full</th><th style="${_thStyle}">Accel</th><th style="${_thStyle}">Logo Ret</th><th style="${_thStyle}">Payout</th></tr></thead><tbody>`;
+        for(const qk of['Q2','Q3','Q4']){const th=SP_TH[qk],p=m.spPay[qk];h+=`<tr><td style="${_tdStyle};font-weight:600">${qk}</td><td style="${_tdStyle};text-align:right;color:#ff4757;font-family:'JetBrains Mono',monospace">${th[0]}%</td><td style="${_tdStyle};text-align:right;color:#2ed573;font-family:'JetBrains Mono',monospace">${th[1]}%</td><td style="${_tdStyle};text-align:right;color:#e040fb;font-family:'JetBrains Mono',monospace">${th[2]}%</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:${_fcCl(m.spRet,th[1])}">${_fcP(m.spRet)}</td><td style="${_tdStyle};text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:${p>=100?'#2ed573':p>0?'#ffa502':'#ff4757'}">${Math.round(p)}%</td></tr>`;}
+        h+=`</tbody></table>`;
+      }
+      h+=`</div>`;
+      h+=`<div style="${_fcCd}"><div style="${_fcCt};color:#2ed573">Revenue Case for Future Comp Shift</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">${[{l:"GP Renewal NRR",v:_fcP(RNRR.gp),c:'#2ed573',s:'+37% expansion'},{l:"SP Renewal NRR",v:_fcP(RNRR.sp),c:'#ff4757',s:'-17% contraction'},{l:seg==='gp'?'GP Proj NRR':seg==='sp'?'SP Proj NRR':'Combined NRR',v:_fcP(sNrr),c:_fcCl(sNrr,90),s:'full book projected'}].map(x=>`<div style="${_fcQc}"><div style="font-size:7px;color:#5a5a7e">${x.l}</div><div style="font-size:20px;font-weight:800;color:${x.c};font-family:'JetBrains Mono',monospace">${x.v}</div><div style="font-size:7px;color:#4a4a6e">${x.s}</div></div>`).join('')}</div><div style="font-size:9px;color:#7777aa;padding:7px 9px;background:#08081a;border-radius:5px;line-height:1.5"><b style="color:#8888aa">Logo vs Revenue:</b> GP accounts renew at <b style="color:#2ed573">${_fcP(RNRR.gp)}</b> NRR — each saved logo is +37% revenue. SP accounts contract to <b style="color:#ff4757">${_fcP(RNRR.sp)}</b>. Combined book projects <b style="color:#e040fb">${_fc$2(m.allExp)}</b> (${_fcP(m.allNrr)} NRR) on a ${_fc$(m.allBase)} base. Revenue-based comp would better reward the expansion value CS creates.</div></div>`;
+      h+=`</div><div>${_fcSidebar()}</div></div>`;
+    }
+    // Scenarios tab
+    if(S.fcTab==='scenarios'){
+      h+=`<div style="${_fcCd}"><div style="${_fcCt};color:#ffa502">Scenario Analysis — ${seg==='gp'?'GP':seg==='sp'?'SP':'Total'}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">`;
+      for(const[k,sc]of Object.entries(SCEN)){
+        const sm=_fcCalc(sc.oc,sc.dc,sc.sc,sc.exp);
+        const sE=seg==='gp'?sm.gpExp:seg==='sp'?sm.spRev.totExp:sm.allExp;
+        const sN=seg==='gp'?sm.gpNrr:seg==='sp'?sm.spRev.nrr:sm.allNrr;
+        const sG=seg==='gp'?sm.gpGrr:seg==='sp'?sm.spRev.grr:sm.allGrr;
+        h+=`<div style="${_fcQc};border:1px solid ${sc.c}18"><div style="font-size:13px;font-weight:800;color:${sc.c};margin-bottom:2px">${sc.l} Case</div><div style="font-size:7px;color:#4a4a6e;margin-bottom:7px">Open ${sc.oc}% · Decl ${sc.dc}% · SP ${sc.sc}% · Exp ${sc.exp}%</div>`;
+        if(seg!=='sp'){h+=`<div style="font-size:8px;font-weight:600;color:#7777aa;margin-bottom:3px">GP Logo Ret</div>`;for(const qk of['Q2','Q3','Q4']){const q=sm.gpL[qk],th=GP_TH[qk];h+=`<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px"><span style="width:16px;font-size:9px;font-weight:700;color:#b0b0d0">${qk}</span><div style="flex:1">${_fcBar(q.cR,100,q.cR>=th[1]?'#2ed573':q.cR>=th[0]?'#ffa502':'#ff4757',7)}</div><span style="width:34px;font-size:9px;font-weight:700;text-align:right;font-family:'JetBrains Mono',monospace;color:${q.cR>=th[1]?'#2ed573':q.cR>=th[0]?'#ffa502':'#ff4757'}">${_fcP(q.cR)}</span></div>`;}}
+        h+=`<div style="border-top:1px solid #1a1a35;padding-top:5px;margin-top:5px;font-size:9px"><div>Rev: <b style="color:#e040fb;font-family:'JetBrains Mono',monospace">${_fc$2(sE)}</b></div><div>GRR: <b style="color:${_fcCl(sG,70)};font-family:'JetBrains Mono',monospace">${_fcP(sG)}</b> · NRR: <b style="color:${_fcCl(sN,90)};font-family:'JetBrains Mono',monospace">${_fcP(sN)}</b></div>${seg!=='sp'?`<div>GP Comp Q4: <b style="color:${sm.gpL.Q4.pay>=100?'#2ed573':sm.gpL.Q4.pay>0?'#ffa502':'#ff4757'}">${Math.round(sm.gpL.Q4.pay)}%</b></div>`:''}</div><button onclick="applyFcSc(${sc.oc},${sc.dc},${sc.sc},${sc.exp})" style="margin-top:5px;width:100%;padding:3px;border-radius:3px;border:1px solid ${sc.c}44;background:${sc.c}0c;color:${sc.c};font-size:9px;font-weight:700;cursor:pointer;font-family:inherit">Apply</button></div>`;
+      }
+      h+=`</div><div style="display:grid;grid-template-columns:1fr 1fr ${seg!=='gp'?'1fr':''};gap:7px">`;
+      if(seg!=='sp'){h+=`<div style="${_fcQc};border:1px solid rgba(124,108,255,.1)"><div style="font-size:10px;font-weight:700;color:#7c6cff">GP Open (${GP.O})</div><div style="font-size:8px;color:#7777aa;line-height:1.7;margin-top:2px">+10% = ${Math.round(GP.O*.1)} logos (+${_fcP(GP.O*.1/GP.T*100)} ret)<br>Rev: +${_fcS(GP.O*.1*34069*S.fcExp/100)}</div></div><div style="${_fcQc};border:1px solid rgba(255,165,2,.1)"><div style="font-size:10px;font-weight:700;color:#ffa502">GP Declined (${GP.D})</div><div style="font-size:8px;color:#7777aa;line-height:1.7;margin-top:2px">+10% = ${Math.round(GP.D*.1)} logos (+${_fcP(GP.D*.1/GP.T*100)} ret)<br>Rev: +${_fcS(GP.D*.1*31600*S.fcExp/100)}</div></div>`;}
+      if(seg!=='gp'){h+=`<div style="${_fcQc};border:1px solid rgba(224,64,251,.1)"><div style="font-size:10px;font-weight:700;color:#e040fb">SP Open (${SP.O})</div><div style="font-size:8px;color:#7777aa;line-height:1.7;margin-top:2px">+10% = ${Math.round(SP.O*.1)} logos (+${_fcP(SP.O*.1/SP.T*100)} ret)<br>Rev: +${_fcS(SP.O*.1*43000*S.fcExp/100)}</div></div>`;}
+      h+=`</div></div>`;
+    }
+    h+=`<div style="text-align:center;font-size:7px;color:#2a2a44;margin-top:14px;padding-top:7px;border-top:1px solid #141428">Live from renewal master · ${GP.T} GP (${_fc$(GP.base)}) + ${SP.T} SP (${_fc$(SP_REV.base)} static) · Churn: ${GP.C} GP (${_fcS(GP.churnRev)}) + ${SP.C} SP (${_fcS(SP_REV.churnRev)}) · Comp = logo-based · GRR/NRR = revenue-based</div>`;
+    h+=`</div>`;
   }
 
   if(LIGHT) h=h.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
