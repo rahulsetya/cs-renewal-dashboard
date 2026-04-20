@@ -295,11 +295,10 @@ async function getSharePointDriveId(token, ownerUpn){
   if(_driveIdCache[ownerUpn])return _driveIdCache[ownerUpn];
   if(_driveIdPending[ownerUpn])return _driveIdPending[ownerUpn];
   _driveIdPending[ownerUpn]=(async()=>{
-    // Route through fetchWithRetry so 504/503/429/502 are retried with exp backoff
-    const siteRes=await fetchWithRetry(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${ownerUpn}`,{headers:{Authorization:`Bearer ${token}`}});
+    const siteRes=await fetchWithTimeout(`https://graph.microsoft.com/v1.0/sites/iconnections675-my.sharepoint.com:/personal/${ownerUpn}`,{headers:{Authorization:`Bearer ${token}`}});
     if(!siteRes.ok){const j=await siteRes.json().catch(()=>({}));throw new Error(`Site lookup for ${ownerUpn}: ${siteRes.status} — ${j.error?.message||'unknown'}`);}
     const site=await siteRes.json();
-    const drivesRes=await fetchWithRetry(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
+    const drivesRes=await fetchWithTimeout(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`,{headers:{Authorization:`Bearer ${token}`}});
     if(!drivesRes.ok){const j=await drivesRes.json().catch(()=>({}));throw new Error(`Drives for ${ownerUpn}: ${drivesRes.status} — ${j.error?.message||'unknown'}`);}
     const drives=await drivesRes.json();
     if(!drives.value||!drives.value.length)throw new Error(`No drives found for ${ownerUpn}`);
@@ -401,18 +400,12 @@ async function fetchSPSheet(token){
   try{
     const driveId=await getSharePointDriveId(token,FILE_OWNER);
     const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}`;
-    // Try bounded range first (fast), usedRange only as fallback (slow, 504-prone)
-    const r=await fetchWithRetry(`${base}/workbook/worksheets/${enc}/range(address='A1:AZ500')?$select=values`,{headers:hdrs});
-    if(r.ok){
-      const j=await r.json();
-      const vals=j.values||[];
-      const last=vals[vals.length-1]||[];
-      const truncated=last.some(c=>String(c||'').trim()!=='');
-      if(!truncated)return j;
-      console.warn('[fetchSPSheet] A1:AZ500 appears truncated — falling back to usedRange');
+    const r=await fetchWithRetry(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:hdrs});
+    if(r.ok)return r.json();
+    if(r.status===400){
+      const r2=await fetchWithRetry(`${base}/workbook/worksheets/${enc}/range(address='A1:AZ500')?$select=values`,{headers:hdrs});
+      if(r2.ok)return r2.json();
     }
-    const r2=await fetchWithRetry(`${base}/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:hdrs});
-    if(r2.ok)return r2.json();
   }catch(e){console.warn('SP sheet fetch failed:',e);}
   return null;
 }
@@ -450,9 +443,9 @@ async function fetchEngSheet(token, sheetName){
   try{
     if(!_engDriveId||!_engItemId){
       const shareId='u!'+btoa(ENG_SHARE_URL).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-      // Retry-aware share lookup so 504/503 don't bomb out on first try
-      const rr=await fetchWithRetry(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem`,{headers:{Authorization:`Bearer ${token}`}});
-      if(rr&&rr.ok){const item=await rr.json();_engDriveId=item.parentReference?.driveId;_engItemId=item.id;
+      const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),60000);
+      let rr;try{rr=await fetch(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem`,{headers:{Authorization:`Bearer ${token}`},signal:ctrl.signal});}finally{clearTimeout(tid);}
+      if(rr.ok){const item=await rr.json();_engDriveId=item.parentReference?.driveId;_engItemId=item.id;
         try{localStorage.setItem(ENG_DRIVE_KEY,JSON.stringify({d:_engDriveId,i:_engItemId}));}catch(e){}}
     }
     if(_engDriveId&&_engItemId){
