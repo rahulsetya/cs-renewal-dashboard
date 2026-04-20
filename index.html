@@ -955,42 +955,46 @@ async function loadData(forceRefresh=false){
   _loadingInProgress=true;
   loadSnapshot();
 
+  // Stale-while-revalidate: show cached data (any age) instantly, then ALWAYS
+  // refetch in the background. Every page load / refresh hits the network for
+  // fresh data — the cache is only an instant-paint shortcut and error fallback.
   const cache=loadDataCache(true);
-  const cacheUsable=cache&&cache.D&&cache.D.length&&!forceRefresh;
-  if(cacheUsable){
+  const haveCache=cache&&cache.D&&cache.D.length&&!forceRefresh;
+  if(haveCache){
     D=cache.D;
     const ec=loadEngCache();if(ec)ENG_RAW=ec;
-    lastUpdated=cache.lastUpdated+(cache.stale?' · cached':'');
+    const ageLabel=cache.stale?' · cached':'';
+    lastUpdated=cache.lastUpdated+ageLabel;
+    S.refreshing=true;
     render();
-    if(!cache.stale){_loadingInProgress=false;return;}
-    try{
-      const token=await getToken();
-      await _fetchFresh(token);
-      render();
-    }catch(e){
-      const msg=e.message||String(e);
-      if(/login_required/i.test(msg)){showLogin();return;}
-      S.staleWarning=`SharePoint timed out — showing data from ${cache.staleMinutes||0}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
-      render();
-    }finally{_loadingInProgress=false;}
-    return;
+  }else{
+    showLoading('Loading pipeline + engagement data…');
   }
 
-  showLoading('Loading pipeline + engagement data…');
+  // Always attempt fresh fetch
   try{
     const token=await getToken();
     await _fetchFresh(token);
+    S.refreshing=false;
     render();
   }catch(e){
     const msg=e.message||String(e);
     if(/login_required|interaction/i.test(msg)){showLogin();return;}
-    const stale=loadDataCache(true);
-    if(stale&&stale.D&&stale.D.length){
-      D=stale.D;const ec=loadEngCache();if(ec)ENG_RAW=ec;
-      lastUpdated=stale.lastUpdated+' · cached';
-      S.staleWarning=`SharePoint timed out — showing data from ${stale.staleMinutes}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
+    S.refreshing=false;
+    // If we already painted cache, keep showing it with a stale warning
+    if(haveCache){
+      S.staleWarning=`SharePoint refresh failed — showing data from ${cache.staleMinutes||0}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
       render();
-    }else{showError(msg);}
+    }else{
+      // No cache available — fall back to any stale cache we may have
+      const stale=loadDataCache(true);
+      if(stale&&stale.D&&stale.D.length){
+        D=stale.D;const ec=loadEngCache();if(ec)ENG_RAW=ec;
+        lastUpdated=stale.lastUpdated+' · cached';
+        S.staleWarning=`SharePoint timed out — showing data from ${stale.staleMinutes}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
+        render();
+      }else{showError(msg);}
+    }
   }finally{_loadingInProgress=false;}
 }
 async function refreshData(){await loadData(true);}
@@ -1341,7 +1345,7 @@ function _render(){
       <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
       ${PREV_TS?`<span style="font-size:10px;color:#475569">Last saved: ${new Date(PREV_TS).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:'<span style="font-size:10px;color:#334155">No snapshot saved</span>'}
     </div>
-    <button class="btn-refresh" onclick="try{localStorage.removeItem(DATA_CACHE_KEY);}catch(e){}location.reload(true)">↻ Refresh</button>
+    <button class="btn-refresh" onclick="refreshData()"${S.refreshing?' disabled style="opacity:.6;cursor:wait"':''}>${S.refreshing?'⟳ Refreshing…':'↻ Refresh'}</button>
     <select onchange="ss('owner',this.value)"><option value="ALL_OWNERS"${S.owner==='ALL_OWNERS'?' selected':''}>All Owners</option><option value="ALL"${S.owner==='ALL'||!S.owner?' selected':''}>All CS Owners</option>
     ${owners.map(o=>`<option value="${o}"${S.owner===o?' selected':''}>${o}</option>`).join('')}
     </select>
