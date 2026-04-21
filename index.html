@@ -521,19 +521,18 @@ function processSPData(raw){
   const cStage=ci('stage');
   const cRev=ci('2025')||ci('revenue')||ci('rev')||ci('total');
   const cOwner=ci('sales rep')||ci('owner')||ci('sales owner')||ci('account owner');
-  // "Include?" column (column F in GA 26 SPs). Must not match "exclude for
-  // attainment". Rows are kept when the Include? cell is blank or YES/Y/TRUE;
-  // any other value (NO, N, etc.) is skipped.
-  const cIncl=(()=>{const i=hdrs.findIndex(h=>h.includes('include')&&!h.includes('exclude'));return i>=0?i:null;})();
+  // "Exclude for attainment" column (column E in GA 26 SPs). Rows are DROPPED
+  // when this cell is YES/Y/TRUE/1. Blank or anything else keeps the row.
+  const cExcl=(()=>{const i=hdrs.findIndex(h=>h.includes('exclude'));return i>=0?i:null;})();
   // Try many aliases for the renewal/sub-end date column — GA 26 SPs may use
   // any of "Final Sub End Date", "Contract End", "Sub End", "Renewal Date", etc.
   const cSub=ci('final sub end')||ci('sub end')||ci('subscription end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal');
   // Flat-string logging so console shows it without needing to expand arrays/objects
   console.log('[SP] total raw rows='+totalRaw+' headerIdx='+hIdx+' → '+(totalRaw-hIdx-1)+' data rows below header');
   console.log('[SP] headers:\n  '+hdrs.map((h,i)=>i+':'+h).join(' | '));
-  console.log('[SP] detected columns: cAcct='+cAcct+' cStage='+cStage+' cRev='+cRev+' cOwner='+cOwner+' cSub='+cSub+' cIncl='+cIncl+' inclHeader="'+(cIncl!=null?hdrs[cIncl]:'(none matched)')+'" subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
+  console.log('[SP] detected columns: cAcct='+cAcct+' cStage='+cStage+' cRev='+cRev+' cOwner='+cOwner+' cSub='+cSub+' cExcl='+cExcl+' exclHeader="'+(cExcl!=null?hdrs[cExcl]:'(none matched)')+'" subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
   const data=[];
-  let skippedEmpty=0,skippedEmptyExamples=[],skippedNotIncluded=0,skippedNotIncludedExamples=[];
+  let skippedEmpty=0,skippedEmptyExamples=[],skippedExcluded=0,skippedExcludedExamples=[];
   for(let i=hIdx+1;i<raw.values.length;i++){
     const row=raw.values[i];
     const acct=String(row[cAcct]||'').trim();
@@ -545,13 +544,14 @@ function processSPData(raw){
       }
       skippedEmpty++;continue;
     }
-    // Include? filter — blank or YES keeps; anything else (NO, etc.) drops.
-    if(cIncl!=null){
-      const inclRaw=String(row[cIncl]||'').trim();
-      const incl=inclRaw.toUpperCase();
-      if(incl!==''&&incl!=='YES'&&incl!=='Y'&&incl!=='TRUE'&&incl!=='1'){
-        if(skippedNotIncludedExamples.length<5)skippedNotIncludedExamples.push(acct+'→"'+inclRaw+'"');
-        skippedNotIncluded++;continue;
+    // Exclude-for-attainment filter — drop rows where this cell is YES/Y/TRUE/1.
+    // Blank or anything else keeps the row.
+    if(cExcl!=null){
+      const exclRaw=String(row[cExcl]||'').trim();
+      const excl=exclRaw.toUpperCase();
+      if(excl==='YES'||excl==='Y'||excl==='TRUE'||excl==='1'){
+        if(skippedExcludedExamples.length<5)skippedExcludedExamples.push(acct+'→"'+exclRaw+'"');
+        skippedExcluded++;continue;
       }
     }
     const stage=String(cStage!=null?row[cStage]||'':'Open').trim()||'Open';
@@ -563,8 +563,8 @@ function processSPData(raw){
   // Diagnostic: show date-parse success rate + skip reasons
   const sample=data.slice(0,5).map(r=>({n:r.n,sub:r.sub}));
   const withDate=data.filter(r=>r.sub&&r.sub.length>0).length;
-  console.log('[SP] parsed '+data.length+' rows, skipped '+skippedEmpty+' empty-acct, '+skippedNotIncluded+' Include?!=YES. '+withDate+' have sub date.');
-  if(skippedNotIncludedExamples.length)console.log('[SP] sample Include?-filtered out:\n  '+skippedNotIncludedExamples.join('\n  '));
+  console.log('[SP] parsed '+data.length+' rows, skipped '+skippedEmpty+' empty-acct, '+skippedExcluded+' Exclude-for-attainment=YES. '+withDate+' have sub date.');
+  if(skippedExcludedExamples.length)console.log('[SP] sample Exclude-for-attainment-filtered out:\n  '+skippedExcludedExamples.join('\n  '));
   if(skippedEmptyExamples.length)console.log('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
   console.log('[SP] sample parsed:',sample);
   return data;
