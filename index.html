@@ -1320,7 +1320,41 @@ function _buildLiveForecastData(){
     const declBase=declRows.reduce((a,x)=>a+(x.r25||0),0);
     gpqr[qk]={base,wonOff,openWOff,openBase,declBase};
   }
-  return{gp,gpq,gpqr};
+
+  // ── SP live from SP_RAW (GA 26 SPs tab of renewal master) ────────────────
+  // processSPData gives each row {n,s,r,o,sub}.  Stage is free-text, so we
+  // classify by keywords to mirror the GP WON/CHR buckets.
+  let spq=null,spq_q=null,sp_rev=null;
+  if(SP_RAW&&SP_RAW.length){
+    const spIsWon=s=>{const l=(s||'').toLowerCase();return l.includes('invoice')||l.includes('paid')||l.includes('signed')||l.includes('won')||l.includes('renewed');};
+    const spIsChurn=s=>{const l=(s||'').toLowerCase();return l.includes('churn')||l.includes('closed lost')||l.includes('lost')||l.includes('cancel');};
+    const getSpQ=sub=>{if(!sub)return null;const m=parseInt((sub.substring(5,7)||'0'));return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
+    // Only count SPs with a sub-end date so SPQ totals match sum of SPQ_Q.
+    const sp=SP_RAW.filter(r=>getSpQ(r.sub)!==null);
+    let T=0,W=0,C=0,Dc=0,base=0,wonBase=0,openBase=0,churnRev=0;
+    sp.forEach(r=>{
+      T++;base+=r.r||0;
+      if(spIsWon(r.s)){W++;wonBase+=r.r||0;}
+      else if(spIsChurn(r.s)){C++;churnRev+=r.r||0;}
+      else{openBase+=r.r||0;}
+    });
+    const O=T-W-C-Dc;
+    spq={t:T,w:W,o:O,d:Dc,c:C};
+    // Per-quarter — current-quarter status derived from today's date
+    const now=new Date(),curQ=Math.floor(now.getMonth()/3)+1;
+    const qStat=q=>{const n=parseInt(q.substring(1));return n<curQ?'closed':n===curQ?'active':n===curQ+1?'upcoming':'future';};
+    spq_q={};
+    for(const qk of['Q1','Q2','Q3','Q4']){
+      const rows=sp.filter(r=>getSpQ(r.sub)===qk);
+      const qt=rows.length,qw=rows.filter(r=>spIsWon(r.s)).length,qc=rows.filter(r=>spIsChurn(r.s)).length,qd=0;
+      spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk)};
+    }
+    // Revenue — we have base rev directly; offer-price and Miami-booked aren't
+    // in SP_RAW so we approximate using the original ratios from the static
+    // reference data (wonOffer≈0.90×wonBase, openMiami≈0.58×openBase).
+    sp_rev={base,wonOffer:Math.round(wonBase*0.90),wonBase,openBase,openMiami:Math.round(openBase*0.58),churnRev};
+  }
+  return{gp,gpq,gpqr,spq,spq_q,sp_rev};
 }
 function _buildCadenceData(){
   if(!ENG_RAW||ENG_RAW.length===0)return null;
@@ -2859,8 +2893,18 @@ rGP=function(){
       src=src.replace(/const GPQ\s*=\s*\{[\s\S]*?\};/,`const GPQ=${JSON.stringify(live.gpq)};`);
       src=src.replace(/const GP\s*=\s*\{[^}]*\};/,`const GP=${JSON.stringify(live.gp)};`);
       src=src.replace(/const GPQR\s*=\s*\{[\s\S]*?\};/,`const GPQR=${JSON.stringify(live.gpqr)};`);
+      // Live SP — from SP_RAW (GA 26 SPs sheet). Falls back to hardcoded if SP_RAW empty.
+      if(live.spq){
+        src=src.replace(/const SPQ\s*=\s*\{[^}]*\};/,`const SPQ=${JSON.stringify(live.spq)};`);
+        // Inner template's `const SP={T:...}` alias (matches only the T:.. form, not the outer Goals SP)
+        src=src.replace(/const SP\s*=\s*\{T:[^}]*\};/,`const SP={T:${live.spq.t},W:${live.spq.w},O:${live.spq.o},D:${live.spq.d},C:${live.spq.c}};`);
+      }
+      if(live.spq_q)src=src.replace(/const SPQ_Q\s*=\s*\{[\s\S]*?\n\};/,`const SPQ_Q=${JSON.stringify(live.spq_q)};`);
+      if(live.sp_rev)src=src.replace(/const SP_REV\s*=\s*\{[\s\S]*?\n\};/,`const SP_REV=${JSON.stringify(live.sp_rev)};`);
     }
-    const fcNote=D&&D.length?`Live from renewal master · ${D.length} accounts`:'Using static baseline (no live data loaded)';
+    const fcNote=D&&D.length
+      ? (SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`)
+      : 'Using static baseline (no live data loaded)';
     forecastOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#07071a;border-bottom:1px solid #1a1a35;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:#d0d0ec">iConnections — Retention & Revenue Forecast 2026</span><span style="font-size:11px;color:#4a4a6e">${fcNote}</span><button onclick="_closeForecast()" style="background:#1a1a35;border:1px solid #2a2a44;color:#7777aa;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div><iframe id="_forecast_iframe" style="flex:1;border:none;background:#07071a;" src="about:blank"></iframe>`;
     requestAnimationFrame(()=>{const fr=document.getElementById('_forecast_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
