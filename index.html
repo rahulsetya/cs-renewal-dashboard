@@ -620,57 +620,97 @@ async function fetchAllEngagement(token){
   const engMap={};
   const tmpRaw=[];
   const yesNo=v=>String(v||'').toLowerCase().startsWith('y')?1:0;
-  // Column AI = index 34 (A=0 … Z=25, AA=26 … AI=34)
-  const CSM_COL=34;
+  const MONTH_ABBR=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   try{
     const data=await fetchEngSheet(token,ENG_SHEET);
     if(!data||!data.values||data.values.length<2){
       console.warn(`${ENG_SHEET} sheet empty or missing`);
     } else {
-      // Auto-detect header row: find first row that contains 'Account Name'
+      // Auto-detect header row: find first row that contains 'Account' (the
+      // new sheet labels the column 'Account' rather than 'Account Name').
       let headerRowIdx=0;
       for(let r=0;r<Math.min(10,data.values.length);r++){
-        if(data.values[r].some(c=>String(c||'').trim().toLowerCase()==='account name')){headerRowIdx=r;break;}
+        if(data.values[r].some(c=>{const s=String(c||'').trim().toLowerCase();return s==='account'||s==='account name';})){headerRowIdx=r;break;}
       }
       const engHeaders=data.values[headerRowIdx].map(h=>String(h||'').trim());
       console.log(`=== ${ENG_SHEET.toUpperCase()} SHEET HEADERS (row ${headerRowIdx}, total rows=${data.values.length}) ===`);
       console.log(engHeaders.map((h,i)=>`${i}:${h}`).join(' | '));
-      console.log('[eng] first 3 data rows (first 20 cols each):');
-      for(let rr=headerRowIdx+1;rr<Math.min(headerRowIdx+4,data.values.length);rr++){
-        const row=data.values[rr]||[];
-        console.log('  row '+rr+': '+row.slice(0,20).map((c,ci)=>ci+'="'+String(c||'').trim().slice(0,25)+'"').join(' | '));
-      }
-      const eColMap={};engHeaders.forEach((h,i)=>eColMap[normKey(h)]=i);
+      const eColMap={};engHeaders.forEach((h,i)=>{if(!(normKey(h) in eColMap))eColMap[normKey(h)]=i;});
       const ec=(row,name)=>{const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';};
-      // Monthly call columns: T (19) through AC (28)
+      const ecIdx=name=>{const i=eColMap[normKey(name)];return i!==undefined?i:null;};
+      // Monthly call columns — find by month-abbreviation header (Mar, Apr, …, Dec).
       const mCallCols=[];
-      for(let ci=19;ci<=28;ci++){const hdr=engHeaders[ci]?String(engHeaders[ci]).trim():'';if(hdr)mCallCols.push({ci,hdr});}
-      console.log('Monthly call cols (T-AC):',mCallCols.map(c=>c.ci+':'+c.hdr).join(' | '));
+      MONTH_ABBR.forEach(m=>{
+        const idx=engHeaders.findIndex(h=>h.trim().toLowerCase()===m.toLowerCase());
+        if(idx>=0)mCallCols.push({ci:idx,hdr:m});
+      });
+      console.log('Monthly call cols:',mCallCols.map(c=>c.ci+':'+c.hdr).join(' | ')||'(none found)');
+
+      // Resolve key columns up front so we can report if any are missing.
+      const cAcct  =ecIdx('Account')    ?? ecIdx('Account Name');
+      const cSales =ecIdx('Sales Rep');
+      const cSeg   =ecIdx('Segment');
+      const cRev25 =ecIdx('2025 Revenue')|| ecIdx('2025 Rev') || ecIdx('2025');
+      const cRev26 =ecIdx('2026 Revenue')|| ecIdx('2026 Rev') || ecIdx('2026');
+      const cEnd   =ecIdx('Contract End')|| ecIdx('Contract End Date');
+      const cRisk  =ecIdx('Risk?')       || ecIdx('Risk? (Y/N)')|| ecIdx('Risk');
+      const cNotes =ecIdx('Risk Notes')  || ecIdx('Notes');
+      const cCsm   =ecIdx('Target CSM')  || ecIdx('CSM');
+      const cPod   =ecIdx('Pod');
+      const cTxn   =ecIdx('Transition Complete?')|| ecIdx('Transition Complete');
+      const cOut   =ecIdx('Outreach Sent?')|| ecIdx('Outreach Sent? (Y/N)')|| ecIdx('Outreach Sent');
+      const cGm    =ecIdx('GM Completed?') || ecIdx('GM Completed? (Y/N)') || ecIdx('GM Completed');
+      const cNextTP=ecIdx('Next TP Date')  || ecIdx('Next TP');
+      const cExp   =ecIdx('Expansion?')    || ecIdx('Expansion');
+      // Legacy fields — still looked up in case they appear in the new sheet,
+      // but no longer warned about if absent.
+      const cGms   =ecIdx('GM Scheduled?') || ecIdx('GM Scheduled? (Y/N)') || ecIdx('GM Scheduled');
+      const cAp    =ecIdx('AP Delivered?') || ecIdx('AP Delivered? (Y/N)') || ecIdx('AP Delivered');
+      const cMt    =ecIdx('Miami Mtgs')    || ecIdx('Miami Meetings');
+      const cSent  =ecIdx('Sentiment');
+
+      console.log('[eng] resolved columns:\n  '+[
+        'Account='+cAcct,'Sales Rep='+cSales,'Segment='+cSeg,'2025 Rev='+cRev25,'2026 Rev='+cRev26,
+        'Contract End='+cEnd,'Risk?='+cRisk,'Risk Notes='+cNotes,'Target CSM='+cCsm,'Pod='+cPod,
+        'Transition Complete?='+cTxn,'Outreach Sent?='+cOut,'GM Completed?='+cGm,
+        'Next TP Date='+cNextTP,'Expansion?='+cExp
+      ].join(' | '));
+
+      const missingKeys=[];
+      [['Account',cAcct],['Target CSM',cCsm],['Segment',cSeg],['Contract End',cEnd]]
+        .forEach(([n,v])=>{if(v==null)missingKeys.push(n);});
+      if(missingKeys.length)console.warn('[eng] MISSING required columns:',missingKeys.join(', '));
 
       for(let i=headerRowIdx+1;i<data.values.length;i++){
         const row=data.values[i];
-        const acct=String(ec(row,'Account Name')||'').trim();
+        const acct=cAcct!=null?String(row[cAcct]||'').trim():'';
         if(!acct)continue;
-        const ro=normCsm(row[CSM_COL]);               // column AI → full CSM name
-        const ae=String(row[1]||'').trim();          // column B = Sales Rep
-        const seg=String(row[2]||'').trim();         // column C = Enterprise/Strategic/Scale
-        const rawEnd=String(row[5]||'').trim();      // column F = contract end
-        const rev=parseNum(row[4]);                  // column E = 2025 revenue
+        const ro    =cCsm  !=null?normCsm(row[cCsm])         :'';
+        const ae    =cSales!=null?String(row[cSales]||'').trim():'';
+        const seg   =cSeg  !=null?String(row[cSeg]||'').trim():'';
+        const rawEnd=cEnd  !=null?String(row[cEnd]||'').trim():'';
+        const rev   =cRev25!=null?parseNum(row[cRev25])       :0;
+        const rev26 =cRev26!=null?parseNum(row[cRev26])       :0;
         const rec={
-          acct,ro,ae,seg,endMonth:parseEngEndMonth(rawEnd),rawEnd,rev,
-          out:yesNo(ec(row,'Outreach Sent? (Y/N)')||ec(row,'Outreach Sent?')),
-          gms:yesNo(ec(row,'GM Scheduled? (Y/N)')||ec(row,'GM Scheduled?')),
-          gm:yesNo(ec(row,'GM Completed? (Y/N)')||ec(row,'GM Completed?')),
-          ap:yesNo(ec(row,'AP Delivered? (Y/N)')||ec(row,'AP Delivered?')),
-          rsk:yesNo(ec(row,'Risk? (Y/N)')||ec(row,'Risk?')||row[16]),
-          notes:String(row[17]||'').trim(),
-          mt:parseNum(ec(row,'Miami Mtgs')||ec(row,'Miami Meetings')),
-          sentiment:String(ec(row,'Sentiment')||'')
+          acct,ro,ae,seg,endMonth:parseEngEndMonth(rawEnd),rawEnd,rev,rev26,
+          pod:     cPod   !=null?String(row[cPod]||'').trim():'',
+          txnDone: cTxn   !=null?yesNo(row[cTxn])             :0,
+          out:     cOut   !=null?yesNo(row[cOut])             :0,
+          gm:      cGm    !=null?yesNo(row[cGm])              :0,
+          nextTP:  cNextTP!=null?String(row[cNextTP]||'').trim():'',
+          expn:    cExp   !=null?yesNo(row[cExp])             :0,
+          rsk:     cRisk  !=null?yesNo(row[cRisk])            :0,
+          notes:   cNotes !=null?String(row[cNotes]||'').trim():'',
+          // Legacy fields — keep populated when present so downstream code still works.
+          gms:     cGms   !=null?yesNo(row[cGms])             :0,
+          ap:      cAp    !=null?yesNo(row[cAp])              :0,
+          mt:      cMt    !=null?parseNum(row[cMt])           :0,
+          sentiment:cSent !=null?String(row[cSent]||'').trim():'',
         };
         engMap[acct]=rec;
         tmpRaw.push(rec);
-        // Attach monthly call data (T-AC columns)
+        // Attach monthly call data
         const calls={};mCallCols.forEach(c=>{calls[c.hdr]=String(row[c.ci]||'').trim();});
         rec.calls=calls;
       }
@@ -678,22 +718,19 @@ async function fetchAllEngagement(token){
       // ── Inconsistency report ──────────────────────────────────────────────
       const missingCSM=tmpRaw.filter(r=>!r.ro);
       const unknownCSM=[...new Set(tmpRaw.map(r=>r.ro).filter(r=>r&&!VALID_OWNERS.has(r)))];
-      const missingAcct=data.values.slice(2).filter(r=>!String(r[0]||'').trim()&&r.some(c=>c));
       if(missingCSM.length)
-        console.warn(`⚠ MASTER: ${missingCSM.length} rows have no CSM in column AI:`,missingCSM.map(r=>r.acct));
+        console.warn(`⚠ ${ENG_SHEET}: ${missingCSM.length} rows have no Target CSM:`,missingCSM.map(r=>r.acct));
       if(unknownCSM.length)
-        console.warn(`⚠ MASTER: CSM values not in VALID_OWNERS (check spelling):`,unknownCSM);
-      if(missingAcct.length)
-        console.warn(`⚠ MASTER: ${missingAcct.length} non-empty rows missing Account Name`);
+        console.warn(`⚠ ${ENG_SHEET}: CSM values not in VALID_OWNERS (check spelling):`,unknownCSM);
       if(!missingCSM.length&&!unknownCSM.length)
-        console.log('✓ MASTER: all CSM values matched VALID_OWNERS');
+        console.log(`✓ ${ENG_SHEET}: all CSM values matched VALID_OWNERS`);
     }
-  }catch(e){console.warn('Failed to fetch MASTER engagement sheet:',e);}
+  }catch(e){console.warn(`Failed to fetch ${ENG_SHEET} engagement sheet:`,e);}
 
   ENG_RAW=tmpRaw;
   const engTotal=Object.keys(engMap).length;
   console.log(`=== ENGAGEMENT LOADED: ${engTotal} accounts ===`);
-  if(engTotal===0)console.warn('Engagement data is empty — MASTER sheet fetch may have failed');
+  if(engTotal===0)console.warn(`Engagement data is empty — ${ENG_SHEET} sheet fetch may have failed`);
   return engMap;
 }
 
