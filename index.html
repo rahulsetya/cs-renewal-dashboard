@@ -1477,6 +1477,66 @@ function _buildLiveForecastData(){
     gpqr[qk]={base,wonOff,openWOff,openBase,declBase};
   }
 
+  // ── SP sub-end-date override from Renewal Master ────────────────────────
+  // The Renewal Master now carries SP subscription end dates in a column
+  // labelled "Subscription End Date" (typically column AI). When present, we
+  // use that for quarter assignment instead of the legacy GA 26 SPs sheet
+  // date, which was unreliable. Build a lookup keyed by normalized account
+  // name so SP_RAW rows can opt into the master date when matched.
+  function _nkSp(s){
+    if(!s)return'';
+    let k=String(s).toLowerCase().trim();
+    if(!k)return'';
+    k=k.replace(/[\u2018\u2019\u201c\u201d\u00b4]/g,"'");
+    k=k.replace(/\s*&\s*/g,' and ');
+    k=k.replace(/[.,'"`()\[\]]/g,'');
+    k=k.replace(/[-\/_]+/g,' ');
+    k=k.replace(/\s+/g,' ').trim();
+    const SUF=/\s+(llc|l l c|inc|incorporated|corp|corporation|lp|l p|llp|ltd|limited|co|company|gmbh|s a|sa|nv|ag|pte|plc|holdings?)$/;
+    for(let p=0;p<3;p++){const nk=k.replace(SUF,'').trim();if(nk===k)break;k=nk;}
+    return k;
+  }
+  const spSubFromMaster={};
+  if(GP_RAW_ROWS&&GP_RAW_ROWS.length>1){
+    const hdrRow=GP_RAW_ROWS[GP_RAW_HDR]||[];
+    let subColIdx=-1,acctColIdx=-1;
+    hdrRow.forEach((h,i)=>{
+      const k=String(h||'').trim().toLowerCase();
+      if(k==='subscription end date')subColIdx=i;
+      if(acctColIdx<0&&(k==='contact'||k==='company name'||k==='account name'))acctColIdx=i;
+    });
+    if(subColIdx<0)subColIdx=34; // column AI = index 34 (0-based)
+    if(acctColIdx<0)acctColIdx=0;
+    const _normDate=raw=>{
+      if(raw==null||raw==='')return'';
+      if(typeof raw==='number')return excelDateToJS(raw);
+      const s=String(raw).trim();
+      if(!s)return'';
+      if(/^\d{4}-\d{2}/.test(s))return s.substring(0,10);
+      const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(m)return`${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+      return excelDateToJS(s);
+    };
+    let _n=0;
+    for(let i=GP_RAW_HDR+1;i<GP_RAW_ROWS.length;i++){
+      const row=GP_RAW_ROWS[i]||[];
+      const acct=String(row[acctColIdx]||'').trim();
+      if(!acct)continue;
+      const sub=_normDate(row[subColIdx]);
+      if(!sub)continue;
+      const k=_nkSp(acct);
+      if(k){spSubFromMaster[k]=sub;_n++;}
+    }
+    console.log('[forecast] SP sub-end map from Renewal Master col '+(subColIdx+1)+' ("'+((hdrRow[subColIdx]||'')+'"').trim()+') → '+_n+' entries');
+  }
+  const _spSub=r=>{
+    if(r&&r.n){
+      const k=_nkSp(r.n);
+      if(k&&spSubFromMaster[k])return spSubFromMaster[k];
+    }
+    return r?r.sub:'';
+  };
+
   // ── SP live from SP_RAW (GA 26 SPs tab of renewal master) ────────────────
   // processSPData gives each row {n,s,r,o,sub}.  Stage is free-text, so we
   // classify by keywords to mirror the GP WON/CHR buckets.
@@ -1523,12 +1583,17 @@ function _buildLiveForecastData(){
 
     const now=new Date(),curQ=Math.floor(now.getMonth()/3)+1;
     const qStat=q=>{const n=parseInt(q.substring(1));return n<curQ?'closed':n===curQ?'active':n===curQ+1?'upcoming':'future';};
-    const sp=SP_RAW.filter(r=>getSpQ(r.sub)!==null);
+    // Use Renewal Master's "Subscription End Date" (column AI) when present,
+    // falling back to SP_RAW's own `sub` column if the master has no entry.
+    const sp=SP_RAW.filter(r=>getSpQ(_spSub(r))!==null);
+    let _nMaster=0,_nFallback=0;
+    SP_RAW.forEach(r=>{const k=_nkSp(r.n);if(k&&spSubFromMaster[k])_nMaster++;else if(r.sub)_nFallback++;});
+    console.log('[forecast] SP sub-end source split: master='+_nMaster+' sp_raw='+_nFallback+' none='+(SP_RAW.length-_nMaster-_nFallback)+' (total='+SP_RAW.length+')');
     if(sp.length>0){
       // Real sub-end dates exist → compute per-quarter from them.
       spq_q={};
       for(const qk of['Q1','Q2','Q3','Q4']){
-        const rows=sp.filter(r=>getSpQ(r.sub)===qk);
+        const rows=sp.filter(r=>getSpQ(_spSub(r))===qk);
         const qt=rows.length,qw=rows.filter(r=>spIsWon(r.s)).length,qc=rows.filter(r=>spIsChurn(r.s)).length,qd=0;
         spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk)};
       }
@@ -3085,7 +3150,19 @@ rGP=function(){
     const spNote=SP_RAW&&SP_RAW.length?'All data live from SharePoint':'GP data live · SP data static (refresh to load SP)';
     // Apply light-mode transforms to the iframe HTML when LIGHT is on
     if(LIGHT){
+      // Protect body.light{...} CSS rules from the generic hex substitution — they
+      // already contain the final light-mode colors, and many of those (#1e293b,
+      // #334155, #475569) happen to be SOURCE keys in DARK_TO_LIGHT. Without this
+      // guard, the substitution inverts them back to dark values and text becomes
+      // invisible on light backgrounds.
+      const _lightBlocks=[];
+      src=src.replace(/body\.light[^{]*\{[^}]*\}/g,function(m){_lightBlocks.push(m);return'\u0001LIGHT_BLOCK_'+(_lightBlocks.length-1)+'\u0001';});
       src=src.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
+      src=src.replace(/\u0001LIGHT_BLOCK_(\d+)\u0001/g,function(_,i){return _lightBlocks[parseInt(i,10)];});
+      // Chart.js palette: the source uses nearly-white gridlines (rgba(255,255,255,.07))
+      // which vanish on a light card, and tick color #94a3b8 → #475569 after
+      // substitution is a bit light. Force darker, more contrasty values for light mode.
+      src=src.replace(/const cD\s*=\s*\{g:'rgba\(255,255,255,\.07\)',t:'#[0-9a-fA-F]{3,6}'\};/,"const cD={g:'rgba(30,41,59,.15)',t:'#1e293b'};");
       src=src.replace(/<body>/i,'<body class="light">');
     }
     goalsOverlay.style.background=LIGHT?'rgba(200,210,225,.92)':'rgba(5,10,20,.92)';
@@ -3121,7 +3198,11 @@ rGP=function(){
       : 'Using static baseline (no live data loaded)';
     // Apply light-mode transforms to the iframe HTML when LIGHT is on
     if(LIGHT){
+      // Protect body.light{...} rules from hex substitution (see note in Goals block).
+      const _lightBlocks=[];
+      src=src.replace(/body\.light[^{]*\{[^}]*\}/g,function(m){_lightBlocks.push(m);return'\u0001LIGHT_BLOCK_'+(_lightBlocks.length-1)+'\u0001';});
       src=src.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
+      src=src.replace(/\u0001LIGHT_BLOCK_(\d+)\u0001/g,function(_,i){return _lightBlocks[parseInt(i,10)];});
       src=src.replace(/<body>/i,'<body class="light">');
     }
     forecastOverlay.style.background=LIGHT?'rgba(200,210,225,.92)':'rgba(5,10,20,.92)';
