@@ -4349,7 +4349,7 @@ function render(){
         h+=`</div>`;
       }
     }
-    h+=`</div></div>`;
+    h+=seg==='total'?`</div>`:`</div></div>`;
 
     // Quarter pipeline details (GP)
     if(seg!=='sp'){
