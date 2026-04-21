@@ -504,8 +504,9 @@ function processSPData(raw){
   // Try many aliases for the renewal/sub-end date column — GA 26 SPs may use
   // any of "Final Sub End Date", "Contract End", "Sub End", "Renewal Date", etc.
   const cSub=ci('final sub end')||ci('sub end')||ci('subscription end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal');
-  console.log('[SP] headers (lowercased):',hdrs);
-  console.log('[SP] detected columns:',{cAcct,cStage,cRev,cOwner,cSub,subHeader:cSub!=null?hdrs[cSub]:'(none matched)'});
+  // Flat-string logging so console shows it without needing to expand arrays/objects
+  console.log('[SP] headers:\n  '+hdrs.map((h,i)=>i+':'+h).join(' | '));
+  console.log('[SP] detected columns: cAcct='+cAcct+' cStage='+cStage+' cRev='+cRev+' cOwner='+cOwner+' cSub='+cSub+' subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
   const data=[];
   for(let i=hIdx+1;i<raw.values.length;i++){
     const row=raw.values[i];
