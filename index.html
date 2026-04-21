@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CS Renewal Pipeline — iConnections</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- SheetJS: used to parse raw .xlsx via Graph /content endpoint (bypasses Excel Online engine → no 504s on workbook reads).
+     To revert to Graph usedRange endpoint, either remove this tag or set USE_SHEETJS=false in the script below. -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans','Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:20px 24px}
@@ -286,6 +289,46 @@ const DRIVE_ID_STORE='cs_drive_ids_v1';
 const _driveIdCache=(()=>{try{return JSON.parse(localStorage.getItem(DRIVE_ID_STORE)||'{}');}catch(e){return{};}})();
 const _driveIdPending={};
 function _saveDriveIds(){try{localStorage.setItem(DRIVE_ID_STORE,JSON.stringify(_driveIdCache));}catch(e){}}
+
+// ── SHEETJS PATH ──────────────────────────────────────────────────────────────
+// When true, reads workbooks by downloading the raw .xlsx file via Graph's
+// /content endpoint and parsing it in the browser with SheetJS. This sidesteps
+// Graph's Excel Online rendering engine entirely — no more 504s caused by
+// active edits, volatile formulas, or large workbooks.
+// When false (or when XLSX is unavailable due to CDN block/network), falls
+// back to the legacy usedRange endpoint. Flip to false to revert behavior.
+const USE_SHEETJS = (typeof XLSX!=='undefined');
+// In-session workbook cache: one /content download per workbook, many sheets
+// extracted from it. Cleared at the start of each dashboard refresh.
+const _wbCache={};
+function _clearWbCache(){Object.keys(_wbCache).forEach(k=>delete _wbCache[k]);}
+async function _fetchWorkbookContent(token,driveId,itemId){
+  const key=driveId+'/'+itemId;
+  if(_wbCache[key])return _wbCache[key];
+  const url=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/content`;
+  const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+  if(!r.ok){
+    const txt=await r.text().catch(()=>'');
+    throw new Error(`/content ${r.status} — ${txt.slice(0,200)}`);
+  }
+  const buf=await r.arrayBuffer();
+  const wb=XLSX.read(buf,{type:'array',cellDates:false,cellFormula:false,cellHTML:false,cellStyles:false});
+  _wbCache[key]=wb;
+  return wb;
+}
+// Extract a worksheet as {values: [[row], [row], ...]} matching Graph's
+// usedRange(valuesOnly=true) response shape so downstream processors are unchanged.
+function _sheetToValues(wb,sheetName){
+  let ws=wb.Sheets[sheetName];
+  if(!ws){
+    const k=(wb.SheetNames||[]).find(n=>n.toLowerCase()===String(sheetName).toLowerCase());
+    if(k)ws=wb.Sheets[k];
+  }
+  if(!ws)throw new Error(`sheet "${sheetName}" not found; available: ${(wb.SheetNames||[]).join(', ')}`);
+  const values=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+  return{values};
+}
+
 async function fetchWithTimeout(url,opts,ms=60000){
   const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),ms);
   try{return await fetch(url,{...opts,signal:ctrl.signal});}
@@ -325,6 +368,35 @@ async function fetchWithRetry(url,opts,retries=3,delay=3000){
 
 async function fetchSheet(token){
   const enc=encodeURIComponent(SHEET), errors=[], hdrs={Authorization:`Bearer ${token}`};
+
+  // ── SheetJS path (bypasses Graph Excel engine) ───────────────────────────
+  if(USE_SHEETJS){
+    try{
+      const driveId=await getSharePointDriveId(token, FILE_OWNER);
+      const wb=await _fetchWorkbookContent(token, driveId, FILE_ID);
+      return _sheetToValues(wb, SHEET);
+    }catch(e){errors.push(`site drive (content): ${e.message}`);}
+    try{
+      const r=await fetch('https://graph.microsoft.com/v1.0/me/drive/sharedWithMe',{headers:hdrs});
+      const j=await r.json();
+      if(j.value&&j.value.length){
+        const f=j.value.find(f=>f.id===FILE_ID||(f.remoteItem&&f.remoteItem.id===FILE_ID))||
+                 j.value.find(f=>(f.name||'').toLowerCase().includes('2026 renewal master'));
+        if(f){
+          const ri=f.remoteItem||f;
+          const driveId=ri.parentReference?.driveId;
+          const itemId=ri.id;
+          if(driveId&&itemId){
+            const wb=await _fetchWorkbookContent(token, driveId, itemId);
+            return _sheetToValues(wb, SHEET);
+          }
+        }
+      }
+    }catch(e){errors.push(`sharedWithMe (content): ${e.message}`);}
+    throw new Error(errors.join('<br>'));
+  }
+
+  // ── Legacy Graph usedRange path (kept for revert via USE_SHEETJS=false) ──
   // Try usedRange first (complete data); if payload too large (400) fall back to fixed range
   async function tryRange(baseUrl){
     const r=await fetchWithRetry(baseUrl+`/workbook/worksheets/${enc}/usedRange(valuesOnly=true)`,{headers:hdrs});
@@ -372,6 +444,18 @@ async function fetchSheet(token){
 // ── SP SHEET FETCH + PARSE ────────────────────────────────────────────────────
 async function fetchSPSheet(token){
   const enc=encodeURIComponent(SP_SHEET), hdrs={Authorization:`Bearer ${token}`};
+
+  // ── SheetJS path (reuses cached workbook from fetchSheet) ────────────────
+  if(USE_SHEETJS){
+    try{
+      const driveId=await getSharePointDriveId(token,FILE_OWNER);
+      const wb=await _fetchWorkbookContent(token, driveId, FILE_ID);
+      return _sheetToValues(wb, SP_SHEET);
+    }catch(e){console.warn('SP sheet (content) failed:',e);}
+    return null;
+  }
+
+  // ── Legacy path ──────────────────────────────────────────────────────────
   try{
     const driveId=await getSharePointDriveId(token,FILE_OWNER);
     const base=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${FILE_ID}`;
@@ -413,16 +497,32 @@ function processSPData(raw){
 }
 
 // ── ENGAGEMENT FETCH ──────────────────────────────────────────────────────────
+async function _resolveEngDriveItem(token){
+  if(_engDriveId&&_engItemId)return;
+  const shareId='u!'+btoa(ENG_SHARE_URL).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),60000);
+  let rr;try{rr=await fetch(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem`,{headers:{Authorization:`Bearer ${token}`},signal:ctrl.signal});}finally{clearTimeout(tid);}
+  if(rr.ok){const item=await rr.json();_engDriveId=item.parentReference?.driveId;_engItemId=item.id;
+    try{localStorage.setItem(ENG_DRIVE_KEY,JSON.stringify({d:_engDriveId,i:_engItemId}));}catch(e){}}
+}
 async function fetchEngSheet(token, sheetName){
   const enc=encodeURIComponent(sheetName);
+
+  // ── SheetJS path (one download, all CSM sheets extracted locally) ────────
+  if(USE_SHEETJS){
+    try{
+      await _resolveEngDriveItem(token);
+      if(_engDriveId&&_engItemId){
+        const wb=await _fetchWorkbookContent(token, _engDriveId, _engItemId);
+        return _sheetToValues(wb, sheetName);
+      }
+    }catch(e){console.warn('Engagement sheet (content) failed:',e);}
+    return null;
+  }
+
+  // ── Legacy path ──────────────────────────────────────────────────────────
   try{
-    if(!_engDriveId||!_engItemId){
-      const shareId='u!'+btoa(ENG_SHARE_URL).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-      const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),60000);
-      let rr;try{rr=await fetch(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem`,{headers:{Authorization:`Bearer ${token}`},signal:ctrl.signal});}finally{clearTimeout(tid);}
-      if(rr.ok){const item=await rr.json();_engDriveId=item.parentReference?.driveId;_engItemId=item.id;
-        try{localStorage.setItem(ENG_DRIVE_KEY,JSON.stringify({d:_engDriveId,i:_engItemId}));}catch(e){}}
-    }
+    await _resolveEngDriveItem(token);
     if(_engDriveId&&_engItemId){
       const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${_engDriveId}/items/${_engItemId}/workbook/worksheets/${enc}/range(address='A1:CZ1500')?$select=values`,{headers:{Authorization:`Bearer ${token}`}});
       if(r.ok)return r.json();
@@ -904,6 +1004,9 @@ function showError(msg, debugInfo=''){
 let _loadingInProgress=false;
 
 async function _fetchFresh(token){
+  // Always start with a clean workbook cache so a refresh truly re-downloads
+  // (the cache is per-session and serves multiple sheet reads from one download)
+  if(typeof _clearWbCache==='function')_clearWbCache();
   // Always fetch both — sequential to avoid SP rate limits
   const range=await fetchSheet(token);
   // Store raw rows for Goals dashboard (unfiltered)
