@@ -4652,8 +4652,10 @@ function calc(oc,dc,sc,exp){
   for(const qk of['Q1','Q2','Q3','Q4']){
     const q=GPQ[qk];const pO=Math.round(q.o*ocR),pD=Math.round(q.d*dcR),qW=q.w+pO+pD;
     gcT+=q.t;gcW+=qW;const th=GP_TH[qk]||[0,0,0];const cR=gcT>0?gcW/gcT*100:0;
+    const qR=q.t>0?qW/q.t*100:0;
     let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125}
-    gpL[qk]={...q,pO,pD,qW,qR:q.t>0?qW/q.t*100:0,cT:gcT,cW:gcW,cR,th,pay};
+    let qPay=0;if(th[0]>0){if(qR<th[0])qPay=0;else if(qR<=th[1])qPay=(qR-th[0])/(th[1]-th[0])*100;else if(qR<=th[2])qPay=100+(qR-th[1])/(th[2]-th[1])*25;else qPay=125}
+    gpL[qk]={...q,pO,pD,qW,qR,cT:gcT,cW:gcW,cR,th,pay,qPay};
   }
 
   // SP Logos
@@ -4666,8 +4668,10 @@ function calc(oc,dc,sc,exp){
   for(const qk of['Q1','Q2','Q3','Q4']){
     const q=SPQ_Q[qk];const pO=Math.round(q.o*scR);const qW=q.w+pO;
     scT+=q.t;scW+=qW;const th=SP_TH[qk]||[0,0,0];const cR=scT>0?scW/scT*100:0;
+    const qR=q.t>0?qW/q.t*100:0;
     let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125}
-    spL[qk]={...q,pO,qW,qR:q.t>0?qW/q.t*100:0,cT:scT,cW:scW,cR,th,pay};
+    let qPay=0;if(th[0]>0){if(qR<th[0])qPay=0;else if(qR<=th[1])qPay=(qR-th[0])/(th[1]-th[0])*100;else if(qR<=th[2])qPay=100+(qR-th[1])/(th[2]-th[1])*25;else qPay=125}
+    spL[qk]={...q,pO,qW,qR,cT:scT,cW:scW,cR,th,pay,qPay};
   }
 
   // Total Logos
@@ -4774,24 +4778,24 @@ function render(){
 
     // GP Logo Staircase (always show — it's the comp target)
     if(seg!=='sp'){
-      h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12)">GP Logo Retention Staircase</div><div class="qg">`;
+      h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12)">GP Logo Retention Staircase <span style="font-size:10px;color:var(--mt);font-weight:400">· per quarter</span></div><div class="qg">`;
       for(const qk of['Q1','Q2','Q3','Q4']){
         const q=m.gpL[qk],th=GP_TH[qk]||[0,0,0],c=qCl[q.st],fl=th[0],fu=th[1],ac=th[2];
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="font-size:12px;font-weight:800;color:${c}">${qk}</span>
             <span style="font-size:10px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
-          <div style="font-size:22px;font-weight:800;color:${q.cR>=fu?'var(--gn)':q.cR>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(q.cR)}</div>
-          <div style="font-size:11px;color:var(--dm)">${q.cW}/${q.cT}</div>`;
+          <div style="font-size:22px;font-weight:800;color:${q.qR>=fu?'var(--gn)':q.qR>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(q.qR)}</div>
+          <div style="font-size:11px;color:var(--dm)">${q.qW}/${q.t}</div>`;
         if(fu>0){
           h+=`<div style="position:relative;height:7px;background:var(--br);border-radius:4px;margin-top:3px;overflow:visible">
-            <div style="width:${Math.min(q.cR,100)}%;height:100%;background:${q.cR>=fu?'var(--gn)':q.cR>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
+            <div style="width:${Math.min(q.qR,100)}%;height:100%;background:${q.qR>=fu?'var(--gn)':q.qR>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
             <div style="position:absolute;left:${fl}%;top:-1px;width:1.5px;height:9px;background:var(--rd)"></div>
             <div style="position:absolute;left:${fu}%;top:-1px;width:1.5px;height:9px;background:var(--gn)"></div>
             <div style="position:absolute;left:${ac}%;top:-1px;width:1.5px;height:9px;background:var(--pk)"></div></div>
           <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-top:1px"><span style="color:var(--rd)">${fl}</span><span style="color:var(--gn)">${fu}</span><span style="color:var(--pk)">${ac}</span></div>
-          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.pay>=100?'rgba(46,213,115,.05)':q.pay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
-            Comp: <b style="color:${q.pay>=100?'var(--gn)':q.pay>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(q.pay)}%</b></div>`;
+          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.qPay>=100?'rgba(46,213,115,.05)':q.qPay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
+            Comp: <b style="color:${q.qPay>=100?'var(--gn)':q.qPay>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(q.qPay)}%</b></div>`;
         } else {
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> gifted</div>`;
         }
@@ -4802,24 +4806,24 @@ function render(){
 
     // SP Logo Retention Staircase (show when sp or total)
     if(seg!=='gp'){
-      h+=`<div class="cd"><div class="ct" style="color:var(--pk);border-bottom-color:rgba(224,64,251,.12)">SP Logo Retention Staircase</div><div class="qg">`;
+      h+=`<div class="cd"><div class="ct" style="color:var(--pk);border-bottom-color:rgba(224,64,251,.12)">SP Logo Retention Staircase <span style="font-size:10px;color:var(--mt);font-weight:400">· per quarter</span></div><div class="qg">`;
       for(const qk of['Q1','Q2','Q3','Q4']){
         const q=m.spL[qk],th=SP_TH[qk]||[0,0,0],c=qCl[q.st],fl=th[0],fu=th[1],ac=th[2];
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="font-size:12px;font-weight:800;color:${c}">${qk}</span>
             <span style="font-size:10px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
-          <div style="font-size:22px;font-weight:800;color:${q.cR>=fu?'var(--gn)':q.cR>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(q.cR)}</div>
-          <div style="font-size:11px;color:var(--dm)">${q.cW}/${q.cT}</div>`;
+          <div style="font-size:22px;font-weight:800;color:${q.qR>=fu?'var(--gn)':q.qR>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(q.qR)}</div>
+          <div style="font-size:11px;color:var(--dm)">${q.qW}/${q.t}</div>`;
         if(fu>0){
           h+=`<div style="position:relative;height:7px;background:var(--br);border-radius:4px;margin-top:3px;overflow:visible">
-            <div style="width:${Math.min(q.cR,100)}%;height:100%;background:${q.cR>=fu?'var(--gn)':q.cR>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
+            <div style="width:${Math.min(q.qR,100)}%;height:100%;background:${q.qR>=fu?'var(--gn)':q.qR>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
             <div style="position:absolute;left:${fl}%;top:-1px;width:1.5px;height:9px;background:var(--rd)"></div>
             <div style="position:absolute;left:${fu}%;top:-1px;width:1.5px;height:9px;background:var(--gn)"></div>
             <div style="position:absolute;left:${ac}%;top:-1px;width:1.5px;height:9px;background:var(--pk)"></div></div>
           <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-top:1px"><span style="color:var(--rd)">${fl}</span><span style="color:var(--gn)">${fu}</span><span style="color:var(--pk)">${ac}</span></div>
-          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.pay>=100?'rgba(46,213,115,.05)':q.pay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
-            Comp: <b style="color:${q.pay>=100?'var(--gn)':q.pay>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(q.pay)}%</b></div>`;
+          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.qPay>=100?'rgba(46,213,115,.05)':q.qPay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
+            Comp: <b style="color:${q.qPay>=100?'var(--gn)':q.qPay>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(q.qPay)}%</b></div>`;
         } else {
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(224,64,251,.05)">Q1: no SP threshold</div>`;
         }
