@@ -1307,8 +1307,9 @@ function _buildLiveGoalsData(){
       return excelDateToJS(seRaw);
     })();
     const rev=parseNum(v[revColIdx]||'');
+    const platformId=String(gc(v,'Platform ID','Platform Id','HubSpot ID','HubSpot Record ID','Record ID','HS ID','Company ID')||'').trim();
     if(renewalLookup[acct.toLowerCase()])_renewalDupes.push(acct);
-    renewalLookup[acct.toLowerCase()]={stage,rev,se,name:acct};
+    renewalLookup[acct.toLowerCase()]={stage,rev,se,name:acct,platformId};
   }
   console.log(`=== ACCOUNT RECONCILIATION ===`);
   console.log(`Renewal Master rows (non-blank): ${_renewalRawCount}`);
@@ -1369,11 +1370,16 @@ function _buildLiveGoalsData(){
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
   }
-  const _renewalNotInEng=Object.keys(renewalLookup).filter(k=>!_matchedRenewal.has(k)).map(k=>renewalLookup[k].name);
-  if(_renewalNotInEng.length)console.warn(`Renewal Master accounts NOT in Engagement Tracker (${_renewalNotInEng.length}):`,_renewalNotInEng);
+  const _renewalNotInEngDetail=Object.keys(renewalLookup).filter(k=>!_matchedRenewal.has(k)).map(k=>({name:renewalLookup[k].name,platformId:renewalLookup[k].platformId||''}));
+  const _renewalNotInEng=_renewalNotInEngDetail.map(x=>x.name);
+  if(_renewalNotInEngDetail.length){
+    console.warn(`Renewal Master accounts NOT in Engagement Tracker (${_renewalNotInEngDetail.length}):`,_renewalNotInEngDetail);
+    console.warn(`Platform IDs only (copy-paste):`,_renewalNotInEngDetail.map(x=>x.platformId).filter(Boolean).join('\n'));
+    console.table(_renewalNotInEngDetail);
+  }
   console.log(`Total accounts in dashboard: ${allAccts.length}`);
   const _engNotInRenewal=(ENG_RAW||[]).filter(r=>r.acct&&!renewalLookup[r.acct.toLowerCase()]).map(r=>r.acct);
-  window._acctMismatches={engNotInRenewal:_engNotInRenewal,renewalNotInEng:_renewalNotInEng};
+  window._acctMismatches={engNotInRenewal:_engNotInRenewal,renewalNotInEng:_renewalNotInEng,renewalNotInEngDetail:_renewalNotInEngDetail};
   churned.sort((a,b)=>b.rev-a.rev);
   const totalNone=Object.values(grrNone).reduce((a,v)=>a+v.logos,0);
 
@@ -3365,9 +3371,9 @@ function rOverview(){
         <div class="label">Total Logos</div>
         <div class="val">${tL.toLocaleString()}</div>
         <div class="sub">${gL} GPs + ${SP.logos} SPs</div>
-        ${(()=>{const m=(window.parent&&window.parent._acctMismatches)||window._acctMismatches||{};const e2r=m.engNotInRenewal||[];const r2e=m.renewalNotInEng||[];if(!e2r.length&&!r2e.length)return'';return`<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px;display:flex;flex-direction:column;gap:4px">
+        ${(()=>{const m=(window.parent&&window.parent._acctMismatches)||window._acctMismatches||{};const e2r=m.engNotInRenewal||[];const r2e=m.renewalNotInEng||[];const r2eD=m.renewalNotInEngDetail||r2e.map(n=>({name:n,platformId:''}));if(!e2r.length&&!r2e.length)return'';const pidCsv=r2eD.map(x=>x.platformId).filter(Boolean).join('\n');return`<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.08);padding-top:8px;display:flex;flex-direction:column;gap:4px">
           ${e2r.length?`<div style="cursor:pointer;font-size:10px;color:var(--amber);display:flex;justify-content:space-between;align-items:center" onclick="_toggleMismatch('etr')"><span>⚠ ${e2r.length} in ET, not in Renewal Master</span><span id="mismatch-etr-arrow">▸</span></div><div id="mismatch-etr" style="display:none;max-height:160px;overflow-y:auto;margin-top:2px">${e2r.map(n=>`<div style="font-size:10px;color:var(--dim);padding:1px 0;padding-left:8px">${n}</div>`).join('')}</div>`:''}
-          ${r2e.length?`<div style="cursor:pointer;font-size:10px;color:var(--orange);display:flex;justify-content:space-between;align-items:center" onclick="_toggleMismatch('rme')"><span>⚠ ${r2e.length} in Renewal Master, not in ET</span><span id="mismatch-rme-arrow">▸</span></div><div id="mismatch-rme" style="display:none;max-height:160px;overflow-y:auto;margin-top:2px">${r2e.map(n=>`<div style="font-size:10px;color:var(--dim);padding:1px 0;padding-left:8px">${n}</div>`).join('')}</div>`:''}
+          ${r2e.length?`<div style="cursor:pointer;font-size:10px;color:var(--orange);display:flex;justify-content:space-between;align-items:center" onclick="_toggleMismatch('rme')"><span>⚠ ${r2e.length} in Renewal Master, not in ET</span><span id="mismatch-rme-arrow">▸</span></div><div id="mismatch-rme" style="display:none;max-height:220px;overflow-y:auto;margin-top:2px">${pidCsv?`<div style="padding:4px 8px 6px 8px;display:flex;gap:6px;align-items:center"><button onclick="event.stopPropagation();navigator.clipboard.writeText(this.getAttribute('data-pids'));this.textContent='✓ Copied Platform IDs';setTimeout(()=>{this.textContent='📋 Copy Platform IDs';},1500)" data-pids="${pidCsv.replace(/"/g,'&quot;')}" style="font-size:10px;padding:3px 8px;background:var(--orange);color:#0a0e1a;border:none;border-radius:4px;cursor:pointer;font-weight:600">📋 Copy Platform IDs</button><span style="font-size:9px;color:var(--dim)">${r2eD.filter(x=>x.platformId).length}/${r2eD.length} have IDs</span></div>`:''}<div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:2px 8px"><div style="font-size:9px;color:var(--dim);font-weight:600;text-transform:uppercase">Account</div><div style="font-size:9px;color:var(--dim);font-weight:600;text-transform:uppercase;text-align:right">Platform ID</div>${r2eD.map(x=>`<div style="font-size:10px;color:var(--dim);padding:1px 0">${x.name}</div><div style="font-size:10px;color:${x.platformId?'var(--text)':'var(--red)'};padding:1px 0;font-family:var(--mono);text-align:right">${x.platformId||'—'}</div>`).join('')}</div></div>`:''}
         </div>`;})()}
       </div>
       ${sc("Revenue at Risk",fmt(tR),"$39.8M tracked of ~$41.2M","var(--amber)")}
