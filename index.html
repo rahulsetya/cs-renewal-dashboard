@@ -306,7 +306,9 @@ async function _fetchWorkbookContent(token,driveId,itemId){
   const key=driveId+'/'+itemId;
   if(_wbCache[key])return _wbCache[key];
   const url=`https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/content`;
-  const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+  // cache:'no-store' ensures every refresh truly hits Graph for the latest
+  // saved version of the file — never serves a cached byte range.
+  const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`},cache:'no-store'});
   if(!r.ok){
     const txt=await r.text().catch(()=>'');
     throw new Error(`/content ${r.status} — ${txt.slice(0,200)}`);
