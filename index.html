@@ -111,9 +111,11 @@ const FILE_ID     = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
 const SHEET       = 'master tracker';
 const SP_SHEET    = 'GA 26 SPs';
 const HEADER_ROW  = 14; // 0-based index; row 15 in Excel
-const ENG_FILE_ID = 'f3908b5a-e17e-420f-b2e6-500c5dbad32c';
+// CS Engagement Tracker April 2026.xlsx (All_ClientSuccess site)
+const ENG_FILE_ID = 'f8e92e42-426b-4970-aa5d-7a5f8681a2e5';
 const ENG_OWNER   = 'tfischer_iconnections_io';
-const ENG_SHARE_URL = 'https://iconnections675.sharepoint.com/:x:/s/All_ClientSuccess/IQCLMNdTCQBRQbE7YQzxNvaLAdrlXfxV3UBdZ3DwOyQNiqk';
+const ENG_SHARE_URL = 'https://iconnections675.sharepoint.com/:x:/r/sites/All_ClientSuccess/_layouts/15/Doc.aspx?sourcedoc=%7BF8E92E42-426B-4970-AA5D-7A5F8681A2E5%7D&file=CS%20Engagement%20Tracker%20April%202026.xlsx&action=default&mobileredirect=true';
+const ENG_SHEET   = 'Combined Master';
 // Persist resolved engagement drive IDs across page loads
 let _engDriveId=null,_engItemId=null;
 (function(){try{const s=JSON.parse(localStorage.getItem(ENG_DRIVE_KEY)||'{}');_engDriveId=s.d||null;_engItemId=s.i||null;}catch(e){}}());
@@ -154,7 +156,7 @@ function isValidCSOwner(ro){
 const SNAPSHOT_KEY    = 'cs_renewal_snapshot_v1';
 const DATA_CACHE_KEY  = 'cs_data_cache_v1';
 const ENG_CACHE_KEY   = 'cs_eng_cache_v1';
-const ENG_DRIVE_KEY   = 'cs_eng_drive_v1';
+const ENG_DRIVE_KEY   = 'cs_eng_drive_v2';  // bumped when file pointer changes
 const DATA_CACHE_TTL  = 30 * 60 * 1000;  // 30 min — pipeline data
 const ENG_CACHE_TTL   = 2 * 60 * 60 * 1000; // 2 hours — engagement data
 
@@ -622,18 +624,23 @@ async function fetchAllEngagement(token){
   const CSM_COL=34;
 
   try{
-    const data=await fetchEngSheet(token,'MASTER');
+    const data=await fetchEngSheet(token,ENG_SHEET);
     if(!data||!data.values||data.values.length<2){
-      console.warn('MASTER sheet empty or missing');
+      console.warn(`${ENG_SHEET} sheet empty or missing`);
     } else {
       // Auto-detect header row: find first row that contains 'Account Name'
       let headerRowIdx=0;
-      for(let r=0;r<Math.min(5,data.values.length);r++){
+      for(let r=0;r<Math.min(10,data.values.length);r++){
         if(data.values[r].some(c=>String(c||'').trim().toLowerCase()==='account name')){headerRowIdx=r;break;}
       }
       const engHeaders=data.values[headerRowIdx].map(h=>String(h||'').trim());
-      console.log(`=== MASTER SHEET HEADERS (row ${headerRowIdx}) ===`);
+      console.log(`=== ${ENG_SHEET.toUpperCase()} SHEET HEADERS (row ${headerRowIdx}, total rows=${data.values.length}) ===`);
       console.log(engHeaders.map((h,i)=>`${i}:${h}`).join(' | '));
+      console.log('[eng] first 3 data rows (first 20 cols each):');
+      for(let rr=headerRowIdx+1;rr<Math.min(headerRowIdx+4,data.values.length);rr++){
+        const row=data.values[rr]||[];
+        console.log('  row '+rr+': '+row.slice(0,20).map((c,ci)=>ci+'="'+String(c||'').trim().slice(0,25)+'"').join(' | '));
+      }
       const eColMap={};engHeaders.forEach((h,i)=>eColMap[normKey(h)]=i);
       const ec=(row,name)=>{const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';};
       // Monthly call columns: T (19) through AC (28)
