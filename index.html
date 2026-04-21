@@ -4082,8 +4082,10 @@ rOverview();
 :root{--bg:#07071a;--cd:#0b0b1c;--bd:#1a1a35;--br:#141428;--tx:#d0d0ec;--dm:#7777aa;--mt:#4a4a6e;--fn:#2a2a44;--gn:#2ed573;--or:#ffa502;--rd:#ff4757;--pu:#7c6cff;--pk:#e040fb;--li:#c77dff;--sa:#ff6b81;--M:'JetBrains Mono',monospace;--S:'DM Sans',-apple-system,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--S);background:var(--bg);color:var(--tx);padding:20px 28px;font-size:14px;zoom:1.15}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#252545;border-radius:3px}
-input[type=range]{-webkit-appearance:none;background:var(--br);border-radius:4px;cursor:pointer;height:4px;width:100%}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--pu);cursor:pointer}
+input[type=range]{-webkit-appearance:none;appearance:none;background:var(--br);border-radius:5px;cursor:pointer;height:8px;width:100%}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--pu);cursor:grab;border:2px solid #fff2;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+input[type=range]::-webkit-slider-thumb:active{cursor:grabbing;transform:scale(1.1)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--pu);cursor:grab;border:2px solid #fff2}
 button{cursor:pointer;transition:filter .15s;font-family:var(--S)}button:hover{filter:brightness(1.15)}
 .pl{padding:6px 14px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border:1px solid #222240;background:transparent;color:#55557a}.pl.a{border-color:var(--pu);background:rgba(124,108,255,.09);color:var(--pu)}
 .tb{padding:8px 20px;border-radius:6px 6px 0 0;border:none;font-size:14px;font-weight:600;background:transparent;color:var(--mt)}.tb.a{background:var(--bd);color:var(--tx)}
@@ -4139,6 +4141,7 @@ const SP_TH={Q2:[45,55,65],Q3:[50,62,70],Q4:[55,68,75]};
 const RNRR={gp:137.2,sp:83.0}; // renewal NRR on closed deals
 
 const SCEN={
+  current:{l:"Current",c:"#94a3b8",oc:0,dc:0,sc:0,exp:100},
   worst:{l:"Worst",c:"#ff4757",oc:30,dc:8,sc:25,exp:120},
   base:{l:"Base",c:"#ffa502",oc:50,dc:15,sc:40,exp:130},
   best:{l:"Best",c:"#2ed573",oc:65,dc:25,sc:55,exp:140},
@@ -4351,18 +4354,7 @@ function render(){
     }
     h+=seg==='total'?`</div>`:`</div></div>`;
 
-    // Quarter pipeline details (GP)
-    if(seg!=='sp'){
-      for(const qk of['Q1','Q2','Q3','Q4']){
-        const q=m.gpL[qk],c=qCl[q.st],r=m.gpR[qk];
-        h+=`<div class="cd"><div class="ct" style="color:${c};border-bottom-color:${c}20">${qk} — ${q.mo}</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(75px,1fr));gap:3px;margin-bottom:4px">
-            ${[{l:"Logos",v:q.t},{l:"Won",v:q.w,c:'var(--gn)'},{l:"Open",v:q.o,c:'var(--pu)'},{l:"Proj+",v:`+${q.pO+q.pD}`,c:'var(--li)'},{l:"Decl",v:q.d,c:'var(--or)'},{l:"Churn",v:q.c,c:'var(--rd)'},{l:"Q Ret",v:P(q.qR),c:cl(q.qR,55)},{l:"Rev",v:fS(r.qExp),c:'var(--pk)'}].map(x=>`<div style="background:#07071a;padding:3px 5px;border-radius:3px"><div style="font-size:9px;color:var(--mt);text-transform:uppercase">${x.l}</div><div style="font-size:13px;font-weight:700;font-family:var(--M);color:${x.c||'var(--tx)'}">${x.v}</div></div>`).join('')}
-          </div></div>`;
-      }
-    }
-
-    h+=`</div><div>${sidebar(m)}</div></div>`;
+    h+=`</div><div>${sidebar(m,seg)}</div></div>`;
   }
 
   // ════ COMP PLAN ════
@@ -4410,7 +4402,7 @@ function render(){
   // ════ SCENARIOS ════
   if(S.tab==='scenarios'){
     h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12)">Scenario Analysis — ${seg==='gp'?'GP':seg==='sp'?'SP':'Total'}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">`;
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">`;
     for(const[k,sc]of Object.entries(SCEN)){
       const sm=calc(sc.oc,sc.dc,sc.sc,sc.exp);
       const sE=seg==='gp'?sm.gpExp:seg==='sp'?sm.spRev.totExp:sm.allExp;
@@ -4454,12 +4446,23 @@ function render(){
   document.getElementById('app').innerHTML=h;
 }
 
-function sidebar(m){
+function sidebar(m,seg){
   let h=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12)">Assumptions</div>`;
   for(const[k,l,c]of[['oc','GP Open Conv','var(--pu)'],['dc','GP Declined Re-eng','var(--or)'],['sc','SP Open Conv','var(--pk)'],['exp','Expansion Factor','var(--gn)']]){
     const v=S[k],mx=k==='exp'?180:100,mn=k==='exp'?80:0;
-    h+=`<div class="sr"><div class="sl">${l}</div><input type="range" min="${mn}" max="${mx}" value="${v}" oninput="setS('${k}',+this.value)"><div class="sv" style="color:${c}">${v}%</div></div>`}
-  h+=`<div style="display:flex;gap:3px;margin-top:5px">${Object.entries(SCEN).map(([k,s])=>`<button style="flex:1;padding:3px;border-radius:3px;font-size:11px;font-weight:700;border:1px solid ${s.c}30;background:${s.c}08;color:${s.c}" onclick="applySc('${k}')">${s.l}</button>`).join('')}</div></div>`;
+    h+=`<div class="sr"><div class="sl">${l}</div><input type="range" min="${mn}" max="${mx}" step="5" value="${v}" oninput="setS('${k}',+this.value)"><div class="sv" style="color:${c}">${v}%</div></div>`}
+  h+=`<div style="display:flex;gap:3px;margin-top:5px;flex-wrap:wrap">${Object.entries(SCEN).map(([k,s])=>`<button style="flex:1 1 calc(50% - 2px);padding:3px;border-radius:3px;font-size:11px;font-weight:700;border:1px solid ${s.c}30;background:${s.c}08;color:${s.c}" onclick="applySc('${k}')">${s.l}</button>`).join('')}</div></div>`;
+
+  // Quarter pipeline details (GP) — stacked above Scenarios
+  if(seg!=='sp'){
+    for(const qk of['Q1','Q2','Q3','Q4']){
+      const q=m.gpL[qk],c=qCl[q.st],r=m.gpR[qk];
+      h+=`<div class="cd" style="padding:10px 12px"><div class="ct" style="color:${c};border-bottom-color:${c}20;margin-bottom:6px;padding-bottom:4px">${qk} — ${q.mo}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">
+          ${[{l:"Logos",v:q.t},{l:"Won",v:q.w,c:'var(--gn)'},{l:"Open",v:q.o,c:'var(--pu)'},{l:"Proj+",v:`+${q.pO+q.pD}`,c:'var(--li)'},{l:"Decl",v:q.d,c:'var(--or)'},{l:"Churn",v:q.c,c:'var(--rd)'},{l:"Q Ret",v:P(q.qR),c:cl(q.qR,55)},{l:"Rev",v:fS(r.qExp),c:'var(--pk)'}].map(x=>`<div style="background:#07071a;padding:3px 4px;border-radius:3px"><div style="font-size:9px;color:var(--mt);text-transform:uppercase">${x.l}</div><div style="font-size:12px;font-weight:700;font-family:var(--M);color:${x.c||'var(--tx)'}">${x.v}</div></div>`).join('')}
+        </div></div>`;
+    }
+  }
 
   // Scenario comparison
   h+=`<div class="cd"><div class="ct" style="color:var(--li);border-bottom-color:rgba(199,125,255,.12)">Scenarios</div>
