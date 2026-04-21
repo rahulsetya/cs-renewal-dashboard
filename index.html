@@ -4080,22 +4080,22 @@ rOverview();
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#07071a;--cd:#0b0b1c;--bd:#1a1a35;--br:#141428;--tx:#d0d0ec;--dm:#7777aa;--mt:#4a4a6e;--fn:#2a2a44;--gn:#2ed573;--or:#ffa502;--rd:#ff4757;--pu:#7c6cff;--pk:#e040fb;--li:#c77dff;--sa:#ff6b81;--M:'JetBrains Mono',monospace;--S:'DM Sans',-apple-system,sans-serif}
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--S);background:var(--bg);color:var(--tx);padding:14px 18px}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#252545;border-radius:3px}
-input[type=range]{-webkit-appearance:none;background:var(--br);border-radius:4px;cursor:pointer;height:3px;width:100%}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--pu);cursor:pointer}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--S);background:var(--bg);color:var(--tx);padding:20px 28px;font-size:14px}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#252545;border-radius:3px}
+input[type=range]{-webkit-appearance:none;background:var(--br);border-radius:4px;cursor:pointer;height:4px;width:100%}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--pu);cursor:pointer}
 button{cursor:pointer;transition:filter .15s;font-family:var(--S)}button:hover{filter:brightness(1.15)}
-.pl{padding:4px 11px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;border:1px solid #222240;background:transparent;color:#55557a}.pl.a{border-color:var(--pu);background:rgba(124,108,255,.09);color:var(--pu)}
-.tb{padding:5px 14px;border-radius:5px 5px 0 0;border:none;font-size:11px;font-weight:600;background:transparent;color:var(--mt)}.tb.a{background:var(--bd);color:var(--tx)}
-.cd{background:var(--cd);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:10px}
-.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:10px;padding-bottom:5px}
+.pl{padding:6px 14px;border-radius:6px;font-size:14px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border:1px solid #222240;background:transparent;color:#55557a}.pl.a{border-color:var(--pu);background:rgba(124,108,255,.09);color:var(--pu)}
+.tb{padding:8px 20px;border-radius:6px 6px 0 0;border:none;font-size:14px;font-weight:600;background:transparent;color:var(--mt)}.tb.a{background:var(--bd);color:var(--tx)}
+.cd{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:20px 22px;margin-bottom:14px}
+.ct{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:14px;padding-bottom:7px}
 .bt{width:100%;background:var(--br);border-radius:3px;overflow:hidden}.bf{height:100%;border-radius:3px;transition:width .3s}
-table{width:100%;border-collapse:collapse}th,td{padding:3px 4px;font-size:9px}th{color:var(--mt);text-align:right;font-size:8px;border-bottom:1px solid var(--bd)}th:first-child{text-align:left}td{border-bottom:1px solid #0e0e22}
-.sr{display:flex;align-items:center;gap:5px;margin-bottom:4px}.sl{width:85px;font-size:9px;color:#8888aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sv{width:32px;font-size:10px;font-weight:700;text-align:right;font-family:var(--M)}
-.ly{display:grid;grid-template-columns:1fr 260px;gap:10px;align-items:start}
-.qg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}.qc{background:#08081a;border-radius:7px;padding:10px}
-.ft{text-align:center;font-size:7px;color:var(--fn);margin-top:14px;padding-top:7px;border-top:1px solid var(--br)}
-@media(max-width:850px){.ly{grid-template-columns:1fr}.qg{grid-template-columns:1fr 1fr}}
+table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;font-size:12px}th{color:var(--mt);text-align:right;font-size:14px;border-bottom:1px solid var(--bd)}th:first-child{text-align:left}td{border-bottom:1px solid #0e0e22}
+.sr{display:flex;align-items:center;gap:8px;margin-bottom:6px}.sl{width:110px;font-size:12px;color:#8888aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sv{width:42px;font-size:13px;font-weight:700;text-align:right;font-family:var(--M)}
+.ly{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+.qg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}.qc{background:#08081a;border-radius:9px;padding:14px 16px}
+.ft{text-align:center;font-size:13px;color:var(--fn);margin-top:20px;padding-top:10px;border-top:1px solid var(--br)}
+@media(max-width:950px){.ly{grid-template-columns:1fr}.qg{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -4244,7 +4244,7 @@ function render(){
   // Header + segment filter
   h+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px">
     <div><div style="font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--pu),var(--pk),var(--sa));-webkit-background-clip:text;-webkit-text-fill-color:transparent">iConnections — Retention & Revenue Forecast</div>
-    <div style="font-size:9px;color:var(--mt);margin-top:2px">2026 · ~1,020 GP + 101 SP · $41.2M · Baseline: 52.7% · April 16, 2026</div></div>
+    <div style="font-size:12px;color:var(--mt);margin-top:2px">2026 · ~1,020 GP + 101 SP · $41.2M · Baseline: 52.7% · April 16, 2026</div></div>
     <div style="display:flex;gap:3px">
       ${[['total','Total'],['gp','GP'],['sp','SP']].map(([k,l])=>`<button class="pl ${seg===k?'a':''}" onclick="setSeg('${k}')">${l}</button>`).join('')}
     </div></div>`;
@@ -4261,9 +4261,9 @@ function render(){
   ];
   h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:8px">${tiles.map(t=>
     `<div style="background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:4px 3px;text-align:center">
-      <div style="font-size:7px;color:#5a5a7e;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px">${t.l}</div>
+      <div style="font-size:10px;color:#5a5a7e;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px">${t.l}</div>
       <div style="font-size:16px;font-weight:800;font-family:var(--M);color:${t.c}">${t.v}</div>
-      ${t.s?`<div style="font-size:7px;color:var(--mt);margin-top:1px">${t.s}</div>`:''}</div>`).join('')}</div>`;
+      ${t.s?`<div style="font-size:10px;color:var(--mt);margin-top:1px">${t.s}</div>`:''}</div>`).join('')}</div>`;
 
   // Tabs
   h+=`<div style="display:flex;gap:2px;margin-bottom:10px;border-bottom:1px solid var(--bd);padding-bottom:4px">
@@ -4281,20 +4281,20 @@ function render(){
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="font-size:12px;font-weight:800;color:${c}">${qk}</span>
-            <span style="font-size:7px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
+            <span style="font-size:10px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
           <div style="font-size:22px;font-weight:800;color:${q.cR>=fu?'var(--gn)':q.cR>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(q.cR)}</div>
-          <div style="font-size:8px;color:var(--dm)">${q.cW}/${q.cT}</div>`;
+          <div style="font-size:11px;color:var(--dm)">${q.cW}/${q.cT}</div>`;
         if(fu>0){
           h+=`<div style="position:relative;height:7px;background:var(--br);border-radius:4px;margin-top:3px;overflow:visible">
             <div style="width:${Math.min(q.cR,100)}%;height:100%;background:${q.cR>=fu?'var(--gn)':q.cR>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
             <div style="position:absolute;left:${fl}%;top:-1px;width:1.5px;height:9px;background:var(--rd)"></div>
             <div style="position:absolute;left:${fu}%;top:-1px;width:1.5px;height:9px;background:var(--gn)"></div>
             <div style="position:absolute;left:${ac}%;top:-1px;width:1.5px;height:9px;background:var(--pk)"></div></div>
-          <div style="display:flex;justify-content:space-between;font-size:7px;color:var(--mt);margin-top:1px"><span style="color:var(--rd)">${fl}</span><span style="color:var(--gn)">${fu}</span><span style="color:var(--pk)">${ac}</span></div>
-          <div style="font-size:8px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.pay>=100?'rgba(46,213,115,.05)':q.pay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-top:1px"><span style="color:var(--rd)">${fl}</span><span style="color:var(--gn)">${fu}</span><span style="color:var(--pk)">${ac}</span></div>
+          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.pay>=100?'rgba(46,213,115,.05)':q.pay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
             Comp: <b style="color:${q.pay>=100?'var(--gn)':q.pay>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(q.pay)}%</b></div>`;
         } else {
-          h+=`<div style="font-size:8px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> gifted</div>`;
+          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> gifted</div>`;
         }
         h+=`</div>`;
       }
@@ -4306,8 +4306,8 @@ function render(){
       h+=`<div class="cd"><div class="ct" style="color:var(--pk);border-bottom-color:rgba(224,64,251,.12)">SP Logo Retention</div>
         <div style="display:flex;gap:12px;align-items:center">
           <div><div style="font-size:22px;font-weight:800;color:${cl(m.spRet,SP_TH.Q4[1])};font-family:var(--M)">${P(m.spRet)}</div>
-          <div style="font-size:8px;color:var(--dm)">${m.spTW}/${SPQ.t} (${SPQ.w}W + ${m.spPO} proj)</div></div>
-          <div style="font-size:8px;color:var(--dm);line-height:1.7">
+          <div style="font-size:11px;color:var(--dm)">${m.spTW}/${SPQ.t} (${SPQ.w}W + ${m.spPO} proj)</div></div>
+          <div style="font-size:11px;color:var(--dm);line-height:1.7">
             ${['Q2','Q3','Q4'].map(qk=>{const th=SP_TH[qk],p=m.spPay[qk];return`${qk} ${th.join('/')}: <b style="color:${p>=100?'var(--gn)':p>0?'var(--or)':'var(--rd)'}">${Math.round(p)}%</b>`}).join(' · ')}
           </div></div></div>`;
     }
@@ -4317,33 +4317,33 @@ function render(){
     if(seg!=='sp'){
       for(const qk of['Q1','Q2','Q3','Q4']){
         const r=m.gpR[qk];
-        h+=`<div class="qc" style="font-size:8px;color:var(--dm);line-height:1.8">
+        h+=`<div class="qc" style="font-size:11px;color:var(--dm);line-height:1.8">
           <div style="font-weight:700;color:#b0b0d0;margin-bottom:1px">${qk} · ${fS(r.base)}</div>
           <div>Won: <b style="color:var(--gn)">${fS(r.wonRev)}</b></div>
           <div>Pipeline: <b style="color:var(--pu)">${fS(r.openOffRev+r.openNoOffRev)}</b></div>
           <div>Re-eng: <b style="color:var(--or)">${fS(r.declRev)}</b></div>
           <div style="border-top:1px solid var(--bd);padding-top:1px;margin-top:1px">
             ${seg==='total'?`GP: <b style="color:var(--pk)">${fS(r.qExp)}</b>`:`Total: <b style="color:var(--pk)">${fS(r.qExp)}</b>`}</div>
-          <div style="font-size:7px;color:var(--mt)">GRR ${P(r.qGrr)} · NRR ${P(r.qNrr)}</div>
-          <div style="font-size:7px;color:var(--mt)">Cum: ${P(r.cGrr)} / ${P(r.cNrr)}</div></div>`;
+          <div style="font-size:10px;color:var(--mt)">GRR ${P(r.qGrr)} · NRR ${P(r.qNrr)}</div>
+          <div style="font-size:10px;color:var(--mt)">Cum: ${P(r.cGrr)} / ${P(r.cNrr)}</div></div>`;
       }
     }
     if(seg==='sp'||seg==='total'){
-      if(seg==='total'){h+=`</div><div style="font-size:9px;font-weight:600;color:var(--pk);margin:6px 0 4px">+ SP Revenue</div><div style="display:flex;gap:6px">`}
-      h+=`<div class="qc" style="font-size:8px;color:var(--dm);line-height:1.8;${seg==='sp'?'':'flex:1'}">
+      if(seg==='total'){h+=`</div><div style="font-size:12px;font-weight:600;color:var(--pk);margin:6px 0 4px">+ SP Revenue</div><div style="display:flex;gap:6px">`}
+      h+=`<div class="qc" style="font-size:11px;color:var(--dm);line-height:1.8;${seg==='sp'?'':'flex:1'}">
         <div style="font-weight:700;color:var(--pk);margin-bottom:1px">SP · ${fS(m.spRev.base)} base</div>
         <div>Won: <b style="color:var(--gn)">${fS(m.spRev.wonRev)}</b> (${SPQ.w} accts)</div>
         <div>Pipeline: <b style="color:var(--pu)">${fS(m.spRev.openRev)}</b> (${SPQ.o} accts)</div>
         <div>Churn: <b style="color:var(--rd)">-${fS(SP_REV.churnRev)}</b></div>
         <div style="border-top:1px solid var(--bd);padding-top:1px;margin-top:1px">Total: <b style="color:var(--pk)">${fS(m.spRev.totExp)}</b></div>
-        <div style="font-size:7px;color:var(--mt)">GRR ${P(m.spRev.grr)} · NRR ${P(m.spRev.nrr)}</div>
+        <div style="font-size:10px;color:var(--mt)">GRR ${P(m.spRev.grr)} · NRR ${P(m.spRev.nrr)}</div>
       </div>`;
       if(seg==='total'){
-        h+=`<div class="qc" style="flex:1;font-size:8px;color:var(--dm);line-height:1.8">
+        h+=`<div class="qc" style="flex:1;font-size:11px;color:var(--dm);line-height:1.8">
           <div style="font-weight:700;color:var(--tx);margin-bottom:1px">COMBINED</div>
           <div>GP: <b style="color:var(--pu)">${$2(m.gpExp)}</b></div>
           <div>SP: <b style="color:var(--pk)">${$2(m.spRev.totExp)}</b></div>
-          <div style="border-top:1px solid var(--bd);padding-top:1px;margin-top:1px">Total: <b style="color:var(--tx);font-size:10px">${$2(m.allExp)}</b></div>
+          <div style="border-top:1px solid var(--bd);padding-top:1px;margin-top:1px">Total: <b style="color:var(--tx);font-size:13px">${$2(m.allExp)}</b></div>
           <div>GRR: <b style="color:${cl(m.allGrr,70)}">${P(m.allGrr)}</b> · NRR: <b style="color:${cl(m.allNrr,90)}">${P(m.allNrr)}</b></div>
         </div>`;
         h+=`</div>`;
@@ -4357,7 +4357,7 @@ function render(){
         const q=m.gpL[qk],c=qCl[q.st],r=m.gpR[qk];
         h+=`<div class="cd"><div class="ct" style="color:${c};border-bottom-color:${c}20">${qk} — ${q.mo}</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(75px,1fr));gap:3px;margin-bottom:4px">
-            ${[{l:"Logos",v:q.t},{l:"Won",v:q.w,c:'var(--gn)'},{l:"Open",v:q.o,c:'var(--pu)'},{l:"Proj+",v:`+${q.pO+q.pD}`,c:'var(--li)'},{l:"Decl",v:q.d,c:'var(--or)'},{l:"Churn",v:q.c,c:'var(--rd)'},{l:"Q Ret",v:P(q.qR),c:cl(q.qR,55)},{l:"Rev",v:fS(r.qExp),c:'var(--pk)'}].map(x=>`<div style="background:#07071a;padding:3px 5px;border-radius:3px"><div style="font-size:6px;color:var(--mt);text-transform:uppercase">${x.l}</div><div style="font-size:10px;font-weight:700;font-family:var(--M);color:${x.c||'var(--tx)'}">${x.v}</div></div>`).join('')}
+            ${[{l:"Logos",v:q.t},{l:"Won",v:q.w,c:'var(--gn)'},{l:"Open",v:q.o,c:'var(--pu)'},{l:"Proj+",v:`+${q.pO+q.pD}`,c:'var(--li)'},{l:"Decl",v:q.d,c:'var(--or)'},{l:"Churn",v:q.c,c:'var(--rd)'},{l:"Q Ret",v:P(q.qR),c:cl(q.qR,55)},{l:"Rev",v:fS(r.qExp),c:'var(--pk)'}].map(x=>`<div style="background:#07071a;padding:3px 5px;border-radius:3px"><div style="font-size:9px;color:var(--mt);text-transform:uppercase">${x.l}</div><div style="font-size:13px;font-weight:700;font-family:var(--M);color:${x.c||'var(--tx)'}">${x.v}</div></div>`).join('')}
           </div></div>`;
       }
     }
@@ -4369,11 +4369,11 @@ function render(){
   if(S.tab==='comp'){
     h+=`<div class="ly"><div>`;
     h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12)">CS Variable Comp — Retention</div>
-      <div style="font-size:9px;color:var(--dm);line-height:1.6;margin-bottom:10px">80/20 split · Variable = 50% Activity + 50% Retention · Q1 gifted · Below floor = $0 · Floor→Full = 0→100% · Full→Accel = 100→125% cap</div>`;
+      <div style="font-size:12px;color:var(--dm);line-height:1.6;margin-bottom:10px">80/20 split · Variable = 50% Activity + 50% Retention · Q1 gifted · Below floor = $0 · Floor→Full = 0→100% · Full→Accel = 100→125% cap</div>`;
 
     // GP Table
     if(seg!=='sp'){
-      h+=`<div style="font-size:10px;font-weight:700;color:var(--pu);margin-bottom:5px">GP (${GP.T} logos · ${$(GP.base)})</div>
+      h+=`<div style="font-size:13px;font-weight:700;color:var(--pu);margin-bottom:5px">GP (${GP.T} logos · ${$(GP.base)})</div>
         <table><thead><tr><th style="text-align:left">Q</th><th>Floor</th><th>Full</th><th>Accel</th><th>Logo Ret</th><th>Payout</th><th>Cum Rev</th><th>Cum NRR</th></tr></thead><tbody>
         <tr style="background:rgba(124,108,255,.03)"><td style="font-weight:600;color:var(--pu)">Q1</td><td colspan="3" class="tr" style="color:var(--mt)">gifted</td><td class="tr" style="font-family:var(--M)">${P(m.gpL.Q1.cR)}</td><td class="tr" style="font-family:var(--M);font-weight:700;color:var(--pu)">100%</td><td class="tr" style="font-family:var(--M);color:var(--pk)">${$(m.gpR.Q1.cE)}</td><td class="tr" style="font-family:var(--M);color:${cl(m.gpR.Q1.cNrr,90)}">${P(m.gpR.Q1.cNrr)}</td></tr>`;
       for(const qk of['Q2','Q3','Q4']){const q=m.gpL[qk],th=GP_TH[qk],r=m.gpR[qk];
@@ -4383,7 +4383,7 @@ function render(){
 
     // SP Table
     if(seg!=='gp'){
-      h+=`<div style="font-size:10px;font-weight:700;color:var(--pk);margin:12px 0 5px">SP (${SP.T} logos · ${$(SP_REV.base)})</div>
+      h+=`<div style="font-size:13px;font-weight:700;color:var(--pk);margin:12px 0 5px">SP (${SP.T} logos · ${$(SP_REV.base)})</div>
         <table><thead><tr><th style="text-align:left">Q</th><th>Floor</th><th>Full</th><th>Accel</th><th>Logo Ret</th><th>Payout</th></tr></thead><tbody>`;
       for(const qk of['Q2','Q3','Q4']){const th=SP_TH[qk],p=m.spPay[qk];
         h+=`<tr><td style="font-weight:600">${qk}</td><td class="tr" style="color:var(--rd);font-family:var(--M)">${th[0]}%</td><td class="tr" style="color:var(--gn);font-family:var(--M)">${th[1]}%</td><td class="tr" style="color:var(--pk);font-family:var(--M)">${th[2]}%</td><td class="tr" style="font-family:var(--M);font-weight:700;color:${cl(m.spRet,th[1])}">${P(m.spRet)}</td><td class="tr" style="font-family:var(--M);font-weight:700;color:${p>=100?'var(--gn)':p>0?'var(--or)':'var(--rd)'}">${Math.round(p)}%</td></tr>`}
@@ -4398,9 +4398,9 @@ function render(){
           {l:"GP Renewal NRR",v:P(RNRR.gp),c:'var(--gn)',s:'+37% expansion'},
           {l:"SP Renewal NRR",v:P(RNRR.sp),c:'var(--rd)',s:'-17% contraction'},
           {l:seg==='gp'?'GP Proj NRR':seg==='sp'?'SP Proj NRR':'Combined NRR',v:P(sNrr),c:cl(sNrr,90),s:'full book projected'},
-        ].map(x=>`<div class="qc"><div style="font-size:7px;color:#5a5a7e">${x.l}</div><div style="font-size:20px;font-weight:800;color:${x.c};font-family:var(--M)">${x.v}</div><div style="font-size:7px;color:var(--mt)">${x.s}</div></div>`).join('')}
+        ].map(x=>`<div class="qc"><div style="font-size:10px;color:#5a5a7e">${x.l}</div><div style="font-size:20px;font-weight:800;color:${x.c};font-family:var(--M)">${x.v}</div><div style="font-size:10px;color:var(--mt)">${x.s}</div></div>`).join('')}
       </div>
-      <div style="font-size:9px;color:var(--dm);padding:7px 9px;background:#08081a;border-radius:5px;line-height:1.5">
+      <div style="font-size:12px;color:var(--dm);padding:7px 9px;background:#08081a;border-radius:5px;line-height:1.5">
         <b style="color:#8888aa">Logo vs Revenue:</b> GP accounts renew at <b style="color:var(--gn)">${P(RNRR.gp)}</b> NRR — each saved logo is +37% revenue. SP accounts contract to <b style="color:var(--rd)">${P(RNRR.sp)}</b>. Combined book projects <b style="color:var(--pk)">${$2(m.allExp)}</b> (${P(m.allNrr)} NRR) on a ${$(m.allBase)} base. Revenue-based comp would better reward the expansion value CS creates.
       </div></div>`;
 
@@ -4418,34 +4418,34 @@ function render(){
       const sG=seg==='gp'?sm.gpGrr:seg==='sp'?sm.spRev.grr:sm.allGrr;
       h+=`<div class="qc" style="border:1px solid ${sc.c}18">
         <div style="font-size:13px;font-weight:800;color:${sc.c};margin-bottom:2px">${sc.l} Case</div>
-        <div style="font-size:7px;color:var(--mt);margin-bottom:7px">Open ${sc.oc}% · Decl ${sc.dc}% · SP ${sc.sc}% · Exp ${sc.exp}%</div>`;
+        <div style="font-size:10px;color:var(--mt);margin-bottom:7px">Open ${sc.oc}% · Decl ${sc.dc}% · SP ${sc.sc}% · Exp ${sc.exp}%</div>`;
       if(seg!=='sp'){
-        h+=`<div style="font-size:8px;font-weight:600;color:var(--dm);margin-bottom:3px">GP Logo Ret</div>`;
+        h+=`<div style="font-size:11px;font-weight:600;color:var(--dm);margin-bottom:3px">GP Logo Ret</div>`;
         for(const qk of['Q2','Q3','Q4']){const q=sm.gpL[qk],th=GP_TH[qk];
           h+=`<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
-            <span style="width:16px;font-size:9px;font-weight:700;color:#b0b0d0">${qk}</span>
+            <span style="width:16px;font-size:12px;font-weight:700;color:#b0b0d0">${qk}</span>
             <div style="flex:1">${bar(q.cR,100,q.cR>=th[1]?'var(--gn)':q.cR>=th[0]?'var(--or)':'var(--rd)',7)}</div>
-            <span style="width:34px;font-size:9px;font-weight:700;text-align:right;font-family:var(--M);color:${q.cR>=th[1]?'var(--gn)':q.cR>=th[0]?'var(--or)':'var(--rd)'}">${P(q.cR)}</span></div>`}
+            <span style="width:34px;font-size:12px;font-weight:700;text-align:right;font-family:var(--M);color:${q.cR>=th[1]?'var(--gn)':q.cR>=th[0]?'var(--or)':'var(--rd)'}">${P(q.cR)}</span></div>`}
       }
-      h+=`<div style="border-top:1px solid var(--bd);padding-top:5px;margin-top:5px;font-size:9px">
+      h+=`<div style="border-top:1px solid var(--bd);padding-top:5px;margin-top:5px;font-size:12px">
         <div>Rev: <b style="color:var(--pk);font-family:var(--M)">${$2(sE)}</b></div>
         <div>GRR: <b style="color:${cl(sG,70)};font-family:var(--M)">${P(sG)}</b> · NRR: <b style="color:${cl(sN,90)};font-family:var(--M)">${P(sN)}</b></div>
         ${seg!=='sp'?`<div>GP Comp Q4: <b style="color:${sm.gpL.Q4.pay>=100?'var(--gn)':sm.gpL.Q4.pay>0?'var(--or)':'var(--rd)'}">
           ${Math.round(sm.gpL.Q4.pay)}%</b></div>`:''}</div>
-        <button onclick="applySc('${k}')" style="margin-top:5px;width:100%;padding:3px;border-radius:3px;border:1px solid ${sc.c}44;background:${sc.c}0c;color:${sc.c};font-size:9px;font-weight:700">Apply</button></div>`;
+        <button onclick="applySc('${k}')" style="margin-top:5px;width:100%;padding:3px;border-radius:3px;border:1px solid ${sc.c}44;background:${sc.c}0c;color:${sc.c};font-size:12px;font-weight:700">Apply</button></div>`;
     }
     h+=`</div>`;
     // Sensitivity
     h+=`<div style="display:grid;grid-template-columns:1fr 1fr ${seg!=='gp'?'1fr':''}; gap:7px">`;
     if(seg!=='sp'){
-      h+=`<div class="qc" style="border:1px solid rgba(124,108,255,.1)"><div style="font-size:10px;font-weight:700;color:var(--pu)">GP Open (${GP.O})</div>
-        <div style="font-size:8px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(GP.O*.1)} logos (+${P(GP.O*.1/GP.T*100)} ret)<br>Rev: +${fS(GP.O*.1*34069*S.exp/100)}</div></div>
-      <div class="qc" style="border:1px solid rgba(255,165,2,.1)"><div style="font-size:10px;font-weight:700;color:var(--or)">GP Declined (${GP.D})</div>
-        <div style="font-size:8px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(GP.D*.1)} logos (+${P(GP.D*.1/GP.T*100)} ret)<br>Rev: +${fS(GP.D*.1*31600*S.exp/100)}</div></div>`;
+      h+=`<div class="qc" style="border:1px solid rgba(124,108,255,.1)"><div style="font-size:13px;font-weight:700;color:var(--pu)">GP Open (${GP.O})</div>
+        <div style="font-size:11px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(GP.O*.1)} logos (+${P(GP.O*.1/GP.T*100)} ret)<br>Rev: +${fS(GP.O*.1*34069*S.exp/100)}</div></div>
+      <div class="qc" style="border:1px solid rgba(255,165,2,.1)"><div style="font-size:13px;font-weight:700;color:var(--or)">GP Declined (${GP.D})</div>
+        <div style="font-size:11px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(GP.D*.1)} logos (+${P(GP.D*.1/GP.T*100)} ret)<br>Rev: +${fS(GP.D*.1*31600*S.exp/100)}</div></div>`;
     }
     if(seg!=='gp'){
-      h+=`<div class="qc" style="border:1px solid rgba(224,64,251,.1)"><div style="font-size:10px;font-weight:700;color:var(--pk)">SP Open (${SP.O})</div>
-        <div style="font-size:8px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(SP.O*.1)} logos (+${P(SP.O*.1/SP.T*100)} ret)<br>Rev: +${fS(SP.O*.1*43000*S.exp/100)}</div></div>`;
+      h+=`<div class="qc" style="border:1px solid rgba(224,64,251,.1)"><div style="font-size:13px;font-weight:700;color:var(--pk)">SP Open (${SP.O})</div>
+        <div style="font-size:11px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(SP.O*.1)} logos (+${P(SP.O*.1/SP.T*100)} ret)<br>Rev: +${fS(SP.O*.1*43000*S.exp/100)}</div></div>`;
     }
     h+=`</div></div>`;
   }
@@ -4459,11 +4459,11 @@ function sidebar(m){
   for(const[k,l,c]of[['oc','GP Open Conv','var(--pu)'],['dc','GP Declined Re-eng','var(--or)'],['sc','SP Open Conv','var(--pk)'],['exp','Expansion Factor','var(--gn)']]){
     const v=S[k],mx=k==='exp'?180:100,mn=k==='exp'?80:0;
     h+=`<div class="sr"><div class="sl">${l}</div><input type="range" min="${mn}" max="${mx}" value="${v}" oninput="setS('${k}',+this.value)"><div class="sv" style="color:${c}">${v}%</div></div>`}
-  h+=`<div style="display:flex;gap:3px;margin-top:5px">${Object.entries(SCEN).map(([k,s])=>`<button style="flex:1;padding:3px;border-radius:3px;font-size:8px;font-weight:700;border:1px solid ${s.c}30;background:${s.c}08;color:${s.c}" onclick="applySc('${k}')">${s.l}</button>`).join('')}</div></div>`;
+  h+=`<div style="display:flex;gap:3px;margin-top:5px">${Object.entries(SCEN).map(([k,s])=>`<button style="flex:1;padding:3px;border-radius:3px;font-size:11px;font-weight:700;border:1px solid ${s.c}30;background:${s.c}08;color:${s.c}" onclick="applySc('${k}')">${s.l}</button>`).join('')}</div></div>`;
 
   // Scenario comparison
   h+=`<div class="cd"><div class="ct" style="color:var(--li);border-bottom-color:rgba(199,125,255,.12)">Scenarios</div>
-    <table style="font-size:8px;color:var(--dm)"><thead><tr><th style="text-align:left;padding:2px"></th>${Object.entries(SCEN).map(([k,s])=>`<th style="text-align:right;padding:2px;color:${s.c};font-size:7px">${s.l}</th>`).join('')}</tr></thead><tbody>`;
+    <table style="font-size:11px;color:var(--dm)"><thead><tr><th style="text-align:left;padding:2px"></th>${Object.entries(SCEN).map(([k,s])=>`<th style="text-align:right;padding:2px;color:${s.c};font-size:10px">${s.l}</th>`).join('')}</tr></thead><tbody>`;
   // GP Logo
   for(const qk of['Q2','Q3','Q4']){const th=GP_TH[qk];
     h+=`<tr><td style="padding:2px;font-weight:600;color:#b0b0d0">${qk} Logo</td>`;
@@ -4480,7 +4480,7 @@ function sidebar(m){
 
   // Universe
   h+=`<div class="cd"><div class="ct" style="color:#55557a;border-bottom-color:rgba(85,85,122,.12)">Universe</div>
-    <div style="font-size:8px;color:var(--dm);line-height:1.8">
+    <div style="font-size:11px;color:var(--dm);line-height:1.8">
       GP: <b>${GP.T}</b> · ${GP.W}W ${GP.O}O ${GP.D}D ${GP.C}C · ${$(GP.base)}<br>
       SP: <b>${SP.T}</b> · ${SP.W}W ${SP.O}O ${SP.C}C · ~${$(SP_REV.base)}<br>
       Total: <b>${GP.T+SP.T}</b> · ${$(GP.base+SP_REV.base)} · NRR: GP ${P(RNRR.gp)}, SP ${P(RNRR.sp)}</div></div>`;
