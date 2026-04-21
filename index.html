@@ -4550,7 +4550,7 @@ function sidebar(m,seg){
   let h=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12)">Assumptions</div>`;
   for(const[k,l,c]of[['oc','GP Open Conv','var(--pu)'],['dc','GP Declined Re-eng','var(--or)'],['sc','SP Open Conv','var(--pk)'],['exp','Expansion Factor','var(--gn)']]){
     const v=S[k],mx=k==='exp'?180:100,mn=k==='exp'?80:0;
-    h+=`<div class="sr"><div class="sl">${l}</div><input type="range" min="${mn}" max="${mx}" step="5" value="${v}" oninput="setS('${k}',+this.value)"><div class="sv" style="color:${c}">${v}%</div></div>`}
+    h+=`<div class="sr"><div class="sl" title="${l}">${l}</div><input type="range" min="${mn}" max="${mx}" step="5" value="${v}" oninput="setS('${k}',+this.value)"><div class="sv" style="color:${c}">${v}%</div></div>`}
   h+=`<div style="display:flex;gap:3px;margin-top:5px">${Object.entries(SCEN).map(([k,s])=>`<button style="flex:1 1 0;min-width:0;padding:3px;border-radius:3px;font-size:11px;font-weight:700;border:1px solid ${s.c}30;background:${s.c}08;color:${s.c}" onclick="applySc('${k}')">${s.l}</button>`).join('')}</div></div>`;
 
   // Quarter pipeline details (GP) — stacked above Scenarios
