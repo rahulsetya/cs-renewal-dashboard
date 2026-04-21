@@ -491,11 +491,30 @@ async function fetchSPSheet(token){
 function processSPData(raw){
   if(!raw||!raw.values||raw.values.length<2)return[];
   const totalRaw=raw.values.length;
-  // Auto-detect header row
-  let hIdx=0;
-  for(let r=0;r<Math.min(10,raw.values.length);r++){
-    if(raw.values[r].some(c=>/account|company|name/i.test(String(c||'')))){hIdx=r;break;}
+  // Auto-detect header row — score each of the first 20 rows on how many
+  // header-like keywords it contains AND how many non-empty cells it has.
+  // Single matches (e.g. a banner row with "account & communication ownership")
+  // no longer win — we need a row that looks like a real column-header row.
+  const HDR_KWS=[/\baccount\b/i,/\bcompany\b/i,/\bstage\b/i,/\bowner\b/i,/sales\s*rep/i,/\brev\b|revenue/i,/\bdate\b/i,/\bsub\b/i,/renewal/i,/contract/i,/invoice/i,/\bstatus\b/i,/classification/i];
+  const scoreRow=row=>{
+    const cells=(row||[]).map(c=>String(c||'').trim());
+    const nonEmpty=cells.filter(c=>c!=='').length;
+    let kwHits=0;const seen=new Set();
+    cells.forEach(c=>{HDR_KWS.forEach((re,idx)=>{if(!seen.has(idx)&&re.test(c)){seen.add(idx);kwHits++;}});});
+    return {nonEmpty,kwHits};
+  };
+  let hIdx=0,bestScore=-1,scanLog=[];
+  const scanUpTo=Math.min(20,raw.values.length);
+  for(let r=0;r<scanUpTo;r++){
+    const {nonEmpty,kwHits}=scoreRow(raw.values[r]);
+    scanLog.push('r'+r+':kw='+kwHits+',ne='+nonEmpty);
+    // Must have at least 3 distinct header keywords AND at least 5 non-empty cells
+    if(kwHits>=3&&nonEmpty>=5){
+      const score=kwHits*100+nonEmpty;
+      if(score>bestScore){bestScore=score;hIdx=r;}
+    }
   }
+  console.log('[SP] header-row scan: '+scanLog.join(' | ')+' → picked hIdx='+hIdx+(bestScore<0?' (no row scored ≥3 keywords; defaulting to row 0)':' (best score='+bestScore+')'));
   const hdrs=raw.values[hIdx].map(h=>String(h||'').trim().toLowerCase());
   const ci=k=>{const i=hdrs.findIndex(h=>h.includes(k));return i>=0?i:null;};
   const cAcct=ci('account')||ci('company')||ci('name')||0;
