@@ -1604,7 +1604,16 @@ const DARK_TO_LIGHT={
   '#2d3a52':'#bccedd','#334155':'#9eb6ca','#293548':'#bccedd','#1e3a5f':'#bccedd',
   '#e2e8f0':'#0f172a','#94a3b8':'#475569','#64748b':'#374151','#475569':'#1f2937','#f8fafc':'#0f172a','#4b5563':'#6b7280',
   '#422006':'#fff3e0','#92400e':'#d97706','#fbbf24':'#b45309','#22d3ee':'#0369a1',
-  '#fbbf2422':'#fef3c7','#22d3ee22':'#cffafe'};
+  '#fbbf2422':'#fef3c7','#22d3ee22':'#cffafe',
+  // Goals template palette
+  '#0b1120':'#c0d0e0','#111827':'#eef4f9',
+  // Forecast template palette (deeper purple-black theme)
+  '#07071a':'#e4e6f0','#0b0b1c':'#f4f5fa','#1a1a35':'#c8ccd8','#141428':'#d8dae2',
+  '#08081a':'#f0f1f6','#0e0e22':'#d8dae2','#252545':'#c0c4d2','#222240':'#c8ccd8',
+  '#2a2a44':'#c0c4d2','#3a3a5a':'#b0b4c4',
+  '#d0d0ec':'#1a1a28','#7777aa':'#555a78','#4a4a6e':'#6a6a88','#55557a':'#6a6a88',
+  '#8888aa':'#555a78','#b0b0d0':'#2a2a44','#e0e0ff':'#1a1a28','#5a5a7e':'#6a6a88',
+  '#66668a':'#8a8aa0'};
 function render(){
   if(D&&D.length&&sessionStorage.getItem('_reopen_goals')){sessionStorage.removeItem('_reopen_goals');S.goalsOpen=true;}
   try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
@@ -3074,7 +3083,14 @@ rGP=function(){
       if(cadData)src=src.replace(/const CADENCE_DATA\s*=\s*\{\};/,`const CADENCE_DATA=${JSON.stringify(cadData)};`);
     }
     const spNote=SP_RAW&&SP_RAW.length?'All data live from SharePoint':'GP data live · SP data static (refresh to load SP)';
-    goalsOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#0B1120;border-bottom:1px solid #1e293b;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:#e2e8f0">CS Goals & Variable Comp Dashboard</span><span style="font-size:11px;color:#475569">${spNote}</span><div style="display:flex;gap:8px;align-items:center"><button onclick="try{localStorage.removeItem(DATA_CACHE_KEY);}catch(e){}sessionStorage.setItem('_reopen_goals','1');location.reload(true)" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">↻ Refresh</button><button onclick="_closeGoals()" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_goals_iframe" style="flex:1;border:none;background:#0B1120;" src="about:blank"></iframe>`;
+    // Apply light-mode transforms to the iframe HTML when LIGHT is on
+    if(LIGHT){
+      src=src.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
+      src=src.replace(/<body>/i,'<body class="light">');
+    }
+    goalsOverlay.style.background=LIGHT?'rgba(200,210,225,.92)':'rgba(5,10,20,.92)';
+    const _barBg=LIGHT?'#eef4f9':'#0B1120',_barBd=LIGHT?'#9eb6ca':'#1e293b',_barTx=LIGHT?'#1e293b':'#e2e8f0',_barMt=LIGHT?'#475569':'#475569',_btnBg=LIGHT?'#d4e2ee':'#1e293b',_btnBd=LIGHT?'#9eb6ca':'#334155',_btnTx=LIGHT?'#334155':'#94a3b8',_ifBg=LIGHT?'#c0d0e0':'#0B1120';
+    goalsOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_barBg};border-bottom:1px solid ${_barBd};flex-shrink:0"><span style="font-size:13px;font-weight:700;color:${_barTx}">CS Goals & Variable Comp Dashboard</span><span style="font-size:11px;color:${_barMt}">${spNote}</span><div style="display:flex;gap:8px;align-items:center"><button onclick="ssTheme()" title="Toggle light/dark mode" style="background:${_btnBg};border:1px solid ${_btnBd};color:${_btnTx};padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button><button onclick="try{localStorage.removeItem(DATA_CACHE_KEY);}catch(e){}sessionStorage.setItem('_reopen_goals','1');location.reload(true)" style="background:${_btnBg};border:1px solid ${_btnBd};color:${_btnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">↻ Refresh</button><button onclick="_closeGoals()" style="background:${_btnBg};border:1px solid ${_btnBd};color:${_btnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_goals_iframe" style="flex:1;border:none;background:${_ifBg};" src="about:blank"></iframe>`;
     requestAnimationFrame(()=>{const fr=document.getElementById('_goals_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
     if(goalsOverlay)goalsOverlay.style.display='none';
@@ -3103,7 +3119,14 @@ rGP=function(){
     const fcNote=D&&D.length
       ? (SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`)
       : 'Using static baseline (no live data loaded)';
-    forecastOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#07071a;border-bottom:1px solid #1a1a35;flex-shrink:0"><span style="font-size:13px;font-weight:700;color:#d0d0ec">iConnections — Retention & Revenue Forecast 2026</span><span style="font-size:11px;color:#4a4a6e">${fcNote}</span><button onclick="_closeForecast()" style="background:#1a1a35;border:1px solid #2a2a44;color:#7777aa;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div><iframe id="_forecast_iframe" style="flex:1;border:none;background:#07071a;" src="about:blank"></iframe>`;
+    // Apply light-mode transforms to the iframe HTML when LIGHT is on
+    if(LIGHT){
+      src=src.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
+      src=src.replace(/<body>/i,'<body class="light">');
+    }
+    forecastOverlay.style.background=LIGHT?'rgba(200,210,225,.92)':'rgba(5,10,20,.92)';
+    const _fBarBg=LIGHT?'#f4f5fa':'#07071a',_fBarBd=LIGHT?'#c8ccd8':'#1a1a35',_fBarTx=LIGHT?'#1a1a28':'#d0d0ec',_fBarMt=LIGHT?'#6a6a88':'#4a4a6e',_fBtnBg=LIGHT?'#e4e6f0':'#1a1a35',_fBtnBd=LIGHT?'#c0c4d2':'#2a2a44',_fBtnTx=LIGHT?'#555a78':'#7777aa',_fIfBg=LIGHT?'#e4e6f0':'#07071a';
+    forecastOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_fBarBg};border-bottom:1px solid ${_fBarBd};flex-shrink:0"><span style="font-size:13px;font-weight:700;color:${_fBarTx}">iConnections — Retention & Revenue Forecast 2026</span><span style="font-size:11px;color:${_fBarMt}">${fcNote}</span><div style="display:flex;gap:8px;align-items:center"><button onclick="ssTheme()" title="Toggle light/dark mode" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button><button onclick="_closeForecast()" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_forecast_iframe" style="flex:1;border:none;background:${_fIfBg};" src="about:blank"></iframe>`;
     requestAnimationFrame(()=>{const fr=document.getElementById('_forecast_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
     if(forecastOverlay)forecastOverlay.style.display='none';
@@ -3189,6 +3212,20 @@ input[type=number]{-moz-appearance:textfield}
 .scenario-slider::-webkit-slider-runnable-track{height:6px;border-radius:3px}
 .scenario-slider::-moz-range-track{height:6px;border-radius:3px;background:#1e293b}
 .scenario-slider::-moz-range-progress{height:6px;border-radius:3px;background:var(--accent)}
+/* ── Light mode overrides (triggered by body.light class) ── */
+body.light{--bg:#c0d0e0;--card:#eef4f9;--border:#9eb6ca;--borderL:#7c94a8;--text:#1e293b;--muted:#334155;--dim:#475569;--accentG:rgba(59,130,246,.12);--greenG:rgba(16,185,129,.12);--redG:rgba(239,68,68,.10);--amberG:rgba(245,158,11,.12);--roseG:rgba(244,63,94,.10);--orangeG:rgba(249,115,22,.10)}
+body.light .header h1{color:#0f172a}
+body.light .stat{box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+body.light .card{box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+body.light .pool-card{box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+body.light ::-webkit-scrollbar-track{background:#d4e2ee}
+body.light ::-webkit-scrollbar-thumb{background:#9eb6ca}
+body.light .callout{background:#d4e2ee}
+body.light .info-box{background:#d4e2ee}
+body.light .scenario-slider{background:linear-gradient(to right,var(--accent) 50%,#bccedd 50%)}
+body.light .scenario-slider::-webkit-slider-thumb{border-color:#eef4f9}
+body.light .scenario-slider::-moz-range-thumb{border-color:#eef4f9}
+body.light .scenario-slider::-moz-range-track{background:#bccedd}
 </style>
 </head>
 <body>
@@ -4578,6 +4615,19 @@ table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;font-size:12px}t
 .qg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}.qc{background:#08081a;border-radius:9px;padding:14px 16px}
 .ft{text-align:center;font-size:13px;color:var(--fn);margin-top:20px;padding-top:10px;border-top:1px solid var(--br)}
 @media(max-width:950px){.ly{grid-template-columns:1fr}.qg{grid-template-columns:1fr 1fr}}
+/* ── Light mode overrides (triggered by body.light class) ── */
+body.light{--bg:#e4e6f0;--cd:#f4f5fa;--bd:#c8ccd8;--br:#d8dae2;--tx:#1a1a28;--dm:#555a78;--mt:#6a6a88;--fn:#a8a8c0}
+body.light .cd{box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+body.light .qc{background:#f0f1f6}
+body.light ::-webkit-scrollbar-thumb{background:#b0b4c4}
+body.light td{border-bottom:1px solid #d8dae2}
+body.light input[type=range]{background:#c8ccd8}
+body.light input[type=range]::-webkit-slider-thumb{border-color:#f4f5fa}
+body.light input[type=range]::-moz-range-thumb{border-color:#f4f5fa}
+body.light .sr:has(.sl:hover)::before{background:#f4f5fa;border-color:#c0c4d2;color:#1a1a28;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+body.light .tb.a{background:#c8ccd8;color:#1a1a28}
+body.light .pl{border-color:#c0c4d2;color:#6a6a88}
+body.light .pl.a{background:rgba(124,108,255,.15);color:var(--pu);border-color:var(--pu)}
 </style>
 </head>
 <body>
