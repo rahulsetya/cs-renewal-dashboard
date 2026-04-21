@@ -490,6 +490,7 @@ async function fetchSPSheet(token){
 }
 function processSPData(raw){
   if(!raw||!raw.values||raw.values.length<2)return[];
+  const totalRaw=raw.values.length;
   // Auto-detect header row
   let hIdx=0;
   for(let r=0;r<Math.min(10,raw.values.length);r++){
@@ -505,23 +506,34 @@ function processSPData(raw){
   // any of "Final Sub End Date", "Contract End", "Sub End", "Renewal Date", etc.
   const cSub=ci('final sub end')||ci('sub end')||ci('subscription end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal');
   // Flat-string logging so console shows it without needing to expand arrays/objects
+  console.log('[SP] total raw rows='+totalRaw+' headerIdx='+hIdx+' → '+(totalRaw-hIdx-1)+' data rows below header');
   console.log('[SP] headers:\n  '+hdrs.map((h,i)=>i+':'+h).join(' | '));
   console.log('[SP] detected columns: cAcct='+cAcct+' cStage='+cStage+' cRev='+cRev+' cOwner='+cOwner+' cSub='+cSub+' subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
   const data=[];
+  let skippedEmpty=0,skippedEmptyExamples=[];
   for(let i=hIdx+1;i<raw.values.length;i++){
     const row=raw.values[i];
     const acct=String(row[cAcct]||'').trim();
-    if(!acct)continue;
+    if(!acct){
+      // Check if the row has ANY data — if so, it's being dropped wrongly
+      const hasAny=(row||[]).some(c=>String(c||'').trim()!=='');
+      if(hasAny&&skippedEmptyExamples.length<5){
+        skippedEmptyExamples.push('row'+i+':['+(row||[]).slice(0,8).map(c=>String(c||'').trim().slice(0,15)).join('|')+']');
+      }
+      skippedEmpty++;continue;
+    }
     const stage=String(cStage!=null?row[cStage]||'':'Open').trim()||'Open';
     const rev=parseNum(cRev!=null?row[cRev]:'');
     const owner=String(cOwner!=null?row[cOwner]||'':'').trim()||'Unknown';
     const sub=cSub!=null?excelDateToJS(row[cSub]||''):'';
     data.push({n:acct,s:stage,r:rev,o:owner,sub});
   }
-  // Diagnostic: show date-parse success rate on the first few rows
+  // Diagnostic: show date-parse success rate + skip reasons
   const sample=data.slice(0,5).map(r=>({n:r.n,sub:r.sub}));
   const withDate=data.filter(r=>r.sub&&r.sub.length>0).length;
-  console.log(`[SP] parsed ${data.length} rows, ${withDate} have a sub date. Sample:`,sample);
+  console.log('[SP] parsed '+data.length+' rows, skipped '+skippedEmpty+' with empty acct col (of those, '+skippedEmptyExamples.length+' had data in other cols). '+withDate+' have sub date.');
+  if(skippedEmptyExamples.length)console.log('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
+  console.log('[SP] sample parsed:',sample);
   return data;
 }
 
