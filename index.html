@@ -1328,31 +1328,57 @@ function _buildLiveForecastData(){
   if(SP_RAW&&SP_RAW.length){
     const spIsWon=s=>{const l=(s||'').toLowerCase();return l.includes('invoice')||l.includes('paid')||l.includes('signed')||l.includes('won')||l.includes('renewed');};
     const spIsChurn=s=>{const l=(s||'').toLowerCase();return l.includes('churn')||l.includes('closed lost')||l.includes('lost')||l.includes('cancel');};
-    const getSpQ=sub=>{if(!sub)return null;const m=parseInt((sub.substring(5,7)||'0'));return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
-    // Only count SPs with a sub-end date so SPQ totals match sum of SPQ_Q.
+    // Robust month extraction — handles YYYY-MM-DD (excelDateToJS serial path),
+    // MM/DD/YYYY strings (direct text cells), ISO variants, and raw Excel serials.
+    const getMo=sub=>{
+      if(sub===null||sub===undefined||sub==='')return 0;
+      const s=String(sub).trim();if(!s)return 0;
+      // Excel serial number (e.g. 46387)
+      const n=parseFloat(s);
+      if(!isNaN(n)&&n>=1000&&!s.includes('-')&&!s.includes('/')){
+        const d=new Date((n-25569)*86400*1000);
+        if(!isNaN(d))return d.getUTCMonth()+1;
+      }
+      // YYYY-MM-DD (what excelDateToJS returns for serials)
+      const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(iso)return parseInt(iso[2],10);
+      // MM/DD/YYYY or M/D/YYYY
+      const us=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+      if(us)return parseInt(us[1],10);
+      // Last resort: native Date parser
+      const d=new Date(s);
+      if(!isNaN(d))return d.getMonth()+1;
+      return 0;
+    };
+    const getSpQ=sub=>{const m=getMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
+    // Only count SPs with a parseable sub-end date so SPQ totals match sum of SPQ_Q.
     const sp=SP_RAW.filter(r=>getSpQ(r.sub)!==null);
-    let T=0,W=0,C=0,Dc=0,base=0,wonBase=0,openBase=0,churnRev=0;
-    sp.forEach(r=>{
-      T++;base+=r.r||0;
-      if(spIsWon(r.s)){W++;wonBase+=r.r||0;}
-      else if(spIsChurn(r.s)){C++;churnRev+=r.r||0;}
-      else{openBase+=r.r||0;}
-    });
-    const O=T-W-C-Dc;
-    spq={t:T,w:W,o:O,d:Dc,c:C};
-    // Per-quarter — current-quarter status derived from today's date
-    const now=new Date(),curQ=Math.floor(now.getMonth()/3)+1;
-    const qStat=q=>{const n=parseInt(q.substring(1));return n<curQ?'closed':n===curQ?'active':n===curQ+1?'upcoming':'future';};
-    spq_q={};
-    for(const qk of['Q1','Q2','Q3','Q4']){
-      const rows=sp.filter(r=>getSpQ(r.sub)===qk);
-      const qt=rows.length,qw=rows.filter(r=>spIsWon(r.s)).length,qc=rows.filter(r=>spIsChurn(r.s)).length,qd=0;
-      spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk)};
+    // If no rows parsed (column missing, weird format), leave SPQ/SPQ_Q/SP_REV null
+    // so the forecast falls back to the hardcoded baseline instead of showing 0/0.
+    if(sp.length>0){
+      let T=0,W=0,C=0,Dc=0,base=0,wonBase=0,openBase=0,churnRev=0;
+      sp.forEach(r=>{
+        T++;base+=r.r||0;
+        if(spIsWon(r.s)){W++;wonBase+=r.r||0;}
+        else if(spIsChurn(r.s)){C++;churnRev+=r.r||0;}
+        else{openBase+=r.r||0;}
+      });
+      const O=T-W-C-Dc;
+      spq={t:T,w:W,o:O,d:Dc,c:C};
+      const now=new Date(),curQ=Math.floor(now.getMonth()/3)+1;
+      const qStat=q=>{const n=parseInt(q.substring(1));return n<curQ?'closed':n===curQ?'active':n===curQ+1?'upcoming':'future';};
+      spq_q={};
+      for(const qk of['Q1','Q2','Q3','Q4']){
+        const rows=sp.filter(r=>getSpQ(r.sub)===qk);
+        const qt=rows.length,qw=rows.filter(r=>spIsWon(r.s)).length,qc=rows.filter(r=>spIsChurn(r.s)).length,qd=0;
+        spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk)};
+      }
+      // Revenue — base/wonBase/openBase/churnRev fully live.  wonOffer and
+      // openMiami aren't in SP_RAW; scale from the original reference ratios.
+      sp_rev={base,wonOffer:Math.round(wonBase*0.90),wonBase,openBase,openMiami:Math.round(openBase*0.58),churnRev};
+    }else{
+      console.warn('[forecast] SP_RAW has',SP_RAW.length,'rows but none have a parseable Sub End date — falling back to hardcoded SP data. Sample:',SP_RAW.slice(0,3));
     }
-    // Revenue — we have base rev directly; offer-price and Miami-booked aren't
-    // in SP_RAW so we approximate using the original ratios from the static
-    // reference data (wonOffer≈0.90×wonBase, openMiami≈0.58×openBase).
-    sp_rev={base,wonOffer:Math.round(wonBase*0.90),wonBase,openBase,openMiami:Math.round(openBase*0.58),churnRev};
   }
   return{gp,gpq,gpqr,spq,spq_q,sp_rev};
 }
