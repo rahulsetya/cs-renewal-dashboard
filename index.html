@@ -663,6 +663,8 @@ async function fetchAllEngagement(token){
       const cGm    =ecIdx('GM Completed?') || ecIdx('GM Completed? (Y/N)') || ecIdx('GM Completed');
       const cNextTP=ecIdx('Next TP Date')  || ecIdx('Next TP');
       const cExp   =ecIdx('Expansion?')    || ecIdx('Expansion');
+      // Platform ID — authoritative match key across Renewal Master and ET.
+      const cPid   =ecIdx('Platform ID')|| ecIdx('Platform Id')|| ecIdx('Platform Company ID')|| ecIdx('Platform Company Id')|| ecIdx('HubSpot ID')|| ecIdx('HubSpot Record ID')|| ecIdx('Company ID')|| ecIdx('Record ID');
       // Legacy fields — still looked up in case they appear in the new sheet,
       // but no longer warned about if absent.
       const cGms   =ecIdx('GM Scheduled?') || ecIdx('GM Scheduled? (Y/N)') || ecIdx('GM Scheduled');
@@ -671,7 +673,7 @@ async function fetchAllEngagement(token){
       const cSent  =ecIdx('Sentiment');
 
       console.log('[eng] resolved columns:\n  '+[
-        'Account='+cAcct,'Sales Rep='+cSales,'Segment='+cSeg,'2025 Rev='+cRev25,'2026 Rev='+cRev26,
+        'Account='+cAcct,'Platform ID='+cPid,'Sales Rep='+cSales,'Segment='+cSeg,'2025 Rev='+cRev25,'2026 Rev='+cRev26,
         'Contract End='+cEnd,'Risk?='+cRisk,'Risk Notes='+cNotes,'Target CSM='+cCsm,'Pod='+cPod,
         'Transition Complete?='+cTxn,'Outreach Sent?='+cOut,'GM Completed?='+cGm,
         'Next TP Date='+cNextTP,'Expansion?='+cExp
@@ -694,6 +696,7 @@ async function fetchAllEngagement(token){
         const rev26 =cRev26!=null?parseNum(row[cRev26])       :0;
         const rec={
           acct,ro,ae,seg,endMonth:parseEngEndMonth(rawEnd),rawEnd,rev,rev26,
+          platformId: cPid !=null?String(row[cPid]||'').trim():'',
           pod:     cPod   !=null?String(row[cPod]||'').trim():'',
           txnDone: cTxn   !=null?yesNo(row[cTxn])             :0,
           out:     cOut   !=null?yesNo(row[cOut])             :0,
@@ -1281,6 +1284,7 @@ function _buildLiveGoalsData(){
   const allAccts=[];
   // Build renewal master lookup: account name → {stage, rev, se}
   const renewalLookup={};
+  const renewalByPid={};
   const _renewalDupes=[];
   const rows=GP_RAW_ROWS;
   const hdr=GP_RAW_HDR;
@@ -1288,6 +1292,22 @@ function _buildLiveGoalsData(){
   (rows[hdr]||[]).forEach((h,i)=>{const k=String(h||'').trim();if(k)cm[k.toLowerCase()]=i;});
   function gc(v,...names){for(const n of names){const i=cm[n.toLowerCase()];if(i!==undefined&&v[i]!==undefined&&v[i]!=='')return v[i];}return '';}
   const revColIdx=(()=>{for(const k of Object.keys(cm)){if(k.includes('2025')&&k.includes('revenue'))return cm[k];}for(const k of Object.keys(cm)){if(k.includes('total revenue'))return cm[k];}return 3;})();
+  // Normalize account names for fuzzy matching between Renewal Master and Engagement Tracker.
+  // Handles: case, whitespace, smart quotes, &/and, punctuation, and common legal-entity suffixes.
+  function _normKey(s){
+    if(s==null)return'';
+    let k=String(s).toLowerCase().trim();
+    if(!k)return'';
+    k=k.replace(/[\u2018\u2019\u201c\u201d\u00b4]/g,"'"); // smart quotes -> straight
+    k=k.replace(/\s*&\s*/g,' and ');
+    k=k.replace(/[.,'"`()\[\]]/g,'');                    // drop most punctuation
+    k=k.replace(/[-\/_]+/g,' ');                         // hyphens/slashes -> space
+    k=k.replace(/\s+/g,' ').trim();
+    // Strip legal entity suffixes (repeat twice in case of stacked "X LLC Inc")
+    const SUF=/\s+(llc|l l c|inc|incorporated|corp|corporation|lp|l p|llp|ltd|limited|co|company|gmbh|s a|sa|nv|ag|pte|plc|holdings?)$/;
+    for(let p=0;p<3;p++){const nk=k.replace(SUF,'').trim();if(nk===k)break;k=nk;}
+    return k;
+  }
   let _renewalRawCount=0;
   for(let i=hdr+1;i<rows.length;i++){
     const v=rows[i];
@@ -1307,9 +1327,12 @@ function _buildLiveGoalsData(){
       return excelDateToJS(seRaw);
     })();
     const rev=parseNum(v[revColIdx]||'');
-    const platformId=String(gc(v,'Platform ID','Platform Id','HubSpot ID','HubSpot Record ID','Record ID','HS ID','Company ID')||'').trim();
-    if(renewalLookup[acct.toLowerCase()])_renewalDupes.push(acct);
-    renewalLookup[acct.toLowerCase()]={stage,rev,se,name:acct,platformId};
+    const platformId=String(gc(v,'Platform ID','Platform Id','Platform Company ID','Platform Company Id','HubSpot ID','HubSpot Record ID','Record ID','HS ID','Company ID')||'').trim();
+    const key=_normKey(acct);
+    if(!key)continue;
+    if(renewalLookup[key])_renewalDupes.push(`${acct} <-> ${renewalLookup[key].name}`);
+    renewalLookup[key]={stage,rev,se,name:acct,platformId,nameKey:key};
+    if(platformId)renewalByPid[platformId]=renewalLookup[key];
   }
   console.log(`=== ACCOUNT RECONCILIATION ===`);
   console.log(`Renewal Master rows (non-blank): ${_renewalRawCount}`);
@@ -1317,14 +1340,27 @@ function _buildLiveGoalsData(){
   if(_renewalDupes.length)console.warn(`Renewal Master duplicates (${_renewalDupes.length}):`,_renewalDupes);
   console.log(`Engagement Tracker accounts: ${(ENG_RAW||[]).length}`);
 
-  // Drive account list from Engagement Tracker (column A = account name, column AI = CSM)
+  // Drive account list from Engagement Tracker (Platform ID is the authoritative match key;
+  // fall back to normalized name if either side is missing a Platform ID).
   const _matchedRenewal=new Set();
+  const _matchByPid=[],_matchByName=[],_matchNone=[];
   for(const r of (ENG_RAW||[])){
     const acct=r.acct;
     if(!acct)continue;
-    const renewalKey=acct.toLowerCase();
-    const renewal=renewalLookup[renewalKey]||null;
-    if(renewal)_matchedRenewal.add(renewalKey);
+    const etPid=String(r.platformId||'').trim();
+    let renewal=null,matchType='';
+    if(etPid&&renewalByPid[etPid]){renewal=renewalByPid[etPid];matchType='pid';}
+    else{
+      const nk=_normKey(acct);
+      if(nk&&renewalLookup[nk]){renewal=renewalLookup[nk];matchType='name';}
+    }
+    if(renewal){
+      _matchedRenewal.add(renewal.nameKey);
+      if(matchType==='pid')_matchByPid.push({et:acct,etPid,renewal:renewal.name,renewalPid:renewal.platformId});
+      else _matchByName.push({et:acct,etPid:etPid||'(none)',renewal:renewal.name,renewalPid:renewal.platformId||'(none)'});
+    }else{
+      _matchNone.push({et:acct,etPid:etPid||'(none)'});
+    }
     const stage=renewal?renewal.stage:'Not in renewal master';
     const rev=renewal?renewal.rev:0;
     const se=renewal?renewal.se:'';
@@ -1372,14 +1408,19 @@ function _buildLiveGoalsData(){
   }
   const _renewalNotInEngDetail=Object.keys(renewalLookup).filter(k=>!_matchedRenewal.has(k)).map(k=>({name:renewalLookup[k].name,platformId:renewalLookup[k].platformId||''}));
   const _renewalNotInEng=_renewalNotInEngDetail.map(x=>x.name);
+  console.log(`Match breakdown — by Platform ID: ${_matchByPid.length}, by name fallback: ${_matchByName.length}, unmatched ET rows: ${_matchNone.length}`);
+  if(_matchByName.length){
+    console.info(`Matched by NAME (no Platform ID on one side):`);
+    console.table(_matchByName);
+  }
   if(_renewalNotInEngDetail.length){
     console.warn(`Renewal Master accounts NOT in Engagement Tracker (${_renewalNotInEngDetail.length}):`,_renewalNotInEngDetail);
     console.warn(`Platform IDs only (copy-paste):`,_renewalNotInEngDetail.map(x=>x.platformId).filter(Boolean).join('\n'));
     console.table(_renewalNotInEngDetail);
   }
   console.log(`Total accounts in dashboard: ${allAccts.length}`);
-  const _engNotInRenewal=(ENG_RAW||[]).filter(r=>r.acct&&!renewalLookup[r.acct.toLowerCase()]).map(r=>r.acct);
-  window._acctMismatches={engNotInRenewal:_engNotInRenewal,renewalNotInEng:_renewalNotInEng,renewalNotInEngDetail:_renewalNotInEngDetail};
+  const _engNotInRenewal=_matchNone.map(x=>x.et);
+  window._acctMismatches={engNotInRenewal:_engNotInRenewal,renewalNotInEng:_renewalNotInEng,renewalNotInEngDetail:_renewalNotInEngDetail,matchByPid:_matchByPid,matchByName:_matchByName,matchNone:_matchNone};
   churned.sort((a,b)=>b.rev-a.rev);
   const totalNone=Object.values(grrNone).reduce((a,v)=>a+v.logos,0);
 
