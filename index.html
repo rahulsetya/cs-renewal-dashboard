@@ -3419,7 +3419,7 @@ function rOverview(){
         </div>`;})()}
       </div>
       ${sc("Revenue at Risk",fmt(tR),"$39.8M tracked of ~$41.2M","var(--amber)")}
-      ${sc("Renewed YTD",tW+" logos",pct(tW/tL*100)+" logo retention","var(--green)")}
+      ${sc("Renewed YTD",tW+" logos",fmt(gRW+SP.rw)+" revenue · "+pct(tW/tL*100)+" logo retention","var(--green)")}
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
     </div>
     <div class="callout">
