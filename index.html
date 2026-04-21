@@ -4876,9 +4876,13 @@ function render(){
   let h='';
 
   // Header + segment filter
+  const _hdrTot=(GP.base||0)+(SP_REV.base||0);
+  const _hdrMo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const _hdrD=new Date();
+  const _hdrDate=_hdrMo[_hdrD.getMonth()]+' '+_hdrD.getDate()+', '+_hdrD.getFullYear();
   h+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px">
     <div><div style="font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--pu),var(--pk),var(--sa));-webkit-background-clip:text;-webkit-text-fill-color:transparent">iConnections — Retention & Revenue Forecast</div>
-    <div style="font-size:12px;color:var(--mt);margin-top:2px">2026 · ~1,020 GP + 101 SP · $41.2M · Baseline: 52.7% · April 16, 2026</div></div>
+    <div style="font-size:12px;color:var(--mt);margin-top:2px">${_hdrD.getFullYear()} · ${GP.T.toLocaleString()} GP + ${SP.T} SP · ${fS(_hdrTot)} · Baseline: 52.7% · ${_hdrDate}</div></div>
     <div style="display:flex;gap:3px">
       ${[['total','Total'],['gp','GP'],['sp','SP']].map(([k,l])=>`<button class="pl ${seg===k?'a':''}" onclick="setSeg('${k}')">${l}</button>`).join('')}
     </div></div>`;
@@ -5090,7 +5094,8 @@ function render(){
     h+=`</div></div>`;
   }
 
-  h+=`<div class="ft">~1,020 GP ($35.5M) + 101 SP (~$5.7M) · $41.2M total · Baseline: 52.7% · Churn: 9 GP ($384K) + 3 SP ($120K) · Comp = logo-based · GRR/NRR = revenue-based</div>`;
+  const _ftTot=(GP.base||0)+(SP_REV.base||0);
+  h+=`<div class="ft">${GP.T.toLocaleString()} GP (${fS(GP.base||0)}) + ${SP.T} SP (${fS(SP_REV.base||0)}) · ${fS(_ftTot)} total · Baseline: 52.7% · Churn: ${GP.C} GP (${fS(GP.churnRev||0)}) + ${SP.C} SP (${fS(SP_REV.churnRev||0)}) · Comp = logo-based · GRR/NRR = revenue-based</div>`;
   document.getElementById('app').innerHTML=h;
 }
 
