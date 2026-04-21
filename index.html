@@ -1405,33 +1405,49 @@ function _buildLiveForecastData(){
       return 0;
     };
     const getSpQ=sub=>{const m=getMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
-    // Only count SPs with a parseable sub-end date so SPQ totals match sum of SPQ_Q.
+
+    // Always compute live aggregates from the filtered SP_RAW (top-bar count
+    // already reflects the Exclude-for-attainment filter).
+    let T=0,W=0,C=0,Dc=0,base=0,wonBase=0,openBase=0,churnRev=0;
+    SP_RAW.forEach(r=>{
+      T++;base+=r.r||0;
+      if(spIsWon(r.s)){W++;wonBase+=r.r||0;}
+      else if(spIsChurn(r.s)){C++;churnRev+=r.r||0;}
+      else{openBase+=r.r||0;}
+    });
+    const O=T-W-C-Dc;
+    spq={t:T,w:W,o:O,d:Dc,c:C};
+    sp_rev={base,wonOffer:Math.round(wonBase*0.90),wonBase,openBase,openMiami:Math.round(openBase*0.58),churnRev};
+
+    const now=new Date(),curQ=Math.floor(now.getMonth()/3)+1;
+    const qStat=q=>{const n=parseInt(q.substring(1));return n<curQ?'closed':n===curQ?'active':n===curQ+1?'upcoming':'future';};
     const sp=SP_RAW.filter(r=>getSpQ(r.sub)!==null);
-    // If no rows parsed (column missing, weird format), leave SPQ/SPQ_Q/SP_REV null
-    // so the forecast falls back to the hardcoded baseline instead of showing 0/0.
     if(sp.length>0){
-      let T=0,W=0,C=0,Dc=0,base=0,wonBase=0,openBase=0,churnRev=0;
-      sp.forEach(r=>{
-        T++;base+=r.r||0;
-        if(spIsWon(r.s)){W++;wonBase+=r.r||0;}
-        else if(spIsChurn(r.s)){C++;churnRev+=r.r||0;}
-        else{openBase+=r.r||0;}
-      });
-      const O=T-W-C-Dc;
-      spq={t:T,w:W,o:O,d:Dc,c:C};
-      const now=new Date(),curQ=Math.floor(now.getMonth()/3)+1;
-      const qStat=q=>{const n=parseInt(q.substring(1));return n<curQ?'closed':n===curQ?'active':n===curQ+1?'upcoming':'future';};
+      // Real sub-end dates exist → compute per-quarter from them.
       spq_q={};
       for(const qk of['Q1','Q2','Q3','Q4']){
         const rows=sp.filter(r=>getSpQ(r.sub)===qk);
         const qt=rows.length,qw=rows.filter(r=>spIsWon(r.s)).length,qc=rows.filter(r=>spIsChurn(r.s)).length,qd=0;
         spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk)};
       }
-      // Revenue — base/wonBase/openBase/churnRev fully live.  wonOffer and
-      // openMiami aren't in SP_RAW; scale from the original reference ratios.
-      sp_rev={base,wonOffer:Math.round(wonBase*0.90),wonBase,openBase,openMiami:Math.round(openBase*0.58),churnRev};
     }else{
-      console.warn('[forecast] SP_RAW has',SP_RAW.length,'rows but none have a parseable Sub End date — falling back to hardcoded SP data. Sample:',SP_RAW.slice(0,3));
+      // No sub-end dates in source → keep the hardcoded proportional shape
+      // (Q1:12/Q2:17/Q3:25/Q4:47 out of 101) but rescale to live totals so
+      // the staircase denominators (cT) end at the real count, not 101.
+      const REF={Q1:{t:12,w:3,o:9,c:0},Q2:{t:17,w:5,o:12,c:1},Q3:{t:25,w:6,o:18,c:1},Q4:{t:47,w:5,o:40,c:1}};
+      const REFT=101,REFW=19,REFO=79,REFC=3;
+      const sc=(v,ref,live)=>ref>0?Math.round(v*live/ref):0;
+      spq_q={};
+      let sT=0,sW=0,sO=0,sC=0;
+      for(const qk of['Q1','Q2','Q3']){
+        const r=REF[qk];
+        const qt=sc(r.t,REFT,T),qw=sc(r.w,REFW,W),qo=sc(r.o,REFO,O),qc=sc(r.c,REFC,C);
+        spq_q[qk]={t:qt,w:qw,o:qo,d:0,c:qc,mo:qMo[qk],st:qStat(qk)};
+        sT+=qt;sW+=qw;sO+=qo;sC+=qc;
+      }
+      // Q4 absorbs rounding so sums match live totals exactly.
+      spq_q.Q4={t:T-sT,w:W-sW,o:O-sO,d:0,c:C-sC,mo:qMo.Q4,st:qStat('Q4')};
+      console.log('[forecast] SP quarter split scaled from hardcoded estimates (no live sub-end dates). Total='+T+' W='+W+' O='+O+' C='+C);
     }
   }
   return{gp,gpq,gpqr,spq,spq_q,sp_rev};
