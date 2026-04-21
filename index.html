@@ -132,7 +132,13 @@ const SCOPES     = 'Files.Read Files.Read.All Files.ReadWrite.All offline_access
 const SNAPSHOT_SITE = 'iconnections675.sharepoint.com:/sites/All_ClientSuccess:';
 const SNAPSHOT_PATH = 'Documents/cs_snapshot.json';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
-const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester']);
+const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester','Sunny Unger']);
+// Accounts owned by these names in the renewal master roll up under "Support iConnections"
+// in the top-right owner dropdown.
+const RENEWAL_OWNER_ALIAS={
+  'phoebe willoughby':'Support iConnections',
+  'jovin lee':'Support iConnections',
+};
 const SNAPSHOT_KEY    = 'cs_renewal_snapshot_v1';
 const DATA_CACHE_KEY  = 'cs_data_cache_v1';
 const ENG_CACHE_KEY   = 'cs_eng_cache_v1';
@@ -924,7 +930,8 @@ function processData(range, engMap){
       getCell(v,'Renewal Owner ') ||  // trailing-space variant just in case
       ''
     ).trim();
-    const ro=rawOwner||'Support iConnections';
+    const aliased=RENEWAL_OWNER_ALIAS[rawOwner.toLowerCase()];
+    const ro=aliased||rawOwner||'Support iConnections';
     // Keep all accounts — non-CS owners are surfaced via the "All Owners" filter option
 
     const r25=parseNum(getCell(v,'2025 Total Revenue'));
@@ -3014,6 +3021,14 @@ const GRR = {
   }
 };
 const SP = {logos:101,won:19,lost:3,declined:0,open:79,rev:4256938,rw:1344383,rl:120000,rd:0};
+// SP per-quarter distribution (estimated — scaled proportionally to GP quarterly weights)
+// Sums: logos=101, won=19, open=79, lost=3, declined=0, rev≈4.26M
+const SP_Q = {
+  Q1:{logos:12,won:3,lost:0,declined:0,open:9,rev:417000,rw:212000,rl:0,rd:0,mo:"Jan–Mar"},
+  Q2:{logos:17,won:5,lost:1,declined:0,open:11,rev:699000,rw:354000,rl:40000,rd:0,mo:"Apr–Jun"},
+  Q3:{logos:25,won:6,lost:1,declined:0,open:18,rev:993000,rw:424000,rl:40000,rd:0,mo:"Jul–Sep"},
+  Q4:{logos:47,won:5,lost:1,declined:0,open:40,rev:2147938,rw:354383,rl:40000,rd:0,mo:"Oct–Dec"},
+};
 
 const CHURNED = [
   {n:"Parabilis",csm:"Courtney Krieg",rev:87000,q:"Q1",pool:"Enterprise",notes:"No outreach tracked, no meetings, high rev no engagement"},
@@ -3346,6 +3361,40 @@ function rSP(){
   el.innerHTML=`
     <div class="cards">${sc("SP Logos","101","Managed by Emilie","var(--rose)")}${sc("2025 Revenue",fmt(SP.rev),"Annual renewal pool","var(--rose)")}${sc("Logo Retention",pct(ret),"Optimistic: "+pct(retOpt),ret>=55?"var(--green)":"var(--amber)")}${sc("Won",SP.won+" logos",SP.open+" still open","var(--green)")}</div>
     ${poolCard("Service Provider",SP,SP_T.Q2.full,false)}
+    <div class="card" style="margin-top:12px"><h3>SP Quarterly Breakdown</h3><div class="sh">Per-quarter SP retention against comp thresholds · Q1 gifted · distribution proportional to GP schedule</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px">
+        ${['Q1','Q2','Q3','Q4'].map(qk=>{
+          const q=SP_Q[qk];const th=SP_T[qk];const gifted=qk==='Q1';
+          const qRet=q.logos>0?(q.won/q.logos)*100:0;
+          const qOpt=q.logos>0?((q.won+q.open*.5)/q.logos)*100:0;
+          const hitFloor=!gifted&&th.floor!=null&&qRet>=th.floor;
+          const hitFull=!gifted&&th.full!=null&&qRet>=th.full;
+          const hitAccel=!gifted&&th.accel!=null&&qRet>=th.accel;
+          const c=gifted?'var(--rose)':(hitFull?'var(--green)':hitFloor?'var(--amber)':'var(--red)');
+          return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${qk} <span style="color:var(--dim);font-weight:400;font-size:11px">· ${q.mo}</span></div>
+              <div style="font-size:10px;color:var(--dim)">${q.logos} logos · ${fmt(q.rev)}</div>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:6px">
+              <span style="font-size:24px;font-weight:700;color:${c};font-family:var(--mono)">${gifted?'GIFTED':pct(qRet)}</span>
+              ${!gifted?`<span style="font-size:11px;color:var(--dim)">/ ${th.full}% full</span>`:'<span style="font-size:11px;color:var(--dim)">Q1 · no SP threshold</span>'}
+            </div>
+            ${!gifted?`<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Opt (50% open): ${pct(qOpt)}</div>`:'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">&nbsp;</div>'}
+            <div style="display:flex;gap:4px;font-size:10px;margin-bottom:6px">
+              <span style="flex:1;padding:3px 5px;border-radius:3px;background:${hitFloor?'var(--greenG)':'var(--bg)'};border:1px solid ${hitFloor?'var(--green)':'var(--border)'};color:${hitFloor?'var(--green)':'var(--dim)'};text-align:center">${gifted||th.floor==null?'—':'Floor '+th.floor+'%'}</span>
+              <span style="flex:1;padding:3px 5px;border-radius:3px;background:${hitFull?'var(--greenG)':'var(--bg)'};border:1px solid ${hitFull?'var(--green)':'var(--border)'};color:${hitFull?'var(--green)':'var(--dim)'};text-align:center">${gifted?'100%':'Full '+th.full+'%'}</span>
+              <span style="flex:1;padding:3px 5px;border-radius:3px;background:${hitAccel?'var(--greenG)':'var(--bg)'};border:1px solid ${hitAccel?'var(--green)':'var(--border)'};color:${hitAccel?'var(--green)':'var(--dim)'};text-align:center">${gifted||th.accel==null?'—':'Accel '+th.accel+'%'}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px;color:var(--dim)">
+              <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:3px"></span>Won: ${q.won}</span>
+              <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-right:3px"></span>Open: ${q.open}</span>
+              ${q.lost>0?`<span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-right:3px"></span>Churn: ${q.lost}</span>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
     ${uncontacted.length>0?`<div class="callout" style="border-color:var(--rose);margin-top:12px">
       <strong style="color:var(--rose)">⚠ ${uncontacted.length} Uncontacted Accounts — ${fmt(uncontactedRev)} at risk:</strong> ${uncontacted.map(a=>a.n+' ('+fmt(a.r)+', '+a.o+')').join(' · ')}
     </div>`:''}
@@ -4117,6 +4166,14 @@ const GP={T:1018,W:303,O:520,D:186,C:9,base:35529103,churnRev:384000};
 // File has 51 SPs with rev data; comp plan says 101 total
 // We know: 19W, 79O, 0D, 3C. Revenue from file for known SPs, scaled for unknowns.
 const SPQ={t:101,w:19,o:79,d:0,c:3};
+// SP per-quarter distribution (estimated — scaled proportionally from GP distribution)
+// sums: t=101, w=19, o=79, d=0, c=3
+const SPQ_Q={
+  Q1:{t:12,w:3,o:9,d:0,c:0,mo:"Jan–Mar",st:"closed"},
+  Q2:{t:17,w:5,o:12,d:0,c:1,mo:"Apr–Jun",st:"active"},
+  Q3:{t:25,w:6,o:18,d:0,c:1,mo:"Jul–Sep",st:"upcoming"},
+  Q4:{t:47,w:5,o:40,d:0,c:1,mo:"Oct–Dec",st:"future"},
+};
 const SP_REV={
   base:5671000, // $41.2M - $35.5M GP
   wonOffer:1004000, wonBase:1113000,  // from file (15 won SPs)
@@ -4141,7 +4198,6 @@ const SP_TH={Q2:[45,55,65],Q3:[50,62,70],Q4:[55,68,75]};
 const RNRR={gp:137.2,sp:83.0}; // renewal NRR on closed deals
 
 const SCEN={
-  current:{l:"Current",c:"#94a3b8",oc:0,dc:0,sc:0,exp:100},
   worst:{l:"Worst",c:"#ff4757",oc:30,dc:8,sc:25,exp:120},
   base:{l:"Base",c:"#ffa502",oc:50,dc:15,sc:40,exp:130},
   best:{l:"Best",c:"#2ed573",oc:65,dc:25,sc:55,exp:140},
@@ -4173,6 +4229,15 @@ function calc(oc,dc,sc,exp){
   const spPO=Math.round(SPQ.o*scR),spTW=SPQ.w+spPO,spRet=SPQ.t>0?spTW/SPQ.t*100:0;
   const spPay={};
   for(const qk of['Q2','Q3','Q4']){const th=SP_TH[qk];let p=0;if(spRet<th[0])p=0;else if(spRet<=th[1])p=(spRet-th[0])/(th[1]-th[0])*100;else if(spRet<=th[2])p=100+(spRet-th[1])/(th[2]-th[1])*25;else p=125;spPay[qk]=p}
+
+  // SP Logos per quarter (same cumulative-retention staircase shape as GP)
+  const spL={};let scT=0,scW=0;
+  for(const qk of['Q1','Q2','Q3','Q4']){
+    const q=SPQ_Q[qk];const pO=Math.round(q.o*scR);const qW=q.w+pO;
+    scT+=q.t;scW+=qW;const th=SP_TH[qk]||[0,0,0];const cR=scT>0?scW/scT*100:0;
+    let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125}
+    spL[qk]={...q,pO,qW,qR:q.t>0?qW/q.t*100:0,cT:scT,cW:scW,cR,th,pay};
+  }
 
   // Total Logos
   const totL={};
@@ -4220,7 +4285,7 @@ function calc(oc,dc,sc,exp){
   const allLogos={won:GP.W+SP.W,total:GP.T+SP.T,ret:(GP.W+SP.W)/(GP.T+SP.T)*100,
     projWon:gcW+spTW,projRet:(gcW+spTW)/(GP.T+SP.T)*100};
 
-  return{gpL,gpR,spRet,spPO:spPO,spTW,spPay,spRev,
+  return{gpL,gpR,spL,spRet,spPO:spPO,spTW,spPay,spRev,
     allBase,allExp,allRet,allGrr,allNrr,allLogos,
     gpBase:GP.base,gpExp:gcE,gpRet:gcRt,gpGrr:gpR.Q4.cGrr,gpNrr:gpR.Q4.cNrr};
 }
@@ -4304,15 +4369,32 @@ function render(){
       h+=`</div></div>`;
     }
 
-    // SP Logo Retention (show when sp or total)
+    // SP Logo Retention Staircase (show when sp or total)
     if(seg!=='gp'){
-      h+=`<div class="cd"><div class="ct" style="color:var(--pk);border-bottom-color:rgba(224,64,251,.12)">SP Logo Retention</div>
-        <div style="display:flex;gap:12px;align-items:center">
-          <div><div style="font-size:22px;font-weight:800;color:${cl(m.spRet,SP_TH.Q4[1])};font-family:var(--M)">${P(m.spRet)}</div>
-          <div style="font-size:11px;color:var(--dm)">${m.spTW}/${SPQ.t} (${SPQ.w}W + ${m.spPO} proj)</div></div>
-          <div style="font-size:11px;color:var(--dm);line-height:1.7">
-            ${['Q2','Q3','Q4'].map(qk=>{const th=SP_TH[qk],p=m.spPay[qk];return`${qk} ${th.join('/')}: <b style="color:${p>=100?'var(--gn)':p>0?'var(--or)':'var(--rd)'}">${Math.round(p)}%</b>`}).join(' · ')}
-          </div></div></div>`;
+      h+=`<div class="cd"><div class="ct" style="color:var(--pk);border-bottom-color:rgba(224,64,251,.12)">SP Logo Retention Staircase</div><div class="qg">`;
+      for(const qk of['Q1','Q2','Q3','Q4']){
+        const q=m.spL[qk],th=SP_TH[qk]||[0,0,0],c=qCl[q.st],fl=th[0],fu=th[1],ac=th[2];
+        h+=`<div class="qc" style="border:1px solid ${c}22">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:12px;font-weight:800;color:${c}">${qk}</span>
+            <span style="font-size:10px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
+          <div style="font-size:22px;font-weight:800;color:${q.cR>=fu?'var(--gn)':q.cR>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(q.cR)}</div>
+          <div style="font-size:11px;color:var(--dm)">${q.cW}/${q.cT}</div>`;
+        if(fu>0){
+          h+=`<div style="position:relative;height:7px;background:var(--br);border-radius:4px;margin-top:3px;overflow:visible">
+            <div style="width:${Math.min(q.cR,100)}%;height:100%;background:${q.cR>=fu?'var(--gn)':q.cR>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
+            <div style="position:absolute;left:${fl}%;top:-1px;width:1.5px;height:9px;background:var(--rd)"></div>
+            <div style="position:absolute;left:${fu}%;top:-1px;width:1.5px;height:9px;background:var(--gn)"></div>
+            <div style="position:absolute;left:${ac}%;top:-1px;width:1.5px;height:9px;background:var(--pk)"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-top:1px"><span style="color:var(--rd)">${fl}</span><span style="color:var(--gn)">${fu}</span><span style="color:var(--pk)">${ac}</span></div>
+          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.pay>=100?'rgba(46,213,115,.05)':q.pay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
+            Comp: <b style="color:${q.pay>=100?'var(--gn)':q.pay>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(q.pay)}%</b></div>`;
+        } else {
+          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(224,64,251,.05)">Q1: no SP threshold</div>`;
+        }
+        h+=`</div>`;
+      }
+      h+=`</div></div>`;
     }
 
     // Revenue by Quarter
@@ -4402,7 +4484,7 @@ function render(){
   // ════ SCENARIOS ════
   if(S.tab==='scenarios'){
     h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12)">Scenario Analysis — ${seg==='gp'?'GP':seg==='sp'?'SP':'Total'}</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">`;
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">`;
     for(const[k,sc]of Object.entries(SCEN)){
       const sm=calc(sc.oc,sc.dc,sc.sc,sc.exp);
       const sE=seg==='gp'?sm.gpExp:seg==='sp'?sm.spRev.totExp:sm.allExp;
