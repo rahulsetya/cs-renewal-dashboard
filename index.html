@@ -154,7 +154,7 @@ const SCOPES     = 'Files.Read Files.Read.All Files.ReadWrite.All offline_access
 const SNAPSHOT_SITE = 'iconnections675.sharepoint.com:/sites/All_ClientSuccess:';
 const SNAPSHOT_PATH = 'Documents/cs_snapshot.json';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
-const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester','Sunny Unger']);
+const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester','Sunny Unger','Emilie Welch']);
 // Aliased owners: account rows keep their real name (Phoebe / Jovin show as owner),
 // but they roll up under "Support iConnections" in the top-right filter dropdown.
 const RENEWAL_OWNER_ALIAS={
@@ -636,6 +636,51 @@ function processSPData(raw){
   if(skippedEmptyExamples.length)console.log('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
   console.log('[SP] sample parsed:',sample);
   return data;
+}
+
+// ── SP → Renewal Pipeline bridge ──────────────────────────────────────────────
+// Convert SP_RAW rows (from GA 26 SPs tab) into D-shape rows owned by "Emilie
+// Welch" so SPs surface in the top-right owner dropdown and the 2025 REVENUE
+// (BASE) KPI rolls them in. Stage strings on the SP sheet are free-text; we
+// classify by keyword to line up with the Renewal Pipeline's fixed stage list.
+function _mergeSPsIntoD(){
+  // Strip any previously-injected SP rows so refresh replaces rather than duplicates
+  D=D.filter(d=>!d.__sp);
+  if(!SP_RAW||!SP_RAW.length)return;
+  const spIsWon=s=>{const l=(s||'').toLowerCase();return l.includes('invoice')||l.includes('paid')||l.includes('signed')||l.includes('won')||l.includes('renewed');};
+  const spIsChurn=s=>{const l=(s||'').toLowerCase();return l.includes('churn')||l.includes('closed lost')||l.includes('lost')||l.includes('cancel');};
+  const mapStage=s=>{
+    const l=(s||'').toLowerCase();
+    if(l.includes('paid'))return'10. Paid';
+    if(l.includes('invoice'))return'9. Invoice Sent';
+    if(l.includes('signature'))return'6. Signature Requested';
+    if(l.includes('signed'))return'7. Signed';
+    if(spIsWon(s))return'10. Paid';
+    if(spIsChurn(s))return'11. Churned';
+    if(l.includes('proposal'))return'5. Proposal Made';
+    if(l.includes('attempt'))return'4. Contacted Attempting Again';
+    if(l.includes('follow'))return'3. Contacted Follow-up Needed';
+    if(l.includes('contact'))return'3. Contacted Follow-up Needed';
+    if(l.includes('no interest'))return'2. Contacted No Interest';
+    // Open/unmatched → Proposal Made (neutral "deal in motion" bucket — keeps
+    // SPs out of the Uncontacted KPI, which would be misleading)
+    return'5. Proposal Made';
+  };
+  const spRows=SP_RAW.map(r=>{
+    const stage=mapStage(r.s);
+    const se=r.sub||'';
+    const dy=daysDiff(se);
+    const row={
+      c:r.n,s:stage,ro:'Emilie Welch',csRep:'Emilie Welch',or:'N/A',
+      o:r.r||0,r25:r.r||0,r24:0,se,dy,em:se?se.substring(0,7):'',
+      mt:0,rsk:0,out:0,gm:0,gms:0,ap:0,sentiment:'',ex:0,snt:0,
+      clr:'',icn:'',ae:'',pod:'',pid:'',sg:[],ct:'SP',wow:'same',__sp:true
+    };
+    row.sg=computeSignals(row);
+    return row;
+  });
+  D=D.concat(spRows);
+  console.log(`[SP→D] merged ${spRows.length} SP rows under owner "Emilie Welch"`);
 }
 
 // ── ENGAGEMENT FETCH ──────────────────────────────────────────────────────────
@@ -1239,6 +1284,7 @@ async function _fetchFresh(token){
   if(spRange)SP_RAW=processSPData(spRange);
   await Promise.all([loadSnapshotFromSP(token),loadRCSnapshotFromSP(token)]);
   D=processData(range,engMap);
+  _mergeSPsIntoD();
   saveEngCache(ENG_RAW);
   const lu='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
   lastUpdated=lu;
