@@ -586,12 +586,14 @@ function processSPData(raw){
   const hdrs=raw.values[hIdx].map(h=>String(h||'').trim().toLowerCase());
   const ci=k=>{const i=hdrs.findIndex(h=>h.includes(k));return i>=0?i:null;};
   const cAcct=ci('account')||ci('company')||ci('name')||0;
-  const cStage=ci('stage');
+  // Stage is pinned to column M (index 12) per the GA 26 SPs sheet layout.
+  // Header-keyword fallback handles any future column reshuffle.
+  const cStage=hdrs.length>12?12:ci('stage');
   const cRev=ci('2025')||ci('revenue')||ci('rev')||ci('total');
   const cOwner=ci('sales rep')||ci('owner')||ci('sales owner')||ci('account owner');
-  // "Exclude for attainment" column (column E in GA 26 SPs). Rows are DROPPED
-  // when this cell is YES/Y/TRUE/1. Blank or anything else keeps the row.
-  const cExcl=(()=>{const i=hdrs.findIndex(h=>h.includes('exclude'));return i>=0?i:null;})();
+  // "Exclude for attainment" pinned to column E (index 4). Rows are DROPPED
+  // only when this cell is YES/Y/TRUE/1. Blank or "No" keeps the row.
+  const cExcl=hdrs.length>4?4:(()=>{const i=hdrs.findIndex(h=>h.includes('exclude'));return i>=0?i:null;})();
   // Try many aliases for the renewal/sub-end date column — GA 26 SPs may use
   // any of "Final Sub End Date", "Contract End", "Sub End", "Renewal Date", etc.
   const cSub=ci('final sub end')||ci('sub end')||ci('subscription end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal');
@@ -634,6 +636,10 @@ function processSPData(raw){
   console.log('[SP] parsed '+data.length+' rows, skipped '+skippedEmpty+' empty-acct, '+skippedExcluded+' Exclude-for-attainment=YES. '+withDate+' have sub date.');
   if(skippedExcludedExamples.length)console.log('[SP] sample Exclude-for-attainment-filtered out:\n  '+skippedExcludedExamples.join('\n  '));
   if(skippedEmptyExamples.length)console.log('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
+  // Distinct stage values (column M) — surfaces so the Pipeline stage mapper
+  // can be widened if a new free-text stage string appears on the sheet
+  const _stageTally={};data.forEach(r=>{const s=r.s||'(blank)';_stageTally[s]=(_stageTally[s]||0)+1;});
+  console.log('[SP] distinct stage values (col M):',_stageTally);
   console.log('[SP] sample parsed:',sample);
   return data;
 }
@@ -647,23 +653,29 @@ function _mergeSPsIntoD(){
   // Strip any previously-injected SP rows so refresh replaces rather than duplicates
   D=D.filter(d=>!d.__sp);
   if(!SP_RAW||!SP_RAW.length)return;
-  const spIsWon=s=>{const l=(s||'').toLowerCase();return l.includes('invoice')||l.includes('paid')||l.includes('signed')||l.includes('won')||l.includes('renewed');};
-  const spIsChurn=s=>{const l=(s||'').toLowerCase();return l.includes('churn')||l.includes('closed lost')||l.includes('lost')||l.includes('cancel');};
   const mapStage=s=>{
-    const l=(s||'').toLowerCase();
+    const l=(s||'').toLowerCase().trim();
+    // Terminal states first — order matters: "closed lost" must beat "closed won"
+    if(l.includes('churn')||l.includes('closed lost')||l.includes('lost')||l.includes('cancel')||l.includes('declined'))return'11. Churned';
     if(l.includes('paid'))return'10. Paid';
     if(l.includes('invoice'))return'9. Invoice Sent';
+    if(l.includes('closed won')||l.includes('won')||l.includes('renewed'))return'10. Paid';
     if(l.includes('signature'))return'6. Signature Requested';
     if(l.includes('signed'))return'7. Signed';
-    if(spIsWon(s))return'10. Paid';
-    if(spIsChurn(s))return'11. Churned';
-    if(l.includes('proposal'))return'5. Proposal Made';
+    // Late-stage negotiation
+    if(l.includes('negotiat'))return'6. Signature Requested';
+    // Mid-stage deal in motion
+    if(l.includes('proposal')||l.includes('quote')||l.includes('price'))return'5. Proposal Made';
+    if(l.includes('qualif')||l.includes('discovery')||l.includes('evaluat'))return'5. Proposal Made';
+    // Outreach-phase
     if(l.includes('attempt'))return'4. Contacted Attempting Again';
     if(l.includes('follow'))return'3. Contacted Follow-up Needed';
-    if(l.includes('contact'))return'3. Contacted Follow-up Needed';
     if(l.includes('no interest'))return'2. Contacted No Interest';
-    // Open/unmatched → Proposal Made (neutral "deal in motion" bucket — keeps
-    // SPs out of the Uncontacted KPI, which would be misleading)
+    if(l.includes('contact'))return'3. Contacted Follow-up Needed';
+    if(l.includes('uncontact')||l===''||l==='open')return'1. Uncontacted';
+    // Unknown stage string → Proposal Made (neutral "deal in motion" bucket —
+    // keeps SPs out of the Uncontacted KPI which would be misleading).
+    // Distinct stage values are logged by processSPData for widening.
     return'5. Proposal Made';
   };
   const spRows=SP_RAW.map(r=>{
