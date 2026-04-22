@@ -1597,25 +1597,31 @@ function _buildLiveForecastData(){
       for(const qk of['Q1','Q2','Q3','Q4']){
         const rows=sp.filter(r=>getSpQ(_spSub(r))===qk);
         const qt=rows.length,qw=rows.filter(r=>spIsWon(r.s)).length,qc=rows.filter(r=>spIsChurn(r.s)).length,qd=0;
-        spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk)};
+        // Per-quarter revenue (needed by Goals dashboard SP Retention cards)
+        const qRev=rows.reduce((a,r)=>a+(r.r||0),0);
+        const qRw=rows.filter(r=>spIsWon(r.s)).reduce((a,r)=>a+(r.r||0),0);
+        const qRl=rows.filter(r=>spIsChurn(r.s)).reduce((a,r)=>a+(r.r||0),0);
+        spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk),rev:qRev,rw:qRw,rl:qRl,rd:0};
       }
     }else{
       // No sub-end dates in source → keep the hardcoded proportional shape
       // (Q1:12/Q2:17/Q3:25/Q4:47 out of 101) but rescale to live totals so
       // the staircase denominators (cT) end at the real count, not 101.
-      const REF={Q1:{t:12,w:3,o:9,c:0},Q2:{t:17,w:5,o:12,c:1},Q3:{t:25,w:6,o:18,c:1},Q4:{t:47,w:5,o:40,c:1}};
-      const REFT=101,REFW=19,REFO=79,REFC=3;
+      const REF={Q1:{t:12,w:3,o:9,c:0,rev:417000,rw:212000,rl:0},Q2:{t:17,w:5,o:12,c:1,rev:699000,rw:354000,rl:40000},Q3:{t:25,w:6,o:18,c:1,rev:993000,rw:424000,rl:40000},Q4:{t:47,w:5,o:40,c:1,rev:2147938,rw:354383,rl:40000}};
+      const REFT=101,REFW=19,REFO=79,REFC=3,REFREV=4256938;
       const sc=(v,ref,live)=>ref>0?Math.round(v*live/ref):0;
+      const scRev=(v,ref,live)=>ref>0?Math.round(v*live/ref):0;
       spq_q={};
-      let sT=0,sW=0,sO=0,sC=0;
+      let sT=0,sW=0,sO=0,sC=0,sRev=0,sRw=0,sRl=0;
       for(const qk of['Q1','Q2','Q3']){
         const r=REF[qk];
         const qt=sc(r.t,REFT,T),qw=sc(r.w,REFW,W),qo=sc(r.o,REFO,O),qc=sc(r.c,REFC,C);
-        spq_q[qk]={t:qt,w:qw,o:qo,d:0,c:qc,mo:qMo[qk],st:qStat(qk)};
-        sT+=qt;sW+=qw;sO+=qo;sC+=qc;
+        const qRev=scRev(r.rev,REFREV,base||0),qRw=scRev(r.rw,REFREV,base||0),qRl=scRev(r.rl,REFREV,base||0);
+        spq_q[qk]={t:qt,w:qw,o:qo,d:0,c:qc,mo:qMo[qk],st:qStat(qk),rev:qRev,rw:qRw,rl:qRl,rd:0};
+        sT+=qt;sW+=qw;sO+=qo;sC+=qc;sRev+=qRev;sRw+=qRw;sRl+=qRl;
       }
       // Q4 absorbs rounding so sums match live totals exactly.
-      spq_q.Q4={t:T-sT,w:W-sW,o:O-sO,d:0,c:C-sC,mo:qMo.Q4,st:qStat('Q4')};
+      spq_q.Q4={t:T-sT,w:W-sW,o:O-sO,d:0,c:C-sC,mo:qMo.Q4,st:qStat('Q4'),rev:(base||0)-sRev,rw:(wonBase||0)-sRw,rl:(churnRev||0)-sRl,rd:0};
       console.log('[forecast] SP quarter split scaled from hardcoded estimates (no live sub-end dates). Total='+T+' W='+W+' O='+O+' C='+C);
     }
   }
@@ -3117,8 +3123,29 @@ function _render(){
       src=src.replace(/const CHURNED\s*=\s*\[[\s\S]*?\];\s*\n/,`const CHURNED=${JSON.stringify(live.churned)};\n`);
       // Inject per-account list for pool drilldown
       src=src.replace(/const ACCTS\s*=\s*\[\];/,`const ACCTS=${JSON.stringify(live.allAccts)};`);
-      // SP data intentionally kept as hardcoded values (101 accounts) — live SP
-      // aggregation from GA 26 SPs is unreliable; hardcoded values are correct.
+      // ── Live SP data (same source as Forecast) ──────────────────────────────
+      // Previously the Goals template kept hardcoded SP/SP_Q. Now we reuse
+      // _buildLiveForecastData() so the Goals SP Retention tab shows the same
+      // 101-account universe and the same per-quarter split computed from the
+      // Renewal Master's "Subscription End Date" column (falling back to GA 26
+      // SPs sheet dates when the master has no entry). Transforms the Forecast
+      // shape {t,w,o,d,c,rev,rw,rl,rd} → Goals shape {logos,won,lost,declined,
+      // open,rev,rw,rl,rd}.
+      try{
+        const fc=_buildLiveForecastData();
+        if(fc&&fc.spq&&fc.sp_rev&&fc.spq_q){
+          const _SP={logos:fc.spq.t,won:fc.spq.w,lost:fc.spq.c,declined:fc.spq.d,open:fc.spq.o,
+            rev:fc.sp_rev.base||0,rw:fc.sp_rev.wonBase||0,rl:fc.sp_rev.churnRev||0,rd:0};
+          const _SP_Q={};
+          for(const qk of['Q1','Q2','Q3','Q4']){
+            const q=fc.spq_q[qk]||{};
+            _SP_Q[qk]={logos:q.t||0,won:q.w||0,lost:q.c||0,declined:q.d||0,open:q.o||0,
+              rev:q.rev||0,rw:q.rw||0,rl:q.rl||0,rd:q.rd||0,mo:q.mo||''};
+          }
+          src=src.replace(/const SP\s*=\s*\{[^}]*\};/,`const SP=${JSON.stringify(_SP)};`);
+          src=src.replace(/const SP_Q\s*=\s*\{[\s\S]*?\n\};/,`const SP_Q=${JSON.stringify(_SP_Q)};`);
+        }
+      }catch(e){console.warn('[goals] live SP inject failed:',e);}
       // Replace hardcoded "Last refreshed" date with actual fetch timestamp
       const refreshLabel=lastUpdated?lastUpdated.replace('Updated ',''):'just now';
       src=src.replace(/Last refreshed:[^<"]+/,`Last refreshed: ${refreshLabel}`);
@@ -3770,7 +3797,7 @@ function rSP(){
   const uncontacted=SP_RISK.filter(a=>a.s==="Uncontacted");
   const uncontactedRev=uncontacted.reduce((s,a)=>s+a.r,0);
   el.innerHTML=`
-    <div class="cards">${sc("SP Logos","101","Managed by Emilie","var(--rose)")}${sc("2025 Revenue",fmt(SP.rev),"Annual renewal pool","var(--rose)")}${sc("Logo Retention",pct(ret),"Optimistic: "+pct(retOpt),ret>=55?"var(--green)":"var(--amber)")}${sc("Won",SP.won+" logos",SP.open+" still open","var(--green)")}</div>
+    <div class="cards">${sc("SP Logos",String(SP.logos),"Managed by Emilie","var(--rose)")}${sc("2025 Revenue",fmt(SP.rev),"Annual renewal pool","var(--rose)")}${sc("Logo Retention",pct(ret),"Optimistic: "+pct(retOpt),ret>=55?"var(--green)":"var(--amber)")}${sc("Won",SP.won+" logos",SP.open+" still open","var(--green)")}</div>
     ${poolCard("Service Provider",SP,SP_T.Q2.full,false)}
     <div class="card" style="margin-top:12px"><h3>SP Quarterly Breakdown</h3><div class="sh">Per-quarter SP retention against comp thresholds · Q1 gifted · distribution proportional to GP schedule</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px">
