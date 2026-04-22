@@ -3726,7 +3726,7 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
-let aTab="overview",selQ="Q2",selGPCSM=null,selGPMonth=null;
+let aTab="overview",selQ="Q2",selGPCSM=null,selGPMonth=null,selGPPod=null;
 const _nowQ=(()=>{const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';})();
 let selCadQ=_nowQ;
 
@@ -3831,7 +3831,7 @@ let _acctSort={},_acctFilt={};
 function _acctTableHTML(rid,q,pool){
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=[];
   const sc=a=>{if(WS.includes(a.stage))return'var(--green)';if(CS.includes(a.stage))return'var(--red)';if(DS.includes(a.stage))return'var(--orange)';return'var(--muted)';};
-  let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&(!selGPCSM||a.csRep===selGPCSM)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth));
+  let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&(!selGPCSM||a.csRep===selGPCSM)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth)&&(!selGPPod||a.pod===selGPPod));
   const allStages=[...new Set(rows.map(a=>a.stage).filter(Boolean))].sort();
   const filt=_acctFilt[rid]||'';
   if(filt==='_won')rows=rows.filter(a=>WS.includes(a.stage));
@@ -3872,17 +3872,21 @@ function rGP(){
   const QML={Q1:[['01','Jan'],['02','Feb'],['03','Mar']],Q2:[['04','Apr'],['05','May'],['06','Jun']],Q3:[['07','Jul'],['08','Aug'],['09','Sep']],Q4:[['10','Oct'],['11','Nov'],['12','Dec']]};
 
   // Filter setup: all accounts in quarter
-  const qAccts=(ACCTS||[]).filter(a=>a.q===q);
+  const qAcctsAll=(ACCTS||[]).filter(a=>a.q===q);
+  const podList=[...new Set(qAcctsAll.map(a=>a.pod).filter(Boolean))].sort();
+  if(selGPPod&&!podList.includes(selGPPod))selGPPod=null;
+  // Pod-filtered (CSM dropdown will scope to these accounts)
+  const qAccts=selGPPod?qAcctsAll.filter(a=>a.pod===selGPPod):qAcctsAll;
   const csmList=[...new Set(qAccts.map(a=>a.csRep).filter(Boolean))].sort();
   if(selGPCSM&&!csmList.includes(selGPCSM))selGPCSM=null;
   // CSM-filtered only (used for month button counts)
   const csmFiltered=selGPCSM?qAccts.filter(a=>a.csRep===selGPCSM):qAccts;
-  // Full filtered (CSM + month) used everywhere else
+  // Full filtered (Pod + CSM + month) used everywhere else
   const filtAccts=selGPMonth?csmFiltered.filter(a=>(a.se||'').substring(5,7)===selGPMonth):csmFiltered;
 
   // Re-aggregate per-pool data from filtered accounts (or use global GRR when no active filters)
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=[];
-  const needsReagg=selGPCSM||selGPMonth;
+  const needsReagg=selGPCSM||selGPMonth||selGPPod;
   const grrQ=needsReagg?(()=>{
     const r={};pools.forEach(p=>{r[p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});
     filtAccts.forEach(a=>{const p=a.pool;if(!r[p])return;r[p].logos++;r[p].rev+=a.rev||0;
@@ -3926,6 +3930,14 @@ function rGP(){
           ${csmList.map(c=>`<option value="${c}"${selGPCSM===c?' selected':''}>${c} (${csmFiltered.filter(a=>a.csRep===c).length})</option>`).join('')}
         </select>
         ${selGPCSM?`<button onclick="selGPCSM=null;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer">✕ Clear</button>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--dim);white-space:nowrap">Pod:</label>
+        <select onchange="selGPPod=this.value||null;selGPCSM=null;rT('gp_grr')" style="background:var(--cd);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">
+          <option value=""${!selGPPod?' selected':''}>All Pods (${qAcctsAll.length})</option>
+          ${podList.map(p=>`<option value="${p}"${selGPPod===p?' selected':''}>${p} (${qAcctsAll.filter(a=>a.pod===p).length})</option>`).join('')}
+        </select>
+        ${selGPPod?`<button onclick="selGPPod=null;selGPCSM=null;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer">✕ Clear</button>`:''}
       </div>
     </div>
     <div class="cards">${(()=>{const tot={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};pools.forEach(p=>{const d=grrQ[p]||{};for(const k in tot)tot[k]+=(d[k]||0);});return poolCard('Total',tot,tgt,q==="Q1");})()}${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}</div>
