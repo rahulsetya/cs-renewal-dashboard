@@ -596,7 +596,12 @@ function processSPData(raw){
   // Stage is pinned to column M (index 12) per the GA 26 SPs sheet layout.
   // Header-keyword fallback handles any future column reshuffle.
   const cStage=hdrs.length>12?12:ci('stage');
-  const cRev=ci('2025')!=null?ci('2025'):ci('revenue')!=null?ci('revenue'):ci('rev')!=null?ci('rev'):ci('total');
+  // 2025 revenue pinned to column AR (index 43). 2026 revenue pinned to AQ (42).
+  // Offer Price (SP-only display column) pinned to O (14). All three have
+  // header-keyword fallbacks in case the sheet layout shifts.
+  const cR25=hdrs.length>43?43:pick('2025 revenue','2025','revenue','total');
+  const cR26=hdrs.length>42?42:pick('2026 revenue','2026');
+  const cOffer=hdrs.length>14?14:pick('offer price','offer');
   const cOwner=ci('sales rep')!=null?ci('sales rep'):ci('sales owner')!=null?ci('sales owner'):ci('account owner')!=null?ci('account owner'):ci('owner');
   // "Exclude for attainment" pinned to column E (index 4). Rows are DROPPED
   // only when this cell is YES/Y/TRUE/1. Blank or "No" keeps the row.
@@ -611,7 +616,7 @@ function processSPData(raw){
   // Flat-string logging so console shows it without needing to expand arrays/objects
   console.log('[SP] total raw rows='+totalRaw+' headerIdx='+hIdx+' → '+(totalRaw-hIdx-1)+' data rows below header');
   console.log('[SP] headers:\n  '+hdrs.map((h,i)=>i+':'+h).join(' | '));
-  console.log('[SP] detected columns: cAcct='+cAcct+' (header="'+(hdrs[cAcct]||'(none)')+'") cStage='+cStage+' cRev='+cRev+' cOwner='+cOwner+' cSub='+cSub+' cExcl='+cExcl+' cAE='+cAE+' cNotes='+cNotes+' exclHeader="'+(cExcl!=null?hdrs[cExcl]:'(none matched)')+'" subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
+  console.log('[SP] detected columns: cAcct='+cAcct+' (header="'+(hdrs[cAcct]||'(none)')+'") cStage='+cStage+' cR25='+cR25+' cR26='+cR26+' cOffer='+cOffer+' cOwner='+cOwner+' cSub='+cSub+' cExcl='+cExcl+' cAE='+cAE+' cNotes='+cNotes+' exclHeader="'+(cExcl!=null?hdrs[cExcl]:'(none matched)')+'" subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
   const data=[];
   let skippedEmpty=0,skippedEmptyExamples=[],skippedExcluded=0,skippedExcludedExamples=[];
   for(let i=hIdx+1;i<raw.values.length;i++){
@@ -636,12 +641,16 @@ function processSPData(raw){
       }
     }
     const stage=String(cStage!=null?row[cStage]||'':'Open').trim()||'Open';
-    const rev=parseNum(cRev!=null?row[cRev]:'');
+    const r25=parseNum(cR25!=null&&cR25>=0?row[cR25]:'');
+    const r26=parseNum(cR26!=null&&cR26>=0?row[cR26]:'');
+    const offer=parseNum(cOffer!=null&&cOffer>=0?row[cOffer]:'');
     const owner=String(cOwner!=null?row[cOwner]||'':'').trim()||'Unknown';
     const sub=cSub!=null?excelDateToJS(row[cSub]||''):'';
     const ae=String(cAE!=null&&cAE>=0?row[cAE]||'':'').trim();
     const notes=String(cNotes!=null&&cNotes>=0?row[cNotes]||'':'').trim();
-    data.push({n:acct,s:stage,r:rev,o:owner,sub,ae,notes});
+    // `r` stays as the legacy single-revenue field for backwards compat with
+    // anything still reading it (Forecast/Goals use r25 indirectly via r now)
+    data.push({n:acct,s:stage,r:r25||r26||offer,r25,r26,offer,o:owner,sub,ae,notes});
   }
   // Diagnostic: show date-parse success rate + skip reasons
   const sample=data.slice(0,5).map(r=>({n:r.n,sub:r.sub}));
@@ -677,11 +686,21 @@ function _mergeSPsIntoD(){
     if(!resolveStage(r.s))unmatched++;
     const se=r.sub||'';
     const dy=daysDiff(se);
+    // Revenue mapping for SPs:
+    //   r25 ← col AR (2025 revenue)
+    //   o   ← col AQ (2026 revenue) — Pipeline dashboard's "2026 offer" field
+    //   spOffer ← col O (SP-only "Offer Price" — surfaced in its own column)
+    // Fallback to legacy r.r field if the new columns are blank (handles
+    // partially-populated rows without zeroing out the KPI).
+    const r25v=r.r25||r.r||0;
+    const r26v=r.r26||0;
+    const offerv=r.offer||0;
     const row={
       c:r.n,s:stage,ro:'Emilie Welch',csRep:'Emilie Welch',or:'N/A',
-      o:r.r||0,r25:r.r||0,r24:0,se,dy,em:se?se.substring(0,7):'',
+      o:r26v||r25v,r25:r25v,r24:0,se,dy,em:se?se.substring(0,7):'',
       mt:0,rsk:0,out:0,gm:0,gms:0,ap:0,sentiment:'',ex:0,snt:0,
-      clr:'',icn:r.notes||'',ae:r.ae||'',pod:'',pid:'',sg:[],ct:'SP',wow:'same',__sp:true
+      clr:'',icn:r.notes||'',ae:r.ae||'',pod:'',pid:'',sg:[],ct:'SP',wow:'same',
+      spOffer:offerv,__sp:true
     };
     row.sg=computeSignals(row);
     return row;
@@ -2049,7 +2068,7 @@ function _render(){
       const dSortFns={
         account:(a,b)=>a.c.localeCompare(b.c),
         owner:(a,b)=>a.ro.localeCompare(b.ro),ae:(a,b)=>(a.ae||'').localeCompare(b.ae||''),
-        r25:(a,b)=>a.r25-b.r25,offer:(a,b)=>a.o-b.o,
+        r25:(a,b)=>a.r25-b.r25,offer:(a,b)=>a.o-b.o,spOffer:(a,b)=>(a.spOffer||0)-(b.spOffer||0),
         delta:(a,b)=>{const da2=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25:-999,db=b.o>0&&b.r25>0?(b.o-b.r25)/b.r25:-999;return da2-db;},
         subend:(a,b)=>String(a.se||'').localeCompare(String(b.se||'')),
         flags:(a,b)=>a.sg.length-b.sg.length,
@@ -2061,7 +2080,9 @@ function _render(){
       const drillHasFilters=Object.keys(df).some(k=>k==='flags'?dfFlags.length>0:df[k]);
 
       if(da.length||stageAccts.length){
-        const colSpan=S.showAE?8:7;
+        // Show SP-only "Offer Price" (col O on GA 26 SPs) when viewing Emilie's SPs
+        const showSPOffer=S.owner==='Emilie Welch';
+        const colSpan=(S.showAE?8:7)+(showSPOffer?1:0);
         h+=`<div class="dr2">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-top:16px">
             <span style="font-size:13px;font-weight:600;color:${CL[S.drill]}">${SH[S.drill]} — ${da.length}${da.length!==stageAccts.length?` of ${stageAccts.length}`:''} accounts</span>
@@ -2073,6 +2094,7 @@ function _render(){
             ${S.showAE?`<th onclick="ssDrillSort('ae')" style="${dThS};width:90px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">AE ${dsd('ae')}</div>${dSel('ae',uDAE)}</th>`:''}
             <th onclick="ssDrillSort('r25')" style="${dThS};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${dsd('r25')}</div>${dRngPair('r25min','r25max')}</th>
             <th onclick="ssDrillSort('offer')" style="${dThS};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#22d3ee">2026 ${dsd('offer')}</div>${dRngPair('offermin','offermax')}</th>
+            ${showSPOffer?`<th onclick="ssDrillSort('spOffer')" style="${dThS};width:80px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#a78bfa">Offer Price ${dsd('spOffer')}</div></th>`:''}
             <th onclick="ssDrillSort('delta')" style="${dThS};width:68px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#94a3b8">Percent +/- ${dsd('delta')}</div></th>
             <th onclick="ssDrillSort('subend')" style="${dThS};width:90px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Sub End ${dsd('subend')}</div>${dSel('subend',uDSub)}</th>
             <th onclick="ssDrillSort('flags')" style="${dThS};width:160px;overflow:visible"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Flags ${dsd('flags')}${dfFlags.length?`<span style="background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:3px">${dfFlags.length}</span>`:''}</div>${dFChk(uDFlags,dfFlags)}</th>
@@ -2091,6 +2113,7 @@ function _render(){
             ${S.showAE?`<td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>`:''}
             <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
             <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
+            ${showSPOffer?`<td style="text-align:right;color:${a.spOffer>0?'#a78bfa':'#334155'}">${a.spOffer>0?fm(a.spOffer):'–'}</td>`:''}
             <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
             <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}${a.dy>0?` (${a.dy}d)`:''}</td>
             <td style="overflow:visible;white-space:normal;vertical-align:top;padding:5px 6px"><div style="display:flex;flex-wrap:wrap;gap:3px;align-items:flex-start">${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</div></td>
