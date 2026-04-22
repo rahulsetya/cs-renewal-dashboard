@@ -653,33 +653,15 @@ function _mergeSPsIntoD(){
   // Strip any previously-injected SP rows so refresh replaces rather than duplicates
   D=D.filter(d=>!d.__sp);
   if(!SP_RAW||!SP_RAW.length)return;
-  const mapStage=s=>{
-    const l=(s||'').toLowerCase().trim();
-    // Terminal states first — order matters: "closed lost" must beat "closed won"
-    if(l.includes('churn')||l.includes('closed lost')||l.includes('lost')||l.includes('cancel')||l.includes('declined'))return'11. Churned';
-    if(l.includes('paid'))return'10. Paid';
-    if(l.includes('invoice'))return'9. Invoice Sent';
-    if(l.includes('closed won')||l.includes('won')||l.includes('renewed'))return'10. Paid';
-    if(l.includes('signature'))return'6. Signature Requested';
-    if(l.includes('signed'))return'7. Signed';
-    // Late-stage negotiation
-    if(l.includes('negotiat'))return'6. Signature Requested';
-    // Mid-stage deal in motion
-    if(l.includes('proposal')||l.includes('quote')||l.includes('price'))return'5. Proposal Made';
-    if(l.includes('qualif')||l.includes('discovery')||l.includes('evaluat'))return'5. Proposal Made';
-    // Outreach-phase
-    if(l.includes('attempt'))return'4. Contacted Attempting Again';
-    if(l.includes('follow'))return'3. Contacted Follow-up Needed';
-    if(l.includes('no interest'))return'2. Contacted No Interest';
-    if(l.includes('contact'))return'3. Contacted Follow-up Needed';
-    if(l.includes('uncontact')||l===''||l==='open')return'1. Uncontacted';
-    // Unknown stage string → Proposal Made (neutral "deal in motion" bucket —
-    // keeps SPs out of the Uncontacted KPI which would be misleading).
-    // Distinct stage values are logged by processSPData for widening.
-    return'5. Proposal Made';
-  };
+  // SP column M uses the same canonical stage strings as the renewal master:
+  //   "1. Uncontacted" … "7. Signed" / "8. Closed Lost (Not Renewing)" /
+  //   "9. Invoice Sent" / "10. Paid". Reuse resolveStage() so SPs follow the
+  //   exact same normalization as GP rows — notably "8. Closed Lost" maps to
+  //   "4a. Attempting again Q2" (pipeline's re-engageable bucket).
+  let unmatched=0;
   const spRows=SP_RAW.map(r=>{
-    const stage=mapStage(r.s);
+    const stage=resolveStage(r.s)||'1. Uncontacted';
+    if(!resolveStage(r.s))unmatched++;
     const se=r.sub||'';
     const dy=daysDiff(se);
     const row={
@@ -692,7 +674,7 @@ function _mergeSPsIntoD(){
     return row;
   });
   D=D.concat(spRows);
-  console.log(`[SP→D] merged ${spRows.length} SP rows under owner "Emilie Welch"`);
+  console.log(`[SP→D] merged ${spRows.length} SP rows under owner "Emilie Welch"${unmatched?' ('+unmatched+' stage strings did not resolve → defaulted to 1. Uncontacted)':''}`);
 }
 
 // ── ENGAGEMENT FETCH ──────────────────────────────────────────────────────────
