@@ -1205,7 +1205,7 @@ function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&
 window._noteKeys=[];
 function toggleNoteIdx(i){const key=window._noteKeys[i];S.noteOpen=S.noteOpen===key?null:key;render();}
 function toggleStuckNote(key){S.noteOpen=S.noteOpen===key?null:key;render();}
-function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];if(col==='acctSearch')_refocusSearch='acct';render();}
+function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];render();}
 function navKpi(type){
   S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};S.drill=null;
   if(type==='won'){S.tab='accounts';S.acctFilter.stage='__won__';}
@@ -1265,6 +1265,22 @@ function navRiskKpi(sigKey){
 let _flagDDCloseListener=null;
 let _prevDrill=null;
 let _refocusSearch=null;
+// Search-focus preservation: any <input data-sf="<key>"> will keep focus and
+// cursor position across innerHTML rewrites. Call _sfSnapshot() immediately
+// before an innerHTML= assignment and invoke the returned function right
+// after. The helper is a no-op when no search input is currently focused.
+function _sfSnapshot(){
+  const a=document.activeElement;
+  const key=a&&a.dataset&&a.dataset.sf;
+  const pos=key?a.selectionStart:null;
+  return function _sfRestore(){
+    if(!key)return;
+    requestAnimationFrame(()=>{
+      const inp=document.querySelector('input[data-sf="'+key+'"]');
+      if(inp){inp.focus();try{inp.setSelectionRange(pos,pos);}catch(e){}}
+    });
+  };
+}
 let _spClicks=0;let _spClickTimer=null;
 function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_spClickTimer=setTimeout(()=>{_spClicks=0;},1500);if(_spClicks>=5){_spClicks=0;S.goalsOpen=!S.goalsOpen;render();}}
 let _acctTabClicks=0,_acctTabTimer=null;
@@ -1648,10 +1664,10 @@ function _buildCadenceData(){
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssAcctFlagsSet(vals){if(!S.acctFilter)S.acctFilter={};S.acctFilter.flags=vals||[];render();}
-function ssEngAcctFilter(col,val){if(!S.engAcctFilter)S.engAcctFilter={};if(val)S.engAcctFilter[col]=val;else delete S.engAcctFilter[col];if(col==='acctSearch')_refocusSearch='engacct';render();}
+function ssEngAcctFilter(col,val){if(!S.engAcctFilter)S.engAcctFilter={};if(val)S.engAcctFilter[col]=val;else delete S.engAcctFilter[col];render();}
 function ssEngAcctSort(col){const cur=S.engAcctSort||{};S.engAcctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
 function ssDrillSort(col){const cur=S.drillSort;S.drillSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
-function ssDrillFilter(col,val){if(!S.drillFilter)S.drillFilter={};if(val)S.drillFilter[col]=val;else delete S.drillFilter[col];if(col==='acctSearch')_refocusSearch='drill';render();}
+function ssDrillFilter(col,val){if(!S.drillFilter)S.drillFilter={};if(val)S.drillFilter[col]=val;else delete S.drillFilter[col];render();}
 function ssDrillFlagToggle(flag,on){if(!S.drillFilter)S.drillFilter={};const a=Array.isArray(S.drillFilter.flags)?S.drillFilter.flags:[];S.drillFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssDrillFlagsSet(vals){if(!S.drillFilter)S.drillFilter={};S.drillFilter.flags=vals||[];render();}
 function roDisp(ro,ae){return S.showAE&&ae?`${ro}<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`:ro;}
@@ -1871,7 +1887,7 @@ function _render(){
             ${drillHasFilters?`<button onclick="S.drillFilter={};S.drillSort={col:'r25',dir:'desc'};render()" style="background:#ef444420;color:#ef4444;border:1px solid #ef444440;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
           </div>
           <table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#0f172a;z-index:1"><tr>
-            <th onclick="ssDrillSort('account')" style="${dThS};width:180px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Account ${dsd('account')}</div><input onclick="event.stopPropagation()" oninput="ssDrillFilter('acctSearch',this.value)" value="${(df.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${dCtrlS}"></th>
+            <th onclick="ssDrillSort('account')" style="${dThS};width:180px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Account ${dsd('account')}</div><input data-sf="drill-acct" onclick="event.stopPropagation()" oninput="ssDrillFilter('acctSearch',this.value)" value="${(df.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${dCtrlS}"></th>
             <th onclick="ssDrillSort('owner')" style="${dThS};width:100px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Owner ${dsd('owner')}</div>${dSel('owner',uDOwners)}</th>
             ${S.showAE?`<th onclick="ssDrillSort('ae')" style="${dThS};width:90px"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">AE ${dsd('ae')}</div>${dSel('ae',uDAE)}</th>`:''}
             <th onclick="ssDrillSort('r25')" style="${dThS};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${dsd('r25')}</div>${dRngPair('r25min','r25max')}</th>
@@ -2003,7 +2019,7 @@ function _render(){
       h+=`<div class="cd mv-stuck" style="padding:0;overflow:hidden">
         <div style="padding:14px 18px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <span style="font-size:14px;font-weight:600;color:#fb923c">${stuckVisible.length} Stuck Deals · ${fm(stuckVisible.reduce((a,d)=>a+d.r25,0))} at stake</span>
-          <input placeholder="Filter owner…" value="${sf2.owner||''}" oninput="S.stuckFilter={...S.stuckFilter||{},owner:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0;width:130px">
+          <input data-sf="stuck-owner" placeholder="Filter owner…" value="${sf2.owner||''}" oninput="S.stuckFilter={...S.stuckFilter||{},owner:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0;width:130px">
           <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">${stageOpts.map(s=>{const sel=(sf2.stages||[]).includes(s);return`<label onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:4px;font-size:11px;color:${sel?CL[s]:'#64748b'};cursor:pointer;border:1px solid ${sel?CL[s]:'#334155'};border-radius:4px;padding:2px 7px;user-select:none"><input type="checkbox" ${sel?'checked':''} onchange="(function(e){e.stopPropagation();const cur=(S.stuckFilter||{}).stages||[];S.stuckFilter={...S.stuckFilter||{},stages:e.target.checked?[...cur,'${s}']:cur.filter(x=>x!=='${s}')};render();})(event)" style="margin:0;accent-color:${CL[s]}">${SH[s]||s}</label>`;}).join('')}</div>
           ${(sf2.owner||(sf2.stages&&sf2.stages.length))?`<button onclick="S.stuckFilter={};render()" style="background:transparent;border:1px solid #475569;border-radius:4px;padding:3px 8px;font-size:11px;color:#94a3b8;cursor:pointer">Clear</button>`:''}
         </div>
@@ -2536,7 +2552,7 @@ function _render(){
         </div>
         <div class="st"><table style="table-layout:fixed;width:100%">
         <thead style="position:sticky;top:0;background:#0d1520;z-index:1"><tr>
-          <th onclick="ssEngAcctSort('acct')" style="${ethS};width:220px">Account ${esd('acct')}<br><input onclick="event.stopPropagation()" oninput="ssEngAcctFilter('acctSearch',this.value)" value="${(af.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${eCtrlS}"></th>
+          <th onclick="ssEngAcctSort('acct')" style="${ethS};width:220px">Account ${esd('acct')}<br><input data-sf="eng-acct" onclick="event.stopPropagation()" oninput="ssEngAcctFilter('acctSearch',this.value)" value="${(af.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${eCtrlS}"></th>
           <th onclick="ssEngAcctSort('owner')" style="${ethS};width:110px">Owner ${esd('owner')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('owner',this.value)" style="${eCtrlS}"><option value="">All</option>${uEOwners.map(o=>`<option value="${o}"${af.owner===o?' selected':''}>${o}</option>`).join('')}</select></th>
           ${showRenewal?`<th onclick="ssEngAcctSort('stage')" style="${ethS};width:160px;color:#a78bfa">Renewal Stage ${esd('stage')}</th>`:''}
           <th onclick="ssEngAcctSort('endMonth')" style="${ethS};width:90px">End Month ${esd('endMonth')}<br><select onclick="event.stopPropagation()" onchange="ssEngAcctFilter('endMonth',this.value)" style="${eCtrlS}"><option value="">All</option>${uEMonths.map(m=>`<option value="${m}"${af.endMonth===m?' selected':''}>${m}</option>`).join('')}</select></th>
@@ -2760,7 +2776,7 @@ function _render(){
     h+=`<button onclick="saveSnapshot()" style="padding:6px 14px;border-radius:6px;border:1px solid #a78bfa;background:transparent;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">+ Save Snapshot Now</button></div>`;
     // ── filter + sort bar ──
     h+=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:#0a1628;border-radius:8px;border:1px solid #1e293b">`;
-    h+=`<input placeholder="Search label…" value="${(hsf.search||'').replace(/"/g,'&quot;')}" oninput="S.hsFilter={...S.hsFilter,search:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:4px 9px;font-size:11px;color:#e2e8f0;width:140px">`;
+    h+=`<input data-sf="hs-search" placeholder="Search label…" value="${(hsf.search||'').replace(/"/g,'&quot;')}" oninput="S.hsFilter={...S.hsFilter,search:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:4px 9px;font-size:11px;color:#e2e8f0;width:140px">`;
     h+=`<label style="font-size:11px;color:#475569;display:flex;align-items:center;gap:5px">From <input type="date" value="${hsf.dateFrom||''}" onchange="S.hsFilter={...S.hsFilter,dateFrom:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 6px;font-size:11px;color:#e2e8f0;font-family:inherit"></label>`;
     h+=`<label style="font-size:11px;color:#475569;display:flex;align-items:center;gap:5px">To <input type="date" value="${hsf.dateTo||''}" onchange="S.hsFilter={...S.hsFilter,dateTo:this.value};render()" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:3px 6px;font-size:11px;color:#e2e8f0;font-family:inherit"></label>`;
     h+=`<div style="display:flex;align-items:center;gap:6px;margin-left:4px">`;
@@ -2929,7 +2945,7 @@ function _render(){
           h+=`<span style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px">Deals That Moved — ${compareLabel}</span>`;
           if(moves.length){
             h+=`<div style="display:flex;align-items:center;gap:8px">`;
-            h+=`<input placeholder="Search account…" value="${(mfilt.search||'').replace(/"/g,'&quot;')}" oninput="(function(v){if(!S.hsMoveFilter)S.hsMoveFilter={};S.hsMoveFilter[${i}]={...S.hsMoveFilter[${i}]||{},search:v};render()})(this.value)" style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0;width:150px">`;
+            h+=`<input data-sf="hs-mv-${i}" placeholder="Search account…" value="${(mfilt.search||'').replace(/"/g,'&quot;')}" oninput="(function(v){if(!S.hsMoveFilter)S.hsMoveFilter={};S.hsMoveFilter[${i}]={...S.hsMoveFilter[${i}]||{},search:v};render()})(this.value)" style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:3px 8px;font-size:11px;color:#e2e8f0;width:150px">`;
             const dirs=['up','down','lost'];const dirLabels={up:'↑ Up only',down:'↓ Down only',lost:'✕ Lost only'};
             h+=`<select onchange="(function(v){if(!S.hsMoveFilter)S.hsMoveFilter={};S.hsMoveFilter[${i}]={...S.hsMoveFilter[${i}]||{},dir:v};render()})(this.value)" style="background:#0f172a;border:1px solid #334155;border-radius:4px;padding:3px 7px;font-size:11px;color:#e2e8f0;font-family:inherit"><option value="">All types</option><option value="up" ${mfilt.dir==='up'?'selected':''}>↑ Up only</option><option value="down" ${mfilt.dir==='down'?'selected':''}>↓ Down only</option><option value="lost" ${mfilt.dir==='lost'?'selected':''}>✕ Lost only</option></select>`;
             if(mfilt.search||mfilt.dir)h+=`<button onclick="if(!S.hsMoveFilter)S.hsMoveFilter={};S.hsMoveFilter[${i}]={};render()" style="background:transparent;border:1px solid #475569;border-radius:4px;padding:2px 8px;font-size:11px;color:#94a3b8;cursor:pointer">Clear</button>`;
@@ -3064,7 +3080,7 @@ function _render(){
       ${hasFilters?`<button onclick="S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};render()" style="font-size:10px;padding:2px 10px;background:#1e293b;border:1px solid #ef4444;color:#ef4444;border-radius:4px;cursor:pointer;font-family:inherit">✕ Reset Filters</button>`:''}
     </div>
     <div class="st"><table style="table-layout:fixed;width:100%"><thead style="position:sticky;top:0;background:#0d1520;z-index:1"><tr>
-      <th onclick="ssAcctSort('account')" style="${thStyle};width:170px"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div><input onclick="event.stopPropagation()" oninput="ssAcctFilter('acctSearch',this.value)" value="${(af.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${aCtrlS}"></th>
+      <th onclick="ssAcctSort('account')" style="${thStyle};width:170px"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div><input data-sf="acct-search" onclick="event.stopPropagation()" oninput="ssAcctFilter('acctSearch',this.value)" value="${(af.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${aCtrlS}"></th>
       <th onclick="ssAcctSort('stage')" style="${thStyle};width:112px"><div style="display:flex;align-items:center;gap:3px">Stage ${sdArr('stage')}</div>${fStageSelect()}</th>
       <th onclick="ssAcctSort('owner')" style="${thStyle};width:100px"><div style="display:flex;align-items:center;gap:3px">Owner ${sdArr('owner')}</div>${fSelect('owner',uOwners)}</th>
       ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle};width:90px"><div style="display:flex;align-items:center;gap:3px">AE ${sdArr('ae')}</div>${fSelect('ae',uAE)}</th>`:''}
@@ -3100,9 +3116,10 @@ function _render(){
 
 
   if(LIGHT) h=h.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g,m=>DARK_TO_LIGHT[m.toLowerCase()]||m);
+  const _sfR=_sfSnapshot();
   document.getElementById('app').innerHTML=h;
   applyBodyClass();
-  if(_refocusSearch){const _rs=_refocusSearch;_refocusSearch=null;requestAnimationFrame(()=>{const val=_rs==='acct'?(S.acctFilter&&S.acctFilter.acctSearch||''):_rs==='engacct'?(S.engAcctFilter&&S.engAcctFilter.acctSearch||''):(S.drillFilter&&S.drillFilter.acctSearch||'');const inp=[...document.querySelectorAll('input[placeholder="Search..."]')].find(i=>i.value===val);if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}});}
+  _sfR();
   if(S.drill&&S.tab==='pipeline'&&S.drill!==_prevDrill){requestAnimationFrame(()=>{const el=document.querySelector('.dr2');if(el)window.scrollTo({top:el.offsetTop-16,behavior:'smooth'});});}
   _prevDrill=S.drill;
   if(_flagDDCloseListener){document.removeEventListener('click',_flagDDCloseListener);_flagDDCloseListener=null;}
@@ -4056,6 +4073,7 @@ function rAllAccts(){
   const thSt=`padding:8px 8px;font-size:10px;font-weight:600;color:var(--dim);text-align:left;cursor:pointer;user-select:none;white-space:nowrap;background:var(--card);position:sticky;top:0;z-index:1;border-bottom:2px solid var(--borderL)`;
   const filterSt=`background:var(--bg);border:1px solid var(--borderL);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit`;
 
+  const _sfR=_sfSnapshot();
   el.innerHTML=`
     <div class="card">
       <h3>All Accounts</h3>
@@ -4080,7 +4098,7 @@ function rAllAccts(){
             <option value="no" ${_aaState.riskFilter==='no'?'selected':''}>Clean</option>
           </select>
         </label>
-        <input type="text" placeholder="Search account, CSM, notes…" value="${(_aaState.search||'').replace(/"/g,'&quot;')}" oninput="_aaSetSearch(this.value)" style="${filterSt};flex:1;min-width:220px">
+        <input type="text" data-sf="aa-search" placeholder="Search account, CSM, notes…" value="${(_aaState.search||'').replace(/"/g,'&quot;')}" oninput="_aaSetSearch(this.value)" style="${filterSt};flex:1;min-width:220px">
         <button onclick="_aaReset()" style="${filterSt};cursor:pointer;color:var(--dim)">Reset</button>
         <span style="font-size:11px;color:var(--dim);margin-left:auto"><strong style="color:var(--text)">${rows.length}</strong> of ${all.length}</span>
       </div>
@@ -4116,6 +4134,7 @@ function rAllAccts(){
         </table>
       </div>
     </div>`;
+  _sfR();
 }
 
 
@@ -4485,9 +4504,10 @@ function rRCHistory(){
   h+='<div class="card">';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">';
   h+='<div><h3 style="margin:0 0 4px">📸 Snapshot History</h3><div class="sh">'+history.length+' snapshot'+(history.length!==1?'s':'')+' · Select "vs" to compare any two snapshots and see movement · GP Retention (all 4 quarters × pools) + Cadence per CSM · up to 500 kept</div></div>';
-  h+='<input placeholder="Search snapshots…" value="'+(RCS.search||'').replace(/"/g,'&quot;')+'" oninput="window._rchSt.search=this.value;rRCHistory()" style="background:var(--bg);border:1px solid var(--borderL);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--text);width:160px;font-family:inherit">';
+  h+='<input data-sf="rch-search" placeholder="Search snapshots…" value="'+(RCS.search||'').replace(/"/g,'&quot;')+'" oninput="window._rchSt.search=this.value;rRCHistory()" style="background:var(--bg);border:1px solid var(--borderL);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--text);width:160px;font-family:inherit">';
   h+='</div>';
-  if(!filtHist.length){h+='<div class="sh" style="padding:20px 0;text-align:center">No snapshots match the search.</div></div>';el.innerHTML=h;return;}
+  const _sfR=_sfSnapshot();
+  if(!filtHist.length){h+='<div class="sh" style="padding:20px 0;text-align:center">No snapshots match the search.</div></div>';el.innerHTML=h;_sfR();return;}
   h+='<div style="display:flex;flex-direction:column;gap:8px">';
   filtHist.forEach(function(snap){
     const i=snap._oi;
@@ -4708,6 +4728,7 @@ function rRCHistory(){
   });
   h+='</div></div>';
   el.innerHTML=h;
+  _sfR();
 }
 function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
 rOverview();
