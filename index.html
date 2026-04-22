@@ -282,7 +282,8 @@ document.addEventListener('click',function(e){
   const b=document.getElementById('ownerDropBtn');if(b)b.classList.remove('op');
 });
 
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,forecastPod:''};
+function ssForecastPod(v){S.forecastPod=v||'';render();}
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -1539,13 +1540,14 @@ function _buildLiveGoalsData(){
   }
   return{grr,grrNone,totalNone,churned,allAccts,spAgg,spOwn,spRisk};
 }
-function _buildLiveForecastData(){
+function _buildLiveForecastData(pod){
   // Mirrors the inline forecast block: computes GPQ, GP, GPQR from D
+  // Optional `pod` argument filters GP (D) and SP (SP_RAW, via ENG_RAW name match) to a single pod.
   const WON=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
   const CHR=new Set(['11. Churned']);
   const DCL=new Set([]);
   const getQ=se=>{if(!se)return null;const m=parseInt((se.substring(5,7)||'0'));return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
-  const all=D||[];
+  const all=pod?((D||[]).filter(x=>x.pod===pod)):(D||[]);
   const gp={T:all.length,W:all.filter(x=>WON.has(x.s)).length,O:all.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s)).length,D:all.filter(x=>DCL.has(x.s)).length,C:all.filter(x=>CHR.has(x.s)).length,base:all.reduce((a,x)=>a+(x.r25||0),0),churnRev:all.filter(x=>CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0)};
   const gpq={},gpqr={};
   const qMo={Q1:'Jan–Mar',Q2:'Apr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dec'};
@@ -1631,8 +1633,16 @@ function _buildLiveForecastData(){
   // ── SP live from SP_RAW (GA 26 SPs tab of renewal master) ────────────────
   // processSPData gives each row {n,s,r,o,sub}.  Stage is free-text, so we
   // classify by keywords to mirror the GP WON/CHR buckets.
+  // When a pod filter is active, resolve SP account names → ENG_RAW pod and
+  // drop any SP_RAW row whose matched pod ≠ requested pod.
+  let _spPodNames=null;
+  if(pod&&SP_RAW&&SP_RAW.length&&ENG_RAW&&ENG_RAW.length){
+    const _nkPod={};(ENG_RAW||[]).forEach(r=>{if(r.pod&&r.acct){const k=_normAcctKey(r.acct);if(k&&!_nkPod[k])_nkPod[k]=r.pod;}});
+    _spPodNames=new Set();SP_RAW.forEach(r=>{if(r.n){const k=_normAcctKey(r.n);if(k&&_nkPod[k]===pod)_spPodNames.add(r.n);}});
+  }
+  const _spAll=(_spPodNames?SP_RAW.filter(r=>_spPodNames.has(r.n)):(SP_RAW||[]));
   let spq=null,spq_q=null,sp_rev=null;
-  if(SP_RAW&&SP_RAW.length){
+  if(_spAll&&_spAll.length){
     const spIsWon=s=>{const l=(s||'').toLowerCase();return l.includes('invoice')||l.includes('paid')||l.includes('signed')||l.includes('won')||l.includes('renewed');};
     const spIsChurn=s=>{const l=(s||'').toLowerCase();return l.includes('churn')||l.includes('closed lost')||l.includes('lost')||l.includes('cancel');};
     // Robust month extraction — handles YYYY-MM-DD (excelDateToJS serial path),
@@ -1659,10 +1669,11 @@ function _buildLiveForecastData(){
     };
     const getSpQ=sub=>{const m=getMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
 
-    // Always compute live aggregates from the filtered SP_RAW (top-bar count
-    // already reflects the Exclude-for-attainment filter).
+    // Always compute live aggregates from the filtered SP source (top-bar count
+    // already reflects the Exclude-for-attainment filter; _spAll additionally
+    // reflects the active pod filter when present).
     let T=0,W=0,C=0,Dc=0,base=0,wonBase=0,openBase=0,churnRev=0;
-    SP_RAW.forEach(r=>{
+    _spAll.forEach(r=>{
       T++;base+=r.r||0;
       if(spIsWon(r.s)){W++;wonBase+=r.r||0;}
       else if(spIsChurn(r.s)){C++;churnRev+=r.r||0;}
@@ -1676,10 +1687,10 @@ function _buildLiveForecastData(){
     const qStat=q=>{const n=parseInt(q.substring(1));return n<curQ?'closed':n===curQ?'active':n===curQ+1?'upcoming':'future';};
     // Use Renewal Master's "Subscription End Date" (column AI) when present,
     // falling back to SP_RAW's own `sub` column if the master has no entry.
-    const sp=SP_RAW.filter(r=>getSpQ(_spSub(r))!==null);
+    const sp=_spAll.filter(r=>getSpQ(_spSub(r))!==null);
     let _nMaster=0,_nFallback=0;
-    SP_RAW.forEach(r=>{const k=_nkSp(r.n);if(k&&spSubFromMaster[k])_nMaster++;else if(r.sub)_nFallback++;});
-    console.log('[forecast] SP sub-end source split: master='+_nMaster+' sp_raw='+_nFallback+' none='+(SP_RAW.length-_nMaster-_nFallback)+' (total='+SP_RAW.length+')');
+    _spAll.forEach(r=>{const k=_nkSp(r.n);if(k&&spSubFromMaster[k])_nMaster++;else if(r.sub)_nFallback++;});
+    console.log('[forecast] SP sub-end source split: master='+_nMaster+' sp_raw='+_nFallback+' none='+(_spAll.length-_nMaster-_nFallback)+' (total='+_spAll.length+(pod?' · pod='+pod:'')+')');
     if(sp.length>0){
       // Real sub-end dates exist → compute per-quarter from them.
       spq_q={};
@@ -3331,8 +3342,11 @@ rGP=function(){
     forecastOverlay.style.display='flex';
     let src=document.getElementById('_forecast_tpl').value;
     // Inject live GP, GPQ, GPQR — only when D is populated
+    const _fcPod=S.forecastPod||'';
+    let _fcGpCount=0,_fcSpCount=0;
     if(D&&D.length>0){
-      const live=_buildLiveForecastData();
+      const live=_buildLiveForecastData(_fcPod);
+      _fcGpCount=live.gp.T;_fcSpCount=live.spq?live.spq.t:0;
       src=src.replace(/const GPQ\s*=\s*\{[\s\S]*?\};/,`const GPQ=${JSON.stringify(live.gpq)};`);
       src=src.replace(/const GP\s*=\s*\{[^}]*\};/,`const GP=${JSON.stringify(live.gp)};`);
       src=src.replace(/const GPQR\s*=\s*\{[\s\S]*?\};/,`const GPQR=${JSON.stringify(live.gpqr)};`);
@@ -3346,8 +3360,13 @@ rGP=function(){
       if(live.sp_rev)src=src.replace(/const SP_REV\s*=\s*\{[\s\S]*?\n\};/,`const SP_REV=${JSON.stringify(live.sp_rev)};`);
     }
     const fcNote=D&&D.length
-      ? (SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`)
+      ? (_fcPod?`Pod: ${_fcPod} · ${_fcGpCount} GP + ${_fcSpCount} SP accounts`:(SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`))
       : 'Using static baseline (no live data loaded)';
+    // Build pod list (from ENG_RAW) with numeric Pod 1/2/3/4 ordered first
+    const _fcPods=[...new Set((ENG_RAW||[]).map(r=>r.pod).filter(Boolean))].sort((a,b)=>{
+      const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
+      if(na&&nb)return+na[1]-+nb[1];if(na)return -1;if(nb)return 1;return a.localeCompare(b);
+    });
     // Apply light-mode transforms to the iframe HTML when LIGHT is on
     if(LIGHT){
       // Protect body.light{...} rules from hex substitution (see note in Goals block).
@@ -3359,7 +3378,8 @@ rGP=function(){
     }
     forecastOverlay.style.background=LIGHT?'rgba(200,210,225,.92)':'rgba(5,10,20,.92)';
     const _fBarBg=LIGHT?'#f4f5fa':'#07071a',_fBarBd=LIGHT?'#c8ccd8':'#1a1a35',_fBarTx=LIGHT?'#1a1a28':'#d0d0ec',_fBarMt=LIGHT?'#6a6a88':'#4a4a6e',_fBtnBg=LIGHT?'#e4e6f0':'#1a1a35',_fBtnBd=LIGHT?'#c0c4d2':'#2a2a44',_fBtnTx=LIGHT?'#555a78':'#7777aa',_fIfBg=LIGHT?'#e4e6f0':'#07071a';
-    forecastOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_fBarBg};border-bottom:1px solid ${_fBarBd};flex-shrink:0"><span style="font-size:13px;font-weight:700;color:${_fBarTx}">iConnections — Retention & Revenue Forecast 2026</span><span style="font-size:11px;color:${_fBarMt}">${fcNote}</span><div style="display:flex;gap:8px;align-items:center"><button onclick="ssTheme()" title="Toggle light/dark mode" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button><button onclick="_closeForecast()" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_forecast_iframe" style="flex:1;border:none;background:${_fIfBg};" src="about:blank"></iframe>`;
+    const _fcPodSel=_fcPods.length?`<select onchange="ssForecastPod(this.value)" title="Filter forecast to a single Pod" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;max-width:160px"><option value=""${!_fcPod?' selected':''}>All pods</option>${_fcPods.map(p=>`<option value="${p}"${_fcPod===p?' selected':''}>${p}</option>`).join('')}</select>`:'';
+    forecastOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_fBarBg};border-bottom:1px solid ${_fBarBd};flex-shrink:0"><span style="font-size:13px;font-weight:700;color:${_fBarTx}">iConnections — Retention & Revenue Forecast 2026</span><span style="font-size:11px;color:${_fBarMt}">${fcNote}</span><div style="display:flex;gap:8px;align-items:center">${_fcPodSel}<button onclick="ssTheme()" title="Toggle light/dark mode" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button><button onclick="_closeForecast()" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_forecast_iframe" style="flex:1;border:none;background:${_fIfBg};" src="about:blank"></iframe>`;
     requestAnimationFrame(()=>{const fr=document.getElementById('_forecast_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
     if(forecastOverlay)forecastOverlay.style.display='none';
