@@ -4690,8 +4690,8 @@ button{cursor:pointer;transition:filter .15s;font-family:var(--S)}button:hover{f
 .cd{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:20px 22px;margin-bottom:14px}
 .ct{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;margin-bottom:14px;padding-bottom:7px}
 .bt{width:100%;background:var(--br);border-radius:3px;overflow:hidden}.bf{height:100%;border-radius:3px;transition:width .3s}
-table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;font-size:12px}th{color:var(--mt);text-align:right;font-size:14px;border-bottom:1px solid var(--bd)}th:first-child{text-align:left}td{border-bottom:1px solid #0e0e22}
-.sr{display:flex;align-items:center;gap:6px;margin-bottom:6px;position:relative}.sl{width:110px;font-size:12px;color:#8888aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}.sr:has(.sl:hover)::before{content:attr(data-full);position:absolute;left:0;bottom:calc(100% + 2px);background:#1a1a35;border:1px solid #3a3a5a;padding:4px 9px;border-radius:4px;font-size:11px;font-weight:600;color:#e0e0ff;white-space:nowrap;z-index:1000;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.5)}.sv{width:42px;font-size:13px;font-weight:700;text-align:right;font-family:var(--M)}
+table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{padding:6px 8px;font-size:12px}th{color:var(--mt);font-size:14px;border-bottom:1px solid var(--bd);text-align:right}th:first-child{text-align:left}td{border-bottom:1px solid #0e0e22;text-align:right}td:first-child{text-align:left}td.tr,th.tr{text-align:right}td.tc,th.tc{text-align:center}td.tl,th.tl{text-align:left}td[colspan]{text-align:left}
+.sr{display:grid;grid-template-columns:110px 22px 1fr 22px 42px;align-items:center;gap:6px;margin-bottom:6px;position:relative}.sl{width:110px;font-size:12px;color:#8888aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}.sr:has(.sl:hover)::before{content:attr(data-full);position:absolute;left:0;bottom:calc(100% + 2px);background:#1a1a35;border:1px solid #3a3a5a;padding:4px 9px;border-radius:4px;font-size:11px;font-weight:600;color:#e0e0ff;white-space:nowrap;z-index:1000;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.5)}.sv{width:42px;font-size:13px;font-weight:700;text-align:right;font-family:var(--M)}
 .sib{background:transparent;border:1px solid var(--br);color:var(--mt);width:20px;height:20px;border-radius:4px;font-size:14px;font-weight:700;cursor:pointer;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;user-select:none}.sib:hover{background:var(--br);color:var(--tx)}.sib:active{transform:scale(.92)}
 .ly{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
 .qg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}.qc{background:#08081a;border-radius:9px;padding:14px 16px}
@@ -4766,7 +4766,7 @@ const SCEN={
   best:{l:"Best",c:"#2ed573",oc:65,dc:25,sc:55,exp:140},
 };
 
-let S={tab:'quarterly',seg:'total',oc:50,dc:15,sc:40,exp:130};
+let S={tab:'quarterly',seg:'total',oc:50,dc:15,sc:40,exp:130,stairMode:'qtr'};
 
 const $=v=>`$${(v/1e6).toFixed(1)}M`;const $2=v=>`$${(v/1e6).toFixed(2)}M`;
 const fS=v=>v>=1e6?`$${(v/1e6).toFixed(1)}M`:`$${(v/1000).toFixed(0)}K`;
@@ -4914,24 +4914,27 @@ function render(){
 
     // GP Logo Staircase (always show — it's the comp target)
     if(seg!=='sp'){
-      h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12);display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span>GP Logo Retention Staircase <span style="font-size:10px;color:var(--mt);font-weight:400">· per quarter</span></span><span style="display:inline-flex;gap:10px;font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:none;color:var(--mt);margin-left:auto"><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--rd)"></span><span style="color:var(--rd)">Floor</span> <span style="color:var(--mt)">· pay starts</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--gn)"></span><span style="color:var(--gn)">Full</span> <span style="color:var(--mt)">· 100%</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--pk)"></span><span style="color:var(--pk)">Accel</span> <span style="color:var(--mt)">· 125% cap</span></span></span></div><div class="qg">`;
+      const sm=S.stairMode||'qtr',smLbl=sm==='cum'?'cumulative':'per quarter';
+      const _tgl=`<span style="display:inline-flex;border:1.5px solid var(--or);border-radius:6px;overflow:hidden;margin-left:10px;text-transform:none;letter-spacing:normal"><button onclick="setStair('qtr')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;cursor:pointer;background:${sm==='qtr'?'var(--or)':'transparent'};color:${sm==='qtr'?'#0b0b1c':'var(--or)'};letter-spacing:.5px">QTR</button><button onclick="setStair('cum')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;border-left:1.5px solid var(--or);cursor:pointer;background:${sm==='cum'?'var(--or)':'transparent'};color:${sm==='cum'?'#0b0b1c':'var(--or)'};letter-spacing:.5px">CUM</button></span>`;
+      h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12);display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:inline-flex;align-items:center">GP Logo Retention Staircase <span style="font-size:10px;color:var(--mt);font-weight:400;margin-left:6px">· ${smLbl}</span>${_tgl}</span><span style="display:inline-flex;gap:10px;font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:none;color:var(--mt);margin-left:auto"><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--rd)"></span><span style="color:var(--rd)">Floor</span> <span style="color:var(--mt)">· pay starts</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--gn)"></span><span style="color:var(--gn)">Full</span> <span style="color:var(--mt)">· 100%</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--pk)"></span><span style="color:var(--pk)">Accel</span> <span style="color:var(--mt)">· 125% cap</span></span></span></div><div class="qg">`;
       for(const qk of['Q1','Q2','Q3','Q4']){
         const q=m.gpL[qk],th=GP_TH[qk]||[0,0,0],c=qCl[q.st],fl=th[0],fu=th[1],ac=th[2];
+        const ret=sm==='cum'?q.cR:q.qR,wN=sm==='cum'?q.cW:q.qW,tN=sm==='cum'?q.cT:q.t,pY=sm==='cum'?q.pay:q.qPay;
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="font-size:12px;font-weight:800;color:${c}">${qk}</span>
             <span style="font-size:10px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
-          <div style="font-size:22px;font-weight:800;color:${q.qR>=fu?'var(--gn)':q.qR>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(q.qR)}</div>
-          <div style="font-size:11px;color:var(--dm)">${q.qW}/${q.t}</div>`;
+          <div style="font-size:22px;font-weight:800;color:${ret>=fu?'var(--gn)':ret>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(ret)}</div>
+          <div style="font-size:11px;color:var(--dm)">${wN}/${tN}</div>`;
         if(fu>0){
           h+=`<div style="position:relative;height:7px;background:var(--br);border-radius:4px;margin-top:3px;overflow:visible">
-            <div style="width:${Math.min(q.qR,100)}%;height:100%;background:${q.qR>=fu?'var(--gn)':q.qR>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
+            <div style="width:${Math.min(ret,100)}%;height:100%;background:${ret>=fu?'var(--gn)':ret>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
             <div style="position:absolute;left:${fl}%;top:-1px;width:1.5px;height:9px;background:var(--rd)"></div>
             <div style="position:absolute;left:${fu}%;top:-1px;width:1.5px;height:9px;background:var(--gn)"></div>
             <div style="position:absolute;left:${ac}%;top:-1px;width:1.5px;height:9px;background:var(--pk)"></div></div>
           <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-top:1px"><span style="color:var(--rd)">${fl}</span><span style="color:var(--gn)">${fu}</span><span style="color:var(--pk)">${ac}</span></div>
-          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.qPay>=100?'rgba(46,213,115,.05)':q.qPay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
-            Comp: <b style="color:${q.qPay>=100?'var(--gn)':q.qPay>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(q.qPay)}%</b></div>`;
+          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${pY>=100?'rgba(46,213,115,.05)':pY>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
+            Comp: <b style="color:${pY>=100?'var(--gn)':pY>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(pY)}%</b></div>`;
         } else {
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> gifted</div>`;
         }
@@ -4942,24 +4945,27 @@ function render(){
 
     // SP Logo Retention Staircase (show when sp or total)
     if(seg!=='gp'){
-      h+=`<div class="cd"><div class="ct" style="color:var(--pk);border-bottom-color:rgba(224,64,251,.12);display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span>SP Logo Retention Staircase <span style="font-size:10px;color:var(--mt);font-weight:400">· per quarter</span></span><span style="display:inline-flex;gap:10px;font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:none;color:var(--mt);margin-left:auto"><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--rd)"></span><span style="color:var(--rd)">Floor</span> <span style="color:var(--mt)">· pay starts</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--gn)"></span><span style="color:var(--gn)">Full</span> <span style="color:var(--mt)">· 100%</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--pk)"></span><span style="color:var(--pk)">Accel</span> <span style="color:var(--mt)">· 125% cap</span></span></span></div><div class="qg">`;
+      const sm=S.stairMode||'qtr',smLbl=sm==='cum'?'cumulative':'per quarter';
+      const _tgl=`<span style="display:inline-flex;border:1.5px solid var(--pk);border-radius:6px;overflow:hidden;margin-left:10px;text-transform:none;letter-spacing:normal"><button onclick="setStair('qtr')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;cursor:pointer;background:${sm==='qtr'?'var(--pk)':'transparent'};color:${sm==='qtr'?'#0b0b1c':'var(--pk)'};letter-spacing:.5px">QTR</button><button onclick="setStair('cum')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;border-left:1.5px solid var(--pk);cursor:pointer;background:${sm==='cum'?'var(--pk)':'transparent'};color:${sm==='cum'?'#0b0b1c':'var(--pk)'};letter-spacing:.5px">CUM</button></span>`;
+      h+=`<div class="cd"><div class="ct" style="color:var(--pk);border-bottom-color:rgba(224,64,251,.12);display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:inline-flex;align-items:center">SP Logo Retention Staircase <span style="font-size:10px;color:var(--mt);font-weight:400;margin-left:6px">· ${smLbl}</span>${_tgl}</span><span style="display:inline-flex;gap:10px;font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:none;color:var(--mt);margin-left:auto"><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--rd)"></span><span style="color:var(--rd)">Floor</span> <span style="color:var(--mt)">· pay starts</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--gn)"></span><span style="color:var(--gn)">Full</span> <span style="color:var(--mt)">· 100%</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--pk)"></span><span style="color:var(--pk)">Accel</span> <span style="color:var(--mt)">· 125% cap</span></span></span></div><div class="qg">`;
       for(const qk of['Q1','Q2','Q3','Q4']){
         const q=m.spL[qk],th=SP_TH[qk]||[0,0,0],c=qCl[q.st],fl=th[0],fu=th[1],ac=th[2];
+        const ret=sm==='cum'?q.cR:q.qR,wN=sm==='cum'?q.cW:q.qW,tN=sm==='cum'?q.cT:q.t,pY=sm==='cum'?q.pay:q.qPay;
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="font-size:12px;font-weight:800;color:${c}">${qk}</span>
             <span style="font-size:10px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
-          <div style="font-size:22px;font-weight:800;color:${q.qR>=fu?'var(--gn)':q.qR>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(q.qR)}</div>
-          <div style="font-size:11px;color:var(--dm)">${q.qW}/${q.t}</div>`;
+          <div style="font-size:22px;font-weight:800;color:${ret>=fu?'var(--gn)':ret>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(ret)}</div>
+          <div style="font-size:11px;color:var(--dm)">${wN}/${tN}</div>`;
         if(fu>0){
           h+=`<div style="position:relative;height:7px;background:var(--br);border-radius:4px;margin-top:3px;overflow:visible">
-            <div style="width:${Math.min(q.qR,100)}%;height:100%;background:${q.qR>=fu?'var(--gn)':q.qR>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
+            <div style="width:${Math.min(ret,100)}%;height:100%;background:${ret>=fu?'var(--gn)':ret>=fl?'var(--or)':'var(--rd)'};border-radius:4px"></div>
             <div style="position:absolute;left:${fl}%;top:-1px;width:1.5px;height:9px;background:var(--rd)"></div>
             <div style="position:absolute;left:${fu}%;top:-1px;width:1.5px;height:9px;background:var(--gn)"></div>
             <div style="position:absolute;left:${ac}%;top:-1px;width:1.5px;height:9px;background:var(--pk)"></div></div>
           <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-top:1px"><span style="color:var(--rd)">${fl}</span><span style="color:var(--gn)">${fu}</span><span style="color:var(--pk)">${ac}</span></div>
-          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${q.qPay>=100?'rgba(46,213,115,.05)':q.qPay>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
-            Comp: <b style="color:${q.qPay>=100?'var(--gn)':q.qPay>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(q.qPay)}%</b></div>`;
+          <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${pY>=100?'rgba(46,213,115,.05)':pY>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
+            Comp: <b style="color:${pY>=100?'var(--gn)':pY>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(pY)}%</b></div>`;
         } else {
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(224,64,251,.05)">Q1: no SP threshold</div>`;
         }
@@ -5019,19 +5025,19 @@ function render(){
     // GP Table
     if(seg!=='sp'){
       h+=`<div style="font-size:13px;font-weight:700;color:var(--pu);margin-bottom:5px">GP (${GP.T} logos · ${$(GP.base)})</div>
-        <table><thead><tr><th style="text-align:left">Q</th><th>Floor</th><th>Full</th><th>Accel</th><th>Logo Ret</th><th>Payout</th><th>Cum Rev</th><th>Cum NRR</th></tr></thead><tbody>
-        <tr style="background:rgba(124,108,255,.03)"><td style="font-weight:600;color:var(--pu)">Q1</td><td colspan="3" class="tr" style="color:var(--mt)">gifted</td><td class="tr" style="font-family:var(--M)">${P(m.gpL.Q1.cR)}</td><td class="tr" style="font-family:var(--M);font-weight:700;color:var(--pu)">100%</td><td class="tr" style="font-family:var(--M);color:var(--pk)">${$(m.gpR.Q1.cE)}</td><td class="tr" style="font-family:var(--M);color:${cl(m.gpR.Q1.cNrr,90)}">${P(m.gpR.Q1.cNrr)}</td></tr>`;
+        <table style="table-layout:fixed"><colgroup><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:13%"><col style="width:12%"><col style="width:19%"><col style="width:18%"></colgroup><thead><tr><th style="text-align:left">Q</th><th style="text-align:right">Floor</th><th style="text-align:right">Full</th><th style="text-align:right">Accel</th><th style="text-align:right">Logo Ret</th><th style="text-align:right">Payout</th><th style="text-align:right">Cum Rev</th><th style="text-align:right">Cum NRR</th></tr></thead><tbody>
+        <tr style="background:rgba(124,108,255,.03)"><td style="font-weight:600;color:var(--pu);text-align:left">Q1</td><td colspan="3" style="color:var(--mt);text-align:left">gifted</td><td style="font-family:var(--M);text-align:right">${P(m.gpL.Q1.cR)}</td><td style="font-family:var(--M);font-weight:700;color:var(--pu);text-align:right">100%</td><td style="font-family:var(--M);color:var(--pk);text-align:right">${$(m.gpR.Q1.cE)}</td><td style="font-family:var(--M);color:${cl(m.gpR.Q1.cNrr,90)};text-align:right">${P(m.gpR.Q1.cNrr)}</td></tr>`;
       for(const qk of['Q2','Q3','Q4']){const q=m.gpL[qk],th=GP_TH[qk],r=m.gpR[qk];
-        h+=`<tr><td style="font-weight:600">${qk}</td><td class="tr" style="color:var(--rd);font-family:var(--M)">${th[0]}%</td><td class="tr" style="color:var(--gn);font-family:var(--M)">${th[1]}%</td><td class="tr" style="color:var(--pk);font-family:var(--M)">${th[2]}%</td><td class="tr" style="font-family:var(--M);font-weight:700;color:${cl(q.cR,th[1])}">${P(q.cR)}</td><td class="tr" style="font-family:var(--M);font-weight:700;color:${q.pay>=100?'var(--gn)':q.pay>0?'var(--or)':'var(--rd)'}">${Math.round(q.pay)}%</td><td class="tr" style="font-family:var(--M);color:var(--pk)">${$(r.cE)}</td><td class="tr" style="font-family:var(--M);color:${cl(r.cNrr,90)}">${P(r.cNrr)}</td></tr>`}
+        h+=`<tr><td style="font-weight:600;text-align:left">${qk}</td><td style="color:var(--rd);font-family:var(--M);text-align:right">${th[0]}%</td><td style="color:var(--gn);font-family:var(--M);text-align:right">${th[1]}%</td><td style="color:var(--pk);font-family:var(--M);text-align:right">${th[2]}%</td><td style="font-family:var(--M);font-weight:700;color:${cl(q.cR,th[1])};text-align:right">${P(q.cR)}</td><td style="font-family:var(--M);font-weight:700;color:${q.pay>=100?'var(--gn)':q.pay>0?'var(--or)':'var(--rd)'};text-align:right">${Math.round(q.pay)}%</td><td style="font-family:var(--M);color:var(--pk);text-align:right">${$(r.cE)}</td><td style="font-family:var(--M);color:${cl(r.cNrr,90)};text-align:right">${P(r.cNrr)}</td></tr>`}
       h+=`</tbody></table>`;
     }
 
     // SP Table
     if(seg!=='gp'){
       h+=`<div style="font-size:13px;font-weight:700;color:var(--pk);margin:12px 0 5px">SP (${SP.T} logos · ${$(SP_REV.base)})</div>
-        <table><thead><tr><th style="text-align:left">Q</th><th>Floor</th><th>Full</th><th>Accel</th><th>Logo Ret</th><th>Payout</th></tr></thead><tbody>`;
+        <table style="table-layout:fixed"><colgroup><col style="width:10%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:22%"><col style="width:23%"></colgroup><thead><tr><th style="text-align:left">Q</th><th style="text-align:right">Floor</th><th style="text-align:right">Full</th><th style="text-align:right">Accel</th><th style="text-align:right">Logo Ret</th><th style="text-align:right">Payout</th></tr></thead><tbody>`;
       for(const qk of['Q2','Q3','Q4']){const th=SP_TH[qk],p=m.spPay[qk];
-        h+=`<tr><td style="font-weight:600">${qk}</td><td class="tr" style="color:var(--rd);font-family:var(--M)">${th[0]}%</td><td class="tr" style="color:var(--gn);font-family:var(--M)">${th[1]}%</td><td class="tr" style="color:var(--pk);font-family:var(--M)">${th[2]}%</td><td class="tr" style="font-family:var(--M);font-weight:700;color:${cl(m.spRet,th[1])}">${P(m.spRet)}</td><td class="tr" style="font-family:var(--M);font-weight:700;color:${p>=100?'var(--gn)':p>0?'var(--or)':'var(--rd)'}">${Math.round(p)}%</td></tr>`}
+        h+=`<tr><td style="font-weight:600;text-align:left">${qk}</td><td style="color:var(--rd);font-family:var(--M);text-align:right">${th[0]}%</td><td style="color:var(--gn);font-family:var(--M);text-align:right">${th[1]}%</td><td style="color:var(--pk);font-family:var(--M);text-align:right">${th[2]}%</td><td style="font-family:var(--M);font-weight:700;color:${cl(m.spRet,th[1])};text-align:right">${P(m.spRet)}</td><td style="font-family:var(--M);font-weight:700;color:${p>=100?'var(--gn)':p>0?'var(--or)':'var(--rd)'};text-align:right">${Math.round(p)}%</td></tr>`}
       h+=`</tbody></table>`;
     }
     h+=`</div>`;
@@ -5146,6 +5152,7 @@ function sidebar(m,seg){
 
 function setTab(t){S.tab=t;render()}
 function setSeg(v){S.seg=v;render()}
+function setStair(m){S.stairMode=m;render()}
 function setS(k,v){S[k]=v;render()}
 function bumpS(k,d){const mx=k==='exp'?180:100,mn=k==='exp'?80:0;S[k]=Math.max(mn,Math.min(mx,(S[k]||0)+d));render()}
 function applySc(k){const s=SCEN[k];S.oc=s.oc;S.dc=s.dc;S.sc=s.sc;S.exp=s.exp;render()}
