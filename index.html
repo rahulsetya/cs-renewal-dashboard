@@ -686,18 +686,19 @@ function _mergeSPsIntoD(){
     if(!resolveStage(r.s))unmatched++;
     const se=r.sub||'';
     const dy=daysDiff(se);
-    // Revenue mapping for SPs:
-    //   r25 ← col AR (2025 revenue)
-    //   o   ← col AQ (2026 revenue) — Pipeline dashboard's "2026 offer" field
-    //   spOffer ← col O (SP-only "Offer Price" — surfaced in its own column)
-    // Fallback to legacy r.r field if the new columns are blank (handles
-    // partially-populated rows without zeroing out the KPI).
-    const r25v=r.r25||r.r||0;
+    // Revenue mapping for SPs — STRICT column pinning, no cross-fallbacks:
+    //   r25 ← col AR (2025 revenue) ONLY. Blank AR → 0 (don't substitute 2026/offer).
+    //   o   ← col AQ (2026 revenue) ONLY. Blank AQ → 0 (don't substitute 2025/offer).
+    //   spOffer ← col O (SP-only "Offer Price") — surfaced in its own column.
+    // Earlier fallback chain (r25||r26||offer) was inflating the 2025 KPI with
+    // values from other columns when AR was blank — user validated against raw
+    // col AR and caught the mismatch.
+    const r25v=r.r25||0;
     const r26v=r.r26||0;
     const offerv=r.offer||0;
     const row={
       c:r.n,s:stage,ro:'Emilie Welch',csRep:'Emilie Welch',or:'N/A',
-      o:r26v||r25v,r25:r25v,r24:0,se,dy,em:se?se.substring(0,7):'',
+      o:r26v,r25:r25v,r24:0,se,dy,em:se?se.substring(0,7):'',
       mt:0,rsk:0,out:0,gm:0,gms:0,ap:0,sentiment:'',ex:0,snt:0,
       clr:'',icn:r.notes||'',ae:r.ae||'',pod:'',pid:'',sg:[],ct:'SP',wow:'same',
       spOffer:offerv,__sp:true
