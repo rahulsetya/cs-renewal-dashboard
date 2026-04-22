@@ -3157,6 +3157,10 @@ function _render(){
           }
           src=src.replace(/const SP\s*=\s*\{[^}]*\};/,`const SP=${JSON.stringify(_SP)};`);
           src=src.replace(/const SP_Q\s*=\s*\{[\s\S]*?\n\};/,`const SP_Q=${JSON.stringify(_SP_Q)};`);
+          // Also patch the Emilie roster entry's account count so the CSM
+          // roster table shows the live SP count (e.g. "SPs · 84 accts")
+          // instead of the hardcoded 101.
+          src=src.replace(/(\{n:"Emilie \(SPs\)"[^}]*?a:)\d+/,`$1${_SP.logos}`);
         }
       }catch(e){console.warn('[goals] live SP inject failed:',e);}
       // Replace hardcoded "Last refreshed" date with actual fetch timestamp
@@ -3593,7 +3597,7 @@ function rOverview(){
     </div>
     <div class="grid2">
       <div class="card"><h3>GP Renewal Pipeline</h3><div class="sh">Logo count by quarter — 4-state: won / open / declined early / churned</div><div class="chart-wrap" style="height:240px"><canvas id="c1"></canvas></div>${legend4()}</div>
-      <div class="card" style="min-width:250px;flex:.55"><h3>SP Renewal Pipeline</h3><div class="sh">Emilie · 101 logos · Annual cycle</div>
+      <div class="card" style="min-width:250px;flex:.55"><h3>SP Renewal Pipeline</h3><div class="sh">Emilie · ${SP.logos} logos · Annual cycle</div>
         <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px"><span style="font-size:32px;font-weight:700;color:var(--rose);font-family:var(--mono)">${pct(spRet)}</span><span style="font-size:12px;color:var(--dim)">logo retention</span></div>
         <div class="bar-stack" style="height:8px"><div style="width:${SP.won/SP.logos*100}%;background:var(--green)"></div><div style="width:${SP.open/SP.logos*100}%;background:var(--amber)"></div><div style="width:${SP.lost/SP.logos*100}%;background:var(--red)"></div></div>
         ${[{l:"Won",v:SP.won,c:"var(--green)"},{l:"Open",v:SP.open,c:"var(--amber)"},{l:"Churned",v:SP.lost,c:"var(--red)"}].map(x=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--muted)"><span><span style="width:6px;height:6px;border-radius:50%;background:${x.c};display:inline-block;margin-right:5px"></span>${x.l}</span><span class="mono" style="color:var(--text)">${x.v} logos</span></div>`).join('')}
