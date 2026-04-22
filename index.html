@@ -1473,10 +1473,11 @@ function _buildLiveForecastData(){
     const openRows=rows.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s));
     const declRows=rows.filter(x=>DCL.has(x.s));
     const wonOff=wonRows.reduce((a,x)=>a+(x.o||0),0);
+    const wonBase=wonRows.reduce((a,x)=>a+(x.r25||0),0); // 2025 price of won rows → needed for live Renewal NRR
     const openWOff=openRows.filter(x=>x.o>0).reduce((a,x)=>a+(x.o||0),0);
     const openBase=openRows.reduce((a,x)=>a+(x.r25||0),0);
     const declBase=declRows.reduce((a,x)=>a+(x.r25||0),0);
-    gpqr[qk]={base,wonOff,openWOff,openBase,declBase};
+    gpqr[qk]={base,wonOff,wonBase,openWOff,openBase,declBase};
   }
 
   // ── SP sub-end-date override from Renewal Master ────────────────────────
@@ -4901,8 +4902,18 @@ function calc(oc,dc,sc,exp){
   const allLogos={won:GP.W+SP.W,total:GP.T+SP.T,ret:(GP.W+SP.W)/(GP.T+SP.T)*100,
     projWon:gcW+spTW,projRet:(gcW+spTW)/(GP.T+SP.T)*100};
 
+  // GP Renewal NRR — computed live from won rows when wonBase is available
+  // (live data path adds wonBase per-quarter to gpqr). Static GPQR fallback
+  // omits wonBase, in which case we surface the hardcoded RNRR.gp benchmark.
+  let gpRnrrLive=null;
+  {
+    let sumOff=0,sumBase=0,haveWB=true;
+    for(const qk of['Q1','Q2','Q3','Q4']){const qr=GPQR[qk]||{};if(qr.wonBase==null)haveWB=false;sumOff+=qr.wonOff||0;sumBase+=qr.wonBase||0;}
+    if(haveWB&&sumBase>0)gpRnrrLive=sumOff/sumBase*100;
+  }
+
   return{gpL,gpR,spL,spRet,spPO:spPO,spTW,spPay,spRev,
-    allBase,allExp,allRet,allGrr,allNrr,allLogos,
+    allBase,allExp,allRet,allGrr,allNrr,allLogos,gpRnrrLive,
     gpBase:GP.base,gpExp:gcE,gpRet:gcRt,gpGrr:gpR.Q4.cGrr,gpNrr:gpR.Q4.cNrr};
 }
 
@@ -4914,7 +4925,12 @@ function render(){
   const sExp=seg==='gp'?m.gpExp:seg==='sp'?m.spRev.totExp:m.allExp;
   const sGrr=seg==='gp'?m.gpGrr:seg==='sp'?m.spRev.grr:m.allGrr;
   const sNrr=seg==='gp'?m.gpNrr:seg==='sp'?m.spRev.nrr:m.allNrr;
-  const sRNRR=seg==='sp'?RNRR.sp:RNRR.gp; // renewal NRR
+  // Renewal NRR — GP is computed live when raw pipeline data is present
+  // (m.gpRnrrLive !== null), else falls back to static plan benchmark.
+  // SP stays hardcoded because SP_RAW has no 2025-vs-2026 offer pairing.
+  const gpRNRRsrc=(m.gpRnrrLive!=null)?m.gpRnrrLive:RNRR.gp;
+  const sRNRR=seg==='sp'?RNRR.sp:gpRNRRsrc;
+  const sRNRRlive=seg!=='sp'&&m.gpRnrrLive!=null;
   const sWon=seg==='gp'?GP.W:seg==='sp'?SP.W:GP.W+SP.W;
   const sTotal=seg==='gp'?GP.T:seg==='sp'?SP.T:GP.T+SP.T;
   const sProjWon=seg==='gp'?m.gpL.Q4.cW:seg==='sp'?m.spTW:m.allLogos.projWon;
@@ -4942,7 +4958,7 @@ function render(){
   const tiles=[
     {l:"Won Today",v:`${sWon}/${sTotal}`,c:'var(--tx)',s:P(sWon/sTotal*100)+' current',t:`Count of logos already at a won stage (Signed / Invoice Sent / Paid) ÷ total logos in scope. Snapshot only — no pipeline projection.`},
     {l:"Proj Logo Ret",v:P(sProjRet),c:cl(sProjRet,seg==='sp'?SP_TH.Q4[1]:GP_TH.Q4[1]),s:`${sProjWon}/${sTotal} logos`,t:`(Won + Open × Open-Conv% + Declined × Re-eng%) ÷ total logos. Closed quarters count actuals only; sliders move future quarters.`},
-    {l:"Renewal NRR",v:P(sRNRR),c:sRNRR>=100?'var(--gn)':'var(--rd)',s:'benchmark',t:`Static plan benchmark: NRR observed on already-signed renewals at the time of last comp review (GP 137.2% / SP 83.0%). Not recomputed from live data.`},
+    {l:"Renewal NRR",v:P(sRNRR),c:sRNRR>=100?'var(--gn)':'var(--rd)',s:sRNRRlive?'live · won deals':'SP benchmark',t:sRNRRlive?`Live: sum of 2026 offer across all won GP rows ÷ sum of 2025 base on same rows × 100. Recomputes as renewals close. Drifts from the 137.2% plan benchmark as the won mix changes.`:`Static plan benchmark (SP 83.0%) — SP_RAW has revenue per account but no 2026 offer field, so a live per-account NRR can't be computed. GP switches to live when pipeline data loads.`},
     {l:"Projected NRR",v:P(sNrr),c:cl(sNrr,90),s:'full book w/ pipeline',t:`(Won ARR at offered expansion + Open × Open-Conv% × Expansion + Declined × Re-eng% × Expansion) ÷ 2025 base. 100%+ means the book grows net of churn.`},
     {l:"Projected GRR",v:P(sGrr),c:cl(sGrr,70),s:'rev at 2025 price',t:`Retention revenue held flat at 2025 price (strips offered expansion): (Won ÷ 1.37 + Open × Open-Conv% + Declined × Re-eng%) ÷ 2025 base.`},
     {l:"Expected Rev",v:$2(sExp),c:'var(--pk)',s:`of ${$(sBase)} base`,t:`Dollar amount of Projected NRR: Won ARR with expansion + pipeline × conv × expansion. The $ view of the percentage shown in Projected NRR.`},
