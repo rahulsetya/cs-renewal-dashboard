@@ -3639,7 +3639,7 @@ body.light .scenario-slider::-moz-range-track{background:#bccedd}
   <div id="tab-rules" class="tab-content"></div>
   <div id="tab-rc_history" class="tab-content"></div>
   <div class="footer">
-    <span>Sources: 2026_Renewal_Master.xlsx · CS_Engagement_Tracker_2026.xlsx · Master_Renewal_Workbook_26_.xlsx | 2025 baseline: 52.7% logo retention | Path: 62% → 67% → 72% → 80% | Q2 = logo retention, Q3+ evolving to GRR</span>
+    <span>Sources: 2026_Renewal_Master.xlsx · CS Engagement Tracker April 2026.xlsx · Master_Renewal_Workbook_26_.xlsx | 2025 baseline: 52.7% logo retention | Path: 62% → 67% → 72% → 80% | Q2 = logo retention, Q3+ evolving to GRR</span>
     <span>Last refreshed: March 29, 2026</span>
   </div>
 </div>
@@ -3649,6 +3649,24 @@ body.light .scenario-slider::-moz-range-track{background:#bccedd}
 Chart.register(ChartDataLabels);
 Chart.defaults.plugins.datalabels = {display:false};
 const stackLabels = {display:function(ctx){return ctx.dataset.data[ctx.dataIndex]>8},color:'#fff',font:{size:11,weight:600,family:"'JetBrains Mono',monospace"},anchor:'center',align:'center'};
+
+// Search-input cursor preserver — must be defined INSIDE the iframe because
+// rAllAccts() and rRCHistory() call _sfSnapshot() from within this context.
+// Mirrors the main-page helper at the top of this file. Before this existed,
+// clicking the All Accounts or Snap History tab threw a ReferenceError and
+// the tab body rendered empty.
+function _sfSnapshot(){
+  const a=document.activeElement;
+  const key=a&&a.dataset&&a.dataset.sf;
+  const pos=key?a.selectionStart:null;
+  return function _sfRestore(){
+    if(!key)return;
+    requestAnimationFrame(()=>{
+      const inp=document.querySelector('input[data-sf="'+key+'"]');
+      if(inp){inp.focus();if(pos!=null&&inp.setSelectionRange)try{inp.setSelectionRange(pos,pos);}catch(e){}}
+    });
+  };
+}
 
 // ── DATA (4-STATE MODEL) ────────────────────────────
 // States: won = renewed, lost = CONFIRMED CHURN (9 accounts only),
