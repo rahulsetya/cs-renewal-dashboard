@@ -282,8 +282,30 @@ document.addEventListener('click',function(e){
   const b=document.getElementById('ownerDropBtn');if(b)b.classList.remove('op');
 });
 
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,forecastPod:''};
-function ssForecastPod(v){S.forecastPod=v||'';render();}
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,forecastPods:[]};
+// Normalize S.forecastPods: always an array of pod names (use 'SP' for all SPs)
+function _fcNormPods(){if(!Array.isArray(S.forecastPods))S.forecastPods=S.forecastPods?[String(S.forecastPods)]:[];return S.forecastPods;}
+function ssForecastPodToggle(p){
+  const a=_fcNormPods();const i=a.indexOf(p);
+  if(i>=0)a.splice(i,1);else a.push(p);
+  render();
+}
+function ssForecastPodClear(){S.forecastPods=[];render();}
+let FC_POD_OPEN=false;
+function toggleFcPodDrop(e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  FC_POD_OPEN=!FC_POD_OPEN;
+  const m=document.getElementById('fcPodMenu');if(m)m.style.display=FC_POD_OPEN?'block':'none';
+  const b=document.getElementById('fcPodBtn');if(b)b.classList.toggle('op',FC_POD_OPEN);
+}
+document.addEventListener('click',function(e){
+  if(!FC_POD_OPEN)return;
+  const dd=document.querySelector('.fc-pod-dd');
+  if(dd&&dd.contains(e.target))return;
+  FC_POD_OPEN=false;
+  const m=document.getElementById('fcPodMenu');if(m)m.style.display='none';
+  const b=document.getElementById('fcPodBtn');if(b)b.classList.remove('op');
+});
 
 // ── OAUTH2 PKCE ───────────────────────────────────────────────────────────────
 function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
@@ -1540,14 +1562,25 @@ function _buildLiveGoalsData(){
   }
   return{grr,grrNone,totalNone,churned,allAccts,spAgg,spOwn,spRisk};
 }
-function _buildLiveForecastData(pod){
-  // Mirrors the inline forecast block: computes GPQ, GP, GPQR from D
-  // Optional `pod` argument filters GP (D) and SP (SP_RAW, via ENG_RAW name match) to a single pod.
+function _buildLiveForecastData(pods){
+  // Mirrors the inline forecast block: computes GPQ, GP, GPQR from D.
+  // `pods` is an optional array of pod names to include — e.g. ['Pod 1','SP'].
+  //   • 'SP' is a synthetic pod grouping ALL rows from SP_RAW, regardless of their
+  //     ENG_RAW pod assignment (user-requested grouping).
+  //   • Any other pod filters D (GP) by d.pod matching.
+  //   • Empty/missing array → include everything (all GP + all SP).
   const WON=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
   const CHR=new Set(['11. Churned']);
   const DCL=new Set([]);
   const getQ=se=>{if(!se)return null;const m=parseInt((se.substring(5,7)||'0'));return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
-  const all=pod?((D||[]).filter(x=>x.pod===pod)):(D||[]);
+  // Normalize pod arg
+  const _podArr=Array.isArray(pods)?pods.filter(Boolean):(pods?[String(pods)]:[]);
+  const _active=_podArr.length?new Set(_podArr):null;
+  const _spInc=!_active||_active.has('SP');
+  const _gpPods=_active?[..._active].filter(p=>p!=='SP'):null;
+  // GP (D) filter: if no active filter → all D; if active with GP pods → filter D;
+  // if active with only 'SP' (no GP pods) → empty.
+  const all=!_active?(D||[]):(_gpPods.length?(D||[]).filter(x=>_gpPods.includes(x.pod)):[]);
   const gp={T:all.length,W:all.filter(x=>WON.has(x.s)).length,O:all.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s)).length,D:all.filter(x=>DCL.has(x.s)).length,C:all.filter(x=>CHR.has(x.s)).length,base:all.reduce((a,x)=>a+(x.r25||0),0),churnRev:all.filter(x=>CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0)};
   const gpq={},gpqr={};
   const qMo={Q1:'Jan–Mar',Q2:'Apr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dec'};
@@ -1633,14 +1666,9 @@ function _buildLiveForecastData(pod){
   // ── SP live from SP_RAW (GA 26 SPs tab of renewal master) ────────────────
   // processSPData gives each row {n,s,r,o,sub}.  Stage is free-text, so we
   // classify by keywords to mirror the GP WON/CHR buckets.
-  // When a pod filter is active, resolve SP account names → ENG_RAW pod and
-  // drop any SP_RAW row whose matched pod ≠ requested pod.
-  let _spPodNames=null;
-  if(pod&&SP_RAW&&SP_RAW.length&&ENG_RAW&&ENG_RAW.length){
-    const _nkPod={};(ENG_RAW||[]).forEach(r=>{if(r.pod&&r.acct){const k=_normAcctKey(r.acct);if(k&&!_nkPod[k])_nkPod[k]=r.pod;}});
-    _spPodNames=new Set();SP_RAW.forEach(r=>{if(r.n){const k=_normAcctKey(r.n);if(k&&_nkPod[k]===pod)_spPodNames.add(r.n);}});
-  }
-  const _spAll=(_spPodNames?SP_RAW.filter(r=>_spPodNames.has(r.n)):(SP_RAW||[]));
+  // All SPs are grouped under the synthetic pod 'SP'. Include full SP_RAW
+  // when 'SP' is selected (or no pods selected); drop all SPs otherwise.
+  const _spAll=_spInc?(SP_RAW||[]):[];
   let spq=null,spq_q=null,sp_rev=null;
   if(_spAll&&_spAll.length){
     const spIsWon=s=>{const l=(s||'').toLowerCase();return l.includes('invoice')||l.includes('paid')||l.includes('signed')||l.includes('won')||l.includes('renewed');};
@@ -1690,7 +1718,7 @@ function _buildLiveForecastData(pod){
     const sp=_spAll.filter(r=>getSpQ(_spSub(r))!==null);
     let _nMaster=0,_nFallback=0;
     _spAll.forEach(r=>{const k=_nkSp(r.n);if(k&&spSubFromMaster[k])_nMaster++;else if(r.sub)_nFallback++;});
-    console.log('[forecast] SP sub-end source split: master='+_nMaster+' sp_raw='+_nFallback+' none='+(_spAll.length-_nMaster-_nFallback)+' (total='+_spAll.length+(pod?' · pod='+pod:'')+')');
+    console.log('[forecast] SP sub-end source split: master='+_nMaster+' sp_raw='+_nFallback+' none='+(_spAll.length-_nMaster-_nFallback)+' (total='+_spAll.length+(_active?' · pods='+[..._active].join(','):'')+')');
     if(sp.length>0){
       // Real sub-end dates exist → compute per-quarter from them.
       spq_q={};
@@ -3342,10 +3370,10 @@ rGP=function(){
     forecastOverlay.style.display='flex';
     let src=document.getElementById('_forecast_tpl').value;
     // Inject live GP, GPQ, GPQR — only when D is populated
-    const _fcPod=S.forecastPod||'';
+    const _fcPods=_fcNormPods();
     let _fcGpCount=0,_fcSpCount=0;
     if(D&&D.length>0){
-      const live=_buildLiveForecastData(_fcPod);
+      const live=_buildLiveForecastData(_fcPods);
       _fcGpCount=live.gp.T;_fcSpCount=live.spq?live.spq.t:0;
       src=src.replace(/const GPQ\s*=\s*\{[\s\S]*?\};/,`const GPQ=${JSON.stringify(live.gpq)};`);
       src=src.replace(/const GP\s*=\s*\{[^}]*\};/,`const GP=${JSON.stringify(live.gp)};`);
@@ -3360,13 +3388,14 @@ rGP=function(){
       if(live.sp_rev)src=src.replace(/const SP_REV\s*=\s*\{[\s\S]*?\n\};/,`const SP_REV=${JSON.stringify(live.sp_rev)};`);
     }
     const fcNote=D&&D.length
-      ? (_fcPod?`Pod: ${_fcPod} · ${_fcGpCount} GP + ${_fcSpCount} SP accounts`:(SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`))
+      ? (_fcPods.length?`Pods: ${_fcPods.join(' + ')} · ${_fcGpCount} GP + ${_fcSpCount} SP accounts`:(SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`))
       : 'Using static baseline (no live data loaded)';
-    // Build pod list (from ENG_RAW) with numeric Pod 1/2/3/4 ordered first
-    const _fcPods=[...new Set((ENG_RAW||[]).map(r=>r.pod).filter(Boolean))].sort((a,b)=>{
+    // Build pod options list: ENG_RAW pods (numeric Pod 1/2/3/4 first) + synthetic 'SP' pod at the end
+    const _fcGpPods=[...new Set((ENG_RAW||[]).map(r=>r.pod).filter(Boolean))].sort((a,b)=>{
       const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
       if(na&&nb)return+na[1]-+nb[1];if(na)return -1;if(nb)return 1;return a.localeCompare(b);
     });
+    const _fcSpTot=(SP_RAW||[]).length;
     // Apply light-mode transforms to the iframe HTML when LIGHT is on
     if(LIGHT){
       // Protect body.light{...} rules from hex substitution (see note in Goals block).
@@ -3378,7 +3407,18 @@ rGP=function(){
     }
     forecastOverlay.style.background=LIGHT?'rgba(200,210,225,.92)':'rgba(5,10,20,.92)';
     const _fBarBg=LIGHT?'#f4f5fa':'#07071a',_fBarBd=LIGHT?'#c8ccd8':'#1a1a35',_fBarTx=LIGHT?'#1a1a28':'#d0d0ec',_fBarMt=LIGHT?'#6a6a88':'#4a4a6e',_fBtnBg=LIGHT?'#e4e6f0':'#1a1a35',_fBtnBd=LIGHT?'#c0c4d2':'#2a2a44',_fBtnTx=LIGHT?'#555a78':'#7777aa',_fIfBg=LIGHT?'#e4e6f0':'#07071a';
-    const _fcPodSel=_fcPods.length?`<select onchange="ssForecastPod(this.value)" title="Filter forecast to a single Pod" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;max-width:160px"><option value=""${!_fcPod?' selected':''}>All pods</option>${_fcPods.map(p=>`<option value="${p}"${_fcPod===p?' selected':''}>${p}</option>`).join('')}</select>`:'';
+    // Multi-select pod dropdown — custom component (always opens downward, checkbox-style, stays open while selecting)
+    const _fcBtnLbl=_fcPods.length===0?'All pods':(_fcPods.length===1?_fcPods[0]:_fcPods.length+' pods');
+    const _fcDdMenuBg=LIGHT?'#ffffff':'#1a1a35',_fcDdMenuBd=LIGHT?'#c0c4d2':'#2a2a44',_fcDdMenuTx=LIGHT?'#1a1a28':'#d0d0ec',_fcDdHov=LIGHT?'#e4e6f0':'#252545',_fcDdSel=LIGHT?'#2563eb':'#3b3b6e',_fcDdGrp=LIGHT?'#6a6a88':'#7777aa',_fcDdBdr=LIGHT?'#d4dce8':'#2a2a44';
+    const _fcMkItem=(p,lbl,ct)=>{const on=_fcPods.includes(p);return `<div class="fc-pod-item" onclick="ssForecastPodToggle('${p.replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:6px 12px;font-size:12px;color:${on?'#fff':_fcDdMenuTx};background:${on?_fcDdSel:'transparent'};cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap" onmouseover="if(!this.dataset.on)this.style.background='${_fcDdHov}'" onmouseout="if(!this.dataset.on)this.style.background='transparent'"${on?' data-on="1"':''}><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${on?'#fff':_fcDdMenuTx};border-radius:3px;background:${on?'#fff':'transparent'};color:${_fcDdSel};font-size:10px;line-height:11px;text-align:center;font-weight:900">${on?'✓':''}</span><span style="flex:1">${lbl}</span>${ct!=null?`<span style="color:${on?'#d0d0ec':_fcDdGrp};font-size:10px;font-weight:600">${ct}</span>`:''}</div>`;};
+    const _fcPodSel=(_fcGpPods.length||_fcSpTot)?`<div class="fc-pod-dd" style="position:relative;display:inline-block">
+      <button id="fcPodBtn" onclick="toggleFcPodDrop(event)" title="Filter forecast by one or more Pods (multi-select). SP = all SP accounts." style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-width:130px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${_fcBtnLbl}</span><span style="font-size:9px;opacity:.7">▾</span></button>
+      <div id="fcPodMenu" class="fc-pod-menu" style="display:${FC_POD_OPEN?'block':'none'};position:absolute;top:calc(100% + 4px);right:0;background:${_fcDdMenuBg};border:1px solid ${_fcDdMenuBd};border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:220px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:10000;padding:4px 0" onclick="event.stopPropagation()">
+        <div onclick="ssForecastPodClear();event.stopPropagation()" style="padding:6px 12px;font-size:11px;color:${_fcDdGrp};cursor:pointer;border-bottom:1px solid ${_fcDdBdr};margin-bottom:4px;font-weight:600">× Clear selection (show all)</div>
+        ${_fcGpPods.length?`<div style="padding:6px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px">GP Pods · Engagement Tracker</div>${_fcGpPods.map(p=>_fcMkItem(p,p,null)).join('')}`:''}
+        ${_fcSpTot?`<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid ${_fcDdBdr};margin-top:4px">Service Partners</div>${_fcMkItem('SP','SP (all SPs)',_fcSpTot+' accts')}`:''}
+      </div>
+    </div>`:'';
     forecastOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_fBarBg};border-bottom:1px solid ${_fBarBd};flex-shrink:0"><span style="font-size:13px;font-weight:700;color:${_fBarTx}">iConnections — Retention & Revenue Forecast 2026</span><span style="font-size:11px;color:${_fBarMt}">${fcNote}</span><div style="display:flex;gap:8px;align-items:center">${_fcPodSel}<button onclick="ssTheme()" title="Toggle light/dark mode" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button><button onclick="_closeForecast()" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_forecast_iframe" style="flex:1;border:none;background:${_fIfBg};" src="about:blank"></iframe>`;
     requestAnimationFrame(()=>{const fr=document.getElementById('_forecast_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
