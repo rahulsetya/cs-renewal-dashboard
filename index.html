@@ -1029,11 +1029,30 @@ function getWow(d){
 }
 
 // ── PROCESS DATA ──────────────────────────────────────────────────────────────
+// Shared normalization for account-name matching between Renewal Master and Engagement Tracker.
+// Handles: case, whitespace, smart quotes, &/and, punctuation, legal-entity suffixes.
+function _normAcctKey(s){
+  if(s==null)return'';
+  let k=String(s).toLowerCase().trim();
+  if(!k)return'';
+  k=k.replace(/[\u2018\u2019\u201c\u201d\u00b4]/g,"'");
+  k=k.replace(/\s*&\s*/g,' and ');
+  k=k.replace(/[.,'"`()\[\]]/g,'');
+  k=k.replace(/[-\/_]+/g,' ');
+  k=k.replace(/\s+/g,' ').trim();
+  const SUF=/\s+(llc|l l c|inc|incorporated|corp|corporation|lp|l p|llp|ltd|limited|co|company|gmbh|s a|sa|nv|ag|pte|plc|holdings?)$/;
+  for(let p=0;p<3;p++){const nk=k.replace(SUF,'').trim();if(nk===k)break;k=nk;}
+  return k;
+}
 function processData(range, engMap){
   if(!engMap)engMap={};
   if(!range)return D; // eng-only update — return existing D unchanged
   const rows=range.values;
   if(!rows||!rows.length)throw new Error('Sheet appears empty');
+  // Build auxiliary ENG lookups: by Platform ID and by normalized account name.
+  // Exact-name match via engMap[company] already works; these handle the rest.
+  const _engByPid={},_engByNorm={};
+  for(const k in engMap){const r=engMap[k];if(!r)continue;if(r.platformId)_engByPid[r.platformId]=r;const nk=_normAcctKey(r.acct||k);if(nk&&!_engByNorm[nk])_engByNorm[nk]=r;}
 
   // Auto-detect header row: scan first 30 rows for one containing 'Renewal Owner'
   let detectedHeaderRow=HEADER_ROW;
@@ -1104,7 +1123,14 @@ function processData(range, engMap){
     const dy=daysDiff(subEnd);
 
     const or_=String(getCell(v,'ONSITE REP (iConn + Benchies)')||getCell(v,'Onsite Rep')||'N/A');
-    const eng=engMap[company]||{};
+    // Resolve the matching Engagement Tracker row via three strategies — exact name,
+    // then Platform ID, then normalized name — so pod/engagement data attaches to all
+    // Renewal Master rows that correspond to ET rows, not just exact-name matches.
+    const _rmPid=String(getCell(v,'Platform ID')||getCell(v,'Platform Id')||getCell(v,'HubSpot ID')||getCell(v,'HubSpot Record ID')||getCell(v,'Company ID')||getCell(v,'Record ID')||'').trim();
+    let eng=engMap[company];
+    if(!eng&&_rmPid&&_engByPid[_rmPid])eng=_engByPid[_rmPid];
+    if(!eng){const nk=_normAcctKey(company);if(nk&&_engByNorm[nk])eng=_engByNorm[nk];}
+    if(!eng)eng={};
     const mt=eng.mt!==undefined?eng.mt:parseNum(getCell(v,'Confirmed Miami Meetings'));
     const rsk=eng.rsk!==undefined?eng.rsk:(parseNum(getCell(v,'Emerging Manager Risk (AUM <250M & 1 GA Event in 2025)'))>0?1:0);
     const out=eng.out||0;
@@ -1121,7 +1147,7 @@ function processData(range, engMap){
     const ae=String(getCell(v,'Sales Rep')||'').trim();
     const csRep=String(getCell(v,'CS Rep')||v[8]||'').trim();
     const em=subEnd?subEnd.substring(0,7):'';
-    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,ae,pod:(eng.pod||''),pid:(eng.platformId||''),sg:[],ct:'Manager',wow:'same'};
+    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,ae,pod:(eng.pod||''),pid:(_rmPid||eng.platformId||''),sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
     data.push(row);
   }
@@ -1135,6 +1161,9 @@ function processData(range, engMap){
   }
 
   console.log(`Loaded ${data.length} accounts. Owners:`, [...new Set(data.map(d=>d.ro))].join(', '));
+  // Pod-match diagnostics — confirms how many Renewal Master rows successfully linked to an ET pod
+  const _podTally={};let _withPod=0;data.forEach(d=>{if(d.pod){_withPod++;_podTally[d.pod]=(_podTally[d.pod]||0)+1;}});
+  console.log(`[pod] ${_withPod}/${data.length} Renewal Master rows matched to a pod.`,_podTally);
   return data;
 }
 
