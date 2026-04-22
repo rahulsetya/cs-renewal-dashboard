@@ -4992,7 +4992,7 @@ function render(){
         const ret=sm==='cum'?q.cR:q.qR,wN=sm==='cum'?q.cW:q.qW,tN=sm==='cum'?q.cT:q.t,pY=sm==='cum'?q.pay:q.qPay;
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:12px;font-weight:800;color:${c}">${qk}</span>
+            <span style="display:inline-flex;align-items:baseline;gap:6px"><span style="font-size:12px;font-weight:800;color:${c}">${qk}</span><span style="font-size:10px;color:var(--gn);font-family:var(--M);font-weight:700" title="Won today for ${qk}">${q.qW} won · ${P(q.qR)}</span></span>
             <span style="font-size:10px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
           <div style="font-size:22px;font-weight:800;color:${ret>=fu?'var(--gn)':ret>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(ret)}</div>
           <div style="font-size:11px;color:var(--dm)">${wN}/${tN}</div>`;
@@ -5023,7 +5023,7 @@ function render(){
         const ret=sm==='cum'?q.cR:q.qR,wN=sm==='cum'?q.cW:q.qW,tN=sm==='cum'?q.cT:q.t,pY=sm==='cum'?q.pay:q.qPay;
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:12px;font-weight:800;color:${c}">${qk}</span>
+            <span style="display:inline-flex;align-items:baseline;gap:6px"><span style="font-size:12px;font-weight:800;color:${c}">${qk}</span><span style="font-size:10px;color:var(--gn);font-family:var(--M);font-weight:700" title="Won today for ${qk}">${q.qW} won · ${P(q.qR)}</span></span>
             <span style="font-size:10px;color:${c};background:${c}12;padding:1px 5px;border-radius:3px">${qLb[q.st]}</span></div>
           <div style="font-size:22px;font-weight:800;color:${ret>=fu?'var(--gn)':ret>=fl?'var(--or)':'var(--rd)'};font-family:var(--M)">${P(ret)}</div>
           <div style="font-size:11px;color:var(--dm)">${wN}/${tN}</div>`;
