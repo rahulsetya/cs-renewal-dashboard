@@ -3123,6 +3123,18 @@ function _render(){
       src=src.replace(/const CHURNED\s*=\s*\[[\s\S]*?\];\s*\n/,`const CHURNED=${JSON.stringify(live.churned)};\n`);
       // Inject per-account list for pool drilldown
       src=src.replace(/const ACCTS\s*=\s*\[\];/,`const ACCTS=${JSON.stringify(live.allAccts)};`);
+      // Inject live SP owner roster (per-owner account count, revenue, won,
+      // won revenue) — computed from SP_RAW in _buildLiveGoalsData(). Same
+      // shape as the hardcoded fallback: [{o,a,r,w,wr}, ...] sorted by rev.
+      if(live.spOwn&&live.spOwn.length){
+        src=src.replace(/const SP_OWN\s*=\s*\[[\s\S]*?\];/,`const SP_OWN=${JSON.stringify(live.spOwn)};`);
+      }
+      // Inject live SP at-risk accounts — all non-won, non-lost SP rows with
+      // name / rev / stage / owner, sorted by rev desc. Matches the hardcoded
+      // fallback shape: [{n,r,s,o}, ...].
+      if(live.spRisk&&live.spRisk.length){
+        src=src.replace(/const SP_RISK\s*=\s*\[[\s\S]*?\];/,`const SP_RISK=${JSON.stringify(live.spRisk)};`);
+      }
       // ── Live SP data (same source as Forecast) ──────────────────────────────
       // Previously the Goals template kept hardcoded SP/SP_Q. Now we reuse
       // _buildLiveForecastData() so the Goals SP Retention tab shows the same
