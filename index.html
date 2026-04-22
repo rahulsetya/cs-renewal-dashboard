@@ -2069,7 +2069,7 @@ function _render(){
         account:(a,b)=>a.c.localeCompare(b.c),
         owner:(a,b)=>a.ro.localeCompare(b.ro),ae:(a,b)=>(a.ae||'').localeCompare(b.ae||''),
         r25:(a,b)=>a.r25-b.r25,offer:(a,b)=>a.o-b.o,spOffer:(a,b)=>(a.spOffer||0)-(b.spOffer||0),
-        delta:(a,b)=>{const da2=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25:-999,db=b.o>0&&b.r25>0?(b.o-b.r25)/b.r25:-999;return da2-db;},
+        delta:(a,b)=>{const _n=x=>x.__sp?(x.spOffer||0):x.o;const na=_n(a),nb=_n(b);const da2=na>0&&a.r25>0?(na-a.r25)/a.r25:-999,db=nb>0&&b.r25>0?(nb-b.r25)/b.r25:-999;return da2-db;},
         subend:(a,b)=>String(a.se||'').localeCompare(String(b.se||'')),
         flags:(a,b)=>a.sg.length-b.sg.length,
       };
@@ -2100,7 +2100,12 @@ function _render(){
             <th onclick="ssDrillSort('flags')" style="${dThS};width:160px;overflow:visible"><div style="display:flex;align-items:center;gap:3px;color:#94a3b8">Flags ${dsd('flags')}${dfFlags.length?`<span style="background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:3px">${dfFlags.length}</span>`:''}</div>${dFChk(uDFlags,dfFlags)}</th>
           </tr></thead><tbody>`;
         da.forEach(a=>{
-          const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
+          // For SP rows, compare the real Offer Price (col O) to 2025 base —
+          // SPs' 2026 column (AQ) is often a placeholder/expected value rather
+          // than the actual renewal price, so YoY-vs-2026 is misleading there.
+          // GP rows continue to use 2026 offer (a.o) since that IS their offer.
+          const _num=a.__sp?(a.spOffer||0):a.o;
+          const dl=_num>0&&a.r25>0?(_num-a.r25)/a.r25*100:-999;
           const nOpen=S.noteOpen===a.c;
           const prevStg=PREV_TS?PREV[a.c]:null;
           const stgMoved=prevStg&&prevStg!==a.s;
