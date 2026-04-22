@@ -4695,6 +4695,7 @@ button{cursor:pointer;transition:filter .15s;font-family:var(--S)}button:hover{f
 table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{padding:6px 8px;font-size:12px}th{color:var(--mt);font-size:14px;border-bottom:1px solid var(--bd);text-align:right}th:first-child{text-align:left}td{border-bottom:1px solid #0e0e22;text-align:right}td:first-child{text-align:left}td.tr,th.tr{text-align:right}td.tc,th.tc{text-align:center}td.tl,th.tl{text-align:left}td[colspan]{text-align:left}
 .sr{display:grid;grid-template-columns:110px 22px 1fr 22px 42px;align-items:center;gap:6px;margin-bottom:6px;position:relative}.sl{width:110px;font-size:12px;color:#8888aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help}.sr:has(.sl:hover)::before{content:attr(data-full);position:absolute;left:0;bottom:calc(100% + 2px);background:#1a1a35;border:1px solid #3a3a5a;padding:4px 9px;border-radius:4px;font-size:11px;font-weight:600;color:#e0e0ff;white-space:nowrap;z-index:1000;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.5)}.sv{width:42px;font-size:13px;font-weight:700;text-align:right;font-family:var(--M)}
 .sib{background:transparent;border:1px solid var(--br);color:var(--mt);width:20px;height:20px;border-radius:4px;font-size:14px;font-weight:700;cursor:pointer;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;user-select:none}.sib:hover{background:var(--br);color:var(--tx)}.sib:active{transform:scale(.92)}
+.kt{position:relative;cursor:help}.kt:hover::after{content:attr(data-tt);position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);background:#1a1a35;border:1px solid #3a3a5a;padding:7px 10px;border-radius:6px;font-size:11px;font-weight:500;color:#e0e0ff;white-space:normal;width:240px;z-index:1000;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.6);line-height:1.45;text-align:left;text-transform:none;letter-spacing:normal}.kt:hover::before{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:#3a3a5a;z-index:1001;pointer-events:none}
 .ly{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
 .qg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}.qc{background:#08081a;border-radius:9px;padding:14px 16px}
 .ft{text-align:center;font-size:13px;color:var(--fn);margin-top:20px;padding-top:10px;border-top:1px solid var(--br)}
@@ -4789,7 +4790,8 @@ function calc(oc,dc,sc,exp){
   // GP Logos
   const gpL={};let gcT=0,gcW=0;
   for(const qk of['Q1','Q2','Q3','Q4']){
-    const q=GPQ[qk];const pO=Math.round(q.o*ocR),pD=Math.round(q.d*dcR),qW=q.w+pO+pD;
+    const q=GPQ[qk];const _locked=_qSt(qk)==='closed';
+    const pO=_locked?0:Math.round(q.o*ocR),pD=_locked?0:Math.round(q.d*dcR),qW=q.w+pO+pD;
     gcT+=q.t;gcW+=qW;const th=GP_TH[qk]||[0,0,0];const cR=gcT>0?gcW/gcT*100:0;
     const qR=q.t>0?qW/q.t*100:0;
     let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125}
@@ -4805,7 +4807,8 @@ function calc(oc,dc,sc,exp){
   // SP Logos per quarter (same cumulative-retention staircase shape as GP)
   const spL={};let scT=0,scW=0;
   for(const qk of['Q1','Q2','Q3','Q4']){
-    const q=SPQ_Q[qk];const pO=Math.round(q.o*scR);const qW=q.w+pO;
+    const q=SPQ_Q[qk];const _locked=_qSt(qk)==='closed';
+    const pO=_locked?0:Math.round(q.o*scR);const qW=q.w+pO;
     scT+=q.t;scW+=qW;const th=SP_TH[qk]||[0,0,0];const cR=scT>0?scW/scT*100:0;
     const qR=q.t>0?qW/q.t*100:0;
     let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125}
@@ -4896,17 +4899,18 @@ function render(){
     </div></div>`;
 
   // ── TOP TILES ──
+  const _esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const tiles=[
     {l:"Won Today",v:`${sWon}/${sTotal}`,c:'var(--tx)',s:P(sWon/sTotal*100)+' current',t:`Logos closed-won so far ÷ total logos in scope for ${seg==='total'?'GP + SP':seg.toUpperCase()}. Current snapshot, no pipeline projection.`},
-    {l:"Proj Logo Ret",v:P(sProjRet),c:cl(sProjRet,seg==='sp'?SP_TH.Q4[1]:GP_TH.Q4[1]),s:`${sProjWon}/${sTotal} logos`,t:`(Won + open × conv% + declined × re-engage%) ÷ total. Full-year projection using Assumptions sliders.`},
+    {l:"Proj Logo Ret",v:P(sProjRet),c:cl(sProjRet,seg==='sp'?SP_TH.Q4[1]:GP_TH.Q4[1]),s:`${sProjWon}/${sTotal} logos`,t:`(Won + open × conv% + declined × re-engage%) ÷ total. Full-year projection using Assumptions sliders. Closed quarters locked to actuals.`},
     {l:"Renewal NRR",v:P(sRNRR),c:sRNRR>=100?'var(--gn)':'var(--rd)',s:'closed deals',t:`Expansion revenue on closed-won deals ÷ their 2025 baseline. Measures expansion on already-signed renewals only.`},
     {l:"Projected NRR",v:P(sNrr),c:cl(sNrr,90),s:'full book w/ pipeline',t:`Projected total revenue (won + open pipeline × conv%) ÷ total 2025 base. Includes expansion. 100%+ means book grows.`},
     {l:"Projected GRR",v:P(sGrr),c:cl(sGrr,70),s:'rev at 2025 price',t:`Projected retained revenue held flat at 2025 price ÷ 2025 base. Ignores expansion — measures pure retention.`},
     {l:"Expected Rev",v:$2(sExp),c:'var(--pk)',s:`of ${$(sBase)} base`,t:`Projected total expected revenue: won ARR + pipeline × conv%. Driven by Assumptions sliders.`},
-    {l:"Confirmed Churn",v:`${sChurnN} accts`,c:'var(--rd)',s:fS(sChurnRev),t:`Accounts at stage "11. Churned" and their 2025 ARR. Fully realized loss — no projection.`},
+    {l:"Confirmed Churn",v:`${sChurnN} accts`,c:'var(--rd)',s:fS(sChurnRev),t:`Accounts at stage '11. Churned' and their 2025 ARR. Fully realized loss — no projection.`},
   ];
   h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:8px">${tiles.map(t=>
-    `<div title="${t.t||''}" style="background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:4px 3px;text-align:center;cursor:help">
+    `<div class="kt" data-tt="${_esc(t.t||'')}" style="background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:4px 3px;text-align:center">
       <div style="font-size:10px;color:#5a5a7e;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px">${t.l}</div>
       <div style="font-size:16px;font-weight:800;font-family:var(--M);color:${t.c}">${t.v}</div>
       ${t.s?`<div style="font-size:10px;color:var(--mt);margin-top:1px">${t.s}</div>`:''}</div>`).join('')}</div>`;
