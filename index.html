@@ -585,22 +585,33 @@ function processSPData(raw){
   console.log('[SP] header-row scan: '+scanLog.join(' | ')+' → picked hIdx='+hIdx+(bestScore<0?' (no row scored ≥3 keywords; defaulting to row 0)':' (best score='+bestScore+')'));
   const hdrs=raw.values[hIdx].map(h=>String(h||'').trim().toLowerCase());
   const ci=k=>{const i=hdrs.findIndex(h=>h.includes(k));return i>=0?i:null;};
-  const cAcct=ci('account')||ci('company')||ci('name')||0;
+  // pick(): return the first header-index that matches any of the keywords, in
+  // priority order. Uses >=0 check instead of ||-chain so a valid index of 0
+  // isn't treated as falsy (classic bug — cAcct would silently fall through).
+  const pick=(...keys)=>{for(const k of keys){const i=hdrs.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;};
+  // More-specific keys first so "Account Name" wins over "Account ID" (both
+  // of which match plain 'account'). Final fallback: assume col A.
+  let cAcct=pick('account name','company name','renewal name','company','account','name');
+  if(cAcct<0)cAcct=0;
   // Stage is pinned to column M (index 12) per the GA 26 SPs sheet layout.
   // Header-keyword fallback handles any future column reshuffle.
   const cStage=hdrs.length>12?12:ci('stage');
-  const cRev=ci('2025')||ci('revenue')||ci('rev')||ci('total');
-  const cOwner=ci('sales rep')||ci('owner')||ci('sales owner')||ci('account owner');
+  const cRev=ci('2025')!=null?ci('2025'):ci('revenue')!=null?ci('revenue'):ci('rev')!=null?ci('rev'):ci('total');
+  const cOwner=ci('sales rep')!=null?ci('sales rep'):ci('sales owner')!=null?ci('sales owner'):ci('account owner')!=null?ci('account owner'):ci('owner');
   // "Exclude for attainment" pinned to column E (index 4). Rows are DROPPED
   // only when this cell is YES/Y/TRUE/1. Blank or "No" keeps the row.
   const cExcl=hdrs.length>4?4:(()=>{const i=hdrs.findIndex(h=>h.includes('exclude'));return i>=0?i:null;})();
+  // AE (Sales Rep) pinned to column I (index 8). Falls back to header match.
+  const cAE=hdrs.length>8?8:pick('sales rep','account executive','ae','rep');
+  // iConnections Notes pinned to column K (index 10). Falls back to header match.
+  const cNotes=hdrs.length>10?10:pick('iconnections notes','notes','comment');
   // Try many aliases for the renewal/sub-end date column — GA 26 SPs may use
   // any of "Final Sub End Date", "Contract End", "Sub End", "Renewal Date", etc.
   const cSub=ci('final sub end')||ci('sub end')||ci('subscription end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal');
   // Flat-string logging so console shows it without needing to expand arrays/objects
   console.log('[SP] total raw rows='+totalRaw+' headerIdx='+hIdx+' → '+(totalRaw-hIdx-1)+' data rows below header');
   console.log('[SP] headers:\n  '+hdrs.map((h,i)=>i+':'+h).join(' | '));
-  console.log('[SP] detected columns: cAcct='+cAcct+' cStage='+cStage+' cRev='+cRev+' cOwner='+cOwner+' cSub='+cSub+' cExcl='+cExcl+' exclHeader="'+(cExcl!=null?hdrs[cExcl]:'(none matched)')+'" subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
+  console.log('[SP] detected columns: cAcct='+cAcct+' (header="'+(hdrs[cAcct]||'(none)')+'") cStage='+cStage+' cRev='+cRev+' cOwner='+cOwner+' cSub='+cSub+' cExcl='+cExcl+' cAE='+cAE+' cNotes='+cNotes+' exclHeader="'+(cExcl!=null?hdrs[cExcl]:'(none matched)')+'" subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
   const data=[];
   let skippedEmpty=0,skippedEmptyExamples=[],skippedExcluded=0,skippedExcludedExamples=[];
   for(let i=hIdx+1;i<raw.values.length;i++){
@@ -628,7 +639,9 @@ function processSPData(raw){
     const rev=parseNum(cRev!=null?row[cRev]:'');
     const owner=String(cOwner!=null?row[cOwner]||'':'').trim()||'Unknown';
     const sub=cSub!=null?excelDateToJS(row[cSub]||''):'';
-    data.push({n:acct,s:stage,r:rev,o:owner,sub});
+    const ae=String(cAE!=null&&cAE>=0?row[cAE]||'':'').trim();
+    const notes=String(cNotes!=null&&cNotes>=0?row[cNotes]||'':'').trim();
+    data.push({n:acct,s:stage,r:rev,o:owner,sub,ae,notes});
   }
   // Diagnostic: show date-parse success rate + skip reasons
   const sample=data.slice(0,5).map(r=>({n:r.n,sub:r.sub}));
@@ -668,7 +681,7 @@ function _mergeSPsIntoD(){
       c:r.n,s:stage,ro:'Emilie Welch',csRep:'Emilie Welch',or:'N/A',
       o:r.r||0,r25:r.r||0,r24:0,se,dy,em:se?se.substring(0,7):'',
       mt:0,rsk:0,out:0,gm:0,gms:0,ap:0,sentiment:'',ex:0,snt:0,
-      clr:'',icn:'',ae:'',pod:'',pid:'',sg:[],ct:'SP',wow:'same',__sp:true
+      clr:'',icn:r.notes||'',ae:r.ae||'',pod:'',pid:'',sg:[],ct:'SP',wow:'same',__sp:true
     };
     row.sg=computeSignals(row);
     return row;
