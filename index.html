@@ -3390,8 +3390,12 @@ rGP=function(){
     const fcNote=D&&D.length
       ? (_fcPods.length?`Pods: ${_fcPods.join(' + ')} · ${_fcGpCount} GP + ${_fcSpCount} SP accounts`:(SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`))
       : 'Using static baseline (no live data loaded)';
-    // Build pod options list: ENG_RAW pods (numeric Pod 1/2/3/4 first) + synthetic 'SP' pod at the end
-    const _fcGpPods=[...new Set((ENG_RAW||[]).map(r=>r.pod).filter(Boolean))].sort((a,b)=>{
+    // Build pod options list: GP pods sourced from matched D rows (authoritative "accounts in filter")
+    // falling back to ENG_RAW when no D rows matched yet. Numeric Pod 1/2/3/4 ordered first.
+    const _fcGpCounts={};(D||[]).forEach(d=>{if(d.pod)_fcGpCounts[d.pod]=(_fcGpCounts[d.pod]||0)+1;});
+    // Ensure pods that exist in ENG_RAW but haven't matched a D row still appear (count=0)
+    (ENG_RAW||[]).forEach(r=>{if(r.pod&&_fcGpCounts[r.pod]===undefined)_fcGpCounts[r.pod]=0;});
+    const _fcGpPods=Object.keys(_fcGpCounts).sort((a,b)=>{
       const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
       if(na&&nb)return+na[1]-+nb[1];if(na)return -1;if(nb)return 1;return a.localeCompare(b);
     });
@@ -3415,8 +3419,8 @@ rGP=function(){
       <button id="fcPodBtn" onclick="toggleFcPodDrop(event)" title="Filter forecast by one or more Pods (multi-select). SP = all SP accounts." style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-width:130px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${_fcBtnLbl}</span><span style="font-size:9px;opacity:.7">▾</span></button>
       <div id="fcPodMenu" class="fc-pod-menu" style="display:${FC_POD_OPEN?'block':'none'};position:absolute;top:calc(100% + 4px);right:0;background:${_fcDdMenuBg};border:1px solid ${_fcDdMenuBd};border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:220px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:10000;padding:4px 0" onclick="event.stopPropagation()">
         <div onclick="ssForecastPodClear();event.stopPropagation()" style="padding:6px 12px;font-size:11px;color:${_fcDdGrp};cursor:pointer;border-bottom:1px solid ${_fcDdBdr};margin-bottom:4px;font-weight:600">× Clear selection (show all)</div>
-        ${_fcGpPods.length?`<div style="padding:6px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px">GP Pods · Engagement Tracker</div>${_fcGpPods.map(p=>_fcMkItem(p,p,null)).join('')}`:''}
-        ${_fcSpTot?`<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid ${_fcDdBdr};margin-top:4px">Service Partners</div>${_fcMkItem('SP','SP (all SPs)',_fcSpTot+' accts')}`:''}
+        ${_fcGpPods.length?`<div style="padding:6px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px">GP Pods · Engagement Tracker</div>${_fcGpPods.map(p=>_fcMkItem(p,p,_fcGpCounts[p]+' accts')).join('')}`:''}
+        ${_fcSpTot?`<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid ${_fcDdBdr};margin-top:4px">Service Partners</div>${_fcMkItem('SP','SP',_fcSpTot+' accts')}`:''}
       </div>
     </div>`:'';
     forecastOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_fBarBg};border-bottom:1px solid ${_fBarBd};flex-shrink:0"><span style="font-size:13px;font-weight:700;color:${_fBarTx}">iConnections — Retention & Revenue Forecast 2026</span><span style="font-size:11px;color:${_fBarMt}">${fcNote}</span><div style="display:flex;gap:8px;align-items:center">${_fcPodSel}<button onclick="ssTheme()" title="Toggle light/dark mode" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button><button onclick="_closeForecast()" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_forecast_iframe" style="flex:1;border:none;background:${_fIfBg};" src="about:blank"></iframe>`;
