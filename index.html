@@ -4737,7 +4737,7 @@ table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{padding:6px 8
 .sib{background:transparent;border:1px solid var(--br);color:var(--mt);width:20px;height:20px;border-radius:4px;font-size:14px;font-weight:700;cursor:pointer;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;user-select:none}.sib:hover{background:var(--br);color:var(--tx)}.sib:active{transform:scale(.92)}
 .kt{position:relative;cursor:help}.kt:hover::after{content:attr(data-tt);position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);background:#1a1a35;border:1px solid #3a3a5a;padding:5px 10px;border-radius:4px;font-size:11px;font-weight:600;color:#e0e0ff;white-space:normal;width:220px;z-index:1000;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.5);line-height:1.45;text-align:left;text-transform:none;letter-spacing:normal}.kt:hover::before{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:#3a3a5a;z-index:1001;pointer-events:none}
 .ly{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
-.qg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}.qc{background:#08081a;border-radius:9px;padding:14px 16px}
+.qg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}.qc{background:var(--bg);border-radius:9px;padding:14px 16px}
 .ft{text-align:center;font-size:13px;color:var(--fn);margin-top:20px;padding-top:10px;border-top:1px solid var(--br)}
 @media(max-width:950px){.ly{grid-template-columns:1fr}.qg{grid-template-columns:1fr 1fr}}
 /* ── Light mode overrides (triggered by body.light class) ── */
@@ -5118,7 +5118,7 @@ function render(){
           {l:seg==='gp'?'GP Proj NRR':seg==='sp'?'SP Proj NRR':'Combined NRR',v:P(sNrr),c:cl(sNrr,90),s:'full book projected'},
         ].map(x=>`<div class="qc"><div style="font-size:10px;color:#5a5a7e">${x.l}</div><div style="font-size:20px;font-weight:800;color:${x.c};font-family:var(--M)">${x.v}</div><div style="font-size:10px;color:var(--mt)">${x.s}</div></div>`).join('')}
       </div>
-      <div style="font-size:12px;color:var(--dm);padding:7px 9px;background:#08081a;border-radius:5px;line-height:1.5">
+      <div style="font-size:12px;color:var(--dm);padding:7px 9px;background:var(--bg);border-radius:5px;line-height:1.5">
         <b style="color:#8888aa">Logo vs Revenue:</b> GP accounts renew at <b style="color:var(--gn)">${P(RNRR.gp)}</b> NRR — each saved logo is +37% revenue. SP accounts contract to <b style="color:var(--rd)">${P(RNRR.sp)}</b>. Combined book projects <b style="color:var(--pk)">${$2(m.allExp)}</b> (${P(m.allNrr)} NRR) on a ${$(m.allBase)} base. Revenue-based comp would better reward the expansion value CS creates.
       </div></div>`;
 
@@ -5186,7 +5186,7 @@ function sidebar(m,seg){
       const q=m.gpL[qk],c=qCl[q.st],r=m.gpR[qk];
       h+=`<div class="cd" style="padding:10px 12px"><div class="ct" style="color:${c};border-bottom-color:${c}20;margin-bottom:6px;padding-bottom:4px">${qk} — ${q.mo}</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">
-          ${[{l:"Logos",v:q.t},{l:"Won",v:q.w,c:'var(--gn)'},{l:"Open",v:q.o,c:'var(--pu)'},{l:"Proj+",v:`+${q.pO+q.pD}`,c:'var(--li)'},{l:"Decl",v:q.d,c:'var(--or)'},{l:"Churn",v:q.c,c:'var(--rd)'},{l:"Q Ret",v:P(q.qR),c:cl(q.qR,55)},{l:"Rev",v:fS(r.qExp),c:'var(--pk)'}].map(x=>`<div style="background:#07071a;padding:3px 4px;border-radius:3px"><div style="font-size:9px;color:var(--mt);text-transform:uppercase">${x.l}</div><div style="font-size:12px;font-weight:700;font-family:var(--M);color:${x.c||'var(--tx)'}">${x.v}</div></div>`).join('')}
+          ${[{l:"Logos",v:q.t},{l:"Won",v:q.w,c:'var(--gn)'},{l:"Open",v:q.o,c:'var(--pu)'},{l:"Proj+",v:`+${q.pO+q.pD}`,c:'var(--li)'},{l:"Decl",v:q.d,c:'var(--or)'},{l:"Churn",v:q.c,c:'var(--rd)'},{l:"Q Ret",v:P(q.qR),c:cl(q.qR,55)},{l:"Rev",v:fS(r.qExp),c:'var(--pk)'}].map(x=>`<div style="background:var(--bg);padding:3px 4px;border-radius:3px"><div style="font-size:9px;color:var(--mt);text-transform:uppercase">${x.l}</div><div style="font-size:12px;font-weight:700;font-family:var(--M);color:${x.c||'var(--tx)'}">${x.v}</div></div>`).join('')}
         </div></div>`;
     }
   }
