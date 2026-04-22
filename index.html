@@ -1461,7 +1461,9 @@ function _buildLiveForecastData(){
   const gp={T:all.length,W:all.filter(x=>WON.has(x.s)).length,O:all.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s)).length,D:all.filter(x=>DCL.has(x.s)).length,C:all.filter(x=>CHR.has(x.s)).length,base:all.reduce((a,x)=>a+(x.r25||0),0),churnRev:all.filter(x=>CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0)};
   const gpq={},gpqr={};
   const qMo={Q1:'Jan–Mar',Q2:'Apr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dec'};
-  const qSt={Q1:'closed',Q2:'active',Q3:'upcoming',Q4:'future'};
+  const _curMo=new Date().getMonth()+1,_curQ=_curMo<=3?'Q1':_curMo<=6?'Q2':_curMo<=9?'Q3':'Q4';
+  const _qIdx={Q1:1,Q2:2,Q3:3,Q4:4};
+  const qSt={};['Q1','Q2','Q3','Q4'].forEach(qk=>{const qi=_qIdx[qk],ci=_qIdx[_curQ];qSt[qk]=qi<ci?'closed':qi===ci?'active':qi===ci+1?'upcoming':'future';});
   for(const qk of['Q1','Q2','Q3','Q4']){
     const rows=all.filter(x=>getQ(x.se)===qk);
     const t=rows.length,w=rows.filter(x=>WON.has(x.s)).length,c=rows.filter(x=>CHR.has(x.s)).length,dec=rows.filter(x=>DCL.has(x.s)).length;
@@ -3787,7 +3789,7 @@ function rSP(){
             </div>
             <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:6px">
               <span style="font-size:24px;font-weight:700;color:${c};font-family:var(--mono)">${gifted?'GIFTED':pct(qRet)}</span>
-              ${!gifted?`<span style="font-size:11px;color:var(--dim)">/ ${th.full}% full</span>`:'<span style="font-size:11px;color:var(--dim)">Q1 · no SP threshold</span>'}
+              ${!gifted?`<span style="font-size:11px;color:var(--dim)">/ ${th.full}% full</span>`:'<span style="font-size:11px;color:var(--dim)">Q1 · not goaled (gifted)</span>'}
             </div>
             ${!gifted?`<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Opt (50% open): ${pct(qOpt)}</div>`:'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">&nbsp;</div>'}
             <div style="display:flex;gap:4px;font-size:10px;margin-bottom:6px">
@@ -4774,6 +4776,11 @@ const P=v=>`${v.toFixed(1)}%`;const cl=(v,g)=>v>=g?'var(--gn)':v>=g-5?'var(--or)
 const bar=(v,mx,c,h=10)=>`<div class="bt" style="height:${h}px"><div class="bf" style="width:${mx>0?Math.min(v/mx*100,100):0}%;background:${c}"></div></div>`;
 const qCl={closed:"var(--pu)",active:"var(--or)",upcoming:"var(--li)",future:"#66668a"};
 const qLb={closed:"Past",active:"Active",upcoming:"Upcoming",future:"Future"};
+// Date-driven quarter status — recomputed every render so the dashboard ages correctly
+const _curMo=new Date().getMonth()+1;
+const _curQ=_curMo<=3?'Q1':_curMo<=6?'Q2':_curMo<=9?'Q3':'Q4';
+const _qIdx={Q1:1,Q2:2,Q3:3,Q4:4};
+function _qSt(qk){const qi=_qIdx[qk],ci=_qIdx[_curQ];return qi<ci?'closed':qi===ci?'active':qi===ci+1?'upcoming':'future';}
 
 // ═══ MODEL ═══
 function calc(oc,dc,sc,exp){
@@ -4787,7 +4794,7 @@ function calc(oc,dc,sc,exp){
     const qR=q.t>0?qW/q.t*100:0;
     let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125}
     let qPay=0;if(th[0]>0){if(qR<th[0])qPay=0;else if(qR<=th[1])qPay=(qR-th[0])/(th[1]-th[0])*100;else if(qR<=th[2])qPay=100+(qR-th[1])/(th[2]-th[1])*25;else qPay=125}
-    gpL[qk]={...q,pO,pD,qW,qR,cT:gcT,cW:gcW,cR,th,pay,qPay};
+    gpL[qk]={...q,pO,pD,qW,qR,cT:gcT,cW:gcW,cR,th,pay,qPay,st:_qSt(qk)};
   }
 
   // SP Logos
@@ -4803,7 +4810,7 @@ function calc(oc,dc,sc,exp){
     const qR=q.t>0?qW/q.t*100:0;
     let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125}
     let qPay=0;if(th[0]>0){if(qR<th[0])qPay=0;else if(qR<=th[1])qPay=(qR-th[0])/(th[1]-th[0])*100;else if(qR<=th[2])qPay=100+(qR-th[1])/(th[2]-th[1])*25;else qPay=125}
-    spL[qk]={...q,pO,qW,qR,cT:scT,cW:scW,cR,th,pay,qPay};
+    spL[qk]={...q,pO,qW,qR,cT:scT,cW:scW,cR,th,pay,qPay,st:_qSt(qk)};
   }
 
   // Total Logos
@@ -4890,16 +4897,16 @@ function render(){
 
   // ── TOP TILES ──
   const tiles=[
-    {l:"Won Today",v:`${sWon}/${sTotal}`,c:'var(--tx)',s:P(sWon/sTotal*100)+' current'},
-    {l:"Proj Logo Ret",v:P(sProjRet),c:cl(sProjRet,seg==='sp'?SP_TH.Q4[1]:GP_TH.Q4[1]),s:`${sProjWon}/${sTotal} logos`},
-    {l:"Renewal NRR",v:P(sRNRR),c:sRNRR>=100?'var(--gn)':'var(--rd)',s:'closed deals'},
-    {l:"Projected NRR",v:P(sNrr),c:cl(sNrr,90),s:'full book w/ pipeline'},
-    {l:"Projected GRR",v:P(sGrr),c:cl(sGrr,70),s:'rev at 2025 price'},
-    {l:"Expected Rev",v:$2(sExp),c:'var(--pk)',s:`of ${$(sBase)} base`},
-    {l:"Confirmed Churn",v:`${sChurnN} accts`,c:'var(--rd)',s:fS(sChurnRev)},
+    {l:"Won Today",v:`${sWon}/${sTotal}`,c:'var(--tx)',s:P(sWon/sTotal*100)+' current',t:`Logos closed-won so far ÷ total logos in scope for ${seg==='total'?'GP + SP':seg.toUpperCase()}. Current snapshot, no pipeline projection.`},
+    {l:"Proj Logo Ret",v:P(sProjRet),c:cl(sProjRet,seg==='sp'?SP_TH.Q4[1]:GP_TH.Q4[1]),s:`${sProjWon}/${sTotal} logos`,t:`(Won + open × conv% + declined × re-engage%) ÷ total. Full-year projection using Assumptions sliders.`},
+    {l:"Renewal NRR",v:P(sRNRR),c:sRNRR>=100?'var(--gn)':'var(--rd)',s:'closed deals',t:`Expansion revenue on closed-won deals ÷ their 2025 baseline. Measures expansion on already-signed renewals only.`},
+    {l:"Projected NRR",v:P(sNrr),c:cl(sNrr,90),s:'full book w/ pipeline',t:`Projected total revenue (won + open pipeline × conv%) ÷ total 2025 base. Includes expansion. 100%+ means book grows.`},
+    {l:"Projected GRR",v:P(sGrr),c:cl(sGrr,70),s:'rev at 2025 price',t:`Projected retained revenue held flat at 2025 price ÷ 2025 base. Ignores expansion — measures pure retention.`},
+    {l:"Expected Rev",v:$2(sExp),c:'var(--pk)',s:`of ${$(sBase)} base`,t:`Projected total expected revenue: won ARR + pipeline × conv%. Driven by Assumptions sliders.`},
+    {l:"Confirmed Churn",v:`${sChurnN} accts`,c:'var(--rd)',s:fS(sChurnRev),t:`Accounts at stage "11. Churned" and their 2025 ARR. Fully realized loss — no projection.`},
   ];
   h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:8px">${tiles.map(t=>
-    `<div style="background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:4px 3px;text-align:center">
+    `<div title="${t.t||''}" style="background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:4px 3px;text-align:center;cursor:help">
       <div style="font-size:10px;color:#5a5a7e;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px">${t.l}</div>
       <div style="font-size:16px;font-weight:800;font-family:var(--M);color:${t.c}">${t.v}</div>
       ${t.s?`<div style="font-size:10px;color:var(--mt);margin-top:1px">${t.s}</div>`:''}</div>`).join('')}</div>`;
@@ -4915,7 +4922,7 @@ function render(){
     // GP Logo Staircase (always show — it's the comp target)
     if(seg!=='sp'){
       const sm=S.stairMode||'qtr',smLbl=sm==='cum'?'cumulative':'per quarter';
-      const _tgl=`<span style="display:inline-flex;border:1.5px solid var(--or);border-radius:6px;overflow:hidden;margin-left:10px;text-transform:none;letter-spacing:normal"><button onclick="setStair('qtr')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;cursor:pointer;background:${sm==='qtr'?'var(--or)':'transparent'};color:${sm==='qtr'?'#0b0b1c':'var(--or)'};letter-spacing:.5px">QTR</button><button onclick="setStair('cum')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;border-left:1.5px solid var(--or);cursor:pointer;background:${sm==='cum'?'var(--or)':'transparent'};color:${sm==='cum'?'#0b0b1c':'var(--or)'};letter-spacing:.5px">CUM</button></span>`;
+      const _tgl=`<span style="display:inline-flex;border:1.5px solid var(--or);border-radius:6px;overflow:hidden;margin-left:10px;text-transform:none;letter-spacing:normal"><button onclick="setStair('qtr')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;cursor:pointer;background:${sm==='qtr'?'var(--or)':'transparent'};color:${sm==='qtr'?'#0b0b1c':'var(--or)'};letter-spacing:.5px">QTR</button><button onclick="setStair('cum')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;border-left:1.5px solid var(--or);cursor:pointer;background:${sm==='cum'?'var(--or)':'transparent'};color:${sm==='cum'?'#0b0b1c':'var(--or)'};letter-spacing:.5px">CUML</button></span>`;
       h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12);display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:inline-flex;align-items:center">GP Logo Retention Staircase <span style="font-size:10px;color:var(--mt);font-weight:400;margin-left:6px">· ${smLbl}</span>${_tgl}</span><span style="display:inline-flex;gap:10px;font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:none;color:var(--mt);margin-left:auto"><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--rd)"></span><span style="color:var(--rd)">Floor</span> <span style="color:var(--mt)">· pay starts</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--gn)"></span><span style="color:var(--gn)">Full</span> <span style="color:var(--mt)">· 100%</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--pk)"></span><span style="color:var(--pk)">Accel</span> <span style="color:var(--mt)">· 125% cap</span></span></span></div><div class="qg">`;
       for(const qk of['Q1','Q2','Q3','Q4']){
         const q=m.gpL[qk],th=GP_TH[qk]||[0,0,0],c=qCl[q.st],fl=th[0],fu=th[1],ac=th[2];
@@ -4946,7 +4953,7 @@ function render(){
     // SP Logo Retention Staircase (show when sp or total)
     if(seg!=='gp'){
       const sm=S.stairMode||'qtr',smLbl=sm==='cum'?'cumulative':'per quarter';
-      const _tgl=`<span style="display:inline-flex;border:1.5px solid var(--pk);border-radius:6px;overflow:hidden;margin-left:10px;text-transform:none;letter-spacing:normal"><button onclick="setStair('qtr')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;cursor:pointer;background:${sm==='qtr'?'var(--pk)':'transparent'};color:${sm==='qtr'?'#0b0b1c':'var(--pk)'};letter-spacing:.5px">QTR</button><button onclick="setStair('cum')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;border-left:1.5px solid var(--pk);cursor:pointer;background:${sm==='cum'?'var(--pk)':'transparent'};color:${sm==='cum'?'#0b0b1c':'var(--pk)'};letter-spacing:.5px">CUM</button></span>`;
+      const _tgl=`<span style="display:inline-flex;border:1.5px solid var(--pk);border-radius:6px;overflow:hidden;margin-left:10px;text-transform:none;letter-spacing:normal"><button onclick="setStair('qtr')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;cursor:pointer;background:${sm==='qtr'?'var(--pk)':'transparent'};color:${sm==='qtr'?'#0b0b1c':'var(--pk)'};letter-spacing:.5px">QTR</button><button onclick="setStair('cum')" style="padding:3px 12px;font-size:11px;font-weight:800;font-family:inherit;border:none;border-left:1.5px solid var(--pk);cursor:pointer;background:${sm==='cum'?'var(--pk)':'transparent'};color:${sm==='cum'?'#0b0b1c':'var(--pk)'};letter-spacing:.5px">CUML</button></span>`;
       h+=`<div class="cd"><div class="ct" style="color:var(--pk);border-bottom-color:rgba(224,64,251,.12);display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:inline-flex;align-items:center">SP Logo Retention Staircase <span style="font-size:10px;color:var(--mt);font-weight:400;margin-left:6px">· ${smLbl}</span>${_tgl}</span><span style="display:inline-flex;gap:10px;font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:none;color:var(--mt);margin-left:auto"><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--rd)"></span><span style="color:var(--rd)">Floor</span> <span style="color:var(--mt)">· pay starts</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--gn)"></span><span style="color:var(--gn)">Full</span> <span style="color:var(--mt)">· 100%</span></span><span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:2px;height:10px;background:var(--pk)"></span><span style="color:var(--pk)">Accel</span> <span style="color:var(--mt)">· 125% cap</span></span></span></div><div class="qg">`;
       for(const qk of['Q1','Q2','Q3','Q4']){
         const q=m.spL[qk],th=SP_TH[qk]||[0,0,0],c=qCl[q.st],fl=th[0],fu=th[1],ac=th[2];
@@ -4967,7 +4974,7 @@ function render(){
           <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${pY>=100?'rgba(46,213,115,.05)':pY>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
             Comp: <b style="color:${pY>=100?'var(--gn)':pY>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(pY)}%</b></div>`;
         } else {
-          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(224,64,251,.05)">Q1: no SP threshold</div>`;
+          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(224,64,251,.05);color:var(--mt)">Q1 · not goaled <span style="color:var(--pk);font-weight:600">(100%)</span></div>`;
         }
         h+=`</div>`;
       }
@@ -4987,7 +4994,7 @@ function render(){
           <div style="border-top:1px solid var(--bd);padding-top:1px;margin-top:1px">
             ${seg==='total'?`GP: <b style="color:var(--pk)">${fS(r.qExp)}</b>`:`Total: <b style="color:var(--pk)">${fS(r.qExp)}</b>`}</div>
           <div style="font-size:10px;color:var(--mt)">GRR ${P(r.qGrr)} · NRR ${P(r.qNrr)}</div>
-          <div style="font-size:10px;color:var(--mt)">Cum: ${P(r.cGrr)} / ${P(r.cNrr)}</div></div>`;
+          <div style="font-size:10px;color:var(--mt)">Cuml: ${P(r.cGrr)} / ${P(r.cNrr)}</div></div>`;
       }
     }
     if(seg==='sp'||seg==='total'){
@@ -5025,7 +5032,7 @@ function render(){
     // GP Table
     if(seg!=='sp'){
       h+=`<div style="font-size:13px;font-weight:700;color:var(--pu);margin-bottom:5px">GP (${GP.T} logos · ${$(GP.base)})</div>
-        <table style="table-layout:fixed"><colgroup><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:13%"><col style="width:12%"><col style="width:19%"><col style="width:18%"></colgroup><thead><tr><th style="text-align:left">Q</th><th style="text-align:right">Floor</th><th style="text-align:right">Full</th><th style="text-align:right">Accel</th><th style="text-align:right">Logo Ret</th><th style="text-align:right">Payout</th><th style="text-align:right">Cum Rev</th><th style="text-align:right">Cum NRR</th></tr></thead><tbody>
+        <table style="table-layout:fixed"><colgroup><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:13%"><col style="width:12%"><col style="width:19%"><col style="width:18%"></colgroup><thead><tr><th style="text-align:left">Q</th><th style="text-align:right">Floor</th><th style="text-align:right">Full</th><th style="text-align:right">Accel</th><th style="text-align:right">Logo Ret</th><th style="text-align:right">Payout</th><th style="text-align:right">Cuml Rev</th><th style="text-align:right">Cuml NRR</th></tr></thead><tbody>
         <tr style="background:rgba(124,108,255,.03)"><td style="font-weight:600;color:var(--pu);text-align:left">Q1</td><td colspan="3" style="color:var(--mt);text-align:left">gifted</td><td style="font-family:var(--M);text-align:right">${P(m.gpL.Q1.cR)}</td><td style="font-family:var(--M);font-weight:700;color:var(--pu);text-align:right">100%</td><td style="font-family:var(--M);color:var(--pk);text-align:right">${$(m.gpR.Q1.cE)}</td><td style="font-family:var(--M);color:${cl(m.gpR.Q1.cNrr,90)};text-align:right">${P(m.gpR.Q1.cNrr)}</td></tr>`;
       for(const qk of['Q2','Q3','Q4']){const q=m.gpL[qk],th=GP_TH[qk],r=m.gpR[qk];
         h+=`<tr><td style="font-weight:600;text-align:left">${qk}</td><td style="color:var(--rd);font-family:var(--M);text-align:right">${th[0]}%</td><td style="color:var(--gn);font-family:var(--M);text-align:right">${th[1]}%</td><td style="color:var(--pk);font-family:var(--M);text-align:right">${th[2]}%</td><td style="font-family:var(--M);font-weight:700;color:${cl(q.cR,th[1])};text-align:right">${P(q.cR)}</td><td style="font-family:var(--M);font-weight:700;color:${q.pay>=100?'var(--gn)':q.pay>0?'var(--or)':'var(--rd)'};text-align:right">${Math.round(q.pay)}%</td><td style="font-family:var(--M);color:var(--pk);text-align:right">${$(r.cE)}</td><td style="font-family:var(--M);color:${cl(r.cNrr,90)};text-align:right">${P(r.cNrr)}</td></tr>`}
@@ -5038,7 +5045,8 @@ function render(){
         <table style="table-layout:fixed"><colgroup><col style="width:10%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:22%"><col style="width:23%"></colgroup><thead><tr><th style="text-align:left">Q</th><th style="text-align:right">Floor</th><th style="text-align:right">Full</th><th style="text-align:right">Accel</th><th style="text-align:right">Logo Ret</th><th style="text-align:right">Payout</th></tr></thead><tbody>`;
       for(const qk of['Q2','Q3','Q4']){const th=SP_TH[qk],p=m.spPay[qk];
         h+=`<tr><td style="font-weight:600;text-align:left">${qk}</td><td style="color:var(--rd);font-family:var(--M);text-align:right">${th[0]}%</td><td style="color:var(--gn);font-family:var(--M);text-align:right">${th[1]}%</td><td style="color:var(--pk);font-family:var(--M);text-align:right">${th[2]}%</td><td style="font-family:var(--M);font-weight:700;color:${cl(m.spRet,th[1])};text-align:right">${P(m.spRet)}</td><td style="font-family:var(--M);font-weight:700;color:${p>=100?'var(--gn)':p>0?'var(--or)':'var(--rd)'};text-align:right">${Math.round(p)}%</td></tr>`}
-      h+=`</tbody></table>`;
+      h+=`</tbody></table>
+      <div style="font-size:10px;color:var(--mt);margin-top:4px;font-style:italic">SP book-level: ${$(m.spRev.totExp)} expected · ${P(m.spRev.grr)} GRR · ${P(m.spRev.nrr)} NRR · per-quarter rev not broken out in source data</div>`;
     }
     h+=`</div>`;
 
