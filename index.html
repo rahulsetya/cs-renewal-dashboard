@@ -3148,6 +3148,7 @@ function _render(){
     const uStages=[...new Set(f.map(a=>a.s))].sort((a,b)=>ST.indexOf(a)-ST.indexOf(b));
     const uOnsite=[...new Set(f.map(a=>a.or||'').filter(Boolean))].sort();
     const uOwners=[...new Set(f.map(a=>a.ro))].sort();
+    const uCsOwners=[...new Set(f.map(a=>a.csRep||'').filter(Boolean))].sort();
     const uFlags=[...new Set(f.flatMap(a=>a.sg.map(s=>SIG_L[s])).filter(Boolean))].sort();
     const uAE=[...new Set(f.map(a=>a.ae||'').filter(Boolean))].sort();
     const seToMonth=se=>{if(!se)return'';const m=se.match(/^(\d{4})-(\d{2})/);if(!m)return'';return`${MON[parseInt(m[2])-1]} ${m[1]}`;}
@@ -3166,6 +3167,7 @@ function _render(){
       account:(a,b)=>a.c.localeCompare(b.c),
       stage:(a,b)=>ST.indexOf(a.s)-ST.indexOf(b.s),
       owner:(a,b)=>a.ro.localeCompare(b.ro),
+      csOwner:(a,b)=>(a.csRep||'').localeCompare(b.csRep||''),
       ae:(a,b)=>(a.ae||'').localeCompare(b.ae||''),
       r25:(a,b)=>a.r25-b.r25,
       offer:(a,b)=>a.o-b.o,
@@ -3184,6 +3186,7 @@ function _render(){
     else if(af.stage)rows=rows.filter(a=>a.s===af.stage);
     if(af.stageNotIn)rows=rows.filter(a=>!af.stageNotIn.includes(a.s));
     if(af.owner)rows=rows.filter(a=>a.ro===af.owner);
+    if(af.csOwner)rows=rows.filter(a=>(a.csRep||'')===af.csOwner);
     if(af.ae)rows=rows.filter(a=>(a.ae||'')===af.ae);
     if(af.r25min)rows=rows.filter(a=>a.r25>=(parseFloat(af.r25min)||0)*1000);
     if(af.r25max)rows=rows.filter(a=>a.r25<=(parseFloat(af.r25max)||Infinity)*1000);
@@ -3201,7 +3204,7 @@ function _render(){
     // Apply sort
     if(sortFns[as.col])rows=rows.sort((a,b)=>sortFns[as.col](a,b)*(as.dir==='asc'?1:-1));
 
-    const colCount=S.showAE?9:8;
+    const colCount=S.showAE?10:9;
     h+=`<div class="cd" style="padding:0;overflow:hidden">
     <div style="padding:8px 14px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between">
       <span style="font-size:12px;color:#64748b">${rows.length}${rows.length!==f.length?` of ${f.length}`:''} accounts</span>
@@ -3211,6 +3214,7 @@ function _render(){
       <th onclick="ssAcctSort('account')" style="${thStyle};width:170px"><div style="display:flex;align-items:center;gap:3px">Account ${sdArr('account')}</div><input data-sf="acct-search" onclick="event.stopPropagation()" oninput="ssAcctFilter('acctSearch',this.value)" value="${(af.acctSearch||'').replace(/"/g,'&quot;')}" placeholder="Search..." style="${aCtrlS}"></th>
       <th onclick="ssAcctSort('stage')" style="${thStyle};width:112px"><div style="display:flex;align-items:center;gap:3px">Stage ${sdArr('stage')}</div>${fStageSelect()}</th>
       <th onclick="ssAcctSort('owner')" style="${thStyle};width:100px"><div style="display:flex;align-items:center;gap:3px">Owner ${sdArr('owner')}</div>${fSelect('owner',uOwners)}</th>
+      <th onclick="ssAcctSort('csOwner')" style="${thStyle};width:110px"><div style="display:flex;align-items:center;gap:3px">CS Owner ${sdArr('csOwner')}</div>${fSelect('csOwner',uCsOwners)}</th>
       ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle};width:90px"><div style="display:flex;align-items:center;gap:3px">AE ${sdArr('ae')}</div>${fSelect('ae',uAE)}</th>`:''}
       <th onclick="ssAcctSort('r25')" style="${thStyle};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${sdArr('r25')}</div>${rInpPair('r25min','r25max')}</th>
       <th onclick="ssAcctSort('offer')" style="${thStyle};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#22d3ee">2026 ${sdArr('offer')}</div>${rInpPair('offermin','offermax')}</th>
@@ -3229,6 +3233,7 @@ function _render(){
         <td style="color:#e2e8f0;font-weight:500">${a.c}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:6px;white-space:nowrap">${nOpen?'▾':'▸'} notes</span>`:''}</td>
         <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
         <td style="color:#94a3b8">${a.ro}</td>
+        <td style="color:#94a3b8;font-size:11px">${a.csRep||'–'}</td>
         ${S.showAE?`<td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>`:''}
         <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
