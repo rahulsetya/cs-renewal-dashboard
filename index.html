@@ -56,6 +56,26 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .btn-refresh:hover{background:#334155;color:#f8fafc}
 .btn-snapshot{display:flex;align-items:center;gap:6px;background:#1e293b;color:#a78bfa;border:1px solid #4c1d95;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn-snapshot:hover{background:#2e1065;color:#c4b5fd}
+.owner-dd{position:relative;display:inline-block}
+.owner-dd-btn{background:#1e293b;color:#e2e8f0;border:1px solid #334155;padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:200px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.owner-dd-btn:hover{background:#263248}
+.owner-dd-btn .cr{color:#64748b;font-size:11px;transition:transform .15s}
+.owner-dd-btn.op .cr{transform:rotate(180deg);color:#94a3b8}
+.owner-dd-menu{position:absolute;top:calc(100% + 4px);right:0;background:#1e293b;border:1px solid #334155;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:260px;max-height:calc(100vh - 140px);overflow-y:auto;z-index:2000;padding:4px 0}
+.owner-dd-item{padding:7px 14px;font-size:13px;color:#e2e8f0;cursor:pointer;font-weight:500;white-space:nowrap;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.owner-dd-item:hover{background:#2a3a52}
+.owner-dd-item.sel{background:#1e40af;color:#fff}
+.owner-dd-item .ct{color:#64748b;font-size:11px;font-weight:400}
+.owner-dd-item.sel .ct{color:#bfdbfe}
+.owner-dd-grp{padding:8px 14px 4px;font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid #293548;margin-top:4px}
+.owner-dd-grp:first-child{border-top:none;margin-top:0}
+body.light .owner-dd-btn{background:#eef4f9;color:#1e293b;border-color:#9eb6ca}
+body.light .owner-dd-btn:hover{background:#d4e2ee}
+body.light .owner-dd-menu{background:#ffffff;border-color:#9eb6ca;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+body.light .owner-dd-item{color:#1e293b}
+body.light .owner-dd-item:hover{background:#eef4f9}
+body.light .owner-dd-item.sel{background:#2563eb;color:#fff}
+body.light .owner-dd-grp{color:#475569;border-top-color:#d4e2ee}
 .spinner{width:40px;height:40px;border:3px solid #334155;border-top-color:#60a5fa;border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .err-card{background:#ef444420;border:1px solid #ef444440;border-radius:12px;padding:20px;max-width:500px;color:#ef4444;font-size:14px;line-height:1.7}
@@ -238,6 +258,29 @@ let LIGHT=localStorage.getItem('cs_theme')==='light';
 // No system preference follow — always defaults to dark
 function applyBodyClass(){document.body.classList.toggle('light',LIGHT);}
 function ssTheme(){LIGHT=!LIGHT;localStorage.setItem('cs_theme',LIGHT?'light':'dark');applyBodyClass();render();}
+// Custom owner dropdown — always opens downward, shows all options via scroll
+let OWNER_DROP_OPEN=false;
+function toggleOwnerDrop(e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  OWNER_DROP_OPEN=!OWNER_DROP_OPEN;
+  const m=document.getElementById('ownerDropMenu');
+  const b=document.getElementById('ownerDropBtn');
+  if(m)m.style.display=OWNER_DROP_OPEN?'block':'none';
+  if(b)b.classList.toggle('op',OWNER_DROP_OPEN);
+}
+function pickOwner(v){
+  OWNER_DROP_OPEN=false;
+  const m=document.getElementById('ownerDropMenu');if(m)m.style.display='none';
+  ss('owner',v);
+}
+document.addEventListener('click',function(e){
+  if(!OWNER_DROP_OPEN)return;
+  const dd=document.querySelector('.owner-dd');
+  if(dd&&dd.contains(e.target))return;
+  OWNER_DROP_OPEN=false;
+  const m=document.getElementById('ownerDropMenu');if(m)m.style.display='none';
+  const b=document.getElementById('ownerDropBtn');if(b)b.classList.remove('op');
+});
 
 let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false};
 
@@ -1791,10 +1834,17 @@ function _render(){
       ${PREV_TS?`<span style="font-size:10px;color:#475569">Last saved: ${new Date(PREV_TS).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:'<span style="font-size:10px;color:#334155">No snapshot saved</span>'}
     </div>
     <button class="btn-refresh" onclick="refreshData()"${S.refreshing?' disabled style="opacity:.6;cursor:wait"':''}>${S.refreshing?'⟳ Refreshing…':'↻ Refresh'}</button>
-    <select onchange="ss('owner',this.value)"><option value="ALL_OWNERS"${S.owner==='ALL_OWNERS'?' selected':''}>All Owners</option><option value="ALL"${S.owner==='ALL'||!S.owner?' selected':''}>All CS Owners</option>
-    <optgroup label="CS Owners">${owners.map(o=>`<option value="${o}"${S.owner===o?' selected':''}>${o}</option>`).join('')}</optgroup>
-    ${pods.length?`<optgroup label="Pods (from Engagement Tracker)">${pods.map(p=>`<option value="POD:${p}"${S.owner==='POD:'+p?' selected':''}>${p} (${_podCounts[p]} accts)</option>`).join('')}</optgroup>`:''}
-    </select>
+    ${(()=>{const cur=S.owner||'ALL';const curLbl=cur==='ALL_OWNERS'?'All Owners':(cur==='ALL'||!cur)?'All CS Owners':cur.indexOf('POD:')===0?cur.slice(4):cur;
+      return `<div class="owner-dd">
+        <button id="ownerDropBtn" class="owner-dd-btn" onclick="toggleOwnerDrop(event)" title="Filter by CS Owner or Pod"><span>${curLbl}</span><span class="cr">▾</span></button>
+        <div id="ownerDropMenu" class="owner-dd-menu" style="display:none" onclick="event.stopPropagation()">
+          <div class="owner-dd-item${cur==='ALL_OWNERS'?' sel':''}" onclick="pickOwner('ALL_OWNERS')"><span>All Owners</span></div>
+          <div class="owner-dd-item${cur==='ALL'||!cur?' sel':''}" onclick="pickOwner('ALL')"><span>All CS Owners</span></div>
+          <div class="owner-dd-grp">CS Owners</div>
+          ${owners.map(o=>`<div class="owner-dd-item${cur===o?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${o}</span></div>`).join('')}
+          ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>`<div class="owner-dd-item${cur==='POD:'+p?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${p}</span><span class="ct">${_podCounts[p]} accts</span></div>`).join('')}`:''}
+        </div>
+      </div>`;})()}
   </div></div>`;
   h+=`<div class="rv" style="grid-template-columns:1fr 1fr">
     <div class="rc" style="border-left:3px solid #fbbf24"><h4>2025 Revenue (Base)</h4><div style="display:flex;align-items:baseline;gap:16px"><div class="rb" style="color:#fbbf24">${fm(r25T)}</div><div style="font-size:28px;font-weight:700;color:#94a3b8">${tot}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px">accounts</span></div></div></div>
