@@ -1930,7 +1930,10 @@ function _render(){
   const lost=f.filter(d=>d.s==='11. Churned');
   const pipe=f.filter(d=>d.s==='5. Proposal Made'||d.s==='6. Signature Requested');
   const unc=f.filter(d=>d.s==='1. Uncontacted');
-  const r25T=f.reduce((a,d)=>a+d.r25,0),offT=f.reduce((a,d)=>a+d.o,0);
+  // For SP rows, roll up Offer Price (col O on GA 26 SPs) rather than 2026
+  // revenue (col AQ) — the latter is often placeholder, Offer Price is the
+  // real renewal ask. GP rows continue to contribute d.o (2026 offer).
+  const r25T=f.reduce((a,d)=>a+d.r25,0),offT=f.reduce((a,d)=>a+(d.__sp?(d.spOffer||0):d.o),0);
   const wonO=won.reduce((a,d)=>a+d.o,0),lostR=lost.reduce((a,d)=>a+d.r25,0);
   const pipeO=pipe.reduce((a,d)=>a+d.o,0),pipeR=pipe.reduce((a,d)=>a+d.r25,0);
   const flagged=f.filter(d=>d.sg.length>0),flagRev=flagged.reduce((a,d)=>a+d.r25,0);
@@ -3252,7 +3255,8 @@ function _render(){
       ae:(a,b)=>(a.ae||'').localeCompare(b.ae||''),
       r25:(a,b)=>a.r25-b.r25,
       offer:(a,b)=>a.o-b.o,
-      delta:(a,b)=>{const da=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25:-999,db=b.o>0&&b.r25>0?(b.o-b.r25)/b.r25:-999;return da-db;},
+      spOffer:(a,b)=>(a.spOffer||0)-(b.spOffer||0),
+      delta:(a,b)=>{const _n=x=>x.__sp?(x.spOffer||0):x.o;const na=_n(a),nb=_n(b);const da=na>0&&a.r25>0?(na-a.r25)/a.r25:-999,db=nb>0&&b.r25>0?(nb-b.r25)/b.r25:-999;return da-db;},
       subend:(a,b)=>String(a.se||'').localeCompare(String(b.se||'')),
       flags:(a,b)=>a.sg.length-b.sg.length,
     };
@@ -3285,7 +3289,8 @@ function _render(){
     // Apply sort
     if(sortFns[as.col])rows=rows.sort((a,b)=>sortFns[as.col](a,b)*(as.dir==='asc'?1:-1));
 
-    const colCount=S.showAE?10:9;
+    const showSPOffer=S.owner==='Emilie Welch';
+    const colCount=(S.showAE?10:9)+(showSPOffer?1:0);
     h+=`<div class="cd" style="padding:0;overflow:hidden">
     <div style="padding:8px 14px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between">
       <span style="font-size:12px;color:#64748b">${rows.length}${rows.length!==f.length?` of ${f.length}`:''} accounts</span>
@@ -3299,12 +3304,14 @@ function _render(){
       ${S.showAE?`<th onclick="ssAcctSort('ae')" style="${thStyle};width:90px"><div style="display:flex;align-items:center;gap:3px">AE ${sdArr('ae')}</div>${fSelect('ae',uAE)}</th>`:''}
       <th onclick="ssAcctSort('r25')" style="${thStyle};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#fbbf24">2025 ${sdArr('r25')}</div>${rInpPair('r25min','r25max')}</th>
       <th onclick="ssAcctSort('offer')" style="${thStyle};width:72px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#22d3ee">2026 ${sdArr('offer')}</div>${rInpPair('offermin','offermax')}</th>
+      ${showSPOffer?`<th onclick="ssAcctSort('spOffer')" style="${thStyle};width:78px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;color:#a78bfa">Offer Price ${sdArr('spOffer')}</div></th>`:''}
       <th onclick="ssAcctSort('delta')" style="${thStyle};width:68px;text-align:right"><div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">Percent +/- ${sdArr('delta')}</div></th>
       <th onclick="ssAcctSort('subend')" style="${thStyle};width:90px"><div style="display:flex;align-items:center;gap:3px">Sub End ${sdArr('subend')}</div>${fSelect('subend',uSubMonths)}</th>
       <th onclick="ssAcctSort('flags')" style="${thStyle};width:160px;overflow:visible"><div style="display:flex;align-items:center;gap:3px">Flags ${sdArr('flags')}${afFlags.length?`<span style="background:#60a5fa;color:#fff;border-radius:8px;padding:0 5px;font-size:9px;font-weight:700">${afFlags.length}</span>`:''}</div>${fChk(uFlags,afFlags)}</th>
     </tr></thead><tbody>`;
     rows.forEach(a=>{
-      const dl=a.o>0&&a.r25>0?(a.o-a.r25)/a.r25*100:-999;
+      const _num=a.__sp?(a.spOffer||0):a.o;
+      const dl=_num>0&&a.r25>0?(_num-a.r25)/a.r25*100:-999;
       const nOpen=S.noteOpen===a.c;
       const aPrevStg=PREV_TS?PREV[a.c]:null;
       const aStgMoved=aPrevStg&&aPrevStg!==a.s;
@@ -3318,6 +3325,7 @@ function _render(){
         ${S.showAE?`<td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>`:''}
         <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
+        ${showSPOffer?`<td style="text-align:right;color:${a.spOffer>0?'#a78bfa':'#334155'}">${a.spOffer>0?fm(a.spOffer):'–'}</td>`:''}
         <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
         <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td>
         <td style="overflow:visible;white-space:normal;vertical-align:top;padding:5px 6px"><div style="display:flex;flex-wrap:wrap;gap:3px;align-items:flex-start">${a.sg.map(s=>`<span class="badge ${SIG_C[s]}">${SIG_L[s]}</span>`).join('')}</div></td>
