@@ -3897,6 +3897,11 @@ const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"
 let aTab="overview",selQ="Q2",selGPCSM=null,selGPMonth=null,selGPPod=null;
 const _nowQ=(()=>{const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';})();
 let selCadQ=_nowQ;
+// Cadence-table sort state: key is '' | 'name' | 'pool' | 'total' | month-col label (e.g. 'April 2026').
+// Default '' preserves the template order. Clicking a header toggles dir; switching to a new key starts desc.
+let _cadSortKey='',_cadSortDir='desc';
+function _cadSortToggle(k){if(_cadSortKey===k){_cadSortDir=_cadSortDir==='desc'?'asc':'desc';}else{_cadSortKey=k;_cadSortDir=(k==='name'||k==='pool')?'asc':'desc';}rT('cadence');}
+function _cadSortArrow(k){if(_cadSortKey!==k)return'<span style="color:var(--dim);opacity:.4">↕</span>';return _cadSortDir==='desc'?'<span style="color:var(--accent)">▼</span>':'<span style="color:var(--accent)">▲</span>';}
 
 function sw(id){aTab=id;document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>{b.classList.remove('active','active-rose');if(b.dataset.t===id)b.classList.add(tabDefs.find(t=>t.id===id)?.ac?'active-rose':'active')});rT(id)}
 
@@ -4302,13 +4307,27 @@ function rCadence(){
       <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts.${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
       <table style="border-collapse:collapse;width:100%;min-width:500px">
         <thead><tr style="border-bottom:1px solid var(--borderL)">
-          <th style="text-align:left;padding:8px 12px;font-size:11px">CSM</th>
-          <th style="text-align:left;padding:8px 8px;font-size:11px">Pool</th>
-          ${visCols.map(c=>`<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap">${c}</th>`).join('')}
-          <th style="text-align:center;padding:8px 10px;font-size:11px">${selCadQ} Total</th>
+          <th style="text-align:left;padding:8px 12px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('name')">CSM ${_cadSortArrow('name')}</th>
+          <th style="text-align:left;padding:8px 8px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('pool')">Pool ${_cadSortArrow('pool')}</th>
+          ${visCols.map(c=>`<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none" onclick="_cadSortToggle('${c.replace(/'/g,"\\'")}')">${c} ${_cadSortArrow(c)}</th>`).join('')}
+          <th style="text-align:center;padding:8px 10px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('total')">${selCadQ} Total ${_cadSortArrow('total')}</th>
         </tr></thead>
         <tbody>
-          ${CSM.map(c=>{
+          ${(function(){
+            // Sort a copy of CSM by the active key. Unsorted default = template order.
+            const _rowsRaw=CSM.slice();
+            if(!_cadSortKey)return _rowsRaw;
+            const _k=_cadSortKey,_dir=_cadSortDir==='asc'?1:-1;
+            const _valOf=c=>{
+              const cData=cd.csm[c.n]||{total:0,months:{}};
+              if(_k==='name')return (c.n||'').toLowerCase();
+              if(_k==='pool')return (c.seg||'').toLowerCase();
+              if(_k==='total')return visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0),0);
+              // Month column
+              return cData.months[_k]?.yes||0;
+            };
+            return _rowsRaw.sort((a,b)=>{const va=_valOf(a),vb=_valOf(b);if(va<vb)return -1*_dir;if(va>vb)return 1*_dir;return 0;});
+          })().map(c=>{
             const isSP=c.t==='SP';
             const cData=cd.csm[c.n]||{total:0,months:{},allAccts:[]};
             const rid='cad_'+c.n.replace(/\W/g,'_');
