@@ -1476,6 +1476,304 @@ window._noteKeys=[];
 function toggleNoteIdx(i){const key=window._noteKeys[i];S.noteOpen=S.noteOpen===key?null:key;render();}
 function toggleStuckNote(key){S.noteOpen=S.noteOpen===key?null:key;render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];render();}
+// ──────────────────────────────────────────────────────────────────────────
+// Win-Back easter egg → Rahul Q2 2026 MBO tracker
+// 5 clicks on Win-Back KPI within 2s → password prompt → MBO overlay
+// ──────────────────────────────────────────────────────────────────────────
+let _wbClicks=0,_wbTimer=null;
+function _wbKpiClick(){
+  _wbClicks++;
+  clearTimeout(_wbTimer);
+  _wbTimer=setTimeout(()=>{_wbClicks=0;},2000);
+  if(_wbClicks<5){navKpi('winback');return;}
+  _wbClicks=0;clearTimeout(_wbTimer);
+  const pw=prompt('Password:');
+  if(pw===null)return;
+  if(pw!=='rahulsetya777'){alert('Incorrect.');return;}
+  _openRahulMBOs();
+}
+
+const RAHUL_MBOS=[
+  {id:1,weight:40,title:'Define CRM Hygiene Standards & Cadence Infrastructure',deadline:'Core deliverables by April 30 · HubSpot spec by June 30',desc:"Establish the data foundation that the activity gate and retention tracking depend on. Without clean, standardized CRM data and a working engagement tracker, the comp plan can't be measured.",krs:[
+    {id:'1.1',text:'Engagement tracker is <strong>live</strong> with all CSMs onboarded and entering data by <strong>April 30</strong>. Tracker captures: account name, CSM, meeting date, meeting type, attendees, and notes.',due:'2026-04-30'},
+    {id:'1.2',text:'Written <strong>CRM hygiene standards</strong> document published and shared with the team. Covers: required fields, update frequency, naming conventions, and what constitutes a "completed" meeting entry.',due:'2026-04-30'},
+    {id:'1.3',text:'<strong>Training session</strong> delivered to all CSMs (recorded for onboarding). CSMs can demo tracker usage by end of training.',due:'2026-04-30'},
+    {id:'1.4',text:'<strong>Pod structure updated</strong> in master renewal sheet — accounts mapped to correct CSM, pod, and pool. Validated by Tim.',due:'2026-04-30'},
+    {id:'1.5',text:'<strong>HubSpot migration spec</strong> written by <strong>June 30</strong> — defines what fields, objects, and workflows are needed to replicate the engagement tracker in HubSpot. Scoped for Q3 implementation.',due:'2026-06-30',tag:'Q3 PREP'}
+  ],grades:[
+    {s:'1 — Not Met',c:'#ef4444',d:'Tracker not live by April 30, or fewer than 50% of CSMs actively using it by quarter end'},
+    {s:'2 — Partially Met',c:'#f59e0b',d:'Tracker live but missing KRs (e.g., no written standards, no training, or pod structure not updated)'},
+    {s:'3 — Met',c:'#10b981',d:'All 5 KRs delivered on time. ≥80% of CSMs entering data consistently by June 30'},
+    {s:'4 — Exceeded',c:'#06b6d4',d:'All KRs met early. 100% CSM adoption. HubSpot spec includes working prototype or proof-of-concept'}
+  ]},
+  {id:2,weight:30,title:'Build Cadence Reporting & Audit Process',deadline:'Reporting live by May 15 · Audit rhythm established by May 31',desc:"Build the reporting layer that turns engagement tracker data into actionable cadence metrics. This feeds the activity gate on the comp plan — if this doesn't work, we can't score the 50% activity component.",krs:[
+    {id:'2.1',text:'<strong>Weekly cadence report</strong> generated and shared with Tim by <strong>every Friday starting May 2</strong>. Shows per-CSM meeting completion % against their required cadence (monthly / bi-weekly / bi-monthly by segment).',due:'2026-05-02'},
+    {id:'2.2',text:'<strong>Gong audit process</strong> documented and operational — cross-reference engagement tracker entries against Gong recordings weekly. Discrepancies flagged to CSM and Tim within 2 business days.',due:'2026-05-31'},
+    {id:'2.3',text:'Cadence data feeds into the <strong>CS Goals Dashboard</strong> (Cadence tab) — CSMs can see their own scores. Dashboard auto-updates from engagement tracker, not manual entry.',due:'2026-05-15'},
+    {id:'2.4',text:'<strong>HubSpot cross-check</strong> report built (or defined if HubSpot integration is pending). Purpose: secondary validation source to catch meetings logged in tracker but not in HubSpot, and vice versa.',due:'2026-06-30'}
+  ],grades:[
+    {s:'1 — Not Met',c:'#ef4444',d:'No weekly report cadence established, or dashboard cadence tab still showing dashes at quarter end'},
+    {s:'2 — Partially Met',c:'#f59e0b',d:'Reports produced but irregular (missed ≥3 weeks), or no Gong audit process in place'},
+    {s:'3 — Met',c:'#10b981',d:'Weekly reports delivered consistently (missed ≤1 week). Gong audits running. Dashboard cadence tab live with real data'},
+    {s:'4 — Exceeded',c:'#06b6d4',d:'All KRs met. Reporting automated (no manual assembly). Caught and resolved ≥5 data integrity issues via audits'}
+  ]},
+  {id:3,weight:30,title:'Ship CS Dashboards & Reporting Suite',deadline:'V1 dashboards live by May 31 · Iteration through June 30',desc:'Deliver the dashboards that give the CS team and leadership visibility into renewal pipeline, goals, comp projections, and engagement activity. These are the primary operating tools for H1/H2.',krs:[
+    {id:'3.1',text:'<strong>Renewal pipeline dashboard</strong> live — shows GP and SP renewal status by quarter, pool, and CSM. Sourced from master renewal sheet. Updated at minimum weekly.',due:'2026-05-31'},
+    {id:'3.2',text:'<strong>CS Goals & Comp Dashboard</strong> live — includes: retention tracking (4-state model), comp projection with payout engine, target management, and formalized comp rules.',due:'2026-05-31'},
+    {id:'3.3',text:'<strong>Engagement / activity dashboard</strong> live — per-CSM view of meeting cadence, completion rates, and trend over time. Sourced from engagement tracker.',due:'2026-05-31'},
+    {id:'3.4',text:'All dashboards sourced from <strong>live spreadsheet data</strong>. No manual copy-paste to update. Tim and Rahul can both explain the data flow from source to dashboard.',due:'2026-05-31'},
+    {id:'3.5',text:'<strong>Stakeholder feedback</strong> incorporated — at least one round of feedback from CSMs collected and acted on. Changes documented in a brief changelog.',due:'2026-06-30'}
+  ],grades:[
+    {s:'1 — Not Met',c:'#ef4444',d:'Fewer than 2 of the 3 dashboards shipped, or dashboards require manual data refresh'},
+    {s:'2 — Partially Met',c:'#f59e0b',d:'Dashboards shipped but missing key features (e.g., no comp projection, no 4-state model), or data freshness issues'},
+    {s:'3 — Met',c:'#10b981',d:'All 3 dashboards live with live data feeds. KRs 3.1–3.4 met. At least 1 feedback round completed'},
+    {s:'4 — Exceeded',c:'#06b6d4',d:'All KRs met. Dashboards adopted as primary operating tools by team. Additional features shipped beyond spec'}
+  ]}
+];
+
+const RAHUL_MILESTONES=[
+  {date:'2026-04-30',label:'Tracker live + team onboarded',c:'#10b981'},
+  {date:'2026-05-02',label:'Weekly reports begin',c:'#3b82f6'},
+  {date:'2026-05-15',label:'Cadence reporting live',c:'#a78bfa'},
+  {date:'2026-05-31',label:'Dashboards V1 shipped',c:'#06b6d4'},
+  {date:'2026-06-30',label:'HubSpot spec + iteration',c:'#f59e0b'}
+];
+
+function _mboProgress(){try{return JSON.parse(localStorage.getItem('rahul_mbo_progress')||'{}');}catch(e){return{};}}
+function _mboSave(p){try{localStorage.setItem('rahul_mbo_progress',JSON.stringify(p));}catch(e){}}
+
+function _toggleKR(krid){
+  const p=_mboProgress();
+  p[krid]=!p[krid];
+  _mboSave(p);
+  // Update only this KR's visual state + parent progress bar + overall bar
+  _rerenderMBOProgress();
+}
+function _rerenderMBOProgress(){
+  const p=_mboProgress();
+  // Update each MBO card header bar + percent
+  RAHUL_MBOS.forEach(mbo=>{
+    const done=mbo.krs.filter(k=>p[k.id]).length;
+    const pct=Math.round(done/mbo.krs.length*100);
+    const barEl=document.getElementById('mbo-bar-'+mbo.id);
+    const pctEl=document.getElementById('mbo-pct-'+mbo.id);
+    if(barEl)barEl.style.width=pct+'%';
+    if(pctEl)pctEl.textContent=done+'/'+mbo.krs.length+' · '+pct+'%';
+    mbo.krs.forEach(k=>{
+      const row=document.getElementById('kr-'+k.id.replace('.','_'));
+      if(row){
+        row.style.opacity=p[k.id]?'.55':'1';
+        const chk=row.querySelector('.mbo-chk');
+        if(chk){
+          chk.style.background=p[k.id]?'#10b981':'transparent';
+          chk.style.borderColor=p[k.id]?'#10b981':'#475569';
+          chk.innerHTML=p[k.id]?'✓':'';
+        }
+        const txt=row.querySelector('.mbo-krtxt');
+        if(txt)txt.style.textDecoration=p[k.id]?'line-through':'none';
+      }
+    });
+  });
+  // Overall
+  let totW=0,earnedW=0;
+  RAHUL_MBOS.forEach(mbo=>{
+    const done=mbo.krs.filter(k=>p[k.id]).length;
+    totW+=mbo.weight;
+    earnedW+=mbo.weight*(done/mbo.krs.length);
+  });
+  const overallPct=totW?Math.round(earnedW/totW*100):0;
+  const ob=document.getElementById('mbo-overall-bar');
+  const op=document.getElementById('mbo-overall-pct');
+  if(ob)ob.style.width=overallPct+'%';
+  if(op)op.textContent=overallPct+'%';
+}
+
+function _closeRahulMBOs(){const el=document.getElementById('rahul-mbo-overlay');if(el)el.remove();document.body.style.overflow='';}
+
+function _buildQ2Calendar(){
+  // Weekly grid Mar 30 (Mon) → Jul 5 (Sun) — 14 weeks covering all of Q2 2026
+  const today=new Date();today.setHours(0,0,0,0);
+  const start=new Date(2026,2,30); // Mar 30 Mon
+  const weeks=[];
+  const milestonesByDate={};
+  RAHUL_MILESTONES.forEach(m=>{milestonesByDate[m.date]=m;});
+  // Also per-KR due dates
+  const krDue={};
+  RAHUL_MBOS.forEach(mbo=>mbo.krs.forEach(k=>{if(!krDue[k.due])krDue[k.due]=[];krDue[k.due].push({id:k.id,mboId:mbo.id});}));
+  for(let w=0;w<14;w++){
+    const wkStart=new Date(start);wkStart.setDate(start.getDate()+w*7);
+    const wkEnd=new Date(wkStart);wkEnd.setDate(wkStart.getDate()+6);
+    const days=[];
+    for(let d=0;d<7;d++){
+      const dt=new Date(wkStart);dt.setDate(wkStart.getDate()+d);
+      const iso=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+      days.push({dt,iso,isToday:dt.getTime()===today.getTime(),isPast:dt<today,ms:milestonesByDate[iso]||null,krs:krDue[iso]||[]});
+    }
+    const isCurWeek=today>=wkStart&&today<=wkEnd;
+    weeks.push({wkStart,wkEnd,days,isCurWeek});
+  }
+  const fmtD=dt=>dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  let h='<div style="display:flex;flex-direction:column;gap:6px">';
+  weeks.forEach((wk,wi)=>{
+    const wkLabel='Week '+(wi+1)+' · '+fmtD(wk.wkStart)+' – '+fmtD(wk.wkEnd);
+    const hasEvents=wk.days.some(d=>d.ms||d.krs.length);
+    h+=`<div style="border:1px solid ${wk.isCurWeek?'#3b82f6':'#334155'};background:${wk.isCurWeek?'rgba(59,130,246,.08)':'#0f172a'};border-radius:8px;padding:10px 12px">`;
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${hasEvents?'8px':'0'}">`;
+    h+=`<div style="font-size:11px;font-weight:600;color:${wk.isCurWeek?'#60a5fa':'#94a3b8'};text-transform:uppercase;letter-spacing:.8px">${wkLabel}${wk.isCurWeek?' · <span style="color:#60a5fa">CURRENT</span>':''}</div>`;
+    h+='</div>';
+    if(hasEvents){
+      h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">';
+      wk.days.forEach(d=>{
+        const dayName=d.dt.toLocaleDateString('en-US',{weekday:'short'});
+        const dayNum=d.dt.getDate();
+        const hasMs=d.ms;
+        const hasKr=d.krs.length>0;
+        const bg=hasMs?`${d.ms.c}22`:hasKr?'#1e293b':'#0b1120';
+        const bc=hasMs?d.ms.c:hasKr?'#334155':'#1e293b';
+        h+=`<div style="border:1px solid ${bc};background:${bg};border-radius:6px;padding:6px 4px;min-height:${hasMs||hasKr?'70px':'36px'};${d.isToday?'box-shadow:0 0 0 2px #3b82f6':''};${d.isPast&&!hasMs&&!hasKr?'opacity:.4':''}">`;
+        h+=`<div style="font-size:9px;color:#64748b;font-weight:600">${dayName} ${dayNum}</div>`;
+        if(hasMs)h+=`<div style="font-size:10px;color:${d.ms.c};font-weight:600;margin-top:3px;line-height:1.3">${d.ms.label}</div>`;
+        if(hasKr)h+=`<div style="font-size:9px;color:#94a3b8;margin-top:3px">${d.krs.map(k=>'KR '+k.id).join(', ')}</div>`;
+        h+='</div>';
+      });
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+function _openRahulMBOs(){
+  const p=_mboProgress();
+  document.body.style.overflow='hidden';
+  const overlay=document.createElement('div');
+  overlay.id='rahul-mbo-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);overflow-y:auto;padding:24px;backdrop-filter:blur(4px)';
+  let totW=0,earnedW=0;
+  RAHUL_MBOS.forEach(mbo=>{const done=mbo.krs.filter(k=>p[k.id]).length;totW+=mbo.weight;earnedW+=mbo.weight*(done/mbo.krs.length);});
+  const overallPct=totW?Math.round(earnedW/totW*100):0;
+
+  let h='<div style="max-width:1100px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif">';
+  // Header
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">';
+  h+='<div><div style="font-size:22px;font-weight:700;color:#fff">Rahul Sharma — Q2 2026 MBOs</div>';
+  h+='<div style="font-size:12px;color:#64748b;margin-top:4px">CS Operations & Enablement · Reporting to Tim Fischer, VP Client Success · April–June 2026</div></div>';
+  h+='<button onclick="_closeRahulMBOs()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button>';
+  h+='</div>';
+
+  // Overall progress
+  h+='<div style="background:#111827;border:1px solid #3b82f6;border-radius:12px;padding:18px 20px;margin-bottom:16px">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">';
+  h+='<div style="font-size:13px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:1px">Overall Progress (weighted)</div>';
+  h+=`<div id="mbo-overall-pct" style="font-size:28px;font-weight:700;color:#3b82f6;font-family:'JetBrains Mono',monospace">${overallPct}%</div>`;
+  h+='</div>';
+  h+='<div style="height:10px;background:#0B1120;border-radius:6px;overflow:hidden">';
+  h+=`<div id="mbo-overall-bar" style="height:100%;background:linear-gradient(90deg,#3b82f6,#06b6d4);width:${overallPct}%;transition:width .3s"></div>`;
+  h+='</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-top:8px">Check off KRs as you complete them — progress saves automatically.</div>';
+  h+='</div>';
+
+  // Weekly calendar
+  h+='<div style="background:#111827;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;margin-bottom:16px">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+  h+='<div style="font-size:13px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px">Q2 2026 — Weekly Deadline Calendar</div>';
+  h+='<div style="font-size:11px;color:#64748b">14 weeks · Mar 30 → Jul 5</div>';
+  h+='</div>';
+  h+=_buildQ2Calendar();
+  h+='</div>';
+
+  // Milestones row
+  h+='<div style="background:#111827;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;margin-bottom:16px">';
+  h+='<div style="font-size:13px;font-weight:600;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Key Milestones</div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  RAHUL_MILESTONES.forEach(m=>{
+    const dt=new Date(m.date);const md=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const today=new Date();today.setHours(0,0,0,0);
+    const isPast=dt<today;
+    h+=`<div style="flex:1;min-width:140px;background:#0B1120;border:1px solid ${m.c};border-radius:8px;padding:10px 14px;text-align:center;opacity:${isPast?'.55':'1'}">`;
+    h+=`<div style="font-size:10px;color:${m.c};text-transform:uppercase;letter-spacing:.5px;font-weight:600">${md}</div>`;
+    h+=`<div style="font-size:11px;color:#e2e8f0;font-weight:500;margin-top:3px">${m.label}</div>`;
+    h+='</div>';
+  });
+  h+='</div></div>';
+
+  // MBO cards
+  RAHUL_MBOS.forEach(mbo=>{
+    const done=mbo.krs.filter(k=>p[k.id]).length;
+    const mpct=Math.round(done/mbo.krs.length*100);
+    h+='<div style="background:#111827;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:16px">';
+    // Header
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">';
+    h+='<div style="flex:1;min-width:280px">';
+    h+=`<div style="font-size:16px;font-weight:700;color:#fff">MBO ${mbo.id} — ${mbo.title}</div>`;
+    h+=`<div style="font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-top:4px">${mbo.deadline}</div>`;
+    h+='</div>';
+    h+=`<div style="font-size:13px;font-weight:600;font-family:'JetBrains Mono',monospace;padding:4px 12px;border-radius:6px;background:rgba(59,130,246,.15);color:#3b82f6">${mbo.weight}%</div>`;
+    h+='</div>';
+    h+=`<div style="font-size:12px;color:#94a3b8;line-height:1.6;margin-bottom:14px">${mbo.desc}</div>`;
+
+    // Progress bar
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    h+='<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;color:#10b981">Key Results</div>';
+    h+=`<div id="mbo-pct-${mbo.id}" style="font-size:11px;color:#94a3b8;font-family:'JetBrains Mono',monospace">${done}/${mbo.krs.length} · ${mpct}%</div>`;
+    h+='</div>';
+    h+='<div style="height:4px;background:#0B1120;border-radius:3px;overflow:hidden;margin-bottom:12px">';
+    h+=`<div id="mbo-bar-${mbo.id}" style="height:100%;background:#10b981;width:${mpct}%;transition:width .3s"></div>`;
+    h+='</div>';
+
+    // KRs
+    h+='<div style="background:#0B1120;border-radius:8px;padding:4px 14px;border:1px solid #1e293b">';
+    mbo.krs.forEach((k,ki)=>{
+      const checked=!!p[k.id];
+      const isLast=ki===mbo.krs.length-1;
+      const dueDt=new Date(k.due);const dueLbl=dueDt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      const today=new Date();today.setHours(0,0,0,0);
+      const overdue=!checked&&dueDt<today;
+      h+=`<div id="kr-${k.id.replace('.','_')}" style="display:flex;gap:10px;padding:12px 0;align-items:flex-start;opacity:${checked?'.55':'1'};${isLast?'':'border-bottom:1px solid #1e293b'};transition:opacity .2s">`;
+      // Checkbox
+      h+=`<div onclick="_toggleKR('${k.id}')" class="mbo-chk" style="width:22px;height:22px;border-radius:6px;border:2px solid ${checked?'#10b981':'#475569'};background:${checked?'#10b981':'transparent'};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;transition:all .15s">${checked?'✓':''}</div>`;
+      // Number
+      h+=`<div style="width:28px;height:22px;border-radius:4px;background:rgba(59,130,246,.15);color:#3b82f6;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${k.id}</div>`;
+      // Text
+      h+=`<div style="flex:1"><div class="mbo-krtxt" style="font-size:13px;color:#cbd5e1;line-height:1.6;text-decoration:${checked?'line-through':'none'}">${k.text}${k.tag?` <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;color:#a78bfa;background:rgba(139,92,246,.15);margin-left:4px">${k.tag}</span>`:''}</div>`;
+      h+=`<div style="display:flex;gap:10px;align-items:center;margin-top:4px;font-size:10px;font-family:'JetBrains Mono',monospace"><span style="color:${overdue?'#ef4444':'#64748b'}">Due ${dueLbl}${overdue?' · OVERDUE':''}</span></div>`;
+      h+='</div></div>';
+    });
+    h+='</div>';
+
+    // Grading guide
+    h+='<div style="margin-top:12px;background:#0B1120;border-radius:8px;padding:12px 14px;border:1px solid #1e293b">';
+    h+='<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;color:#64748b;margin-bottom:10px">Grading Guide</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    mbo.grades.forEach(g=>{
+      h+=`<div style="flex:1;min-width:140px;background:#0B1120;border:1px solid ${g.c}44;border-radius:8px;padding:10px 12px;text-align:center">`;
+      h+=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:600;color:${g.c};margin-bottom:4px">${g.s}</div>`;
+      h+=`<div style="font-size:11px;color:#94a3b8;line-height:1.5">${g.d}</div>`;
+      h+='</div>';
+    });
+    h+='</div></div>';
+
+    h+='</div>';
+  });
+
+  // Grading framework
+  h+='<div style="background:#111827;border:1px solid #3b82f6;border-radius:12px;padding:18px 20px;margin-bottom:16px">';
+  h+='<div style="font-size:13px;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Grading Framework</div>';
+  h+='<div style="font-size:13px;color:#94a3b8;line-height:1.8">Each MBO is scored on a 4-point scale: <strong style="color:#ef4444">1 = Not Met</strong> · <strong style="color:#f59e0b">2 = Partially Met</strong> · <strong style="color:#10b981">3 = Met</strong> · <strong style="color:#06b6d4">4 = Exceeded</strong><br>Final score = weighted average of all three MBOs. <strong style="color:#e2e8f0">Scoring guide:</strong> All KRs met = 3. All KRs met ahead of schedule or with exceptional quality = 4. Missed 1+ KR = 2. Missed majority = 1.</div>';
+  h+='</div>';
+
+  // Footer
+  h+='<div style="padding:14px 4px 24px;font-size:10px;color:#64748b;text-align:center">Q2 2026 MBO cycle · Rahul Sharma, CS Operations & Enablement · Manager: Tim Fischer, VP Client Success · Progress saves to this device</div>';
+
+  h+='</div>';
+  overlay.innerHTML=h;
+  // Allow Esc to close
+  overlay.addEventListener('click',e=>{if(e.target===overlay)_closeRahulMBOs();});
+  document.addEventListener('keydown',function esc(e){if(e.key==='Escape'){_closeRahulMBOs();document.removeEventListener('keydown',esc);}});
+  document.body.appendChild(overlay);
+}
+
 function navKpi(type){
   S.acctFilter={};S.acctSort={col:'stage',dir:'asc'};S.drill=null;
   if(type==='won'){S.tab='accounts';S.acctFilter.stage='__won__';}
@@ -2125,7 +2423,7 @@ function _render(){
   </div>`;
   h+=`<div class="g g6">`;
   [{l:'Won',v:fm(wonO),s:`${won.length} accts`,c:'#34d399',n:'won'},{l:'Pipeline',v:fm(pipeO),s:`${pipe.length} accts · base ${fm(pipeR)}`,c:'#a78bfa',n:'pipeline'},{l:'Lost (2025)',v:fm(lostR),s:`${lost.length} accts`,c:'#ef4444',n:'lost'},{l:'Uncontacted',v:fm(unc.reduce((a,d)=>a+d.r25,0)),s:`${unc.length} accts`,c:'#94a3b8',n:'unc'},{l:'At Risk',v:flagged.length,s:fm(flagRev),c:'#fb923c',n:'risk'},{l:'Win-Back',v:wbAll.length,s:fm(wbAll.reduce((a,d)=>a+d.r25,0)),c:'#60a5fa',n:'winback'}
-  ].forEach(k=>h+=`<div class="kpi" onclick="navKpi('${k.n}')" style="border-left:3px solid ${k.c};cursor:pointer;transition:background .15s" onmouseover="this.style.background='#263248'" onmouseout="this.style.background=''"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
+  ].forEach(k=>h+=`<div class="kpi" onclick="${k.n==='winback'?'_wbKpiClick()':`navKpi('${k.n}')`}" style="border-left:3px solid ${k.c};cursor:pointer;transition:background .15s" onmouseover="this.style.background='#263248'" onmouseout="this.style.background=''"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
   h+=`</div>`;
   if(S.staleWarning)h+=`<div style="background:#422006;border:1px solid #92400e;border-radius:8px;padding:8px 16px;font-size:12px;color:#fbbf24;margin-bottom:8px;display:flex;align-items:center">${S.staleWarning}</div>`;
   const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard / Workload'],['crossref','Pipeline × Eng'],['alleng','All Engagement'],['engaccts','All ENG Accounts'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts'],['histsnap','Historical Snapshots']];
