@@ -1867,6 +1867,33 @@ function _buildCadenceData(){
   });
   return{cols,csm:csmMap};
 }
+// Build the Goals-tab CSM roster dynamically from ENG_RAW. Each row's pod is
+// the mode of that CSM's account pod column in the engagement tracker, and
+// account count is how many ET rows are owned by them. CSMs that appear in
+// VALID_OWNERS but have zero ET rows (e.g. Kristan/Sunny when new) still
+// show up with a:0 and pod:'' so the Cadence roster never silently drops a
+// name. The Emilie (SPs) row is appended separately and its count is patched
+// downstream from SP_RAW.
+function _buildLiveCSMRoster(){
+  if(!ENG_RAW||!ENG_RAW.length)return null;
+  const SEG={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Sunny Unger':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
+  const DISPLAY={'Support iConnections':'Scale Team'};
+  const agg={};
+  (ENG_RAW||[]).forEach(r=>{
+    const csm=r.ro||'';if(!csm)return;
+    if(!agg[csm])agg[csm]={n:0,pods:{}};
+    agg[csm].n++;
+    const p=(r.pod||'').trim();
+    if(p)agg[csm].pods[p]=(agg[csm].pods[p]||0)+1;
+  });
+  const order=['Christina Chumak','Lucy Garber','Courtney Krieg','Juwan Pryce','Alex Cherecwich','Kristan Hester','Sunny Unger','Helen Ramsay','Andreas Santikos','Joe Romanoff','Support iConnections'];
+  return order.map(name=>{
+    const a=agg[name]||{n:0,pods:{}};
+    let pod='',best=-1;
+    Object.entries(a.pods).forEach(([p,c])=>{if(c>best){best=c;pod=p;}});
+    return{n:DISPLAY[name]||name,seg:SEG[name]||'Enterprise',pod,a:a.n,t:'GP'};
+  });
+}
 function _openFlagDD(type,el){event.stopPropagation();const r=el.getBoundingClientRect();S[type+'FlagOpen']=!S[type+'FlagOpen'];S[type+'FlagRect']={top:r.bottom+4,left:r.left};render();}
 function ssAcctFlagToggle(flag,on){if(!S.acctFilter)S.acctFilter={};const a=Array.isArray(S.acctFilter.flags)?S.acctFilter.flags:[];S.acctFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssAcctFlagsSet(vals){if(!S.acctFilter)S.acctFilter={};S.acctFilter.flags=vals||[];render();}
@@ -3454,6 +3481,15 @@ rGP=function(){
     if(ENG_RAW&&ENG_RAW.length>0){
       const cadData=_buildCadenceData();
       if(cadData)src=src.replace(/const CADENCE_DATA\s*=\s*\{\};/,`const CADENCE_DATA=${JSON.stringify(cadData)};`);
+      // Inject live CSM roster (pod comes from ENG_RAW r.pod — mode per CSM).
+      // The Emilie (SPs) row is appended here; its `a:` count is patched
+      // later when live SP data is available (see `Emilie \\(SPs\\)` replace).
+      const roster=_buildLiveCSMRoster();
+      if(roster&&roster.length){
+        const rows=roster.map(c=>`  {n:${JSON.stringify(c.n)},seg:${JSON.stringify(c.seg)},pod:${JSON.stringify(c.pod)},a:${c.a},t:"GP"},`).join('\n');
+        const newArr=`const CSM = [\n${rows}\n  {n:"Emilie (SPs)",seg:"Service Provider",pod:"SPs",a:101,t:"SP"},\n];`;
+        src=src.replace(/const CSM\s*=\s*\[[\s\S]*?\n\];/,newArr);
+      }
     }
     const spNote=SP_RAW&&SP_RAW.length?'All data live from SharePoint':'GP data live · SP data static (refresh to load SP)';
     // Apply light-mode transforms to the iframe HTML when LIGHT is on
@@ -4283,7 +4319,7 @@ function rCadence(){
             return`<tr style="border-top:1px solid var(--border);background:${isSP?'var(--roseG)':'transparent'}">
               <td style="padding:7px 12px;cursor:pointer" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}',null)">
                 <span style="font-size:13px;font-weight:500;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)">${c.n}</span>
-                <div style="font-size:10px;color:var(--dim)">${c.pod} · ${cData.total||c.a} accts</div>
+                <div style="font-size:10px;color:var(--dim)">${c.pod?c.pod+' · ':''}${cData.total||c.a} accts</div>
               </td>
               <td style="padding:7px 8px"><span class="pill" style="color:${PC[c.seg]||'var(--rose)'}">${isSP?'SP':c.seg}</span></td>
               ${visCols.map(m=>{const cnt=cData.months[m]?.yes||0;const pv=pct(cnt/tot*100);return`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div></td>`;}).join('')}
@@ -4489,7 +4525,7 @@ function rPayout(){
     const actC=!cadAvail?'var(--dim)':ap.gate?'var(--red)':ap.pct>=100?'var(--green)':ap.pct>0?'var(--amber)':'var(--red)';
     const totC=tp.totalPct==null?'var(--dim)':tp.gated?'var(--red)':tp.totalPct>=100?'var(--green)':tp.totalPct>0?'var(--amber)':'var(--red)';
     return`<tr>
-      <td style="font-weight:500">${c.n}<div style="font-size:10px;color:var(--dim)">${pool} · ${c.pod}</div></td>
+      <td style="font-weight:500">${c.n}<div style="font-size:10px;color:var(--dim)">${pool}${c.pod?' · '+c.pod:''}</div></td>
       <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':cadAvail?`<span class="mono" style="color:${actC};font-weight:600">${pct(cadPct)}</span>`:'<span class="pill" style="color:var(--dim)">— awaiting data</span>'}</td>
       <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':`<span class="mono" style="color:${retC};font-weight:600">${pct(retR)}</span>`}</td>
       <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">100%</span>':`<span class="mono" style="color:${retC};font-weight:600">${rp.pct.toFixed(0)}%</span>`}</td>
