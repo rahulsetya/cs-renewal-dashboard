@@ -139,15 +139,23 @@ const ENG_SHEET   = 'Combined Master';
 // Persist resolved engagement drive IDs across page loads
 let _engDriveId=null,_engItemId=null;
 (function(){try{const s=JSON.parse(localStorage.getItem(ENG_DRIVE_KEY)||'{}');_engDriveId=s.d||null;_engItemId=s.i||null;}catch(e){}}());
+// Per-CSM sheet tab names on CS Engagement Tracker April 2026.xlsx → canonical
+// owner names. Source-of-truth for the dashboard is the "Combined Master" tab
+// (see ENG_SHEET above) which already consolidates every CSM's accounts, so
+// this mapping is reference-only — kept in sync with the actual tab labels
+// shown in Excel. If future code fetches per-CSM tabs directly, it can loop
+// over these keys.
 const ENG_SHEETS  = {
-  'Christina C':'Christina Chumak',
   'Alex C':'Alex Cherecwich',
+  'Andreas':'Andreas Santikos',
+  'Christina C':'Christina Chumak',
   'Courtney K':'Courtney Krieg',
-  'Lucy G':'Lucy Garber',
-  'Juwan P':'Juwan Pryce',
-  'Helen R':'Helen Ramsay',
-  'Andreas S':'Andreas Santikos',
+  'Helen':'Helen Ramsay',
   'Joe R':'Joe Romanoff',
+  'Juwan':'Juwan Pryce',
+  'Kristan H':'Kristan Hester',
+  'Lucy G':'Lucy Garber',
+  'Sunny':'Sunny Unger',
   'Scale':'Support iConnections'
 };
 const SCOPES     = 'Files.Read Files.Read.All Files.ReadWrite.All offline_access';
@@ -746,11 +754,25 @@ async function fetchEngSheet(token, sheetName){
 }
 
 // Normalize abbreviated CSM names from MASTER sheet column AI → full names used in VALID_OWNERS
+// CSM short-name → canonical VALID_OWNERS name. Covers every variant that
+// appears as a tab label on the engagement tracker (Alex C, Andreas,
+// Christina C, Courtney K, Helen, Joe R, Juwan, Kristan H, Lucy G, Sunny,
+// Scale) plus defensive first-name-only aliases in case someone types
+// "Andreas" or "Sunny" in the Target CSM column of Combined Master.
+// Without these, rows would silently drop out of filtered Goals/Pipeline
+// views because normCsm() would return the raw short name, which doesn't
+// match VALID_OWNERS.
 const CSM_NAME_MAP={
+  // Tab labels with initial suffix
   'alex c':'Alex Cherecwich','courtney k':'Courtney Krieg','lucy g':'Lucy Garber',
   'juwan p':'Juwan Pryce','helen r':'Helen Ramsay','andreas s':'Andreas Santikos',
   'joe r':'Joe Romanoff','christina c':'Christina Chumak','scale':'Support iConnections',
-  'kristan h':'Kristan Hester'
+  'kristan h':'Kristan Hester','sunny u':'Sunny Unger','emilie w':'Emilie Welch',
+  // First-name-only variants (some ET tabs have no initial)
+  'andreas':'Andreas Santikos','helen':'Helen Ramsay','juwan':'Juwan Pryce',
+  'sunny':'Sunny Unger','kristan':'Kristan Hester','christina':'Christina Chumak',
+  'emilie':'Emilie Welch','alex':'Alex Cherecwich','courtney':'Courtney Krieg',
+  'lucy':'Lucy Garber','joe':'Joe Romanoff'
 };
 function normCsm(v){const k=String(v||'').trim();return CSM_NAME_MAP[k.toLowerCase()]||k;}
 
@@ -1456,7 +1478,7 @@ function _acctTabClick(){_acctTabClicks++;console.log('[forecast] accounts click
 function _closeForecast(){S.forecastOpen=false;render();}
 function _closeGoals(){S.goalsOpen=false;render();}
 function _buildLiveGoalsData(){
-  const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
+  const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Sunny Unger':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
   const WON_S=new Set(['9. Invoice Sent','10. Paid']);
   const CHURNED_S=new Set(['11. Churned']);
   const DECLINED_S=new Set([]);
