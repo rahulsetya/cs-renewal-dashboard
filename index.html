@@ -4140,7 +4140,7 @@ const ACT_FLOOR = {Q1:null,Q2:50,Q3:65,Q4:75};
 // Retention: below floor=0%, floor→full linear 0→100%, full→accel linear 100→125%, cap 125%
 function retPayout(retPct,q,isSP){
   const t=isSP?SP_T[q]:GP_T[q];
-  if(!t||!t.floor)return{pct:100,tier:"GIFTED"};
+  if(!t||!t.floor)return{pct:100,tier:"CLOSED"};
   if(retPct<t.floor)return{pct:0,tier:"Below floor"};
   if(retPct>=t.accel)return{pct:125,tier:"Capped 125%"};
   if(retPct>=t.full){const extra=((retPct-t.full)/(t.accel-t.full))*25;return{pct:Math.min(100+extra,125),tier:"Accelerator"};}
@@ -4150,7 +4150,7 @@ function retPayout(retPct,q,isSP){
 // Activity: below floor = GATE (zeroes both components), above floor = linear 0→100%
 function actPayout(cadPct,q){
   const floor=ACT_FLOOR[q];
-  if(!floor)return{pct:100,tier:"GIFTED",gate:false};
+  if(!floor)return{pct:100,tier:"CLOSED",gate:false};
   if(cadPct<floor)return{pct:0,tier:"Below gate",gate:true};
   const p=((cadPct-floor)/(100-floor))*100;
   return{pct:Math.min(p,100),tier:p>=100?"Full":"Scaling",gate:false};
@@ -4281,7 +4281,7 @@ function poolCard(pool,d,target,gifted){
   const segs=[{l:"Won",v:d.won,c:"var(--green)"},{l:"Open",v:d.open,c:"var(--amber)"},{l:"Declined early",v:d.declined,c:"var(--orange)"},{l:"Churned",v:d.lost,c:"var(--red)"}];
   return`<div class="pool-card">
     <div class="pool-hdr"><div><span class="pool-dot" style="background:${PC[pool]}"></span><span style="font-size:14px;font-weight:600">${pool}</span></div><span style="font-size:11px;color:var(--dim)">${d.logos} logos</span></div>
-    <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:3px"><span style="font-size:28px;font-weight:700;color:${at?'var(--green)':'var(--amber)'};font-family:var(--mono)">${gifted?'GIFTED':pct(ret)}</span>${!gifted?`<span style="font-size:12px;color:var(--dim)">/ ${target}% target</span>`:''}</div>
+    <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:3px"><span style="font-size:28px;font-weight:700;color:${at?'var(--green)':'var(--amber)'};font-family:var(--mono)">${gifted?'CLOSED':pct(ret)}</span>${!gifted?`<span style="font-size:12px;color:var(--dim)">/ ${target}% target</span>`:''}</div>
     ${!gifted?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Optimistic (50% open + 25% declined): ${pct(retOpt)}</div>`:''}
     <div class="bar-stack">${segs.filter(s=>s.v>0).map(s=>`<div style="width:${(s.v/tot)*100}%;background:${s.c}"></div>`).join('')}</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--dim)">${segs.filter(s=>s.v>0).map(s=>`<span><span style="width:5px;height:5px;border-radius:50%;background:${s.c};display:inline-block;margin-right:3px"></span>${s.l}: ${s.v}</span>`).join('')}</div>
@@ -4440,8 +4440,8 @@ function rOverview(){
     <div class="card"><h3>H1 '26 Variable Comp Structure</h3>
       <div class="grid3">
         <div class="info-box"><div class="title" style="color:var(--accent)">Activity Gate · 50%</div><div class="desc">Meeting cadence % per CSM. Below floor = <strong>both components zero</strong>. Above floor = linear 0→100%.<br>Floor ramps: <span style="color:var(--amber)">Q2: 50% · Q3: 65% · Q4: 75%</span></div></div>
-        <div class="info-box"><div class="title" style="color:var(--green)">GP Retention · 50%</div><div class="desc">Team logo retention by pool. Floor→Full = linear 0→100%. Full→Accel = linear 100→125% cap.<br><span style="color:var(--amber)">Q1 GIFTED · Q2: 55%/62%/68%</span></div></div>
-        <div class="info-box"><div class="title" style="color:var(--rose)">SP Retention · 50%</div><div class="desc">Separate SP pool. Emilie goaled independently. Same payout curve, different thresholds.<br><span style="color:var(--amber)">Q1 GIFTED · Q2: 45%/55%/65%</span></div></div>
+        <div class="info-box"><div class="title" style="color:var(--green)">GP Retention · 50%</div><div class="desc">Team logo retention by pool. Floor→Full = linear 0→100%. Full→Accel = linear 100→125% cap.<br><span style="color:var(--amber)">Q1 CLOSED · Q2: 55%/62%/68%</span></div></div>
+        <div class="info-box"><div class="title" style="color:var(--rose)">SP Retention · 50%</div><div class="desc">Separate SP pool. Emilie goaled independently. Same payout curve, different thresholds.<br><span style="color:var(--amber)">Q1 CLOSED · Q2: 45%/55%/65%</span></div></div>
       </div>
     </div>`;
 
@@ -4575,7 +4575,7 @@ function rGP(){
 
   el.innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
+      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
         ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.se||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
@@ -4660,7 +4660,7 @@ function rSP(){
   el.innerHTML=`
     <div class="cards">${sc("SP Logos",String(SP.logos),"Managed by Emilie","var(--rose)")}${sc("2025 Revenue",fmt(SP.rev),"Annual renewal pool","var(--rose)")}${sc("Logo Retention",pct(ret),"Optimistic: "+pct(retOpt),ret>=55?"var(--green)":"var(--amber)")}${sc("Won",SP.won+" logos",SP.open+" still open","var(--green)")}</div>
     ${poolCard("Service Provider",SP,SP_T.Q2.full,false)}
-    <div class="card" style="margin-top:12px"><h3>SP Quarterly Breakdown</h3><div class="sh">Per-quarter SP retention against comp thresholds · Q1 gifted · distribution proportional to GP schedule</div>
+    <div class="card" style="margin-top:12px"><h3>SP Quarterly Breakdown</h3><div class="sh">Per-quarter SP retention against comp thresholds · Q1 closed · distribution proportional to GP schedule</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px">
         ${['Q1','Q2','Q3','Q4'].map(qk=>{
           const q=SP_Q[qk];const th=SP_T[qk];const gifted=qk==='Q1';
@@ -4676,8 +4676,8 @@ function rSP(){
               <div style="font-size:10px;color:var(--dim)">${q.logos} logos · ${fmt(q.rev)}</div>
             </div>
             <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:6px">
-              <span style="font-size:24px;font-weight:700;color:${c};font-family:var(--mono)">${gifted?'GIFTED':pct(qRet)}</span>
-              ${!gifted?`<span style="font-size:11px;color:var(--dim)">/ ${th.full}% full</span>`:'<span style="font-size:11px;color:var(--dim)">Q1 · not goaled (gifted)</span>'}
+              <span style="font-size:24px;font-weight:700;color:${c};font-family:var(--mono)">${gifted?'CLOSED':pct(qRet)}</span>
+              ${!gifted?`<span style="font-size:11px;color:var(--dim)">/ ${th.full}% full</span>`:'<span style="font-size:11px;color:var(--dim)">Q1 · not goaled (closed)</span>'}
             </div>
             ${!gifted?`<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Opt (50% open): ${pct(qOpt)}</div>`:'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">&nbsp;</div>'}
             <div style="display:flex;gap:4px;font-size:10px;margin-bottom:6px">
@@ -5045,8 +5045,8 @@ function rPayout(){
     const totC=tp.totalPct==null?'var(--dim)':tp.gated?'var(--red)':tp.totalPct>=100?'var(--green)':tp.totalPct>0?'var(--amber)':'var(--red)';
     return`<tr>
       <td style="font-weight:500">${c.n}<div style="font-size:10px;color:var(--dim)">${pool}${c.pod?' · '+c.pod:''}</div></td>
-      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':cadAvail?`<span class="mono" style="color:${actC};font-weight:600">${pct(cadPct)}</span>`:'<span class="pill" style="color:var(--dim)">— awaiting data</span>'}</td>
-      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">GIFTED</span>':`<span class="mono" style="color:${retC};font-weight:600">${pct(retR)}</span>`}</td>
+      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">CLOSED</span>':cadAvail?`<span class="mono" style="color:${actC};font-weight:600">${pct(cadPct)}</span>`:'<span class="pill" style="color:var(--dim)">— awaiting data</span>'}</td>
+      <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">CLOSED</span>':`<span class="mono" style="color:${retC};font-weight:600">${pct(retR)}</span>`}</td>
       <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">100%</span>':`<span class="mono" style="color:${retC};font-weight:600">${rp.pct.toFixed(0)}%</span>`}</td>
       <td style="text-align:center"><span class="pill" style="color:${rp.pct>=100?'var(--green)':rp.pct>0?'var(--amber)':'var(--red)'};font-size:10px">${rp.tier}</span></td>
       <td style="text-align:center">${selPQ==="Q1"?'<span style="color:var(--green);font-weight:600;font-size:11px">100%</span>':tp.totalPct!=null?`<span class="mono" style="color:${totC};font-weight:600">${tp.totalPct.toFixed(0)}%${tp.gated?'<span style="font-size:9px;display:block;color:var(--red)">GATED</span>':''}</span>`:'<span class="pill" style="color:var(--dim);font-size:10px">Pending</span>'}</td>
@@ -5058,12 +5058,12 @@ function rPayout(){
   const curveT=GP_T[selPQ]||GP_T.Q2;
 
   el.innerHTML=`
-    <div style="margin-bottom:18px">${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selPQ?'active':''}" onclick="selPayQ='${qq}';rT('payout')">${qq}${qq==="Q1"?" (Gifted)":""}</button>`).join('')}</div>
+    <div style="margin-bottom:18px">${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selPQ?'active':''}" onclick="selPayQ='${qq}';rT('payout')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
 
     <div class="card"><h3>Comp Model — ${selPQ} 2026</h3><div class="sh">87% base / 13% variable · 50% activity + 50% retention · Both components weighted equally</div>
       <div class="grid3" style="margin-top:14px">
         <div class="info-box"><div class="title" style="color:var(--accent)">Activity Gate · 50%</div><div class="desc">
-          Cadence floor: <strong style="color:var(--text)">${ACT_FLOOR[selPQ]?ACT_FLOOR[selPQ]+'%':'GIFTED'}</strong>${ACT_FLOOR[selPQ]?` (ramping: Q2 50% → Q3 65% → Q4 75%)`:''}<br>
+          Cadence floor: <strong style="color:var(--text)">${ACT_FLOOR[selPQ]?ACT_FLOOR[selPQ]+'%':'CLOSED'}</strong>${ACT_FLOOR[selPQ]?` (ramping: Q2 50% → Q3 65% → Q4 75%)`:''}<br>
           Below floor → <span style="color:var(--red)">both components zero</span><br>
           Above floor → linear 0→100% of activity component
         </div></div>
@@ -5084,7 +5084,7 @@ function rPayout(){
 
     ${selPQ!=="Q1"&&curveT.floor?`<div class="card"><h3>Retention Payout Curve — ${selPQ}</h3><div class="sh">Shows payout % of retention component by logo retention achieved</div><div class="chart-wrap" style="height:220px"><canvas id="cPayout"></canvas></div></div>`:''}
 
-    <div class="card" style="overflow-x:auto"><h3>GP Variable Comp Projection — ${selPQ}</h3><div class="sh">${selPQ==="Q1"?'Q1 is GIFTED — all components pay 100%':'Activity data pending · Retention based on current pool performance'}</div><table>${thd}<tbody>${CSM.filter(c=>c.t==="GP").map(c=>pr(c,true)).join('')}</tbody></table></div>
+    <div class="card" style="overflow-x:auto"><h3>GP Variable Comp Projection — ${selPQ}</h3><div class="sh">${selPQ==="Q1"?'Q1 is CLOSED — all components pay 100%':'Activity data pending · Retention based on current pool performance'}</div><table>${thd}<tbody>${CSM.filter(c=>c.t==="GP").map(c=>pr(c,true)).join('')}</tbody></table></div>
     <div class="card" style="overflow-x:auto"><h3>SP Variable Comp Projection — ${selPQ}</h3><div class="sh">SP pool goaled separately · ${selPQ}: ${SP_T[selPQ]?.floor||'—'}% floor / ${SP_T[selPQ]?.full||'—'}% full / ${SP_T[selPQ]?.accel||'—'}%+ accel</div><table>${thd}<tbody>${CSM.filter(c=>c.t==="SP").map(c=>pr(c,false)).join('')}</tbody></table></div>
     <div class="callout"><strong>Note on 4-state model:</strong> Retention % for comp uses <strong>confirmed churn only</strong> (9 GP accounts) — not the 186 declined-early accounts. Pool-level retention rates are significantly higher than the prior 3-state model showed.</div>`;
 
@@ -5119,7 +5119,7 @@ function rTargets(){
   const el=document.getElementById('tab-targets');
   const periods=[{k:"Q2",l:"Q2 2026 (Apr–Jun)"},{k:"Q3",l:"Q3 2026 (Jul–Sep)"},{k:"Q4",l:"Q4 2026 (Oct–Dec)"}];
   function ed(title,tgts,pfx){
-    return`<div class="card"><h3>${title}</h3><div class="sh">Q1 is GIFTED. Adjust Q2+ below. Q2 = logo retention. Q3+ evolving to GRR.</div>${periods.map(p=>`<div class="target-row"><label>${p.l}</label>${["floor","full","accel"].map(f=>`<div class="fg"><span>${f==="floor"?"Floor":f==="full"?"Full":"Accel"}</span><input type="number" id="${pfx}_${p.k}_${f}" value="${tgts[p.k]?.[f]||''}" onchange="updateTargets('${pfx}')"><span class="pct">%</span></div>`).join('')}</div>`).join('')}</div>`}
+    return`<div class="card"><h3>${title}</h3><div class="sh">Q1 is CLOSED. Adjust Q2+ below. Q2 = logo retention. Q3+ evolving to GRR.</div>${periods.map(p=>`<div class="target-row"><label>${p.l}</label>${["floor","full","accel"].map(f=>`<div class="fg"><span>${f==="floor"?"Floor":f==="full"?"Full":"Accel"}</span><input type="number" id="${pfx}_${p.k}_${f}" value="${tgts[p.k]?.[f]||''}" onchange="updateTargets('${pfx}')"><span class="pct">%</span></div>`).join('')}</div>`).join('')}</div>`}
   const qs=["Q1","Q2","Q3","Q4"];
   const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=[];
   let rows=qs.map(q=>{
@@ -5131,7 +5131,7 @@ function rTargets(){
     }
     const ret=tl>0?(tw/tl)*100:0;const tgt=GP_T[q]?.full||63;
     const needed=Math.ceil(tl*tgt/100);const gap=needed-tw;
-    return`<tr><td style="font-weight:500">${q} 2026${q==="Q1"?'<span style="font-size:10px;color:var(--green);margin-left:5px">GIFTED</span>':''}</td><td class="mono" style="text-align:right">${tl}</td><td class="mono" style="text-align:right;color:var(--green)">${tw}</td><td class="mono" style="text-align:right;color:var(--red)">${tlo}</td><td class="mono" style="text-align:right;color:var(--orange)">${tde}</td><td class="mono" style="text-align:right;color:${ret>=tgt?'var(--green)':'var(--amber)'}">${pct(ret)}</td><td class="mono" style="text-align:right;color:var(--muted)">${q==="Q1"?"GIFTED":tgt+"%"}</td><td class="mono" style="text-align:right;color:var(--muted)">${q==="Q1"?"—":needed}</td><td class="mono" style="text-align:right;color:${gap>0?'var(--red)':'var(--green)'}">${q==="Q1"?"—":gap>0?"−"+gap:"+"+Math.abs(gap)}</td></tr>`}).join('');
+    return`<tr><td style="font-weight:500">${q} 2026${q==="Q1"?'<span style="font-size:10px;color:var(--green);margin-left:5px">CLOSED</span>':''}</td><td class="mono" style="text-align:right">${tl}</td><td class="mono" style="text-align:right;color:var(--green)">${tw}</td><td class="mono" style="text-align:right;color:var(--red)">${tlo}</td><td class="mono" style="text-align:right;color:var(--orange)">${tde}</td><td class="mono" style="text-align:right;color:${ret>=tgt?'var(--green)':'var(--amber)'}">${pct(ret)}</td><td class="mono" style="text-align:right;color:var(--muted)">${q==="Q1"?"CLOSED":tgt+"%"}</td><td class="mono" style="text-align:right;color:var(--muted)">${q==="Q1"?"—":needed}</td><td class="mono" style="text-align:right;color:${gap>0?'var(--red)':'var(--green)'}">${q==="Q1"?"—":gap>0?"−"+gap:"+"+Math.abs(gap)}</td></tr>`}).join('');
   const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;const spTgt=SP_T.Q2?.full||55;const spNeed=Math.ceil(SP.logos*spTgt/100);const spGap=spNeed-SP.won;
   el.innerHTML=`
     <div class="grid2"><div>${ed("GP Retention Targets",GP_T,"gp")}</div><div>${ed("SP Retention Targets",SP_T,"sp")}</div></div>
@@ -5208,7 +5208,7 @@ function rRules(){
         Variable is split into two equally-weighted components:<br>
         <span style="margin-left:16px">• <strong style="color:var(--accent)">Activity (50%)</strong> — meeting cadence percentage per CSM</span><br>
         <span style="margin-left:16px">• <strong style="color:var(--green)">Retention (50%)</strong> — team logo retention by pool (GP or SP)</span><br><br>
-        Each component is evaluated <strong style="color:var(--text)">quarterly</strong>. Q1 2026 is <strong style="color:var(--green)">GIFTED</strong> (both components pay 100%).
+        Each component is evaluated <strong style="color:var(--text)">quarterly</strong>. Q1 2026 is <strong style="color:var(--green)">CLOSED</strong> (both components pay 100%).
       </div>
     </div>
 
@@ -5223,7 +5223,7 @@ function rRules(){
         <span style="margin-left:16px">Retention payout = based on pool retention (see Section 3)</span><br><br>
         <strong style="color:var(--text)">Activity floor ramps progressively</strong> (new program, no prior tracking history):<br>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px 16px">
-          ${[{q:"Q1",v:"GIFTED",c:"var(--green)"},{q:"Q2",v:"50%",c:"var(--amber)"},{q:"Q3",v:"65%",c:"var(--amber)"},{q:"Q4",v:"75%",c:"var(--amber)"}].map(x=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 14px;text-align:center;min-width:70px"><div style="font-size:10px;color:var(--dim)">${x.q}</div><div style="font-size:15px;font-weight:700;color:${x.c};font-family:var(--mono)">${x.v}</div></div>`).join('')}
+          ${[{q:"Q1",v:"CLOSED",c:"var(--green)"},{q:"Q2",v:"50%",c:"var(--amber)"},{q:"Q3",v:"65%",c:"var(--amber)"},{q:"Q4",v:"75%",c:"var(--amber)"}].map(x=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 14px;text-align:center;min-width:70px"><div style="font-size:10px;color:var(--dim)">${x.q}</div><div style="font-size:15px;font-weight:700;color:${x.c};font-family:var(--mono)">${x.v}</div></div>`).join('')}
         </div>
         <span style="color:var(--dim);font-size:12px;margin-left:16px">Rationale: CSMs need time to adjust to formal cadence tracking before the gate becomes strict.</span>
       </div>
@@ -5254,7 +5254,7 @@ function rRules(){
           <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px">GP Retention Thresholds</div>
           <table><thead><tr><th>Quarter</th><th style="text-align:center">Floor<br><span style="font-weight:400;color:var(--dim)">(0% payout)</span></th><th style="text-align:center">Full<br><span style="font-weight:400;color:var(--dim)">(100% payout)</span></th><th style="text-align:center">Accel<br><span style="font-weight:400;color:var(--dim)">(125% cap)</span></th></tr></thead>
           <tbody>
-            <tr><td>Q1</td><td style="text-align:center" colspan="3"><span style="color:var(--green);font-weight:600">GIFTED — 100% payout</span></td></tr>
+            <tr><td>Q1</td><td style="text-align:center" colspan="3"><span style="color:var(--green);font-weight:600">CLOSED — 100% payout</span></td></tr>
             ${["Q2","Q3","Q4"].map(q=>`<tr><td style="font-weight:500">${q}</td><td class="mono" style="text-align:center;color:var(--red)">${GP_T[q].floor}%</td><td class="mono" style="text-align:center;color:var(--green)">${GP_T[q].full}%</td><td class="mono" style="text-align:center;color:var(--cyan)">${GP_T[q].accel}%</td></tr>`).join('')}
           </tbody></table>
         </div>
@@ -5262,7 +5262,7 @@ function rRules(){
           <div style="font-size:12px;font-weight:600;color:var(--rose);margin-bottom:8px">SP Retention Thresholds</div>
           <table><thead><tr><th>Quarter</th><th style="text-align:center">Floor<br><span style="font-weight:400;color:var(--dim)">(0% payout)</span></th><th style="text-align:center">Full<br><span style="font-weight:400;color:var(--dim)">(100% payout)</span></th><th style="text-align:center">Accel<br><span style="font-weight:400;color:var(--dim)">(125% cap)</span></th></tr></thead>
           <tbody>
-            <tr><td>Q1</td><td style="text-align:center" colspan="3"><span style="color:var(--green);font-weight:600">GIFTED — 100% payout</span></td></tr>
+            <tr><td>Q1</td><td style="text-align:center" colspan="3"><span style="color:var(--green);font-weight:600">CLOSED — 100% payout</span></td></tr>
             ${["Q2","Q3","Q4"].map(q=>`<tr><td style="font-weight:500">${q}</td><td class="mono" style="text-align:center;color:var(--red)">${SP_T[q].floor}%</td><td class="mono" style="text-align:center;color:var(--green)">${SP_T[q].full}%</td><td class="mono" style="text-align:center;color:var(--cyan)">${SP_T[q].accel}%</td></tr>`).join('')}
           </tbody></table>
         </div>
@@ -6020,7 +6020,7 @@ function render(){
           <div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${pY>=100?'rgba(46,213,115,.05)':pY>0?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)'}">
             Comp: <b style="color:${pY>=100?'var(--gn)':pY>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(pY)}%</b></div>`;
         } else {
-          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> gifted</div>`;
+          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> closed</div>`;
         }
         h+=`</div>`;
       }
@@ -6104,13 +6104,13 @@ function render(){
   if(S.tab==='comp'){
     h+=`<div class="ly"><div>`;
     h+=`<div class="cd"><div class="ct" style="color:var(--or);border-bottom-color:rgba(255,165,2,.12)">CS Variable Comp — Retention</div>
-      <div style="font-size:12px;color:var(--dm);line-height:1.6;margin-bottom:10px">80/20 split · Variable = 50% Activity + 50% Retention · Q1 gifted · Below floor = $0 · Floor→Full = 0→100% · Full→Accel = 100→125% cap</div>`;
+      <div style="font-size:12px;color:var(--dm);line-height:1.6;margin-bottom:10px">80/20 split · Variable = 50% Activity + 50% Retention · Q1 closed · Below floor = $0 · Floor→Full = 0→100% · Full→Accel = 100→125% cap</div>`;
 
     // GP Table
     if(seg!=='sp'){
       h+=`<div style="font-size:13px;font-weight:700;color:var(--pu);margin-bottom:5px">GP (${GP.T} logos · ${$(GP.base)})</div>
         <table style="table-layout:fixed"><colgroup><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:13%"><col style="width:12%"><col style="width:19%"><col style="width:18%"></colgroup><thead><tr><th style="text-align:left">Q</th><th style="text-align:right">Floor</th><th style="text-align:right">Full</th><th style="text-align:right">Accel</th><th style="text-align:right">Logo Ret</th><th style="text-align:right">Payout</th><th style="text-align:right">Cuml Rev</th><th style="text-align:right">Cuml NRR</th></tr></thead><tbody>
-        <tr style="background:rgba(124,108,255,.03)"><td style="font-weight:600;color:var(--pu);text-align:left">Q1</td><td colspan="3" style="color:var(--mt);text-align:left">gifted</td><td style="font-family:var(--M);text-align:right">${P(m.gpL.Q1.cR)}</td><td style="font-family:var(--M);font-weight:700;color:var(--pu);text-align:right">100%</td><td style="font-family:var(--M);color:var(--pk);text-align:right">${$(m.gpR.Q1.cE)}</td><td style="font-family:var(--M);color:${cl(m.gpR.Q1.cNrr,90)};text-align:right">${P(m.gpR.Q1.cNrr)}</td></tr>`;
+        <tr style="background:rgba(124,108,255,.03)"><td style="font-weight:600;color:var(--pu);text-align:left">Q1</td><td colspan="3" style="color:var(--mt);text-align:left">closed</td><td style="font-family:var(--M);text-align:right">${P(m.gpL.Q1.cR)}</td><td style="font-family:var(--M);font-weight:700;color:var(--pu);text-align:right">100%</td><td style="font-family:var(--M);color:var(--pk);text-align:right">${$(m.gpR.Q1.cE)}</td><td style="font-family:var(--M);color:${cl(m.gpR.Q1.cNrr,90)};text-align:right">${P(m.gpR.Q1.cNrr)}</td></tr>`;
       for(const qk of['Q2','Q3','Q4']){const q=m.gpL[qk],th=GP_TH[qk],r=m.gpR[qk];
         h+=`<tr><td style="font-weight:600;text-align:left">${qk}</td><td style="color:var(--rd);font-family:var(--M);text-align:right">${th[0]}%</td><td style="color:var(--gn);font-family:var(--M);text-align:right">${th[1]}%</td><td style="color:var(--pk);font-family:var(--M);text-align:right">${th[2]}%</td><td style="font-family:var(--M);font-weight:700;color:${cl(q.cR,th[1])};text-align:right">${P(q.cR)}</td><td style="font-family:var(--M);font-weight:700;color:${q.pay>=100?'var(--gn)':q.pay>0?'var(--or)':'var(--rd)'};text-align:right">${Math.round(q.pay)}%</td><td style="font-family:var(--M);color:var(--pk);text-align:right">${$(r.cE)}</td><td style="font-family:var(--M);color:${cl(r.cNrr,90)};text-align:right">${P(r.cNrr)}</td></tr>`}
       h+=`</tbody></table>`;
