@@ -1477,15 +1477,15 @@ function toggleNoteIdx(i){const key=window._noteKeys[i];S.noteOpen=S.noteOpen===
 function toggleStuckNote(key){S.noteOpen=S.noteOpen===key?null:key;render();}
 function ssAcctFilter(col,val){if(!S.acctFilter)S.acctFilter={};if(val)S.acctFilter[col]=val;else delete S.acctFilter[col];render();}
 // ──────────────────────────────────────────────────────────────────────────
-// Win-Back easter egg → Rahul Q2 2026 MBO tracker
-// 5 clicks on Win-Back KPI within 2s → password prompt → MBO overlay
+// Easter egg → Rahul Q2 2026 MBO tracker
+// 5 clicks on "2026" in "2026 Offer Price" within 2s → password → overlay
 // ──────────────────────────────────────────────────────────────────────────
 let _wbClicks=0,_wbTimer=null;
 function _wbKpiClick(){
   _wbClicks++;
   clearTimeout(_wbTimer);
   _wbTimer=setTimeout(()=>{_wbClicks=0;},2000);
-  if(_wbClicks<5){navKpi('winback');return;}
+  if(_wbClicks<5)return;
   _wbClicks=0;clearTimeout(_wbTimer);
   const pw=prompt('Password:');
   if(pw===null)return;
@@ -2419,11 +2419,11 @@ function _render(){
   </div></div>`;
   h+=`<div class="rv" style="grid-template-columns:1fr 1fr">
     <div class="rc" style="border-left:3px solid #fbbf24"><h4>2025 Revenue (Base)</h4><div style="display:flex;align-items:baseline;gap:16px"><div class="rb" style="color:#fbbf24">${fm(r25T)}</div><div style="font-size:28px;font-weight:700;color:#94a3b8">${tot}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px">accounts</span></div></div></div>
-    <div class="rc" style="border-left:3px solid #22d3ee"><h4>2026 Offer Price</h4><div class="rb" style="color:#22d3ee">${fm(offT)}</div><div class="rd">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span> (${pct(gap,r25T)}% uncovered)</div></div>
+    <div class="rc" style="border-left:3px solid #22d3ee"><h4><span onclick="_wbKpiClick()" style="cursor:default;user-select:none">2026</span> Offer Price</h4><div class="rb" style="color:#22d3ee">${fm(offT)}</div><div class="rd">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span> (${pct(gap,r25T)}% uncovered)</div></div>
   </div>`;
   h+=`<div class="g g6">`;
   [{l:'Won',v:fm(wonO),s:`${won.length} accts`,c:'#34d399',n:'won'},{l:'Pipeline',v:fm(pipeO),s:`${pipe.length} accts · base ${fm(pipeR)}`,c:'#a78bfa',n:'pipeline'},{l:'Lost (2025)',v:fm(lostR),s:`${lost.length} accts`,c:'#ef4444',n:'lost'},{l:'Uncontacted',v:fm(unc.reduce((a,d)=>a+d.r25,0)),s:`${unc.length} accts`,c:'#94a3b8',n:'unc'},{l:'At Risk',v:flagged.length,s:fm(flagRev),c:'#fb923c',n:'risk'},{l:'Win-Back',v:wbAll.length,s:fm(wbAll.reduce((a,d)=>a+d.r25,0)),c:'#60a5fa',n:'winback'}
-  ].forEach(k=>h+=`<div class="kpi" onclick="${k.n==='winback'?'_wbKpiClick()':`navKpi('${k.n}')`}" style="border-left:3px solid ${k.c};cursor:pointer;transition:background .15s" onmouseover="this.style.background='#263248'" onmouseout="this.style.background=''"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
+  ].forEach(k=>h+=`<div class="kpi" onclick="navKpi('${k.n}')" style="border-left:3px solid ${k.c};cursor:pointer;transition:background .15s" onmouseover="this.style.background='#263248'" onmouseout="this.style.background=''"><div class="kl">${k.l}</div><div class="kv" style="color:${k.c}">${k.v}</div><div class="ks">${k.s}</div></div>`);
   h+=`</div>`;
   if(S.staleWarning)h+=`<div style="background:#422006;border:1px solid #92400e;border-radius:8px;padding:8px 16px;font-size:12px;color:#fbbf24;margin-bottom:8px;display:flex;align-items:center">${S.staleWarning}</div>`;
   const tabs=[['pipeline','Pipeline'],['movement','Movement'],['timeline','Expiry Timeline'],['owners','Scoreboard / Workload'],['crossref','Pipeline × Eng'],['alleng','All Engagement'],['engaccts','All ENG Accounts'],['concentration','Revenue Risk'],['risk','At Risk'],['winback','Win-Back'],['lostanalysis','Lost Analysis'],['accounts','Accounts'],['histsnap','Historical Snapshots']];
