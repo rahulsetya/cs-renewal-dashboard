@@ -5223,7 +5223,7 @@ function _t10FmtDate(iso,raw){
   const m=iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m?mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1]:(raw||'');
 }
-function _t10Sort(col){const cur=_t10State;if(cur.sortCol===col){cur.sortDir=cur.sortDir==='desc'?'asc':'desc';}else{cur.sortCol=col;cur.sortDir=(col==='acct'||col==='csm'||col==='seg')?'asc':'desc';}rTop10s();}
+function _t10Sort(col){const cur=_t10State;if(cur.sortCol===col){cur.sortDir=cur.sortDir==='desc'?'asc':'desc';}else{cur.sortCol=col;cur.sortDir=(col==='acct'||col==='csm'||col==='ae')?'asc':'desc';}rTop10s();}
 function _t10Arr(col){if(_t10State.sortCol!==col)return'<span style="color:var(--dim);opacity:.4">↕</span>';return _t10State.sortDir==='desc'?'<span style="color:var(--accent)">▼</span>':'<span style="color:var(--accent)">▲</span>';}
 function _t10SetF(k,v){_t10State[k]=v;rTop10s();}
 function _t10Clear(){_t10State.search='';_t10State.csm='';_t10State.seMin='';_t10State.seMax='';rTop10s();}
@@ -5287,7 +5287,7 @@ function rTop10s(){
           <thead><tr style="border-bottom:1px solid var(--borderL)">
             <th style="text-align:left;padding:8px 12px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('acct')">Account ${_t10Arr('acct')}</th>
             <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('csm')">CSM ${_t10Arr('csm')}</th>
-            <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('seg')">Segment ${_t10Arr('seg')}</th>
+            <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('ae')">Sales Rep ${_t10Arr('ae')}</th>
             <th style="text-align:right;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('rev26')">2026 Rev ${_t10Arr('rev26')}</th>
             <th style="text-align:right;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('rev25')">2025 Rev ${_t10Arr('rev25')}</th>
             <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('endISO')">Sub End ${_t10Arr('endISO')}</th>
@@ -5304,7 +5304,7 @@ function rTop10s(){
                 ${hasNotes?`<span style="font-size:10px;color:var(--dim);margin-left:6px">${noteOpen?'▾':'▸'} note</span>`:''}
               </td>
               <td style="padding:7px 10px;color:var(--muted)">${r.csm||'—'}</td>
-              <td style="padding:7px 10px"><span class="pill" style="color:${PC[r.seg]||'var(--rose)'}">${r.seg||'—'}</span></td>
+              <td style="padding:7px 10px;color:var(--muted)">${r.ae||'—'}</td>
               <td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--green)">${r.rev26?_t10Fmt$(r.rev26):'—'}</td>
               <td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--dim)">${r.rev25?_t10Fmt$(r.rev25):'—'}</td>
               <td style="padding:7px 10px;color:var(--muted);white-space:nowrap">${_t10FmtDate(r.endISO,r.endRaw)}</td>
