@@ -4390,7 +4390,7 @@ function rCadence(){
     </div>
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
-      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts.${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
+      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts · <span style="color:var(--amber)">+N to 50%</span> shows calls still needed to hit 50% of book that month.${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
       <table style="border-collapse:collapse;width:100%;min-width:500px">
         <thead><tr style="border-bottom:1px solid var(--borderL)">
           <th style="text-align:left;padding:8px 12px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('name')">CSM ${_cadSortArrow('name')}</th>
@@ -4427,7 +4427,18 @@ function rCadence(){
                 <div style="font-size:10px;color:var(--dim)">${c.pod?c.pod+' · ':''}${cData.total||c.a} accts</div>
               </td>
               <td style="padding:7px 8px"><span class="pill" style="color:${PC[c.seg]||'var(--rose)'}">${isSP?'SP':c.seg}</span></td>
-              ${visCols.map(m=>{const cnt=cData.months[m]?.yes||0;const pv=pct(cnt/tot*100);return`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div></td>`;}).join('')}
+              ${visCols.map(m=>{
+                const cnt=cData.months[m]?.yes||0;
+                const pv=pct(cnt/tot*100);
+                // Gap-to-50% badge: ceil(50% of total accts) is the monthly
+                // target. Show "+N to 50%" in amber when short, or a green
+                // ✓ when the bar is cleared. Suppress entirely for SP /
+                // Scale rosters where a per-month 50% rule doesn't apply.
+                const t50=Math.ceil(tot*0.5);
+                const need=Math.max(0,t50-cnt);
+                const gapBadge=(isSP||c.seg==='Scale')?'':(need>0?`<div style="font-size:9px;color:var(--amber);font-weight:600">+${need} to 50%</div>`:`<div style="font-size:9px;color:var(--green);font-weight:600">✓ 50%</div>`);
+                return`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div>${gapBadge}</td>`;
+              }).join('')}
               <td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}${qTotDiff?`<span style="font-size:9px;font-weight:700;color:${qTotDiff>0?'var(--green)':'var(--red)'};display:block">${qTotDiff>0?'▲':'▼'}${Math.abs(qTotDiff)}</span>`:''}</td>
             </tr>
             <tr id="${rid}" style="display:none">
