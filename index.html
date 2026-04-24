@@ -218,7 +218,17 @@ function saveEngCache(er){
   try{localStorage.setItem(ENG_CACHE_KEY,JSON.stringify({ts:Date.now(),ENG_RAW:er}));}
   catch(e){console.warn('Eng cache save failed:',e);}
 }
-let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[], SNAP_HISTORY=[], SP_RAW=[], GP_RAW_ROWS=[], GP_RAW_HDR=0;
+const TOP10_CACHE_KEY='cs_top10_cache_v1';
+function loadTop10Cache(){
+  try{const raw=localStorage.getItem(TOP10_CACHE_KEY);if(!raw)return null;
+    const c=JSON.parse(raw);if(Date.now()-c.ts>ENG_CACHE_TTL)return null;
+    return c.TOP10_RAW||null;}catch(e){return null;}
+}
+function saveTop10Cache(rows){
+  try{localStorage.setItem(TOP10_CACHE_KEY,JSON.stringify({ts:Date.now(),TOP10_RAW:rows}));}
+  catch(e){console.warn('Top10 cache save failed:',e);}
+}
+let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[], SNAP_HISTORY=[], SP_RAW=[], GP_RAW_ROWS=[], GP_RAW_HDR=0, TOP10_RAW=[];
 function deriveKpisFromData(snapData,acctMap){
   if(!snapData)return{};
   const sum=(arr,k)=>arr.reduce((a,d)=>a+(d[k]||0),0);
@@ -897,6 +907,73 @@ async function fetchAllEngagement(token){
   return engMap;
 }
 
+// Fetch the "Top 10s" tab from the engagement tracker. Auto-detects the header
+// row (first row that contains 'Account' or 'Account Name'), then resolves key
+// columns by name. Notes column defaults to header 'Notes' but also falls back
+// to column-I positional index (index 8) because the user specified the notes
+// live there. Returns an array of {acct, csm, seg, rev, rev26, endRaw, endISO,
+// endMonth, notes, risk} records. Blank-account rows are skipped.
+async function fetchTop10s(token){
+  try{
+    const data=await fetchEngSheet(token,'Top 10s');
+    if(!data||!data.values||data.values.length<2){console.warn('Top 10s sheet empty or missing');return[];}
+    let headerRowIdx=0;
+    for(let r=0;r<Math.min(10,data.values.length);r++){
+      if(data.values[r].some(c=>{const s=String(c||'').trim().toLowerCase();return s==='account'||s==='account name';})){headerRowIdx=r;break;}
+    }
+    const hdrs=data.values[headerRowIdx].map(h=>String(h||'').trim());
+    console.log(`=== TOP 10S SHEET HEADERS (row ${headerRowIdx}, total rows=${data.values.length}) ===`);
+    console.log(hdrs.map((h,i)=>`${i}:${h}`).join(' | '));
+    const cmap={};hdrs.forEach((h,i)=>{if(!(normKey(h) in cmap))cmap[normKey(h)]=i;});
+    const idx=name=>{const i=cmap[normKey(name)];return i!==undefined?i:null;};
+    const cAcct = idx('Account')      ?? idx('Account Name');
+    const cCsm  = idx('Target CSM')   ?? idx('CSM')        ?? idx('Owner');
+    const cSales= idx('Sales Rep')    ?? idx('AE');
+    const cSeg  = idx('Segment')      ?? idx('Pool');
+    const cRev25= idx('2025 Revenue') ?? idx('2025 Rev')   ?? idx('2025');
+    const cRev26= idx('2026 Revenue') ?? idx('2026 Rev')   ?? idx('2026');
+    const cEnd  = idx('Contract End') ?? idx('Contract End Date') ?? idx('Sub End') ?? idx('Sub End Date') ?? idx('Subscription End Date') ?? idx('Renewal Date');
+    const cRisk = idx('Risk?')        ?? idx('Risk');
+    // Notes: prefer header match, else fall back to positional column I (index 8)
+    let cNotes  = idx('Risk Notes')   ?? idx('Notes')      ?? idx('Note');
+    if(cNotes==null&&hdrs.length>8)cNotes=8;
+    const rows=[];
+    for(let i=headerRowIdx+1;i<data.values.length;i++){
+      const r=data.values[i];if(!r)continue;
+      const acct=cAcct!=null?String(r[cAcct]||'').trim():'';
+      if(!acct)continue;
+      const endRaw=cEnd!=null?String(r[cEnd]||'').trim():'';
+      // Normalize sub-end to ISO yyyy-mm-dd for filtering.
+      let endISO='';
+      if(endRaw){
+        const n=parseFloat(endRaw);
+        if(!isNaN(n)&&n>1000&&/^[\d.]+$/.test(endRaw)){
+          const d=new Date((n-25569)*86400*1000);
+          if(!isNaN(d))endISO=d.toISOString().slice(0,10);
+        } else {
+          const m=endRaw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if(m)endISO=m[0];
+          else{const d=new Date(endRaw);if(!isNaN(d))endISO=d.toISOString().slice(0,10);}
+        }
+      }
+      rows.push({
+        acct,
+        csm:   cCsm  !=null?normCsm(r[cCsm]):'',
+        ae:    cSales!=null?String(r[cSales]||'').trim():'',
+        seg:   cSeg  !=null?String(r[cSeg]||'').trim():'',
+        rev25: cRev25!=null?parseNum(r[cRev25]):0,
+        rev26: cRev26!=null?parseNum(r[cRev26]):0,
+        endRaw,endISO,
+        endMonth: endISO?parseInt(endISO.slice(5,7),10):null,
+        risk:  cRisk !=null?(String(r[cRisk]||'').toLowerCase().startsWith('y')?1:0):0,
+        notes: cNotes!=null?String(r[cNotes]||'').trim():''
+      });
+    }
+    console.log(`=== TOP 10S LOADED: ${rows.length} accounts ===`);
+    return rows;
+  }catch(e){console.warn('Top 10s fetch failed:',e);return[];}
+}
+
 // ── SNAPSHOT ──────────────────────────────────────────────────────────────────
 let _snapSiteId=null;
 async function _getSnapSiteId(token){
@@ -1331,10 +1408,12 @@ async function _fetchFresh(token){
   const engMap=await fetchAllEngagement(token);
   const spRange=await fetchSPSheet(token);
   if(spRange)SP_RAW=processSPData(spRange);
+  TOP10_RAW=await fetchTop10s(token);
   await Promise.all([loadSnapshotFromSP(token),loadRCSnapshotFromSP(token)]);
   D=processData(range,engMap);
   _mergeSPsIntoD();
   saveEngCache(ENG_RAW);
+  saveTop10Cache(TOP10_RAW);
   const lu='Updated '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
   lastUpdated=lu;
   saveDataCache(D,lu);
@@ -1355,6 +1434,7 @@ async function loadData(forceRefresh=false){
   if(haveCache){
     D=cache.D;
     const ec=loadEngCache();if(ec)ENG_RAW=ec;
+    const tc=loadTop10Cache();if(tc)TOP10_RAW=tc;
     const ageLabel=cache.stale?' · cached':'';
     lastUpdated=cache.lastUpdated+ageLabel;
     S.refreshing=true;
@@ -1381,7 +1461,7 @@ async function loadData(forceRefresh=false){
       // No cache available — fall back to any stale cache we may have
       const stale=loadDataCache(true);
       if(stale&&stale.D&&stale.D.length){
-        D=stale.D;const ec=loadEngCache();if(ec)ENG_RAW=ec;
+        D=stale.D;const ec=loadEngCache();if(ec)ENG_RAW=ec;const tc=loadTop10Cache();if(tc)TOP10_RAW=tc;
         lastUpdated=stale.lastUpdated+' · cached';
         S.staleWarning=`SharePoint timed out — showing data from ${stale.staleMinutes}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
         render();
@@ -3491,6 +3571,10 @@ rGP=function(){
         src=src.replace(/const CSM\s*=\s*\[[\s\S]*?\n\];/,newArr);
       }
     }
+    // Inject Top 10s data (sourced from ET "Top 10s" tab)
+    if(TOP10_RAW&&TOP10_RAW.length>0){
+      src=src.replace(/const TOP10\s*=\s*\[\];/,`const TOP10=${JSON.stringify(TOP10_RAW)};`);
+    }
     const spNote=SP_RAW&&SP_RAW.length?'All data live from SharePoint':'GP data live · SP data static (refresh to load SP)';
     // Apply light-mode transforms to the iframe HTML when LIGHT is on
     if(LIGHT){
@@ -3690,6 +3774,7 @@ body.light .scenario-slider::-moz-range-track{background:#bccedd}
   <div id="tab-gp_grr" class="tab-content"></div>
   <div id="tab-sp_grr" class="tab-content"></div>
   <div id="tab-cadence" class="tab-content"></div>
+  <div id="tab-top10s" class="tab-content"></div>
   <div id="tab-all_accounts" class="tab-content"></div>
   <div id="tab-payout" class="tab-content"></div>
   <div id="tab-targets" class="tab-content"></div>
@@ -3831,6 +3916,7 @@ const CSM = [
 
 const ACCTS = [];
 const CADENCE_DATA = {};
+const TOP10 = [];
 const SP_OWN = [{o:"Steven Reichard",a:43,r:2190583,w:19,wr:1344383},{o:"Rob Tappero",a:7,r:859470,w:0,wr:0},{o:"Lauren Sharabi",a:12,r:513000,w:0,wr:0},{o:"David Xuereb",a:5,r:271885,w:0,wr:0},{o:"Shelby Allen",a:6,r:235000,w:0,wr:0},{o:"Juliet Simon",a:4,r:95000,w:0,wr:0},{o:"Jennifer Milburn",a:1,r:52500,w:0,wr:0},{o:"Frank Greco",a:4,r:37500,w:0,wr:0}];
 const SP_RISK = [{n:"Clear Street",r:510000,s:"Open",o:"Rob Tappero"},{n:"ECI",r:250000,s:"Uncontacted",o:"Rob Tappero"},{n:"Marex",r:191133,s:"Invoice Sent",o:"Steven Reichard"},{n:"BitGo",r:180000,s:"Invoice Sent",o:"Steven Reichard"},{n:"DIFC",r:147450,s:"Attempting",o:"David Xuereb"},{n:"AlphaSense",r:140000,s:"Proposal",o:"Lauren Sharabi"},{n:"Ripple Prime",r:120000,s:"Uncontacted",o:"Steven Reichard"},{n:"StoneX",r:114000,s:"Invoice Sent",o:"Steven Reichard"},{n:"PitchBook",r:104435,s:"Uncontacted",o:"David Xuereb"},{n:"BTIG LLC",r:101500,s:"Uncontacted",o:"Steven Reichard"},{n:"NAV Fund Services",r:100000,s:"Invoice Sent",o:"Steven Reichard"},{n:"TD Securities",r:90000,s:"Invoice Sent",o:"Steven Reichard"},{n:"Vanguart",r:95000,s:"Open",o:"Shelby Allen"}];
 const SP_TIER = [{t:"Contributing",c:43},{t:"Silver",c:14},{t:"Gold",c:10},{t:"Platinum",c:2},{t:"Diamond",c:2},{t:"Premier",c:1},{t:"Title",c:1}];
@@ -3893,7 +3979,7 @@ function poolCard(pool,d,target,gifted){
 function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(--green)"},{l:"Open (in progress)",c:"var(--amber)"},{l:"Declined early (re-engageable)",c:"var(--orange)"},{l:"Churned (confirmed lost)",c:"var(--red)"}].map(x=>`<span><span class="legend-dot" style="background:${x.c}"></span>${x.l}</span>`).join('')}</div>`}
 
 // ── TAB SYSTEM ──────────────────────────────────────
-const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
+const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"top10s",l:"Top 10s"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
 let aTab="overview",selQ="Q2",selGPCSM=null,selGPMonth=null,selGPPod=null;
 const _nowQ=(()=>{const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';})();
 let selCadQ=_nowQ;
@@ -5109,7 +5195,117 @@ function rRCHistory(){
   el.innerHTML=h;
   _sfR();
 }
-function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
+
+// ── TOP 10s ─────────────────────────────────────────────
+// Renders the "Top 10s" tab from the engagement tracker. Sortable by any
+// column, filterable by CSM and by sub-end-date range, KPIs at top, notes
+// hidden behind a click on the account name.
+let _t10State={search:'',csm:'',seMin:'',seMax:'',sortCol:'rev26',sortDir:'desc',openNote:''};
+function _t10Fmt$(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+Math.round(n||0);}
+function _t10FmtDate(iso,raw){
+  if(!iso)return raw||'';
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const m=iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m?mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1]:(raw||'');
+}
+function _t10Sort(col){const cur=_t10State;if(cur.sortCol===col){cur.sortDir=cur.sortDir==='desc'?'asc':'desc';}else{cur.sortCol=col;cur.sortDir=(col==='acct'||col==='csm'||col==='seg')?'asc':'desc';}rTop10s();}
+function _t10Arr(col){if(_t10State.sortCol!==col)return'<span style="color:var(--dim);opacity:.4">↕</span>';return _t10State.sortDir==='desc'?'<span style="color:var(--accent)">▼</span>':'<span style="color:var(--accent)">▲</span>';}
+function _t10SetF(k,v){_t10State[k]=v;rTop10s();}
+function _t10Clear(){_t10State.search='';_t10State.csm='';_t10State.seMin='';_t10State.seMax='';rTop10s();}
+function _t10ToggleNote(k){_t10State.openNote=_t10State.openNote===k?'':k;rTop10s();}
+function rTop10s(){
+  const el=document.getElementById('tab-top10s');
+  if(!TOP10||!TOP10.length){
+    el.innerHTML=`<div class="card"><h3>Top 10s</h3><div class="sh" style="color:var(--amber)">Top 10s sheet not loaded — refresh to pull from the engagement tracker.</div></div>`;
+    return;
+  }
+  // Filter
+  const st=_t10State,q=st.search.toLowerCase().trim();
+  const filtered=TOP10.filter(r=>{
+    if(st.csm&&r.csm!==st.csm)return false;
+    if(st.seMin&&(!r.endISO||r.endISO<st.seMin))return false;
+    if(st.seMax&&(!r.endISO||r.endISO>st.seMax))return false;
+    if(q){const bag=(r.acct+' '+r.csm+' '+r.ae+' '+r.seg+' '+r.notes).toLowerCase();if(!bag.includes(q))return false;}
+    return true;
+  });
+  // Sort
+  const col=st.sortCol,dir=st.sortDir==='asc'?1:-1;
+  filtered.sort((a,b)=>{
+    let va=a[col],vb=b[col];
+    if(col==='endISO'){va=va||'';vb=vb||'';}
+    else if(typeof va==='string'||typeof vb==='string'){va=(va||'').toString().toLowerCase();vb=(vb||'').toString().toLowerCase();}
+    else{va=va||0;vb=vb||0;}
+    if(va<vb)return -1*dir;if(va>vb)return 1*dir;return 0;
+  });
+  // KPIs
+  const totAcct=filtered.length;
+  const tot25=filtered.reduce((s,r)=>s+(r.rev25||0),0);
+  const tot26=filtered.reduce((s,r)=>s+(r.rev26||0),0);
+  const riskN=filtered.filter(r=>r.risk).length;
+  const uniqCsm=[...new Set(filtered.map(r=>r.csm).filter(Boolean))].length;
+  // Unique CSM list for filter dropdown (from full set, not filtered)
+  const csmOpts=[...new Set(TOP10.map(r=>r.csm).filter(Boolean))].sort();
+  const _sfR=_sfSnapshot();
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+      <div class="kpi" style="border-left:3px solid var(--accent)"><div class="kl">Accounts</div><div class="kv" style="color:var(--accent)">${totAcct}</div><div class="ks">in current filter</div></div>
+      <div class="kpi" style="border-left:3px solid var(--green)"><div class="kl">2026 Revenue</div><div class="kv" style="color:var(--green)">${_t10Fmt$(tot26)}</div><div class="ks">${_t10Fmt$(tot25)} in 2025</div></div>
+      <div class="kpi" style="border-left:3px solid var(--amber)"><div class="kl">At Risk</div><div class="kv" style="color:var(--amber)">${riskN}</div><div class="ks">${totAcct?((riskN/totAcct*100).toFixed(0)):0}% of filtered</div></div>
+      <div class="kpi" style="border-left:3px solid var(--rose)"><div class="kl">CSMs Covered</div><div class="kv" style="color:var(--rose)">${uniqCsm}</div><div class="ks">unique reps</div></div>
+    </div>
+    <div class="card">
+      <h3>Top 10s by CSM</h3>
+      <div class="sh">Sourced from the <strong>Top 10s</strong> tab on the engagement tracker. Click an <span style="color:var(--accent)">account name</span> to expand its notes (column I). All columns sortable.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 8px 0">
+        <input data-sf="t10Search" type="text" placeholder="Search account / notes…" value="${(st.search||'').replace(/"/g,'&quot;')}" oninput="_t10SetF('search',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;min-width:200px;font-family:inherit">
+        <select onchange="_t10SetF('csm',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit">
+          <option value="">All CSMs (${csmOpts.length})</option>
+          ${csmOpts.map(c=>`<option value="${c}"${st.csm===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+        <label style="font-size:11px;color:var(--dim)">Sub End ≥</label>
+        <input type="date" value="${st.seMin||''}" onchange="_t10SetF('seMin',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit">
+        <label style="font-size:11px;color:var(--dim)">≤</label>
+        <input type="date" value="${st.seMax||''}" onchange="_t10SetF('seMax',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit">
+        ${(st.search||st.csm||st.seMin||st.seMax)?`<button onclick="_t10Clear()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
+        <span style="margin-left:auto;color:var(--dim);font-size:11px">${totAcct} of ${TOP10.length} accounts</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="border-bottom:1px solid var(--borderL)">
+            <th style="text-align:left;padding:8px 12px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('acct')">Account ${_t10Arr('acct')}</th>
+            <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('csm')">CSM ${_t10Arr('csm')}</th>
+            <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('seg')">Segment ${_t10Arr('seg')}</th>
+            <th style="text-align:right;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('rev26')">2026 Rev ${_t10Arr('rev26')}</th>
+            <th style="text-align:right;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('rev25')">2025 Rev ${_t10Arr('rev25')}</th>
+            <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('endISO')">Sub End ${_t10Arr('endISO')}</th>
+            <th style="text-align:center;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('risk')">Risk ${_t10Arr('risk')}</th>
+          </tr></thead>
+          <tbody>
+          ${filtered.length?filtered.map((r,i)=>{
+            const key='t10_'+i+'_'+(r.acct||'').replace(/\W/g,'_');
+            const noteOpen=st.openNote===key;
+            const hasNotes=r.notes&&r.notes.trim();
+            return`<tr style="border-top:1px solid var(--border)">
+              <td style="padding:7px 12px">
+                <span style="${hasNotes?'cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)':'color:var(--text)'};font-weight:500" ${hasNotes?`onclick="_t10ToggleNote('${key}')"`:''}>${r.acct}</span>
+                ${hasNotes?`<span style="font-size:10px;color:var(--dim);margin-left:6px">${noteOpen?'▾':'▸'} note</span>`:''}
+              </td>
+              <td style="padding:7px 10px;color:var(--muted)">${r.csm||'—'}</td>
+              <td style="padding:7px 10px"><span class="pill" style="color:${PC[r.seg]||'var(--rose)'}">${r.seg||'—'}</span></td>
+              <td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--green)">${r.rev26?_t10Fmt$(r.rev26):'—'}</td>
+              <td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--dim)">${r.rev25?_t10Fmt$(r.rev25):'—'}</td>
+              <td style="padding:7px 10px;color:var(--muted);white-space:nowrap">${_t10FmtDate(r.endISO,r.endRaw)}</td>
+              <td style="padding:7px 10px;text-align:center">${r.risk?'<span style="color:var(--red);font-weight:700">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td>
+            </tr>
+            ${noteOpen&&hasNotes?`<tr><td colspan="7" style="padding:6px 16px 10px 28px;background:rgba(0,0,0,.2);font-size:12px;color:var(--muted);line-height:1.6;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">NOTES (col I)</div>${r.notes}</td></tr>`:''}`;
+          }).join(''):`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--dim)">No accounts match current filters.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  _sfR();
+}
+function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'top10s':rTop10s();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
 rOverview();
 </script>
 </body>
