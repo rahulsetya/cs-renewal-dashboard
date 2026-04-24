@@ -5215,7 +5215,7 @@ function rRCHistory(){
 // Renders the "Top 10s" tab from the engagement tracker. Sortable by any
 // column, filterable by CSM and by sub-end-date range, KPIs at top, notes
 // hidden behind a click on the account name.
-let _t10State={search:'',csm:'',seMin:'',seMax:'',sortCol:'rev26',sortDir:'desc',openNote:''};
+let _t10State={search:'',csm:'',seMin:'',seMax:'',sortCol:'endISO',sortDir:'asc',openNote:''};
 function _t10Fmt$(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+Math.round(n||0);}
 function _t10FmtDate(iso,raw){
   if(!iso)return raw||'';
@@ -5247,8 +5247,11 @@ function rTop10s(){
   const col=st.sortCol,dir=st.sortDir==='asc'?1:-1;
   filtered.sort((a,b)=>{
     let va=a[col],vb=b[col];
-    if(col==='endISO'){va=va||'';vb=vb||'';}
-    else if(typeof va==='string'||typeof vb==='string'){va=(va||'').toString().toLowerCase();vb=(vb||'').toString().toLowerCase();}
+    if(col==='endISO'){
+      // Blank sub-end dates always sort to the end, regardless of direction —
+      // an ascending "soonest first" view shouldn't be crowded by undated rows.
+      const ea=!va,eb=!vb;if(ea&&eb)return 0;if(ea)return 1;if(eb)return -1;
+    } else if(typeof va==='string'||typeof vb==='string'){va=(va||'').toString().toLowerCase();vb=(vb||'').toString().toLowerCase();}
     else{va=va||0;vb=vb||0;}
     if(va<vb)return -1*dir;if(va>vb)return 1*dir;return 0;
   });
