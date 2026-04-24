@@ -5263,7 +5263,8 @@ function rTop10s(){
   el.innerHTML=`
     <div class="cards">
       ${sc('Accounts',totAcct,'in current filter','var(--accent)')}
-      ${sc('2026 Revenue',_t10Fmt$(tot26),_t10Fmt$(tot25)+' in 2025','var(--green)')}
+      ${sc('2025 Revenue',_t10Fmt$(tot25),'baseline','var(--muted)')}
+      ${sc('2026 Revenue',_t10Fmt$(tot26),(tot25>0?((tot26-tot25)/tot25*100).toFixed(1)+'% vs 2025':'renewal target'),'var(--green)')}
       ${sc('CSMs Covered',uniqCsm,'unique reps','var(--rose)')}
     </div>
     <div class="card">
