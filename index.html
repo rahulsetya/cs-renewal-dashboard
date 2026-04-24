@@ -4304,8 +4304,93 @@ function _cadSortArrow(k){if(_cadSortKey!==k)return'<span style="color:var(--dim
 
 function sw(id){aTab=id;document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');document.querySelectorAll('.tabs button').forEach(b=>{b.classList.remove('active','active-rose');if(b.dataset.t===id)b.classList.add(tabDefs.find(t=>t.id===id)?.ac?'active-rose':'active')});rT(id)}
 
+// Hidden cadence export: 5 rapid clicks on the Cadence tab button (within 2s)
+// reveals an "Export Current Month" button inside the cadence tab. Stays
+// unlocked for the rest of the session.
+let _cadTabClicks=0,_cadTabTimer=null,_cadExportUnlocked=false;
+function _cadTabClicked(){
+  _cadTabClicks++;
+  clearTimeout(_cadTabTimer);
+  _cadTabTimer=setTimeout(()=>{_cadTabClicks=0;},2000);
+  if(_cadTabClicks>=5&&!_cadExportUnlocked){
+    _cadExportUnlocked=true;_cadTabClicks=0;
+    if(aTab==='cadence')rT('cadence'); // re-render to show the button
+  }
+}
+
+function _exportCadenceXLSX(){
+  const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
+  if(!cd||!cd.cols||!cd.cols.length){alert('No cadence data loaded.');return;}
+  // SheetJS is loaded in the parent document (the iframe itself doesn't
+  // include it). Grab it via parent; fall back to window in case this ever
+  // runs outside the iframe shell.
+  const XLSX=(window.parent&&window.parent.XLSX)||window.XLSX;
+  if(!XLSX){alert('Excel library not loaded yet. Try again in a moment.');return;}
+  const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const curMo=MO[new Date().getMonth()];
+  // Find the cadence column matching the current month. Columns may be
+  // abbreviated ('Apr') or full ('April') depending on sheet, so fuzzy-match.
+  const colMatch=cd.cols.find(c=>{
+    const s=String(c||'').trim().toLowerCase();
+    return s===curMo.toLowerCase()||s.startsWith(curMo.toLowerCase())||curMo.toLowerCase().startsWith(s.slice(0,3));
+  });
+  if(!colMatch){alert('No column for '+curMo+' in engagement tracker. Columns: '+cd.cols.join(', '));return;}
+  const now=new Date();
+  const ts=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const roster=(typeof CSM!=='undefined'&&CSM.length)?CSM:Object.keys(cd.csm).map(n=>({n}));
+
+  // Sheet 1: Summary (one row per CSM)
+  const summaryRows=[['CSM','Pool','Total Book','Calls This Month','Pct of Book','Accounts Called']];
+  roster.forEach(c=>{
+    const d=cd.csm[c.n];if(!d)return;
+    const tot=d.total||0;
+    const mo=d.months[colMatch]||{yes:0,accts:[]};
+    const pctNum=tot?mo.yes/tot:0;
+    const acctNames=(mo.accts||[]).map(a=>a.acct).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+    summaryRows.push([c.n,c.seg||(c.t==='SP'?'SP':''),tot,mo.yes,pctNum,acctNames.join('; ')]);
+  });
+
+  // Sheet 2: Detail (one row per call)
+  const detailRows=[['CSM','Account','Sub End','Risk','Notes']];
+  roster.forEach(c=>{
+    const d=cd.csm[c.n];if(!d)return;
+    const mo=d.months[colMatch]||{accts:[]};
+    (mo.accts||[]).forEach(a=>{
+      const seLabel=a.se?(a.se instanceof Date?a.se.toLocaleDateString('en-US'):String(a.se)):'';
+      detailRows.push([c.n,a.acct||'',seLabel,a.rsk||'',(a.notes||'').replace(/\s+/g,' ').slice(0,500)]);
+    });
+  });
+
+  // Sheet 3: Header / metadata
+  const metaRows=[
+    ['CS Renewal — Cadence Export'],
+    ['Month',colMatch+' '+now.getFullYear()],
+    ['Generated',now.toLocaleString()],
+    ['Source','Engagement Tracker · Cadence Tab'],
+    []
+  ];
+
+  const wb=XLSX.utils.book_new();
+  const wsSummary=XLSX.utils.aoa_to_sheet(summaryRows);
+  // Format the Pct column (col E, index 4) as percentage
+  const rng=XLSX.utils.decode_range(wsSummary['!ref']);
+  for(let r=1;r<=rng.e.r;r++){
+    const cellRef=XLSX.utils.encode_cell({c:4,r});
+    if(wsSummary[cellRef]){wsSummary[cellRef].t='n';wsSummary[cellRef].z='0%';}
+  }
+  wsSummary['!cols']=[{wch:24},{wch:12},{wch:12},{wch:18},{wch:12},{wch:80}];
+  const wsDetail=XLSX.utils.aoa_to_sheet(detailRows);
+  wsDetail['!cols']=[{wch:24},{wch:36},{wch:14},{wch:8},{wch:80}];
+  const wsMeta=XLSX.utils.aoa_to_sheet(metaRows);
+  wsMeta['!cols']=[{wch:16},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,wsSummary,'Summary');
+  XLSX.utils.book_append_sheet(wb,wsDetail,'Detail');
+  XLSX.utils.book_append_sheet(wb,wsMeta,'About');
+  XLSX.writeFile(wb,'cadence-'+colMatch.toLowerCase()+'-'+ts+'.xlsx');
+}
+
 const tabsEl=document.getElementById('tabs');
-tabDefs.forEach(t=>{const b=document.createElement('button');b.textContent=t.l;b.dataset.t=t.id;if(t.id===aTab)b.classList.add('active');b.onclick=()=>sw(t.id);tabsEl.appendChild(b)});
+tabDefs.forEach(t=>{const b=document.createElement('button');b.textContent=t.l;b.dataset.t=t.id;if(t.id===aTab)b.classList.add('active');b.onclick=()=>{if(t.id==='cadence')_cadTabClicked();sw(t.id);};tabsEl.appendChild(b)});
 
 function _updateSnapBar(){
   const el=document.getElementById('snap-bar');if(!el)return;
@@ -4703,6 +4788,7 @@ function rCadence(){
     <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--dim)">Quarter:</span>
       ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="selCadQ='${qq}';rT('cadence')">${qq}</button>`).join('')}
+      ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="margin-left:auto;background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
     </div>
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
