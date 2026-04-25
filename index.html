@@ -4525,7 +4525,7 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"top10s",l:"Top 10s"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
-let aTab="overview",selGPCSM=null,selGPMonth=null,selGPPod=null;
+var aTab="overview",selGPCSM=null,selGPMonth=null,selGPPod=null;
 // Live "current quarter" — recomputed on every read so a dashboard left open
 // across a quarter boundary self-corrects on the next tab render.
 function _nowQ(){const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';}
@@ -7066,7 +7066,7 @@ const SCEN={
   best:{l:"Best",c:"#2ed573",oc:65,dc:25,sc:55,exp:140},
 };
 
-let S={tab:'quarterly',seg:'total',oc:50,dc:15,sc:40,exp:130,stairMode:'qtr'};
+var S={tab:'quarterly',seg:'total',oc:50,dc:15,sc:40,exp:130,stairMode:'qtr'};
 
 const $=v=>`$${(v/1e6).toFixed(1)}M`;const $2=v=>`$${(v/1e6).toFixed(2)}M`;
 const fS=v=>v>=1e6?`$${(v/1e6).toFixed(1)}M`:`$${(v/1000).toFixed(0)}K`;
