@@ -4750,12 +4750,21 @@ function _cadAuditParseFile(file){
         if(m2){let y=parseInt(m2[3]);if(y<100)y+=2000;return new Date(y,parseInt(m2[1])-1,parseInt(m2[2]));}
         const d=new Date(s);return isNaN(d)?null:d;
       };
+      // Deduplicate at minute granularity: HubSpot exports one row per
+      // attendee, so a single meeting with 3 contacts from the same firm
+      // shows up as 3 rows with identical Platform ID and identical
+      // start time. Treat (pid + YYYY-MM-DDTHH:MM) as the meeting identity.
+      const seenMtg=new Set();
+      let dupesSkipped=0;
       for(let r=hdrRow+1;r<rows.length;r++){
         const row=rows[r]||[];
         const pid=String(row[pidIdx]||'').trim();
         if(!pid)continue;
         const dt=_parseDate(row[dateIdx]);
         if(!dt)continue;
+        const mtgKey=pid+'|'+dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')+'T'+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+        if(seenMtg.has(mtgKey)){dupesSkipped++;continue;}
+        seenMtg.add(mtgKey);
         const mo=MO[dt.getMonth()];
         const yr=dt.getFullYear();
         if(year===null)year=yr;
@@ -4781,7 +4790,7 @@ function _cadAuditParseFile(file){
       };
       try{localStorage.setItem(_CAD_AUDIT_KEY,JSON.stringify(_cadAuditData));}catch(e){}
       _cadAuditSource='local';
-      alert('Imported '+parsed+' meetings from sheet "'+pickedSheet+'" of '+file.name+'.\nUnique account-months: '+Object.keys(bucketSave).length);
+      alert('Imported '+parsed+' unique meetings from sheet "'+pickedSheet+'" of '+file.name+'.\n'+(dupesSkipped>0?'Collapsed '+dupesSkipped+' duplicate row'+(dupesSkipped>1?'s':'')+' (same company + same start time = same meeting).\n':'')+'Unique account-months: '+Object.keys(bucketSave).length);
       if(aTab==='cadence')rT('cadence');
     }catch(err){alert('Failed to parse file: '+(err.message||err));}
   };
