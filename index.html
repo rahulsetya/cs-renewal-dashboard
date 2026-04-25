@@ -76,6 +76,23 @@ body.light .owner-dd-item{color:#1e293b}
 body.light .owner-dd-item:hover{background:#eef4f9}
 body.light .owner-dd-item.sel{background:#2563eb;color:#fff}
 body.light .owner-dd-grp{color:#475569;border-top-color:#d4e2ee}
+.title-dd{position:relative;display:inline-block}
+.title-dd-btn{background:transparent;border:none;color:inherit;font:inherit;cursor:pointer;padding:0;margin:0;display:inline-flex;align-items:center;gap:8px}
+.title-dd-btn h1{margin:0}
+.title-dd-btn .cr{color:#64748b;font-size:14px;transition:transform .15s;font-weight:400}
+.title-dd-btn.op .cr{transform:rotate(180deg);color:#94a3b8}
+.title-dd-btn:hover .cr{color:#94a3b8}
+.title-dd-menu{position:absolute;top:calc(100% + 4px);left:0;background:#1e293b;border:1px solid #334155;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:280px;z-index:2000;padding:4px 0;display:none}
+.title-dd-item{padding:10px 16px;font-size:13px;color:#e2e8f0;cursor:pointer;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:10px;font-family:inherit}
+.title-dd-item:hover{background:#2a3a52}
+.title-dd-item .ic{font-size:14px;width:18px;text-align:center}
+.title-dd-item .sub{display:block;font-size:11px;color:#64748b;font-weight:400;margin-top:2px}
+body.light .title-dd-menu{background:#ffffff;border-color:#9eb6ca;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+body.light .title-dd-item{color:#1e293b}
+body.light .title-dd-item:hover{background:#eef4f9}
+body.light .title-dd-item .sub{color:#475569}
+body.light .title-dd-btn .cr{color:#475569}
+body.light .title-dd-btn.op .cr{color:#1e293b}
 .spinner{width:40px;height:40px;border:3px solid #334155;border-top-color:#60a5fa;border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .err-card{background:#ef444420;border:1px solid #ef444440;border-radius:12px;padding:20px;max-width:500px;color:#ef4444;font-size:14px;line-height:1.7}
@@ -305,6 +322,31 @@ document.addEventListener('click',function(e){
   OWNER_DROP_OPEN=false;
   const m=document.getElementById('ownerDropMenu');if(m)m.style.display='none';
   const b=document.getElementById('ownerDropBtn');if(b)b.classList.remove('op');
+});
+// Title dropdown — Pipeline / Goals & Variable Comp Dashboard
+let TITLE_DROP_OPEN=false;
+function toggleTitleDrop(e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  TITLE_DROP_OPEN=!TITLE_DROP_OPEN;
+  const m=document.getElementById('titleDropMenu');
+  const b=document.getElementById('titleDropBtn');
+  if(m)m.style.display=TITLE_DROP_OPEN?'block':'none';
+  if(b)b.classList.toggle('op',TITLE_DROP_OPEN);
+}
+function pickTitleDest(dest){
+  TITLE_DROP_OPEN=false;
+  const m=document.getElementById('titleDropMenu');if(m)m.style.display='none';
+  const b=document.getElementById('titleDropBtn');if(b)b.classList.remove('op');
+  if(dest==='pipeline'){ss('tab','pipeline');}
+  else if(dest==='goals'){S.goalsOpen=true;render();}
+}
+document.addEventListener('click',function(e){
+  if(!TITLE_DROP_OPEN)return;
+  const dd=document.querySelector('.title-dd');
+  if(dd&&dd.contains(e.target))return;
+  TITLE_DROP_OPEN=false;
+  const m=document.getElementById('titleDropMenu');if(m)m.style.display='none';
+  const b=document.getElementById('titleDropBtn');if(b)b.classList.remove('op');
 });
 
 let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,forecastPods:[]};
@@ -2547,7 +2589,7 @@ function _render(){
   });
   const gap=r25T-offT;
   let h='';
-  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><h1 onclick="ss('tab','pipeline')" style="cursor:pointer" title="Back to Pipeline">CS Renewal Pipeline</h1><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button><button onclick="ss('hideChurned',${!S.hideChurned})" style="background:${S.hideChurned?'#10b981':'#1e293b'};border:1px solid ${S.hideChurned?'#059669':'#334155'};color:${S.hideChurned?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideChurned?'✓ Hiding Churned':'Hide Churned'}</button><button onclick="ss('hideSPs',${!S.hideSPs})" title="Hide all SP accounts (Emilie Welch)" style="background:${S.hideSPs?'#10b981':'#1e293b'};border:1px solid ${S.hideSPs?'#059669':'#334155'};color:${S.hideSPs?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideSPs?'✓ Hiding SPs':'Hide SPs'}</button><button onclick="ss('showAE',${!S.showAE})" style="background:${S.showAE?'#2563eb':'#1e293b'};border:1px solid ${S.showAE?'#1d4ed8':'#334155'};color:${S.showAE?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.showAE?'✓ Show AE':'Show AE'}</button>${[0,1,2].map(off=>{const m=new Date((new Date()).getFullYear(),(new Date()).getMonth()+off,1);const lbl=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m.getMonth()];const sel=(S.subMonths||[]).includes(off);return`<button onclick="(function(){var a=[...(S.subMonths||[])],idx=a.indexOf(${off});if(idx>=0)a.splice(idx,1);else a.push(${off});S.subMonths=a;render();})()" style="background:${sel?'#0369a1':'#1e293b'};border:1px solid ${sel?'#0284c7':'#334155'};color:${sel?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${sel?'✓ ':''} ${lbl}</button>`;}).join('')}</div><p class="sub">${tot} <span onclick="_acctTabClick()" style="cursor:default;user-select:none">accounts</span> · Live from <span onclick="_spClick()" style="cursor:default;user-select:none">SharePoint</span> · ${lastUpdated}</p></div>
+  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><div class="title-dd"><button class="title-dd-btn" id="titleDropBtn" onclick="toggleTitleDrop(event)" title="Switch dashboard"><h1 style="margin:0">CS Renewal Pipeline</h1><span class="cr">▾</span></button><div class="title-dd-menu" id="titleDropMenu"><div class="title-dd-item" onclick="pickTitleDest('pipeline')"><span class="ic">📊</span><div><div>CS Renewal Pipeline</div><span class="sub">Account-level pipeline & forecast</span></div></div><div class="title-dd-item" onclick="pickTitleDest('goals')"><span class="ic">🎯</span><div><div>Goals & Variable Comp Dashboard</div><span class="sub">Quarterly targets, retention, cadence</span></div></div></div></div><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button><button onclick="ss('hideChurned',${!S.hideChurned})" style="background:${S.hideChurned?'#10b981':'#1e293b'};border:1px solid ${S.hideChurned?'#059669':'#334155'};color:${S.hideChurned?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideChurned?'✓ Hiding Churned':'Hide Churned'}</button><button onclick="ss('hideSPs',${!S.hideSPs})" title="Hide all SP accounts (Emilie Welch)" style="background:${S.hideSPs?'#10b981':'#1e293b'};border:1px solid ${S.hideSPs?'#059669':'#334155'};color:${S.hideSPs?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideSPs?'✓ Hiding SPs':'Hide SPs'}</button><button onclick="ss('showAE',${!S.showAE})" style="background:${S.showAE?'#2563eb':'#1e293b'};border:1px solid ${S.showAE?'#1d4ed8':'#334155'};color:${S.showAE?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.showAE?'✓ Show AE':'Show AE'}</button>${[0,1,2].map(off=>{const m=new Date((new Date()).getFullYear(),(new Date()).getMonth()+off,1);const lbl=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m.getMonth()];const sel=(S.subMonths||[]).includes(off);return`<button onclick="(function(){var a=[...(S.subMonths||[])],idx=a.indexOf(${off});if(idx>=0)a.splice(idx,1);else a.push(${off});S.subMonths=a;render();})()" style="background:${sel?'#0369a1':'#1e293b'};border:1px solid ${sel?'#0284c7':'#334155'};color:${sel?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${sel?'✓ ':''} ${lbl}</button>`;}).join('')}</div><p class="sub">${tot} <span onclick="_acctTabClick()" style="cursor:default;user-select:none">accounts</span> · Live from <span onclick="_spClick()" style="cursor:default;user-select:none">SharePoint</span> · ${lastUpdated}</p></div>
   <div style="display:flex;gap:8px;align-items:flex-start">
     <button onclick="ssTheme()" title="Toggle light/dark mode" style="display:flex;align-items:center;gap:6px;background:${LIGHT?'#ffffff':'#1e293b'};color:${LIGHT?'#475569':'#94a3b8'};border:1px solid ${LIGHT?'#cbd5e1':'#334155'};padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button>
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px">
