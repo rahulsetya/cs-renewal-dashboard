@@ -5294,7 +5294,7 @@ function _cadBodyHTML(rid,csmName){
     <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
       <thead><tr style="background:rgba(255,255,255,.04)">
         <th style="text-align:left;padding:5px 16px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','acct')">Account ${sa('acct')}</th>
-        ${visCols.map(c=>`<th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','${c}')">${c} ${sa(c)}</th>`).join('')}
+        ${visCols.map(c=>`<th style="text-align:left;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','${c}')">${c} ${sa(c)}</th>`).join('')}
         <th style="text-align:left;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','se')">Sub End ${sa('se')}</th>
         <th style="text-align:center;padding:5px 8px;color:var(--dim)">Risk</th>
       </tr></thead>
@@ -5336,7 +5336,7 @@ function _cadBodyHTML(rid,csmName){
                 }
               }
             }
-            return`<td style="text-align:center;padding:4px 8px;white-space:nowrap" title="${title}">${cellHTML}</td>`;
+            return`<td style="text-align:left;padding:4px 8px;white-space:nowrap" title="${title}">${cellHTML}</td>`;
           }).join('')}
           <td style="padding:4px 8px;color:var(--dim);font-size:10px">${fmtSE(a.se)}</td>
           <td style="text-align:center;padding:4px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td>
