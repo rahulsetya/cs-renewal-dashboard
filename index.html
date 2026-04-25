@@ -5603,9 +5603,15 @@ function rCadence(){
             const _unv=_stats?_stats.unverified||0:0;
             const _frg=_stats?_stats.forgot||0:0;
             const _csmEsc=c.n.replace(/'/g,"\\'");
-            const _chipBase='display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px;cursor:pointer;font-family:var(--mono);vertical-align:middle';
-            const _unvChip=_unv>0?`<span onclick="event.stopPropagation();_cadJumpToReview('${_csmEsc}','unverified')" title="${_unv} unconfirmed call${_unv>1?'s':''} in ${_auditMo} — click to review" style="${_chipBase};background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.4)">❌ ${_unv}</span>`:'';
-            const _frgChip=_frg>0?`<span onclick="event.stopPropagation();_cadJumpToReview('${_csmEsc}','forgot')" title="${_frg} missed-logging call${_frg>1?'s':''} in ${_auditMo} — click to review" style="${_chipBase};background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.4)">⚠ ${_frg}</span>`:'';
+            // Discoverability: pills carry a faint " →" glyph that brightens
+            // on hover, plus the whole pill background saturates a notch, so
+            // they read as buttons rather than passive badges. mouseover/out
+            // toggle the bg + arrow opacity since we have no <style> hook
+            // here.
+            const _chipBase='display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:1px 7px 1px 6px;border-radius:10px;margin-left:6px;cursor:pointer;font-family:var(--mono);vertical-align:middle;transition:background .12s,border-color .12s;gap:3px';
+            const _arrow='<span class="cad-chip-arrow" style="font-size:9px;opacity:.55;font-weight:600">→</span>';
+            const _unvChip=_unv>0?`<span onclick="event.stopPropagation();_cadJumpToReview('${_csmEsc}','unverified')" onmouseover="this.style.background='rgba(239,68,68,.22)';this.style.borderColor='rgba(239,68,68,.7)';const a=this.querySelector('.cad-chip-arrow');if(a)a.style.opacity='1'" onmouseout="this.style.background='rgba(239,68,68,.12)';this.style.borderColor='rgba(239,68,68,.4)';const a=this.querySelector('.cad-chip-arrow');if(a)a.style.opacity='.55'" title="${_unv} unconfirmed call${_unv>1?'s':''} in ${_auditMo} — click to view the accounts" style="${_chipBase};background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.4)">❌ ${_unv}${_arrow}</span>`:'';
+            const _frgChip=_frg>0?`<span onclick="event.stopPropagation();_cadJumpToReview('${_csmEsc}','forgot')" onmouseover="this.style.background='rgba(251,191,36,.22)';this.style.borderColor='rgba(251,191,36,.7)';const a=this.querySelector('.cad-chip-arrow');if(a)a.style.opacity='1'" onmouseout="this.style.background='rgba(251,191,36,.12)';this.style.borderColor='rgba(251,191,36,.4)';const a=this.querySelector('.cad-chip-arrow');if(a)a.style.opacity='.55'" title="${_frg} missed-logging call${_frg>1?'s':''} in ${_auditMo} — click to view the accounts" style="${_chipBase};background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.4)">⚠ ${_frg}${_arrow}</span>`:'';
             return`<tr style="border-top:1px solid var(--border);background:${isSP?'var(--roseG)':'transparent'}">
               <td style="padding:7px 12px;cursor:pointer" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}',null)">
                 <span style="font-size:13px;font-weight:500;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)">${c.n}</span>${_unvChip}${_frgChip}
