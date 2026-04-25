@@ -5375,8 +5375,8 @@ function rGP(){
           <label style="font-size:12px;color:var(--muted)">Scenario: How many renewable accounts (${totalCloseable}) do we need to close to hit X%? <span style="color:var(--dim);font-size:11px">(${totalOpen} open + ${totalWinback} declined early)</span></label>
           <span style="font-size:11px;color:var(--dim)">Today (0 closed): <strong style="color:var(--amber)">${pct(totalWon/totalLogos*100)}</strong> · Max (${totalCloseable} closed): <strong style="color:var(--green)">${pct((totalWon+totalCloseable)/totalLogos*100)}</strong></span>
         </div>
-        <div style="padding:8px 0;cursor:pointer">
-        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="${totalCloseable}" value="${Math.min(gapFloor,totalCloseable)}" oninput="updateScenario('${q}',this.value,${totalCloseable},${totalWon},${totalLogos})" onmousedown="this.focus()" style="touch-action:none;background:linear-gradient(to right,var(--accent) ${totalCloseable>0?Math.round(Math.min(gapFloor,totalCloseable)/totalCloseable*100):0}%,#1e293b ${totalCloseable>0?Math.round(Math.min(gapFloor,totalCloseable)/totalCloseable*100):0}%)">
+        <div style="padding:8px 0">
+        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="${totalCloseable}" value="${Math.min(gapFloor,totalCloseable)}" oninput="updateScenario('${q}',this.value,${totalCloseable},${totalWon},${totalLogos})" onmousedown="_sceMD(event,${totalCloseable})" style="touch-action:none;background:linear-gradient(to right,var(--accent) ${totalCloseable>0?Math.round(Math.min(gapFloor,totalCloseable)/totalCloseable*100):0}%,#1e293b ${totalCloseable>0?Math.round(Math.min(gapFloor,totalCloseable)/totalCloseable*100):0}%)">
         </div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0 closed</span><span id="scenario-label-${q}">${Math.min(gapFloor,totalCloseable)} accounts closed → <strong style="color:var(--accent)">${pct((totalWon+Math.min(gapFloor,totalCloseable))/totalLogos*100)}</strong></span><span>${totalCloseable} closed</span></div>
       </div>
@@ -5401,6 +5401,21 @@ function rGP(){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=cData[i];const tot=(d.won||0)+(d.open||0)+(d.declined||d.de||0)+(d.lost||0);return`──────────────\nTotal: ${tot} logos`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
 }
 
+// Block track-click jumps on the scenario slider — only allow thumb-drag.
+// Prevents the native HTML5 range behavior of jumping to wherever you click.
+function _sceMD(e,max){
+  const sl=e.target;
+  const r=sl.getBoundingClientRect();
+  const m=Math.max(1,+max);
+  const v=+sl.value;
+  const thumbX=r.left+(v/m)*r.width;
+  const tol=14; // ~half of thumb width (20px) + small buffer
+  if(Math.abs(e.clientX-thumbX)>tol){
+    e.preventDefault();
+  }else{
+    sl.focus();
+  }
+}
 function updateScenario(q,val,tOpen,tWon,tLogos){
   const totalOpen=tOpen!==undefined?+tOpen:0;
   const totalWon=tWon!==undefined?+tWon:0;
