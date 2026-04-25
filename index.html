@@ -1542,7 +1542,14 @@ async function loadData(forceRefresh=false){
     const ageLabel=cache.stale?' · cached':'';
     lastUpdated=cache.lastUpdated+ageLabel;
     S.refreshing=true;
-    render();
+    // On first paint (init still running, parser hasn't reached the iframe
+    // template <textarea>s yet) defer to DOMContentLoaded so opening Goals/
+    // Forecast via #hash doesn't blow up reading null.value.
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',render,{once:true});
+    }else{
+      render();
+    }
   }else{
     showLoading('Loading pipeline + engagement data…');
   }
@@ -4045,7 +4052,18 @@ function _render(){
   if(S.goalsOpen){
     if(!goalsOverlay){goalsOverlay=document.createElement('div');goalsOverlay.id='_goals_overlay';goalsOverlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(5,10,20,.92);display:flex;flex-direction:column;';document.body.appendChild(goalsOverlay);}
     goalsOverlay.style.display='flex';
-    let src=document.getElementById('_goals_tpl').value;
+    // Template <textarea> lives at the end of body — on a deep-link refresh
+    // (#goals + Cmd-Shift-R) the parser may not have reached it yet when
+    // loadData() fires its first cache-hit render. Show a refresh placeholder
+    // and re-render once DOM is parsed.
+    const _goalsTpl=document.getElementById('_goals_tpl');
+    if(!_goalsTpl){
+      goalsOverlay.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:14px;font-family:inherit;flex-direction:column;gap:14px"><div style="font-size:28px;animation:spin 1s linear infinite">⟳</div><div>Refreshing Goals dashboard…</div></div>';
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render,{once:true});
+      else requestAnimationFrame(render);
+      return;
+    }
+    let src=_goalsTpl.value;
     // Inject live GRR + CHURNED data — only when GP_RAW_ROWS is populated
     // (GP_RAW_ROWS is empty during cache-only loads; without this guard we'd
     //  inject all-zero GRR and overwrite the correct hardcoded template data)
@@ -4169,7 +4187,15 @@ rGP=function(){
   if(S.forecastOpen){
     if(!forecastOverlay){forecastOverlay=document.createElement('div');forecastOverlay.id='_forecast_overlay';forecastOverlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(5,10,20,.92);display:flex;flex-direction:column;';document.body.appendChild(forecastOverlay);}
     forecastOverlay.style.display='flex';
-    let src=document.getElementById('_forecast_tpl').value;
+    // Same DOM-not-ready guard as Goals overlay (see comment above)
+    const _fcTpl=document.getElementById('_forecast_tpl');
+    if(!_fcTpl){
+      forecastOverlay.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#7777aa;font-size:14px;font-family:inherit;flex-direction:column;gap:14px"><div style="font-size:28px;animation:spin 1s linear infinite">⟳</div><div>Refreshing Forecast dashboard…</div></div>';
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render,{once:true});
+      else requestAnimationFrame(render);
+      return;
+    }
+    let src=_fcTpl.value;
     // Inject live GP, GPQ, GPQR — only when D is populated
     const _fcPods=_fcNormPods();
     let _fcGpCount=0,_fcSpCount=0;
