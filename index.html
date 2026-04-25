@@ -4657,35 +4657,66 @@ let _cadDiscSort={col:'acct',dir:'asc'};
 let _cadDiscFilt={status:'',csm:''};
 function _cadDiscSetFilt(k,v){_cadDiscFilt[k]=v||'';if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
 function _cadDiscClearFilt(){_cadDiscFilt={status:'',csm:''};if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
-// Drive-by from a CSM-row chip ("❌3" / "⚠2") on the main cadence table:
-// pre-fills both filter dropdowns, re-renders, scrolls to the Review &
-// Resolve section, then flashes its border so the move is visible even
-// when the section was already on screen. The scroll uses both the
-// element method and a manual body-scroll fallback because iframe scroll
-// behavior can be flaky depending on which container has overflow.
+// Click handler for the CSM-row discrepancy chips ("❌3" / "⚠2"). Expands
+// (or collapses) an inline panel directly underneath the clicked CSM row
+// showing the offending accounts for that status. We deliberately don't
+// scroll-to or open the Review & Resolve table at the bottom of the
+// cadence tab — that table is gated behind _cadExportUnlocked (manager
+// mode), so CSMs can't reach it. The inline panel works for every viewer.
+//
+// Re-clicking the same chip closes the panel. Clicking the OTHER chip on
+// the same CSM swaps the panel content (status='unverified' ↔ 'forgot')
+// without closing/reopening. Stored state lives on the panel element via
+// data-status so we can tell the two cases apart.
 function _cadJumpToReview(csmName,statusKey){
   try{
-    _cadDiscFilt.status=statusKey||'';
-    _cadDiscFilt.csm=csmName||'';
-    if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
-    setTimeout(()=>{
-      const el=document.getElementById('cad-review-section');
-      if(!el){console.warn('[_cadJumpToReview] section not found');return;}
-      // Belt + suspenders scroll: scrollIntoView for smooth animation, plus
-      // manually adjusting the iframe doc's scrollTop in case the smooth
-      // path is blocked by a containing element.
-      try{el.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}
-      const rect=el.getBoundingClientRect();
-      const docTop=(window.scrollY||document.documentElement.scrollTop||0);
-      const targetY=Math.max(0,docTop+rect.top-40);
-      try{window.scrollTo({top:targetY,behavior:'smooth'});}catch(e){window.scrollTo(0,targetY);}
-      // Flash the section so the user sees something happened.
-      const origBd=el.style.boxShadow,origBg=el.style.background;
-      el.style.transition='box-shadow .25s,background .25s';
-      el.style.boxShadow='0 0 0 2px var(--accent)';
-      el.style.background='rgba(96,165,250,.06)';
-      setTimeout(()=>{el.style.boxShadow=origBd;el.style.background=origBg;},900);
-    },80);
+    if(!_cadAuditData)return;
+    const audit=_cadAuditCompute();
+    if(!audit)return;
+    const rid='cad_'+csmName.replace(/\W/g,'_');
+    const tr=document.getElementById(rid+'_chip');
+    const body=document.getElementById(rid+'_chip_body');
+    if(!tr||!body){console.warn('[_cadJumpToReview] panel not found for',csmName);return;}
+    const isOpen=tr.style.display!=='none';
+    const curStatus=tr.getAttribute('data-status')||'';
+    if(isOpen&&curStatus===statusKey){tr.style.display='none';tr.removeAttribute('data-status');return;}
+    // Build mini table of this CSM's rows for the requested status.
+    const rows=audit.rows.filter(r=>r.csm===csmName&&r.status===statusKey);
+    const isUnv=statusKey==='unverified';
+    const color=isUnv?'var(--red)':'var(--amber)';
+    const icon=isUnv?'❌':'⚠';
+    const titleTxt=isUnv?'Unconfirmed':'Missed Logging';
+    const explainer=isUnv
+      ?'Tracker marked Y but no matching meeting in HubSpot.'
+      :'HubSpot has a meeting but the tracker is blank.';
+    const dateColLabel=isUnv?'Tracker':'HubSpot date';
+    const _esc=s=>String(s||'').replace(/[<>&"']/g,c=>({'<':'\x26lt;','>':'\x26gt;','&':'\x26amp;','"':'\x26quot;',"'":'\x26#39;'}[c]));
+    const _fmtDate=iso=>{
+      if(!iso||iso.length<10)return'';
+      const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return(MO[parseInt(iso.slice(5,7),10)-1]||'')+' '+parseInt(iso.slice(8,10),10);
+    };
+    const tableHTML=rows.length?`<table style="border-collapse:collapse;width:100%;font-size:11px">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600">Account</th>
+        <th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600;width:90px">Month</th>
+        <th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600;width:120px">${dateColLabel}</th>
+        <th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600">Note</th>
+      </tr></thead>
+      <tbody>${rows.map(r=>`<tr style="border-top:1px solid rgba(255,255,255,.04)">
+        <td style="padding:5px 8px;color:var(--text);font-weight:500">${_esc(r.acct)}</td>
+        <td style="padding:5px 8px;color:var(--dim);font-family:var(--mono);font-size:10px">${_esc(r.month)}</td>
+        <td style="padding:5px 8px;color:var(--dim);font-family:var(--mono);font-size:10px">${isUnv?(r.tracker==='Y'?'Y':_esc(r.tracker)):_fmtDate(r.lastDate)}</td>
+        <td style="padding:5px 8px;color:var(--muted);font-size:10px;font-style:italic">${r.override&&r.override.note?_esc(r.override.note):''}</td>
+      </tr>`).join('')}</tbody>
+    </table>`:`<div style="padding:8px 4px;font-size:11px;color:var(--dim)">No accounts to show.</div>`;
+    body.innerHTML=`<div style="padding:10px 16px;background:rgba(0,0,0,.18);border-left:3px solid ${color}">
+      <div style="font-size:11px;font-weight:700;color:${color};margin-bottom:2px">${icon} ${titleTxt} — ${csmName} (${rows.length})</div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:8px">${explainer}</div>
+      ${tableHTML}
+    </div>`;
+    tr.style.display='';
+    tr.setAttribute('data-status',statusKey);
   }catch(e){console.error('[_cadJumpToReview] threw:',e);}
 }
 function _cadDiscSetSort(col){
@@ -5653,6 +5684,9 @@ function rCadence(){
             </tr>
             <tr id="${rid}" style="display:none">
               <td colspan="${visCols.length+3}" style="padding:0;background:rgba(0,0,0,.2)"><div id="${rid}_body"></div></td>
+            </tr>
+            <tr id="${rid}_chip" style="display:none">
+              <td colspan="${visCols.length+3}" style="padding:0"><div id="${rid}_chip_body"></div></td>
             </tr>`;
           }).join('')}
           ${(function(){
