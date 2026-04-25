@@ -5170,7 +5170,7 @@ function _cadBodyHTML(rid,csmName){
   const colSpan=visCols.length+4;
   // Inline legend — only visible when audit data is loaded so unaudited
   // mode keeps its original look.
-  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification</strong> requires exact <strong>Platform ID + Month + Year</strong> match against HubSpot. <span style="color:var(--green);font-weight:700">✓✓</span> verified · <span style="color:var(--green);font-weight:700">✓</span> tracker Y (no PID to match) · <span style="color:var(--red);font-weight:700">✓!</span> tracker Y but no HubSpot meeting · <span style="color:var(--amber);font-weight:700">⚠</span> HubSpot meeting, tracker blank · <span style="color:var(--dim)">—</span> nothing</div>`:'';
+  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification</strong> matches <strong>Platform ID + Month + Year</strong> against HubSpot. <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged</div>`:'';
   return`<div style="padding:0"><div style="font-size:11px;color:var(--dim);padding:6px 16px 4px">${label} · <strong style="color:var(--text)">${accts.length}</strong></div>
     ${legend}
     <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
@@ -5189,17 +5189,17 @@ function _cadBodyHTML(rid,csmName){
           ${visCols.map(c=>{
             const isY=isYCall(a,c);
             const hs=_hsCount(a,c);
-            // Render priority:
-            //  • verified  (Y + HS≥1)         → ✓✓ green, tooltip "Verified"
-            //  • forgot    (blank + HS≥1)     → ⚠ amber
-            //  • unconfd   (Y + HS=0)         → ✓! red
-            //  • Y, no audit / no PID         → ✓ green (legacy)
-            //  • blank                        → — dim
+            // Single-symbol scheme:
+            //  • tracker Y + HubSpot meeting (PID + month + year all match) → green ✓
+            //  • tracker Y + no HubSpot match (or no PID, or no audit data)  → red ✓ (when audit loaded)
+            //  • tracker Y + audit not loaded                                → green ✓ (legacy)
+            //  • tracker blank                                               → — dim
             let icon='—',color='var(--dim)',title='';
-            if(isY&&hs!==null&&hs>0){icon='✓✓';color='var(--green)';title='Verified — '+hs+' HubSpot meeting'+(hs>1?'s':'')+' in '+c;}
-            else if(!isY&&hs!==null&&hs>0){icon='⚠';color='var(--amber)';title=hs+' HubSpot meeting'+(hs>1?'s':'')+' in '+c+' — tracker is blank';}
-            else if(isY&&hs===0){icon='✓!';color='var(--red)';title='Tracker says Y but no HubSpot meeting found in '+c;}
-            else if(isY){icon='✓';color='var(--green)';title=auditLoaded?'Tracker says Y — no Platform ID to match':'Tracker says Y';}
+            if(isY){
+              if(!auditLoaded){icon='✓';color='var(--green)';title='Tracker says Y';}
+              else if(hs!==null&&hs>0){icon='✓';color='var(--green)';title='Verified in HubSpot — '+hs+' meeting'+(hs>1?'s':'')+' in '+c;}
+              else{icon='✓';color='var(--red)';title=hs===null?'Not verified — no Platform ID to match against HubSpot':'Not verified — no HubSpot meeting found for '+c;}
+            }
             return`<td style="text-align:center;padding:4px 8px;color:${color}" title="${title}"><strong>${icon}</strong></td>`;
           }).join('')}
           <td style="padding:4px 8px;color:var(--dim);font-size:10px">${fmtSE(a.se)}</td>
