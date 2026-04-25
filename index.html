@@ -4759,8 +4759,13 @@ function _cadAuditParseFile(file){
       // column in its header. Strict match first; loose fallback if needed.
       const wantPid=['platform companyid','platform company id','platform id','company platform id','hubspot id','hubspot record id','company id','record id'];
       const wantDate=['activity date','last activity date','activity assigned date','meeting date','date','close date'];
+      // Optional column — if present we capture who ran each meeting so the
+      // cadence cell can show the assignee inline (most useful for the Scale
+      // Team where multiple people share the book). Falls back gracefully
+      // when absent — older HubSpot exports without this column still parse.
+      const wantAssignee=['activity assigned to','assigned to','activity owner','meeting owner','hubspot owner','owner'];
       const tried=[];
-      let rows=null,hdrRow=-1,pidIdx=-1,dateIdx=-1,pickedSheet=null;
+      let rows=null,hdrRow=-1,pidIdx=-1,dateIdx=-1,assigneeIdx=-1,pickedSheet=null;
       const _scan=(sheetRows,strict)=>{
         for(let r=0;r<Math.min(8,sheetRows.length);r++){
           const row=(sheetRows[r]||[]).map(v=>String(v||'').trim().toLowerCase());
@@ -4794,6 +4799,11 @@ function _cadAuditParseFile(file){
         alert('Could not find Platform ID + Activity Date columns in any sheet.\n\nSheets scanned:\n'+list);
         return;
       }
+      // Optional: locate the "Activity assigned to" column on the picked
+      // sheet's header row. Strict-match first, then loose contains-match.
+      const _hdrLC=(rows[hdrRow]||[]).map(v=>String(v||'').trim().toLowerCase());
+      assigneeIdx=_hdrLC.findIndex(c=>wantAssignee.includes(c));
+      if(assigneeIdx<0)assigneeIdx=_hdrLC.findIndex(c=>c.includes('assigned')||(c.includes('activity')&&c.includes('owner')));
       const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const bucket={};let parsed=0,year=null;
       const _parseDate=v=>{
@@ -4831,17 +4841,24 @@ function _cadAuditParseFile(file){
         const yr=dt.getFullYear();
         if(year===null)year=yr;
         const key=pid+'|'+yr+'-'+mo;
-        if(!bucket[key])bucket[key]={count:0,lastDate:null,lastIso:''};
+        if(!bucket[key])bucket[key]={count:0,lastDate:null,lastIso:'',lastAssignee:'',assignees:[]};
         bucket[key].count++;
+        // Capture assignee. The lastAssignee field always tracks the assignee
+        // of the most recent meeting (the same one whose date we display);
+        // assignees[] is a deduped list of everyone who ran a meeting that
+        // month, used for the tooltip when more than one person logged calls.
+        const assignee=assigneeIdx>=0?String(row[assigneeIdx]||'').trim():'';
+        if(assignee&&!bucket[key].assignees.includes(assignee))bucket[key].assignees.push(assignee);
         if(!bucket[key].lastDate||dt>bucket[key].lastDate){
           bucket[key].lastDate=dt;
           bucket[key].lastIso=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+          bucket[key].lastAssignee=assignee;
         }
         parsed++;
       }
       // Strip non-serializable lastDate before saving
       const bucketSave={};
-      Object.keys(bucket).forEach(k=>{bucketSave[k]={count:bucket[k].count,lastIso:bucket[k].lastIso};});
+      Object.keys(bucket).forEach(k=>{bucketSave[k]={count:bucket[k].count,lastIso:bucket[k].lastIso,lastAssignee:bucket[k].lastAssignee||'',assignees:bucket[k].assignees||[]};});
       _cadAuditData={
         importedAt:new Date().toISOString(),
         fileName:file.name,
@@ -5400,8 +5417,19 @@ function _cadBodyHTML(rid,csmName){
                   const dateLabel=_fmtMtgDate(info.lastIso);
                   const countBadge=info.count>1?`<span style="opacity:.55;font-size:9px;font-weight:600;margin-left:2px">×${info.count}</span>`:'';
                   const dateBadge=dateLabel?`<span style="opacity:.65;font-size:10px;font-weight:400;margin-left:4px">${dateLabel}</span>`:'';
-                  cellHTML=`<strong style="color:var(--green)">✓</strong>${dateBadge}${countBadge}`;
-                  title='Verified in HubSpot — '+info.count+' meeting'+(info.count>1?'s':'')+' in '+c+(info.lastIso?', last on '+dateLabel:'');
+                  // Assignee badge (HubSpot "Activity assigned to") — sits between
+                  // the ✓ and the date so you can see at a glance who ran the
+                  // meeting. Only renders when the import captured the column.
+                  // For multi-meeting cells with multiple unique assignees we
+                  // suffix " +N" so there's a hint other folks were involved
+                  // without bloating the line. Full list is in the tooltip.
+                  const assignees=(info.assignees&&info.assignees.length)?info.assignees:(info.lastAssignee?[info.lastAssignee]:[]);
+                  const lastAss=info.lastAssignee||assignees[0]||'';
+                  const others=Math.max(0,assignees.length-1);
+                  const assShort=lastAss.length>20?lastAss.slice(0,18)+'…':lastAss;
+                  const assBadge=lastAss?`<span style="font-size:10px;font-weight:500;margin-left:6px;color:var(--accent);opacity:.85">${assShort}${others?` <span style="opacity:.6;font-weight:600">+${others}</span>`:''}</span>`:'';
+                  cellHTML=`<strong style="color:var(--green)">✓</strong>${assBadge}${dateBadge}${countBadge}`;
+                  title='Verified in HubSpot — '+info.count+' meeting'+(info.count>1?'s':'')+' in '+c+(info.lastIso?', last on '+dateLabel:'')+(assignees.length?'\nAssigned to: '+assignees.join(', '):'');
                 } else if(ovr&&ovr.status==='verified'){
                   // Manually overridden to verified.
                   const noteSuffix=ovr.note?` <span style="opacity:.65;font-size:10px;font-weight:400;margin-left:4px">${ovr.note.length>22?ovr.note.slice(0,20).replace(/[<>&"']/g,'')+'…':ovr.note.replace(/[<>&"']/g,'')}</span>`:'';
