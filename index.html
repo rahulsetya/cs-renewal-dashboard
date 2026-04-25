@@ -5253,6 +5253,21 @@ function _cadBodyHTML(rid,csmName){
     const b=_hsBucket(pid,c);
     return b?b.count:0;
   };
+  // Returns the bucket entry {count, lastIso} so the cell can render the
+  // last-meeting day inline. Same year-strict semantics as _hsCount.
+  const _hsInfo=(a,c)=>{
+    if(!auditLoaded)return null;
+    const pid=String(a.platformId||'').trim();
+    if(!pid)return null;
+    return _hsBucket(pid,c);
+  };
+  // "2026-04-15" → "Apr 15" (compact human-readable).
+  const _fmtMtgDate=iso=>{
+    if(!iso||iso.length<10)return'';
+    const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const m=parseInt(iso.slice(5,7),10),d=parseInt(iso.slice(8,10),10);
+    return(MO[m-1]||'')+' '+d;
+  };
   accts=[...accts].sort((a,b)=>{
     if(sort.col==='se')return sort.dir*((a.se||'').localeCompare(b.se||''));
     if(sort.col==='acct')return sort.dir*((a.acct||'').localeCompare(b.acct||''));
@@ -5261,10 +5276,10 @@ function _cadBodyHTML(rid,csmName){
   });
   const sa=col=>{const s=_cadSort[rid];return s&&s.col===col?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
   const label=month?`${month} — accounts with call`:'All accounts in engagement tracker';
-  const colSpan=visCols.length+4;
+  const colSpan=visCols.length+3;
   // Inline legend — only visible when audit data is loaded so unaudited
   // mode keeps its original look.
-  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification:</strong> <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged</div>`:'';
+  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification:</strong> <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged · <em style="opacity:.7">small dim text in green cells = day of last meeting</em></div>`:'';
   return`<div style="padding:0"><div style="font-size:11px;color:var(--dim);padding:6px 16px 4px">${label} · <strong style="color:var(--text)">${accts.length}</strong></div>
     ${legend}
     <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
@@ -5273,32 +5288,49 @@ function _cadBodyHTML(rid,csmName){
         ${visCols.map(c=>`<th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','${c}')">${c} ${sa(c)}</th>`).join('')}
         <th style="text-align:left;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','se')">Sub End ${sa('se')}</th>
         <th style="text-align:center;padding:5px 8px;color:var(--dim)">Risk</th>
-        <th style="text-align:left;padding:5px 8px;color:var(--dim)">Notes</th>
       </tr></thead>
       <tbody>${accts.map((a,idx)=>{
         const noteId='cdn_'+rid+'_'+idx;
         const hasNote=a.notes&&a.notes.trim();
+        const acctLabel=a.acct||a;
+        // Account cell: clickable when a note exists. Adds a small bullet
+        // indicator + dim "▸ note" hint so it's discoverable.
+        const acctCell=hasNote
+          ?`<td style="padding:4px 16px"><span style="cursor:pointer;color:var(--accent);font-weight:600" title="Click to toggle note" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">${acctLabel} <span style="color:var(--dim);font-size:9px;font-weight:400;opacity:.7">▸ note</span></span></td>`
+          :`<td style="padding:4px 16px;color:var(--text)">${acctLabel}</td>`;
         return`<tr style="border-top:1px solid rgba(255,255,255,.05)">
-          <td style="padding:4px 16px;color:var(--text)">${a.acct||a}</td>
+          ${acctCell}
           ${visCols.map(c=>{
             const isY=isYCall(a,c);
-            const hs=_hsCount(a,c);
-            // Single-symbol scheme:
-            //  • tracker Y + HubSpot meeting (PID + month + year all match) → green ✓
-            //  • tracker Y + no HubSpot match (or no PID, or no audit data)  → red ✓ (when audit loaded)
+            // Five-state cell render:
+            //  • tracker Y + HubSpot meeting (PID + month + year all match) → green ✓ + day of last mtg [+ count badge if >1]
+            //  • tracker Y + no HubSpot match (no PID / no meeting)         → red ✓
             //  • tracker Y + audit not loaded                                → green ✓ (legacy)
             //  • tracker blank                                               → — dim
-            let icon='—',color='var(--dim)',title='';
+            let cellHTML='<span style="color:var(--dim)">—</span>',title='';
             if(isY){
-              if(!auditLoaded){icon='✓';color='var(--green)';title='Tracker says Y';}
-              else if(hs!==null&&hs>0){icon='✓';color='var(--green)';title='Verified in HubSpot — '+hs+' meeting'+(hs>1?'s':'')+' in '+c;}
-              else{icon='✓';color='var(--red)';title=hs===null?'Not verified — no Platform ID to match against HubSpot':'Not verified — no HubSpot meeting found for '+c;}
+              if(!auditLoaded){
+                cellHTML='<strong style="color:var(--green)">✓</strong>';
+                title='Tracker says Y';
+              } else {
+                const info=_hsInfo(a,c);
+                if(info&&info.count>0){
+                  // Show day-of-month from lastIso, plus count badge when there were multiple meetings.
+                  const day=info.lastIso?String(parseInt(info.lastIso.slice(8,10),10)):'';
+                  const countBadge=info.count>1?`<span style="opacity:.55;font-size:9px;font-weight:600;margin-left:1px">×${info.count}</span>`:'';
+                  const dayBadge=day?`<span style="opacity:.55;font-size:10px;font-weight:400;margin-left:3px">${day}</span>`:'';
+                  cellHTML=`<strong style="color:var(--green)">✓</strong>${dayBadge}${countBadge}`;
+                  title='Verified in HubSpot — '+info.count+' meeting'+(info.count>1?'s':'')+' in '+c+(info.lastIso?', last on '+_fmtMtgDate(info.lastIso):'');
+                } else {
+                  cellHTML='<strong style="color:var(--red)">✓</strong>';
+                  title=info===null?'Not verified — no Platform ID to match against HubSpot':'Not verified — no HubSpot meeting found for '+c;
+                }
+              }
             }
-            return`<td style="text-align:center;padding:4px 8px;color:${color}" title="${title}"><strong>${icon}</strong></td>`;
+            return`<td style="text-align:center;padding:4px 8px;white-space:nowrap" title="${title}">${cellHTML}</td>`;
           }).join('')}
           <td style="padding:4px 8px;color:var(--dim);font-size:10px">${fmtSE(a.se)}</td>
           <td style="text-align:center;padding:4px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td>
-          <td style="padding:4px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td>
         </tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${colSpan}" style="padding:3px 16px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`;
       }).join('')||`<tr><td colspan="${colSpan}" style="padding:8px 16px;color:var(--dim)">None</td></tr>`}
       </tbody></table></div></div>`;
