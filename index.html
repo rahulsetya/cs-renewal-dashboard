@@ -4303,7 +4303,7 @@ function _sfSnapshot(){
 
 // ── DATA (4-STATE MODEL) ────────────────────────────
 // States: won = renewed, lost = CONFIRMED CHURN (9 accounts only),
-//         declined = declined early outreach but renewal date is future (re-engageable),
+//         declined = declined early renewal outreach but renewal date is future (re-engageable),
 //         open = not yet contacted or in progress
 // Revenue: rev=total, rw=won rev, rl=confirmed lost rev, rd=declined rev
 
@@ -4455,7 +4455,7 @@ function poolCard(pool,d,target,gifted){
   const retOpt=d.logos>0?((d.won+d.open*.5+d.declined*.25)/d.logos)*100:0;
   const at=gifted||ret>=target;
   const tot=d.logos||1;
-  const segs=[{l:"Won",v:d.won,c:"var(--green)"},{l:"Open",v:d.open,c:"var(--amber)"},{l:"Declined early",v:d.declined,c:"var(--orange)"},{l:"Churned",v:d.lost,c:"var(--red)"}];
+  const segs=[{l:"Won",v:d.won,c:"var(--green)"},{l:"Open",v:d.open,c:"var(--amber)"},{l:"Declined Early Renewal",v:d.declined,c:"var(--orange)"},{l:"Churned",v:d.lost,c:"var(--red)"}];
   return`<div class="pool-card">
     <div class="pool-hdr"><div><span class="pool-dot" style="background:${PC[pool]}"></span><span style="font-size:14px;font-weight:600">${pool}</span></div><span style="font-size:11px;color:var(--dim)">${d.logos} logos</span></div>
     <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:3px"><span style="font-size:28px;font-weight:700;color:${at?'var(--green)':'var(--amber)'};font-family:var(--mono)">${gifted?'CLOSED':pct(ret)}</span>${!gifted?`<span style="font-size:12px;color:var(--dim)">/ ${target}% target</span>`:''}</div>
@@ -4466,7 +4466,7 @@ function poolCard(pool,d,target,gifted){
   </div>`}
 
 // 4-color legend
-function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(--green)"},{l:"Open (in progress)",c:"var(--amber)"},{l:"Declined early (re-engageable)",c:"var(--orange)"},{l:"Churned (confirmed lost)",c:"var(--red)"}].map(x=>`<span><span class="legend-dot" style="background:${x.c}"></span>${x.l}</span>`).join('')}</div>`}
+function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(--green)"},{l:"Open (in progress)",c:"var(--amber)"},{l:"Declined Early Renewal (re-engageable)",c:"var(--orange)"},{l:"Churned (confirmed lost)",c:"var(--red)"}].map(x=>`<span><span class="legend-dot" style="background:${x.c}"></span>${x.l}</span>`).join('')}</div>`}
 
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"top10s",l:"Top 10s"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
@@ -5184,10 +5184,10 @@ function rOverview(){
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
     </div>
     <div class="callout">
-      <strong>📊 4-State Pipeline Model:</strong> This dashboard distinguishes between <strong style="color:var(--red)">confirmed churn</strong> (${gLo} GP + ${SP.lost} SP = ${tLo} total, ${fmt(gRL+SP.rl)} revenue) and <strong style="color:var(--orange)">declined early outreach</strong> (${tDe} GP accounts that said no to early renewal but whose renewal dates are still future — re-engageable). The prior "195 lost" GP figure counted both; true confirmed GP churn is just 9 logos ($384K).
+      <strong>📊 4-State Pipeline Model:</strong> This dashboard distinguishes between <strong style="color:var(--red)">confirmed churn</strong> (${gLo} GP + ${SP.lost} SP = ${tLo} total, ${fmt(gRL+SP.rl)} revenue) and <strong style="color:var(--orange)">declined early renewal</strong> (${tDe} GP accounts that said no to early renewal but whose renewal dates are still future — re-engageable). The prior "195 lost" GP figure counted both; true confirmed GP churn is just 9 logos ($384K).
     </div>
     <div class="grid2">
-      <div class="card"><h3>GP Renewal Pipeline</h3><div class="sh">Logo count by quarter — 4-state: won / open / declined early / churned</div><div class="chart-wrap" style="height:240px"><canvas id="c1"></canvas></div>${legend4()}</div>
+      <div class="card"><h3>GP Renewal Pipeline</h3><div class="sh">Logo count by quarter — 4-state: won / open / declined early renewal / churned</div><div class="chart-wrap" style="height:240px"><canvas id="c1"></canvas></div>${legend4()}</div>
       <div class="card" style="min-width:250px;flex:.55"><h3>SP Renewal Pipeline</h3><div class="sh">Emilie · ${SP.logos} logos · Annual cycle</div>
         <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px"><span style="font-size:32px;font-weight:700;color:var(--rose);font-family:var(--mono)">${pct(spRet)}</span><span style="font-size:12px;color:var(--dim)">logo retention</span></div>
         <div class="bar-stack" style="height:8px"><div style="width:${SP.won/SP.logos*100}%;background:var(--green)"></div><div style="width:${SP.open/SP.logos*100}%;background:var(--amber)"></div><div style="width:${SP.lost/SP.logos*100}%;background:var(--red)"></div></div>
@@ -5209,7 +5209,7 @@ function rOverview(){
   mc('c1',{type:'bar',data:{labels:qD.map(d=>`${d.q} (${d.t} logos · ${fmt(d.r)})`),datasets:[
     {label:'Won',data:qD.map(d=>d.w),backgroundColor:'#10b981',borderRadius:3,datalabels:stackLabels},
     {label:'Open',data:qD.map(d=>d.o),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
-    {label:'Declined early',data:qD.map(d=>d.de),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
+    {label:'Declined Early Renewal',data:qD.map(d=>d.de),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
     {label:'Churned',data:qD.map(d=>d.l),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3},datalabels:stackLabels}
   ]},options:{responsive:true,maintainAspectRatio:false,onClick:function(evt,els){if(els.length>0){_setSelQ(['Q1','Q2','Q3','Q4'][els[0].index]);sw('gp_grr');}},onHover:function(evt){evt.native.target.style.cursor=evt.chart.getElementsAtEventForMode(evt.native,'index',{intersect:false},true).length?'pointer':'default';},plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`──────────────\nTotal: ${d.t} logos · ${fmt(d.r)}`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t,font:{size:10}}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
 
@@ -5381,19 +5381,19 @@ function rGP(){
     <div class="card">
       <h3>${q} Revenue Context${selGPCSM?' · '+selGPCSM:''}</h3>
       <div class="sh">Revenue associated with each pool (for future GRR tracking)${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
-      <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Floor</th><th style="text-align:right">Accts Needed</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
+      <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined Early Renewal</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Floor</th><th style="text-align:right">Accts Needed</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
       <tbody>${pools.map(p=>{const d=grrQ[p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;const pcount=filtAccts.filter(a=>a.pool===p).length;const rid='acr_'+q+'_'+p.replace(/\W/g,'');const floorPct=GP_T[tKey]?.floor||null;const floorNeed=floorPct?Math.max(0,Math.ceil(d.logos*floorPct/100)-d.won):null;const floorMet=floorPct&&d.logos>0&&(d.won/d.logos*100)>=floorPct;return`<tr><td style="font-weight:500;cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','')" title="Show all accounts"><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p} <span style="font-size:10px;color:var(--dim)">▸ ${pcount}</span></td><td class="mono" style="text-align:right">${d.logos}${_rcD(p,'logos')}</td><td class="mono" style="text-align:right;color:var(--green);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_won')" title="Show won accounts">${d.won}${_rcD(p,'won')}</td><td class="mono" style="text-align:right;color:var(--red);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_ch')" title="Show churned accounts">${d.lost}${_rcD(p,'lost',true)}</td><td class="mono" style="text-align:right;color:var(--orange);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_dc')" title="Show declined accounts">${d.declined}${_rcD(p,'declined',true)}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}${_rcDPct(p,'won','logos')}</td><td class="mono" style="text-align:right;color:var(--dim)">${floorPct?floorPct+'%':'—'}</td><td class="mono" style="text-align:right;color:${floorMet?'var(--green)':floorNeed>0?'var(--red)':'var(--dim)'}">${floorPct?(floorMet?'✓ met':'+'+floorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr><tr id="${rid}" style="display:none"><td colspan="11" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><div id="${rid}_acct">${_acctTableHTML(rid,q,p)}</div></td></tr>`;}).join('')}
       ${(()=>{const tTl=pools.reduce((s,p)=>s+(grrQ[p].logos||0),0);const tTw=pools.reduce((s,p)=>s+(grrQ[p].won||0),0);const tTlo=pools.reduce((s,p)=>s+(grrQ[p].lost||0),0);const tTde=pools.reduce((s,p)=>s+(grrQ[p].declined||0),0);const tRev=pools.reduce((s,p)=>s+(grrQ[p].rev||0),0);const tRw=pools.reduce((s,p)=>s+(grrQ[p].rw||0),0);const tLr=tTl>0?(tTw/tTl*100):0;const tRr=tRev>0?(tRw/tRev*100):0;const tFloorPct=GP_T[tKey]?.floor||null;const tFloorMet=tFloorPct&&tTl>0&&(tTw/tTl*100)>=tFloorPct;const tFloorNeed=tFloorPct?Math.max(0,Math.ceil(tTl*tFloorPct/100)-tTw):null;return`<tr style="border-top:2px solid rgba(255,255,255,.12);font-weight:700"><td style="color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase">Total</td><td class="mono" style="text-align:right">${tTl}</td><td class="mono" style="text-align:right;color:var(--green)">${tTw}</td><td class="mono" style="text-align:right;color:var(--red)">${tTlo}</td><td class="mono" style="text-align:right;color:var(--orange)">${tTde}</td><td class="mono" style="text-align:right;color:${tLr>=tgt?'var(--green)':'var(--amber)'}">${pct(tLr)}</td><td class="mono" style="text-align:right;color:var(--dim)">${tFloorPct?tFloorPct+'%':'—'}</td><td class="mono" style="text-align:right;color:${tFloorMet?'var(--green)':tFloorNeed>0?'var(--red)':'var(--dim)'}">${tFloorPct?(tFloorMet?'✓ met':'+'+tFloorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(tRev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(tRw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(tRr)}</td></tr>`;})()}
       </tbody></table>
     </div>
-    <div class="card"><h3>${q} GP Pipeline by Pool${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>`;
+    <div class="card"><h3>${q} GP Pipeline by Pool${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Logo count: won / open / declined early renewal / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>`;
 
   // 4-state stacked bar
   const cData=pools.map(p=>({p,...grrQ[p]}));
   mc('c3',{type:'bar',data:{labels:cData.map(d=>d.p),datasets:[
     {label:'Won',data:cData.map(d=>d.won),backgroundColor:'#10b981',borderRadius:3,datalabels:stackLabels},
     {label:'Open',data:cData.map(d=>d.open),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
-    {label:'Declined early',data:cData.map(d=>d.de||d.declined),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
+    {label:'Declined Early Renewal',data:cData.map(d=>d.de||d.declined),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
     {label:'Churned',data:cData.map(d=>d.lost),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3}}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=cData[i];const tot=(d.won||0)+(d.open||0)+(d.declined||d.de||0)+(d.lost||0);return`──────────────\nTotal: ${tot} logos`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
 }
@@ -6283,7 +6283,7 @@ function rTargets(){
   el.innerHTML=`
     <div class="grid2"><div>${ed("GP Retention Targets",GP_T,"gp")}</div><div>${ed("SP Retention Targets",SP_T,"sp")}</div></div>
     <div class="card" style="overflow-x:auto"><h3>GP Quarterly Logo Retention Modeling</h3><div class="sh">Logos up for renewal — 4-state breakdown with gap analysis</div>
-      <table><thead><tr><th style="text-align:left">Period</th><th style="text-align:right">Logos Up</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined</th><th style="text-align:right">Current</th><th style="text-align:right">Target</th><th style="text-align:right">Logos Needed</th><th style="text-align:right">Gap</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <table><thead><tr><th style="text-align:left">Period</th><th style="text-align:right">Logos Up</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined Early Renewal</th><th style="text-align:right">Current</th><th style="text-align:right">Target</th><th style="text-align:right">Logos Needed</th><th style="text-align:right">Gap</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="card"><h3>SP Retention Modeling</h3><div class="sh">SP annual renewal pool — logo-based</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px">${[{l:"Total Logos",v:SP.logos,c:"var(--text)"},{l:"Current Ret.",v:pct(spRet),c:spRet>=spTgt?"var(--green)":"var(--amber)"},{l:"Target",v:spTgt+"%",c:"var(--muted)"},{l:"Logos Needed",v:spNeed,c:"var(--muted)"},{l:"Gap",v:spGap>0?"−"+spGap:"+"+Math.abs(spGap),c:spGap>0?"var(--red)":"var(--green)"}].map(x=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;min-width:90px;flex:1"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:3px">${x.l}</div><div style="font-size:18px;font-weight:700;color:${x.c};font-family:var(--mono)">${x.v}</div></div>`).join('')}</div></div>`}
 
@@ -6322,8 +6322,8 @@ function rRisk(){
       <table><thead><tr><th style="text-align:left">Account</th><th style="text-align:left">CSM</th><th style="text-align:left">Pool</th><th style="text-align:right">Revenue</th><th style="text-align:left">Quarter</th><th style="text-align:left">Notes</th></tr></thead>
       <tbody>${CHURNED.sort((a,b)=>b.rev-a.rev).map(a=>`<tr><td style="font-weight:500">${a.n}</td><td style="color:var(--muted)">${a.csm}</td><td><span class="pill" style="color:${PC[a.pool]||'var(--dim)'}">${a.pool}</span></td><td class="mono" style="text-align:right;color:var(--red);font-weight:600">${fmt(a.rev)}</td><td class="mono">${a.q}</td><td style="font-size:11px;color:var(--dim);max-width:200px">${a.notes||'—'}</td></tr>`).join('')}</tbody></table>
     </div>
-    <div class="card"><h3>Declined Early — Re-engagement Opportunities</h3><div class="sh">${tDe} GP accounts declined early outreach but renewal dates are still future. ${fmt(gRD)} total revenue.</div>
-      <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:left">Quarter</th><th style="text-align:right">Declined Count</th><th style="text-align:right">Revenue</th><th style="text-align:right">% of Pool</th></tr></thead>
+    <div class="card"><h3>Declined Early Renewal — Re-engagement Opportunities</h3><div class="sh">${tDe} GP accounts declined early renewal outreach but renewal dates are still future. ${fmt(gRD)} total revenue.</div>
+      <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:left">Quarter</th><th style="text-align:right">Declined Early Renewal</th><th style="text-align:right">Revenue</th><th style="text-align:right">% of Pool</th></tr></thead>
       <tbody>${gpAtRisk.filter(a=>a.count>0).map(a=>{const d=GRR[a.q][a.pool];const pctP=d.logos>0?(a.count/d.logos*100):0;return`<tr><td style="font-weight:500"><span class="pool-dot" style="background:${PC[a.pool]};width:7px;height:7px"></span>${a.pool}</td><td class="mono">${a.q}</td><td class="mono" style="text-align:right;color:var(--orange)">${a.count}</td><td class="mono" style="text-align:right">${fmt(a.rev)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(pctP)}</td></tr>`}).join('')}</tbody></table>
       <div class="callout" style="margin-top:14px"><strong>Re-engagement strategy:</strong> These ${tDe} accounts were surfaced through Miami outreach and declined to renew early. As their actual renewal dates approach, they enter the standard renewal cycle. The optimistic model assumes 25% conversion of declined-early accounts. Key focus: Q3 has ${GRR.Q3.Enterprise.declined+GRR.Q3.Strategic.declined+GRR.Q3.Scale.declined} declined and Q4 has ${GRR.Q4.Enterprise.declined+GRR.Q4.Strategic.declined+GRR.Q4.Scale.declined} — these represent the largest re-engagement opportunity.</div>
     </div>
@@ -6488,7 +6488,7 @@ function rRules(){
       <div style="font-size:13px;color:var(--muted);line-height:2">
         <strong style="color:var(--text)">Logo Retention</strong> — (renewed logos ÷ total logos up for renewal) × 100. Denominator includes only the current quarter's renewal cohort.<br>
         <strong style="color:var(--text)">Confirmed Churn</strong> — Account has passed its renewal date OR explicitly confirmed non-renewal. Only 9 GP accounts currently qualify.<br>
-        <strong style="color:var(--text)">Declined Early</strong> — Account declined early outreach (e.g., Miami) but renewal date is still future. Re-engageable and <em>not</em> counted as churn for comp purposes.<br>
+        <strong style="color:var(--text)">Declined Early Renewal</strong> — Account declined early renewal outreach (e.g., Miami) but renewal date is still future. Re-engageable and <em>not</em> counted as churn for comp purposes.<br>
         <strong style="color:var(--text)">GRR (Gross Revenue Retention)</strong> — Revenue from renewed accounts ÷ total renewal revenue. Planned metric for Q3+ replacing logo retention.<br>
         <strong style="color:var(--text)">Meeting Cadence</strong> — % of required meetings completed. Enterprise = monthly. Strategic = bi-weekly + QBRs. Scale = bi-monthly + onboarding SLA.<br>
         <strong style="color:var(--text)">2025 Baseline</strong> — 52.7% logo retention. The starting point the program is designed to improve from.
@@ -6558,7 +6558,7 @@ function rRCHistory(){
     h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Logos</div><strong style="color:var(--text)">'+gs.logos+dB(gs.logos,cmpGs?cmpGs.logos:null,false)+'</strong></div>';
     h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Won</div><strong style="color:var(--green)">'+gs.won+dB(gs.won,cmpGs?cmpGs.won:null,false)+'</strong></div>';
     h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Churned</div><strong style="color:var(--red)">'+gs.lost+dB(gs.lost,cmpGs?cmpGs.lost:null,true)+'</strong></div>';
-    h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Declined</div><strong style="color:var(--orange)">'+gs.declined+dB(gs.declined,cmpGs?cmpGs.declined:null,true)+'</strong></div>';
+    h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Declined Early</div><strong style="color:var(--orange)">'+gs.declined+dB(gs.declined,cmpGs?cmpGs.declined:null,true)+'</strong></div>';
     h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Logo Ret.</div><strong style="color:var(--amber)">'+(gs.lr!=null?gs.lr+'%':'—')+(gs.lr!=null&&cmpGs?dB(gs.lr,cmpGs.lr!=null?cmpGs.lr:null,false):'')+'</strong></div>';
     h+='<div style="font-size:11px;text-align:center"><div style="color:var(--dim);font-size:10px">Cad. Calls</div><strong style="color:var(--accent)">'+ct+dB(ct,cmpCt!=null?cmpCt:null,false)+'</strong></div>';
     h+='</div>';
@@ -6609,7 +6609,7 @@ function rRCHistory(){
         if(!mvs.length){
           h+='<div style="font-size:11px;color:var(--dim);padding:4px 0">No GP changes between these snapshots.</div>';
         }else{
-          const kL={logos:'Logos',won:'Won',lost:'Churned',declined:'Declined'};
+          const kL={logos:'Logos',won:'Won',lost:'Churned',declined:'Declined Early Renewal'};
           // Each pill + its own inline diff panel (unique rid per metric)
           mvs.forEach(function(mv){
             const isInv=mv.k==='lost'||mv.k==='declined';
