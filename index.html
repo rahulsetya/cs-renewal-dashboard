@@ -4522,6 +4522,24 @@ function _exportCadenceXLSX(){
 let _cadAuditPwOK=false,_cadAuditData=null,_cadAuditPwTried=false;
 const _CAD_AUDIT_KEY='cs_cadaudit_v1';
 try{const _raw=localStorage.getItem(_CAD_AUDIT_KEY);if(_raw)_cadAuditData=JSON.parse(_raw);}catch(e){}
+// The audit scopes to a single month at a time. Defaults to the live current
+// month and auto-tracks across day boundaries until the user manually picks
+// one with the month chips.
+let _cadAuditMo=null,_cadAuditMoPinned=false;
+function _setCadAuditMo(mo){_cadAuditMo=mo;_cadAuditMoPinned=true;if(aTab==='cadence')rT('cadence');}
+function _liveCadAuditMo(){
+  // If user hasn't pinned, follow live month; else respect their pick.
+  // Falls back to first cadence column if live month isn't tracked.
+  const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
+  const cols=(cd&&cd.cols)||[];
+  if(!_cadAuditMoPinned){
+    const live=_nowMo();
+    _cadAuditMo=cols.includes(live)?live:(cols[cols.length-1]||live);
+  }else if(!cols.includes(_cadAuditMo)){
+    _cadAuditMo=cols[cols.length-1]||_nowMo();
+  }
+  return _cadAuditMo;
+}
 
 function _cadAuditPromptImport(){
   // Buttons are already gated by the 5-click + password unlock on the
@@ -4655,9 +4673,10 @@ function _cadAuditCompute(){
   if(!_cadAuditData||!_cadAuditData.bucket)return null;
   const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
   if(!cd||!cd.cols)return null;
-  // Scope audit to the active quarter's months only — same set the cadence
-  // table is showing. Falls back to all cols if the helper is unavailable.
-  const scopeCols=(typeof _cadVisibleCols==='function')?_cadVisibleCols():cd.cols;
+  // Scope audit to a single month chosen on the audit panel (defaults to
+  // the live current month). Use month chips on the panel to switch.
+  const scopeMo=_liveCadAuditMo();
+  const scopeCols=cd.cols.includes(scopeMo)?[scopeMo]:[];
   const bucket=_cadAuditData.bucket;
   const perCSM={};
   const rows=[];
@@ -4738,7 +4757,7 @@ function _exportCadenceAuditXLSX(){
     ['Imported At',(_cadAuditData&&_cadAuditData.importedAt)||''],
     ['HubSpot Rows Parsed',(_cadAuditData&&_cadAuditData.rowsParsed)||0],
     ['Match Key','Platform ID × Month (CSM/owner names not used)'],
-    ['Scope','Quarter '+selCadQ+' — months: '+_cadVisibleCols().join(', ')],
+    ['Scope','Month '+_liveCadAuditMo()+' '+((_cadAuditData&&_cadAuditData.year)||new Date().getFullYear())],
     [],
     ['Status legend'],
     ['Confirmed','Tracker marked Y AND HubSpot has ≥1 meeting that month — call verified'],
@@ -4752,7 +4771,7 @@ function _exportCadenceAuditXLSX(){
   XLSX.utils.book_append_sheet(wb,wsSum,'Scorecard');
   XLSX.utils.book_append_sheet(wb,wsDet,'Discrepancies');
   XLSX.utils.book_append_sheet(wb,wsMeta,'About');
-  XLSX.writeFile(wb,'cadence-audit-'+selCadQ.toLowerCase()+'-'+ts+'.xlsx');
+  XLSX.writeFile(wb,'cadence-audit-'+_liveCadAuditMo().toLowerCase()+'-'+ts+'.xlsx');
 }
 
 const tabsEl=document.getElementById('tabs');
@@ -5253,10 +5272,17 @@ function rCadence(){
           return (a.csm||'').localeCompare(b.csm||'')||(a.acct||'').localeCompare(b.acct||'');
         });
       const discShown=discList.slice(0,200);
+      const _curAuditMo=_liveCadAuditMo();
+      const _moChips=(CADENCE_DATA.cols||[]).map(mo=>`<button onclick="_setCadAuditMo('${mo}')" style="background:${mo===_curAuditMo?'#3b82f6':'transparent'};color:${mo===_curAuditMo?'#fff':'var(--text)'};border:1px solid ${mo===_curAuditMo?'#3b82f6':'var(--border)'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${mo}</button>`).join('');
       return`
     <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.04),transparent)">
       <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span></h3>
-      <div class="sh">Match key: <strong>Platform ID × Month</strong> (CSM/owner names not used). Scope: <strong style="color:var(--accent)">${selCadQ} (${_cadVisibleCols().join(' · ')})</strong> — switch quarters above to re-scope. File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
+      <div class="sh">Match key: <strong>Platform ID × Month</strong> (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--dim);font-weight:600">Auditing:</span>
+        ${_moChips}
+        <span style="font-size:11px;color:var(--dim)">Showing <strong style="color:var(--accent)">${_curAuditMo} ${(_cadAuditData.year||new Date().getFullYear())}</strong> only${_cadAuditMoPinned?'':` <span style="color:var(--dim)">(auto-tracking live month)</span>`}</span>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0">
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="Of all the calls a CSM marked 'Y' in the tracker, how many were confirmed by a real meeting in HubSpot?">
           <div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:600">Tracker Accuracy</div>
@@ -5312,15 +5338,14 @@ function rCadence(){
         </table>
       </div>`:'<div style="font-size:12px;color:var(--dim);padding:8px 0">No CSM activity to score.</div>'}
       ${discShown.length?`<div style="margin-top:18px">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Discrepancies — accounts where tracker and HubSpot disagree <span style="color:var(--dim);font-weight:400">(${discList.length}${discList.length>200?', showing first 200 — full list in Export':''})</span></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Discrepancies for <span style="color:var(--accent)">${_curAuditMo}</span> — accounts where tracker and HubSpot disagree <span style="color:var(--dim);font-weight:400">(${discList.length}${discList.length>200?', showing first 200 — full list in Export':''})</span></div>
         <div style="font-size:10px;color:var(--dim);margin-bottom:6px"><span style="color:var(--red)">❌ Unconfirmed</span> = CSM marked Y but no HubSpot meeting · <span style="color:var(--amber)">⚠ Missed Logging</span> = HubSpot meeting exists but tracker blank</div>
         <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
-          <table style="border-collapse:collapse;width:100%;min-width:680px;font-size:11px">
+          <table style="border-collapse:collapse;width:100%;min-width:640px;font-size:11px">
             <thead style="position:sticky;top:0;background:var(--bg)"><tr style="border-bottom:1px solid var(--borderL)">
               <th style="text-align:left;padding:6px 10px;line-height:1.3">Status</th>
               <th style="text-align:left;padding:6px 10px;line-height:1.3">CSM</th>
               <th style="text-align:left;padding:6px 10px;line-height:1.3">Account</th>
-              <th style="text-align:center;padding:6px 10px;line-height:1.3">Month</th>
               <th style="text-align:center;padding:6px 10px;line-height:1.3" title="What the CSM put in the engagement tracker.">Tracker Says<br><span style="font-size:9px;color:var(--dim);font-weight:400">(Y / blank)</span></th>
               <th style="text-align:center;padding:6px 10px;line-height:1.3" title="Number of meetings logged in HubSpot for this account in this month.">HubSpot Meetings<br><span style="font-size:9px;color:var(--dim);font-weight:400">(count this month)</span></th>
               <th style="text-align:left;padding:6px 10px;line-height:1.3" title="Date of the most recent HubSpot meeting for this account/month.">Most Recent Meeting<br><span style="font-size:9px;color:var(--dim);font-weight:400">(from HubSpot)</span></th>
@@ -5334,7 +5359,6 @@ function rCadence(){
                   <td style="padding:5px 10px;color:${sc};font-weight:600;white-space:nowrap">${sl}</td>
                   <td style="padding:5px 10px">${r.csm}</td>
                   <td style="padding:5px 10px">${r.acct}</td>
-                  <td style="padding:5px 10px;text-align:center">${r.month}</td>
                   <td style="padding:5px 10px;text-align:center;font-family:var(--mono)">${r.tracker||'—'}</td>
                   <td style="padding:5px 10px;text-align:center;font-family:var(--mono);color:${r.hsCount>0?'var(--green)':'var(--dim)'}">${r.hsCount}</td>
                   <td style="padding:5px 10px;font-family:var(--mono);color:var(--dim)">${r.lastDate||'—'}</td>
