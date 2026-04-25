@@ -5517,6 +5517,41 @@ function rCadence(){
               <td colspan="${visCols.length+3}" style="padding:0;background:rgba(0,0,0,.2)"><div id="${rid}_body"></div></td>
             </tr>`;
           }).join('')}
+          ${(function(){
+            // Totals row — sums every CSM's call counts per month plus the quarter
+            // total. Also shows a compared-to-snapshot delta when a snapshot exists.
+            // Account count = sum of cData.total (live engagement-tracker accts) across
+            // all CSMs, falling back to template c.a when no live data yet.
+            let tAccts=0,tQ=0,tQSnap=0;
+            const monthTot={};visCols.forEach(m=>monthTot[m]={cur:0,snap:0});
+            CSM.forEach(c=>{
+              const cData=cd.csm[c.n]||{total:0,months:{}};
+              tAccts+=cData.total||c.a||0;
+              visCols.forEach(m=>{
+                const cur=cData.months[m]?.yes||0;
+                monthTot[m].cur+=cur;
+                tQ+=cur;
+                const sn=_rcCad?.[c.n]?(_rcCad[c.n].months||{})[m]||0:null;
+                if(sn!==null){monthTot[m].snap+=sn;tQSnap+=sn;}
+              });
+            });
+            const tRet=tAccts?pct(tQ/tAccts*100):'0%';
+            const qDiff=_rcCad?tQ-tQSnap:0;
+            const monthCell=(m)=>{
+              const v=monthTot[m].cur;
+              const pv=tAccts?pct(v/tAccts*100):'0%';
+              const dv=_rcCad?v-monthTot[m].snap:0;
+              const diffHTML=dv?`<span style="font-size:9px;font-weight:700;color:${dv>0?'var(--green)':'var(--red)'};display:block">${dv>0?'▲':'▼'}${Math.abs(dv)}</span>`:'';
+              return`<td style="text-align:center;padding:9px 10px;font-weight:700;font-size:15px;font-family:var(--mono);color:${v>0?'var(--green)':'var(--dim)'}">${v}${diffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${pv}</div></td>`;
+            };
+            const qDiffHTML=qDiff?`<span style="font-size:9px;font-weight:700;color:${qDiff>0?'var(--green)':'var(--red)'};display:block">${qDiff>0?'▲':'▼'}${Math.abs(qDiff)}</span>`:'';
+            return`<tr style="border-top:2px solid var(--accent);background:rgba(96,165,250,.08)">
+              <td style="padding:9px 12px;font-size:13px;font-weight:700;color:var(--text)">TOTAL <span style="font-size:10px;color:var(--dim);font-weight:500">(${CSM.length} CSMs)</span><div style="font-size:10px;color:var(--dim);font-weight:500">${tAccts.toLocaleString()} accts</div></td>
+              <td style="padding:9px 8px"><span style="font-size:10px;color:var(--dim)">all pools</span></td>
+              ${visCols.map(monthCell).join('')}
+              <td style="text-align:center;padding:9px 10px;font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent)">${tQ}${qDiffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${tRet}</div></td>
+            </tr>`;
+          })()}
         </tbody>
       </table>
     </div>${(function(){
