@@ -4630,10 +4630,14 @@ function _cadOvrClear(pid,mo){
   _saveOverrides();
   if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
 }
-// Review & Resolve sort state — defaults to Account A→Z. Click a column
-// header to switch column / toggle direction. Persists across re-renders
-// (kept in module scope, no localStorage — resets on reload, which is fine).
+// Review & Resolve sort + filter state. Sort defaults to Account A→Z.
+// Filter dropdowns above the table narrow by status and/or CSM ('' = all).
+// Both kept in module scope, no localStorage — resets on reload (fine for a
+// review tool; you don't usually want yesterday's filter sticking around).
 let _cadDiscSort={col:'acct',dir:'asc'};
+let _cadDiscFilt={status:'',csm:''};
+function _cadDiscSetFilt(k,v){_cadDiscFilt[k]=v||'';if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
+function _cadDiscClearFilt(){_cadDiscFilt={status:'',csm:''};if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
 function _cadDiscSetSort(col){
   if(_cadDiscSort.col===col)_cadDiscSort.dir=_cadDiscSort.dir==='asc'?'desc':'asc';
   else{_cadDiscSort.col=col;_cadDiscSort.dir='asc';}
@@ -5632,7 +5636,23 @@ function rCadence(){
         }
         return '';
       };
-      const discList=audit.rows.filter(r=>r.status==='unverified'||r.status==='forgot')
+      // Build the un-filtered discrepancy pool first — needed both for the
+      // CSM dropdown options (you should be able to filter to any CSM that
+      // appears in the raw list, even one whose rows are currently hidden by
+      // a status filter) and for the post-filter "showing X of Y" hint.
+      const discPool=audit.rows.filter(r=>r.status==='unverified'||r.status==='forgot');
+      const discCSMOptions=[...new Set(discPool.map(r=>r.csm).filter(Boolean))].sort();
+      const _fStatus=_cadDiscFilt.status,_fCsm=_cadDiscFilt.csm;
+      const discList=discPool.filter(r=>{
+        if(_fStatus){
+          const eff=r.effectiveStatus||r.status;
+          if(_fStatus==='unverified'&&eff!=='unverified')return false;
+          if(_fStatus==='forgot'&&eff!=='forgot')return false;
+          if(_fStatus==='verified'&&eff!=='verified')return false;
+        }
+        if(_fCsm&&r.csm!==_fCsm)return false;
+        return true;
+      })
         .sort((a,b)=>{
           const va=_getSortVal(a,_sortCol),vb=_getSortVal(b,_sortCol);
           let cmp=0;
@@ -5643,6 +5663,7 @@ function rCadence(){
           return (a.acct||'').localeCompare(b.acct||'')||(a.csm||'').localeCompare(b.csm||'');
         });
       const discShown=discList.slice(0,200);
+      const _filtActive=!!(_fStatus||_fCsm);
       const _curAuditMo=_liveCadAuditMo();
       const _moChips=(CADENCE_DATA.cols||[]).map(mo=>`<button onclick="_setCadAuditMo('${mo}')" style="background:${mo===_curAuditMo?'#3b82f6':'transparent'};color:${mo===_curAuditMo?'#fff':'var(--text)'};border:1px solid ${mo===_curAuditMo?'#3b82f6':'var(--border)'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${mo}</button>`).join('');
       return`
@@ -5725,10 +5746,25 @@ function rCadence(){
           </tbody>
         </table>
       </div>`:'<div style="font-size:12px;color:var(--dim);padding:8px 0">No CSM activity to score.</div>'}
-      ${discShown.length?`<div style="margin-top:18px">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Review & Resolve — <span style="color:var(--accent)">${_curAuditMo}</span> <span style="color:var(--dim);font-weight:400">(${discList.length}${discList.length>200?', showing first 200':''})</span></div>
+      ${discPool.length?`<div style="margin-top:18px">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Review & Resolve — <span style="color:var(--accent)">${_curAuditMo}</span> <span style="color:var(--dim);font-weight:400">(${_filtActive?`${discList.length} of ${discPool.length}`:discList.length}${discList.length>200?', showing first 200':''})</span></div>
         <div style="font-size:10px;color:var(--dim);margin-bottom:6px"><span style="color:var(--red)">❌ Unconfirmed</span> = tracker marked Y but no HubSpot meeting · <span style="color:var(--amber)">⚠ Missed Logging</span> = HubSpot meeting exists but tracker blank · click <strong style="color:var(--green)">Verify</strong> if you confirm the call really happened (e.g. on Zoom), or <strong style="color:var(--accent)">Note</strong> to record context.</div>
-        <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:11px">
+          <span style="color:var(--dim);font-weight:600">Filter:</span>
+          <select onchange="_cadDiscSetFilt('status',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer">
+            <option value="" ${_fStatus===''?'selected':''}>All statuses</option>
+            <option value="unverified" ${_fStatus==='unverified'?'selected':''}>❌ Unconfirmed</option>
+            <option value="forgot" ${_fStatus==='forgot'?'selected':''}>⚠ Missed Logging</option>
+            <option value="verified" ${_fStatus==='verified'?'selected':''}>✅ Verified (override)</option>
+          </select>
+          <select onchange="_cadDiscSetFilt('csm',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;min-width:140px">
+            <option value="" ${_fCsm===''?'selected':''}>All CSMs (${discCSMOptions.length})</option>
+            ${discCSMOptions.map(c=>`<option value="${c.replace(/"/g,'&quot;')}" ${_fCsm===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+          ${_filtActive?`<button onclick="_cadDiscClearFilt()" style="background:transparent;color:var(--dim);border:1px solid var(--border);padding:3px 9px;border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer" title="Clear filters">✕ Clear</button>`:''}
+        </div>
+        ${discShown.length?'':`<div style="font-size:11px;color:var(--dim);padding:14px;background:var(--bg);border:1px dashed var(--border);border-radius:6px;margin-bottom:10px">No rows match the active filter. <a onclick="_cadDiscClearFilt()" style="color:var(--accent);cursor:pointer;text-decoration:underline">Clear filters</a> to see all ${discPool.length} rows.</div>`}
+        <div style="overflow-x:auto;max-height:480px;overflow-y:auto;display:${discShown.length?'block':'none'}">
           <table style="border-collapse:collapse;width:100%;min-width:780px;font-size:11px">
             ${(function(){
               const arrow=k=>_cadDiscSort.col===k?(_cadDiscSort.dir==='asc'?' <span style="color:var(--accent);font-size:9px">▲</span>':' <span style="color:var(--accent);font-size:9px">▼</span>'):' <span style="color:var(--dim);opacity:.4;font-size:9px">↕</span>';
