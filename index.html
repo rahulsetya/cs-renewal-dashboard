@@ -4401,9 +4401,20 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"top10s",l:"Top 10s"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
-let aTab="overview",selQ="Q2",selGPCSM=null,selGPMonth=null,selGPPod=null;
-const _nowQ=(()=>{const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';})();
-let selCadQ=_nowQ;
+let aTab="overview",selGPCSM=null,selGPMonth=null,selGPPod=null;
+// Live "current quarter" — recomputed on every read so a dashboard left open
+// across a quarter boundary self-corrects on the next tab render.
+function _nowQ(){const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';}
+function _nowMo(){return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new Date().getMonth()];}
+// `selQ` (GP Retention) and `selCadQ` (Cadence) auto-track the live quarter
+// until the user manually clicks a Qn button, at which point we pin it.
+let selQ=_nowQ();
+let selCadQ=_nowQ();
+let _selQPinned=false,_selCadQPinned=false;
+function _setSelQ(q){selQ=q;_selQPinned=true;}
+function _setSelCadQ(q){selCadQ=q;_selCadQPinned=true;}
+function _liveSelQ(){if(!_selQPinned)selQ=_nowQ();return selQ;}
+function _liveSelCadQ(){if(!_selCadQPinned)selCadQ=_nowQ();return selCadQ;}
 // Cadence-table sort state: key is '' | 'name' | 'pool' | 'total' | month-col label (e.g. 'April 2026').
 // Default '' preserves the template order. Clicking a header toggles dir; switching to a new key starts desc.
 let _cadSortKey='',_cadSortDir='desc';
@@ -4802,7 +4813,7 @@ function rOverview(){
     {label:'Open',data:qD.map(d=>d.o),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
     {label:'Declined early',data:qD.map(d=>d.de),backgroundColor:'#f97316',borderRadius:3,datalabels:stackLabels},
     {label:'Churned',data:qD.map(d=>d.l),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3},datalabels:stackLabels}
-  ]},options:{responsive:true,maintainAspectRatio:false,onClick:function(evt,els){if(els.length>0){selQ=['Q1','Q2','Q3','Q4'][els[0].index];sw('gp_grr');}},onHover:function(evt){evt.native.target.style.cursor=evt.chart.getElementsAtEventForMode(evt.native,'index',{intersect:false},true).length?'pointer':'default';},plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`──────────────\nTotal: ${d.t} logos · ${fmt(d.r)}`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t,font:{size:10}}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,onClick:function(evt,els){if(els.length>0){_setSelQ(['Q1','Q2','Q3','Q4'][els[0].index]);sw('gp_grr');}},onHover:function(evt){evt.native.target.style.cursor=evt.chart.getElementsAtEventForMode(evt.native,'index',{intersect:false},true).length?'pointer':'default';},plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=qD[i];return`──────────────\nTotal: ${d.t} logos · ${fmt(d.r)}`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t,font:{size:10}}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
 
   const tgts=[100,GP_T.Q2.full,GP_T.Q3.full,GP_T.Q4.full];
   const trD=["Q1","Q2","Q3","Q4"].map((q,i)=>{const r={};["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];r[p]=d.logos>0?+(d.won/d.logos*100).toFixed(1):0});r.tgt=tgts[i];return r});
@@ -4871,7 +4882,7 @@ function _openPool(rid,q,pool,filt){
 
 // ── GP RETENTION ────────────────────────────────────
 function rGP(){
-  const el=document.getElementById('tab-gp_grr');const q=selQ;
+  const el=document.getElementById('tab-gp_grr');const q=_liveSelQ();
   const tKey=q;const tgt=GP_T[tKey]?.full||63;
   const pools=["Enterprise","Strategic","Scale"];
 
@@ -4925,7 +4936,7 @@ function rGP(){
 
   el.innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="selQ='${qq}';selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
+      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="_setSelQ('${qq}');selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
         ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.se||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
@@ -5126,10 +5137,16 @@ function rCadence(){
     el.innerHTML=`<div class="card"><h3>Meeting Cadence by CSM</h3><div class="sh" style="color:var(--amber)">Engagement data not yet loaded.</div></div>`;
     return;
   }
+  // Auto-track the live current quarter unless the user has manually pinned
+  // one with the Qn buttons. This keeps the dashboard correct for a session
+  // left open across a quarter boundary (e.g. Mar 31 → Apr 1).
+  _liveSelCadQ();
   const visCols=_cadVisibleCols();
-  // Current real-world month abbr (used to scope the "+N to 50%" badge to the
-  // active month only — past months are settled, future months aren't useful).
-  const _cadCurMo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][new Date().getMonth()];
+  // Live current-month abbreviation (recomputed on every render). Used to scope
+  // the "+N to 50%" badge, the export button label, and the cadence header
+  // copy to the active month — past months are settled, future months aren't
+  // useful for a real-time gap call.
+  const _cadCurMo=_nowMo();
   const _rcSnap=_rcLoadSnap();
   const _rcTs=_rcSnap?new Date(_rcSnap.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):null;
   const _rcCad=_rcSnap?.cadence||null;
@@ -5137,7 +5154,7 @@ function rCadence(){
   el.innerHTML=`
     <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--dim)">Quarter:</span>
-      ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="selCadQ='${qq}';rT('cadence')">${qq}</button>`).join('')}
+      ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="_setSelCadQ('${qq}');rT('cadence')">${qq}</button>`).join('')}
       ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="margin-left:auto;background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadAuditPromptImport()" style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot meeting export (.xlsx) — password protected">⬆ Import HubSpot${_cadAuditData?' ✓':''}</button>`:''}
       ${_cadExportUnlocked&&_cadAuditData?`<button onclick="_exportCadenceAuditXLSX()" style="background:#5b21b6;color:#ede9fe;border:1px solid #8b5cf6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export audit comparison (.xlsx)">⬇ Export Audit (.xlsx)</button>`:''}
