@@ -4528,8 +4528,25 @@ const _CAD_AUDIT_KEY='cs_cadaudit_v1';
 // before pushing. Format identical to _cadAuditData. Keep the BAKE markers
 // intact — the publish script regex-replaces between them.
 /*BAKE_BEGIN*/const BAKED_AUDIT_DATA=null;/*BAKE_END*/
-try{const _raw=localStorage.getItem(_CAD_AUDIT_KEY);if(_raw)_cadAuditData=JSON.parse(_raw);}catch(e){}
-if(!_cadAuditData&&BAKED_AUDIT_DATA)_cadAuditData=BAKED_AUDIT_DATA;
+let _cadAuditSource=null; // 'local' | 'published' | 'baked' | null
+try{const _raw=localStorage.getItem(_CAD_AUDIT_KEY);if(_raw){_cadAuditData=JSON.parse(_raw);_cadAuditSource='local';}}catch(e){}
+if(!_cadAuditData&&BAKED_AUDIT_DATA){_cadAuditData=BAKED_AUDIT_DATA;_cadAuditSource='baked';}
+// Fetch team-published audit.json. Local localStorage import always wins
+// (publisher preview), so we only override _cadAuditData when nothing local
+// exists. Cache-busted so an update is visible immediately on refresh.
+(async function _loadPublishedAudit(){
+  if(_cadAuditSource==='local')return;
+  try{
+    const r=await fetch('audit.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const data=await r.json();
+    if(data&&data.bucket){
+      _cadAuditData=data;_cadAuditSource='published';
+      // Re-render whatever's currently active so checkmarks appear.
+      if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
+    }
+  }catch(e){/* no published file yet — fine */}
+})();
 // Bucket-key migration. v1 keyed by "pid|Mon" (no year) — that means a
 // stale 2025 import would falsely "verify" 2026 cadence cells. v2 keys by
 // "pid|YYYY-Mon" so the year must match exactly. If we detect an old-format
@@ -4562,37 +4579,72 @@ function _hsBucket(pid,mo){
   return _cadAuditData.bucket[p+'|'+yr+'-'+mo]||null;
 }
 // Publish: download the current audit data as JSON. The publisher hands this
-// file to Claude (or commits it directly into the BAKE_BEGIN/BAKE_END slot
-// in index.html) so every dashboard user sees the same verification state.
-function _cadPublishToTeam(){
+// file directly to GitHub via the publisher's stored PAT — once committed,
+// every dashboard user sees the same verification state.
+const _PUB_REPO='rahulsetya/cs-renewal-dashboard';
+const _PUB_FILE='audit.json';
+const _PUB_TOK_KEY='cs_pubtok';
+function _pubGetToken(){try{const v=localStorage.getItem(_PUB_TOK_KEY);return v?atob(v):null;}catch(e){return null;}}
+function _pubSetToken(t){try{if(t)localStorage.setItem(_PUB_TOK_KEY,btoa(t));else localStorage.removeItem(_PUB_TOK_KEY);}catch(e){}}
+async function _pubGetSha(token){
+  const r=await fetch('https://api.github.com/repos/'+_PUB_REPO+'/contents/'+_PUB_FILE,{
+    headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'},cache:'no-store'
+  });
+  if(r.status===404)return null;
+  if(!r.ok){const t=await r.text();throw new Error('Read failed: '+r.status+' '+t.slice(0,200));}
+  const j=await r.json();return j.sha;
+}
+async function _pubCommit(token,jsonContent,sha){
+  // base64-encode UTF-8 safely (handles unicode in account names)
+  const b64=btoa(unescape(encodeURIComponent(jsonContent)));
+  const body={message:'Update audit.json — '+new Date().toISOString().slice(0,10),content:b64,branch:'main'};
+  if(sha)body.sha=sha;
+  const r=await fetch('https://api.github.com/repos/'+_PUB_REPO+'/contents/'+_PUB_FILE,{
+    method:'PUT',
+    headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  if(!r.ok){const t=await r.text();throw new Error('Publish failed: '+r.status+' '+t.slice(0,200));}
+  return r.json();
+}
+async function _cadPublishToTeam(){
   if(!_cadAuditData||!_cadAuditData.bucket){alert('No audit data to publish — import a HubSpot file first.');return;}
+  let token=_pubGetToken();
+  if(!token){
+    const msg='Paste your GitHub publish token (starts with github_pat_…)\n\nOne-time setup. Stored in this browser only — never shared, never committed.\n\nIf you don\'t have one yet:\n  GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → Generate new\n  Repo: rahulsetya/cs-renewal-dashboard · Permissions: Contents R+W';
+    token=prompt(msg);
+    if(!token||!token.trim())return;
+    token=token.trim();
+    _pubSetToken(token);
+  }
   const payload={
     importedAt:_cadAuditData.importedAt||new Date().toISOString(),
     fileName:_cadAuditData.fileName||'',
     sheetName:_cadAuditData.sheetName||'',
     rowsParsed:_cadAuditData.rowsParsed||0,
     bucket:_cadAuditData.bucket,
-    year:_cadAuditData.year||new Date().getFullYear()
+    year:_cadAuditData.year||new Date().getFullYear(),
+    publishedAt:new Date().toISOString()
   };
-  const json=JSON.stringify(payload);
-  const ts=new Date().toISOString().slice(0,10);
-  // Always trigger a file download so the publisher has something to hand off.
+  const json=JSON.stringify(payload,null,0);
   try{
-    const blob=new Blob([json],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;a.download='cad-audit-'+ts+'.json';
-    document.body.appendChild(a);a.click();
-    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
-  }catch(e){}
-  // Also try clipboard so they can paste directly to Claude.
-  let copied=false;
-  try{
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(json);copied=true;
+    const sha=await _pubGetSha(token);
+    await _pubCommit(token,json,sha);
+    alert('✓ Published to team.\n\nLive for everyone in ~60 seconds (GitHub Pages redeploy). Teammates just need to refresh.');
+  }catch(e){
+    const m=String(e.message||e);
+    if(m.includes(' 401')||m.includes(' 403')){
+      _pubSetToken(null);
+      alert('Token rejected — cleared.\n\nClick Publish again to re-enter it. Common causes:\n  • Token expired (regenerate on GitHub)\n  • Token doesn\'t have Contents:Write\n  • Token isn\'t scoped to this repo');
+    }else{
+      alert('Publish failed: '+m);
     }
-  }catch(e){}
-  alert('Published payload ready.\n\n• Downloaded: cad-audit-'+ts+'.json\n'+(copied?'• Also copied to clipboard\n':'')+'\nSend it to Claude and ask to "bake into dashboard". Once committed, every user sees this verification state.');
+  }
+}
+// Optional: clear stored token (in case publisher wants to rotate).
+function _cadClearPublishToken(){
+  if(!_pubGetToken()){alert('No token stored.');return;}
+  if(confirm('Remove the GitHub publish token from this browser?')){_pubSetToken(null);alert('Cleared. Next publish will prompt for a new token.');}
 }
 // The audit scopes to a single month at a time. Defaults to the live current
 // month and auto-tracks across day boundaries until the user manually picks
@@ -4728,6 +4780,7 @@ function _cadAuditParseFile(file){
         year:year||new Date().getFullYear()
       };
       try{localStorage.setItem(_CAD_AUDIT_KEY,JSON.stringify(_cadAuditData));}catch(e){}
+      _cadAuditSource='local';
       alert('Imported '+parsed+' meetings from sheet "'+pickedSheet+'" of '+file.name+'.\nUnique account-months: '+Object.keys(bucketSave).length);
       if(aTab==='cadence')rT('cadence');
     }catch(err){alert('Failed to parse file: '+(err.message||err));}
@@ -5385,11 +5438,10 @@ function rCadence(){
       return`
     <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.04),transparent)">
       <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span>${(function(){
-        // Source indicator. Local localStorage import always wins (publisher
-        // preview). When localStorage is empty we show a published-source pill.
-        const hasLocal=(function(){try{return!!localStorage.getItem(_CAD_AUDIT_KEY);}catch(e){return false;}})();
-        if(hasLocal)return`<span style="font-size:10px;background:rgba(59,130,246,.20);color:#60a5fa;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">LOCAL IMPORT</span>`;
-        if(BAKED_AUDIT_DATA)return`<span style="font-size:10px;background:rgba(34,197,94,.20);color:#22c55e;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">TEAM-PUBLISHED</span>`;
+        // Source indicator: local import (preview) vs. team-published (live for everyone).
+        if(_cadAuditSource==='local')return`<span style="font-size:10px;background:rgba(59,130,246,.20);color:#60a5fa;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">LOCAL IMPORT</span>`;
+        if(_cadAuditSource==='published')return`<span style="font-size:10px;background:rgba(34,197,94,.20);color:#22c55e;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">TEAM-PUBLISHED</span>`;
+        if(_cadAuditSource==='baked')return`<span style="font-size:10px;background:rgba(34,197,94,.20);color:#22c55e;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">BAKED</span>`;
         return'';
       })()}</h3>
       <div class="sh">Match key: <strong>Platform ID × Month × Year</strong> — verification only fires when all three match exactly (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
@@ -5406,7 +5458,8 @@ function rCadence(){
         ${_moChips}
         <span style="font-size:11px;color:var(--dim)">Showing <strong style="color:var(--accent)">${_curAuditMo} ${(_cadAuditData.year||new Date().getFullYear())}</strong> only${_cadAuditMoPinned?'':` <span style="color:var(--dim)">(auto-tracking live month)</span>`}</span>
         <span style="flex:1"></span>
-        <button onclick="_cadPublishToTeam()" title="Download this audit data as a JSON file so it can be baked into the dashboard for the whole team" style="background:#10b981;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">📤 Publish to Team</button>
+        <button onclick="_cadPublishToTeam()" title="Commit this audit data to GitHub so the whole team sees the same verification state — live in ~60s" style="background:#10b981;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">📤 Publish to Team</button>
+        <button onclick="_cadClearPublishToken()" title="Remove the stored GitHub token from this browser (for rotating credentials)" style="background:transparent;color:var(--dim);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">⟳ Token</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0">
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="Of all the calls a CSM marked 'Y' in the tracker, how many were confirmed by a real meeting in HubSpot?">
