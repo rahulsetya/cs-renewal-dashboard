@@ -299,7 +299,62 @@ function buildSnapshotKpis(){
 let LIGHT=localStorage.getItem('cs_theme')==='light';
 // No system preference follow — always defaults to dark
 function applyBodyClass(){document.body.classList.toggle('light',LIGHT);}
-function ssTheme(){LIGHT=!LIGHT;localStorage.setItem('cs_theme',LIGHT?'light':'dark');applyBodyClass();render();}
+// Theme toggle preserves "where you were": parent body scroll + iframe internal
+// state (Goals: aTab; Forecast: full S object) + iframe scroll. Without this,
+// every theme flip wipes the iframe via doc.write and bounces you back to the
+// default tab and top of the page.
+function ssTheme(){
+  // 1. Capture state from any open iframes BEFORE the re-render destroys them
+  const _gFr=document.getElementById('_goals_iframe');
+  const _fFr=document.getElementById('_forecast_iframe');
+  let _gTab=null,_gScroll=0,_fS=null,_fScroll=0;
+  try{if(_gFr&&_gFr.contentWindow){_gTab=_gFr.contentWindow.aTab||null;_gScroll=_gFr.contentWindow.scrollY||0;}}catch(e){}
+  try{if(_fFr&&_fFr.contentWindow&&_fFr.contentWindow.S){_fS=Object.assign({},_fFr.contentWindow.S);_fScroll=_fFr.contentWindow.scrollY||0;}}catch(e){}
+  const _bodyScroll=window.scrollY||document.documentElement.scrollTop||0;
+
+  // 2. Flip theme + re-render
+  LIGHT=!LIGHT;
+  localStorage.setItem('cs_theme',LIGHT?'light':'dark');
+  applyBodyClass();
+  render();
+
+  // 3. Restore parent body scroll
+  requestAnimationFrame(()=>{if(_bodyScroll)window.scrollTo(0,_bodyScroll);});
+
+  // 4. Restore iframe state by polling — content is injected via doc.write
+  // so we wait for the iframe's globals to re-appear before touching them.
+  const _restoreGoals=(_gTab||_gScroll)?()=>{
+    let n=0;const t=setInterval(()=>{
+      n++;
+      const fr=document.getElementById('_goals_iframe');
+      const w=fr&&fr.contentWindow;
+      if(w&&typeof w.sw==='function'&&w.aTab!==undefined){
+        try{
+          if(_gTab&&_gTab!==w.aTab&&w.document.getElementById('tab-'+_gTab)){w.sw(_gTab);}
+          if(_gScroll)w.scrollTo(0,_gScroll);
+        }catch(e){}
+        clearInterval(t);
+      }else if(n>60){clearInterval(t);} // ~3s timeout
+    },50);
+  }:null;
+  const _restoreForecast=(_fS||_fScroll)?()=>{
+    let n=0;const t=setInterval(()=>{
+      n++;
+      const fr=document.getElementById('_forecast_iframe');
+      const w=fr&&fr.contentWindow;
+      if(w&&w.S&&typeof w.render==='function'){
+        try{
+          if(_fS)Object.assign(w.S,_fS);
+          w.render();
+          if(_fScroll)w.scrollTo(0,_fScroll);
+        }catch(e){}
+        clearInterval(t);
+      }else if(n>60){clearInterval(t);}
+    },50);
+  }:null;
+  if(_restoreGoals)_restoreGoals();
+  if(_restoreForecast)_restoreForecast();
+}
 // Custom owner dropdown — always opens downward, shows all options via scroll
 let OWNER_DROP_OPEN=false;
 function toggleOwnerDrop(e){
