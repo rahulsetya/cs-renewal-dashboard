@@ -2351,6 +2351,13 @@ function _buildLiveForecastData(pods){
   }
   return{gp,gpq,gpqr,spq,spq_q,sp_rev};
 }
+// Display-name remap for CSM owner keys. The engagement tracker has the
+// Scale book filed under a single shared owner ("Support iConnections"),
+// but the dashboard CSM roster shows it as "Scale Team". Both _buildCadenceData
+// (here) and _buildLiveCSMRoster (below) must apply the same map so cadence
+// lookups by display name succeed and the TOTAL row counts correctly. Keep
+// them in sync — if you add a new entry, add it in both places.
+const _CSM_DISPLAY={'Support iConnections':'Scale Team'};
 function _buildCadenceData(){
   if(!ENG_RAW||ENG_RAW.length===0)return null;
   const firstWithCalls=ENG_RAW.find(r=>r.calls&&Object.keys(r.calls).length>0);
@@ -2359,7 +2366,8 @@ function _buildCadenceData(){
   if(!cols.length)return null;
   const csmMap={};
   ENG_RAW.forEach(r=>{
-    const csm=r.ro||'';if(!csm)return;
+    const rawCsm=r.ro||'';if(!rawCsm)return;
+    const csm=_CSM_DISPLAY[rawCsm]||rawCsm;  // rename to dashboard display name
     if(!csmMap[csm]){csmMap[csm]={total:0,months:{},allAccts:[]};cols.forEach(c=>{csmMap[csm].months[c]={yes:0,accts:[]};});}
     const acctObj={acct:r.acct,rsk:r.rsk||0,notes:r.notes||'',calls:r.calls||{},se:excelDateToJS(r.rawEnd)||'',platformId:r.platformId||''};
     csmMap[csm].total++;
@@ -2378,7 +2386,7 @@ function _buildCadenceData(){
 function _buildLiveCSMRoster(){
   if(!ENG_RAW||!ENG_RAW.length)return null;
   const SEG={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Sunny Unger':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
-  const DISPLAY={'Support iConnections':'Scale Team'};
+  const DISPLAY=_CSM_DISPLAY;  // shared with _buildCadenceData (above)
   const agg={};
   (ENG_RAW||[]).forEach(r=>{
     const csm=r.ro||'';if(!csm)return;
