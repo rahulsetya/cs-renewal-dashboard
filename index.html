@@ -5170,7 +5170,7 @@ function _cadBodyHTML(rid,csmName){
   const colSpan=visCols.length+4;
   // Inline legend — only visible when audit data is loaded so unaudited
   // mode keeps its original look.
-  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification</strong> matches <strong>Platform ID + Month + Year</strong> against HubSpot. <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged</div>`:'';
+  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification:</strong> <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged</div>`:'';
   return`<div style="padding:0"><div style="font-size:11px;color:var(--dim);padding:6px 16px 4px">${label} · <strong style="color:var(--text)">${accts.length}</strong></div>
     ${legend}
     <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
