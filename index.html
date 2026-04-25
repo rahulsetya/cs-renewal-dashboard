@@ -4622,6 +4622,15 @@ function _cadOvrClear(pid,mo){
   _saveOverrides();
   if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
 }
+// Review & Resolve sort state — defaults to Account A→Z. Click a column
+// header to switch column / toggle direction. Persists across re-renders
+// (kept in module scope, no localStorage — resets on reload, which is fine).
+let _cadDiscSort={col:'acct',dir:'asc'};
+function _cadDiscSetSort(col){
+  if(_cadDiscSort.col===col)_cadDiscSort.dir=_cadDiscSort.dir==='asc'?'desc':'asc';
+  else{_cadDiscSort.col=col;_cadDiscSort.dir='asc';}
+  if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
+}
 // Publish: download the current audit data as JSON. The publisher hands this
 // file directly to GitHub via the publisher's stored PAT — once committed,
 // every dashboard user sees the same verification state.
@@ -5529,13 +5538,38 @@ function rCadence(){
           const rb=b.s.markedY?b.s.verified/b.s.markedY:0;
           return ra-rb;
         });
-      // Discrepancy list — show unverified + forgot first, capped at 200
+      // Discrepancy list — column-driven sort honoring _cadDiscSort. Default is
+      // Account A→Z. For a given column we still tie-break on account name to
+      // keep ordering stable. Capped at 200 rows.
+      const _statusRank={unverified:0,forgot:1,verified:2};
+      const _sortDir=_cadDiscSort.dir==='desc'?-1:1;
+      const _sortCol=_cadDiscSort.col;
+      const _getSortVal=(r,col)=>{
+        if(col==='status'){
+          // Honor effective status — verified-via-override sits with the verified bucket.
+          const s=r.effectiveStatus||r.status;
+          return _statusRank[s]??9;
+        }
+        if(col==='csm')return (r.csm||'').toLowerCase();
+        if(col==='acct')return (r.acct||'').toLowerCase();
+        if(col==='tracker')return (r.tracker||'').toLowerCase();
+        if(col==='hubspot')return r.hsCount||0;
+        if(col==='lastMtg')return r.lastDate||'';
+        if(col==='override'){
+          const o=r.override;
+          return o?(o.status==='verified'?0:1):2;
+        }
+        return '';
+      };
       const discList=audit.rows.filter(r=>r.status==='unverified'||r.status==='forgot')
         .sort((a,b)=>{
-          const order={unverified:0,forgot:1};
-          const da=order[a.status]??9,db=order[b.status]??9;
-          if(da!==db)return da-db;
-          return (a.csm||'').localeCompare(b.csm||'')||(a.acct||'').localeCompare(b.acct||'');
+          const va=_getSortVal(a,_sortCol),vb=_getSortVal(b,_sortCol);
+          let cmp=0;
+          if(typeof va==='number'&&typeof vb==='number')cmp=va-vb;
+          else cmp=String(va).localeCompare(String(vb));
+          if(cmp)return cmp*_sortDir;
+          // Stable tiebreaker: account A→Z then CSM A→Z.
+          return (a.acct||'').localeCompare(b.acct||'')||(a.csm||'').localeCompare(b.csm||'');
         });
       const discShown=discList.slice(0,200);
       const _curAuditMo=_liveCadAuditMo();
@@ -5625,16 +5659,20 @@ function rCadence(){
         <div style="font-size:10px;color:var(--dim);margin-bottom:6px"><span style="color:var(--red)">❌ Unconfirmed</span> = tracker marked Y but no HubSpot meeting · <span style="color:var(--amber)">⚠ Missed Logging</span> = HubSpot meeting exists but tracker blank · click <strong style="color:var(--green)">Verify</strong> if you confirm the call really happened (e.g. on Zoom), or <strong style="color:var(--accent)">Note</strong> to record context.</div>
         <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
           <table style="border-collapse:collapse;width:100%;min-width:780px;font-size:11px">
-            <thead style="position:sticky;top:0;background:var(--bg);z-index:1"><tr style="border-bottom:1px solid var(--borderL)">
-              <th style="text-align:left;padding:6px 10px;line-height:1.3">Status</th>
-              <th style="text-align:left;padding:6px 10px;line-height:1.3">CSM</th>
-              <th style="text-align:left;padding:6px 10px;line-height:1.3">Account</th>
-              <th style="text-align:center;padding:6px 10px;line-height:1.3" title="What the CSM put in the engagement tracker.">Tracker</th>
-              <th style="text-align:center;padding:6px 10px;line-height:1.3" title="Number of meetings logged in HubSpot for this account in this month.">HubSpot</th>
-              <th style="text-align:left;padding:6px 10px;line-height:1.3" title="Date of the most recent HubSpot meeting for this account/month.">Last Mtg</th>
-              <th style="text-align:left;padding:6px 10px;line-height:1.3">Override / Note</th>
-              <th style="text-align:center;padding:6px 10px;line-height:1.3">Actions</th>
-            </tr></thead>
+            ${(function(){
+              const arrow=k=>_cadDiscSort.col===k?(_cadDiscSort.dir==='asc'?' <span style="color:var(--accent);font-size:9px">▲</span>':' <span style="color:var(--accent);font-size:9px">▼</span>'):' <span style="color:var(--dim);opacity:.4;font-size:9px">↕</span>';
+              const baseTh='padding:6px 10px;line-height:1.3;cursor:pointer;user-select:none;color:var(--dim);font-weight:600';
+              const hov='onmouseover="this.style.color=\'var(--text)\'" onmouseout="this.style.color=\'var(--dim)\'"';
+              return`<thead style="position:sticky;top:0;background:var(--bg);z-index:1"><tr style="border-bottom:1px solid var(--borderL)">
+              <th onclick="_cadDiscSetSort('status')" ${hov} style="text-align:left;${baseTh}" title="Click to sort by status.">Status${arrow('status')}</th>
+              <th onclick="_cadDiscSetSort('csm')" ${hov} style="text-align:left;${baseTh}" title="Click to sort by CSM A–Z.">CSM${arrow('csm')}</th>
+              <th onclick="_cadDiscSetSort('acct')" ${hov} style="text-align:left;${baseTh}" title="Click to sort by Account A–Z.">Account${arrow('acct')}</th>
+              <th onclick="_cadDiscSetSort('tracker')" ${hov} style="text-align:center;${baseTh}" title="What the CSM put in the engagement tracker. Click to sort.">Tracker${arrow('tracker')}</th>
+              <th onclick="_cadDiscSetSort('hubspot')" ${hov} style="text-align:center;${baseTh}" title="Number of meetings logged in HubSpot for this account in this month. Click to sort.">HubSpot${arrow('hubspot')}</th>
+              <th onclick="_cadDiscSetSort('lastMtg')" ${hov} style="text-align:left;${baseTh}" title="Date of the most recent HubSpot meeting for this account/month. Click to sort.">Last Mtg${arrow('lastMtg')}</th>
+              <th onclick="_cadDiscSetSort('override')" ${hov} style="text-align:left;${baseTh}" title="Click to sort by override status (verified first, then noted, then none).">Override / Note${arrow('override')}</th>
+              <th style="text-align:center;padding:6px 10px;line-height:1.3;color:var(--dim);font-weight:600">Actions</th>
+            </tr></thead>`;})()}
             <tbody>
               ${discShown.map(r=>{
                 const isUnv=r.status==='unverified';
