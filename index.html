@@ -4658,17 +4658,35 @@ let _cadDiscFilt={status:'',csm:''};
 function _cadDiscSetFilt(k,v){_cadDiscFilt[k]=v||'';if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
 function _cadDiscClearFilt(){_cadDiscFilt={status:'',csm:''};if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
 // Drive-by from a CSM-row chip ("❌3" / "⚠2") on the main cadence table:
-// pre-fills both filter dropdowns then scrolls to the Review & Resolve
-// section so the CSM lands right on their pending rows. setTimeout gives
-// the re-render a tick to install the new section node before scroll.
+// pre-fills both filter dropdowns, re-renders, scrolls to the Review &
+// Resolve section, then flashes its border so the move is visible even
+// when the section was already on screen. The scroll uses both the
+// element method and a manual body-scroll fallback because iframe scroll
+// behavior can be flaky depending on which container has overflow.
 function _cadJumpToReview(csmName,statusKey){
-  _cadDiscFilt.status=statusKey||'';
-  _cadDiscFilt.csm=csmName||'';
-  if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
-  setTimeout(()=>{
-    const el=document.getElementById('cad-review-section');
-    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
-  },80);
+  try{
+    _cadDiscFilt.status=statusKey||'';
+    _cadDiscFilt.csm=csmName||'';
+    if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
+    setTimeout(()=>{
+      const el=document.getElementById('cad-review-section');
+      if(!el){console.warn('[_cadJumpToReview] section not found');return;}
+      // Belt + suspenders scroll: scrollIntoView for smooth animation, plus
+      // manually adjusting the iframe doc's scrollTop in case the smooth
+      // path is blocked by a containing element.
+      try{el.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}
+      const rect=el.getBoundingClientRect();
+      const docTop=(window.scrollY||document.documentElement.scrollTop||0);
+      const targetY=Math.max(0,docTop+rect.top-40);
+      try{window.scrollTo({top:targetY,behavior:'smooth'});}catch(e){window.scrollTo(0,targetY);}
+      // Flash the section so the user sees something happened.
+      const origBd=el.style.boxShadow,origBg=el.style.background;
+      el.style.transition='box-shadow .25s,background .25s';
+      el.style.boxShadow='0 0 0 2px var(--accent)';
+      el.style.background='rgba(96,165,250,.06)';
+      setTimeout(()=>{el.style.boxShadow=origBd;el.style.background=origBg;},900);
+    },80);
+  }catch(e){console.error('[_cadJumpToReview] threw:',e);}
 }
 function _cadDiscSetSort(col){
   if(_cadDiscSort.col===col)_cadDiscSort.dir=_cadDiscSort.dir==='asc'?'desc':'asc';
