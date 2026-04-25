@@ -5279,7 +5279,7 @@ function _cadBodyHTML(rid,csmName){
   const colSpan=visCols.length+3;
   // Inline legend — only visible when audit data is loaded so unaudited
   // mode keeps its original look.
-  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification:</strong> <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged · <em style="opacity:.7">small dim text in green cells = day of last meeting</em></div>`:'';
+  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification:</strong> <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged · <em style="opacity:.7">date next to ✓ = last meeting · ×N = number of meetings</em></div>`:'';
   return`<div style="padding:0"><div style="font-size:11px;color:var(--dim);padding:6px 16px 4px">${label} · <strong style="color:var(--text)">${accts.length}</strong></div>
     ${legend}
     <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
@@ -5315,12 +5315,12 @@ function _cadBodyHTML(rid,csmName){
               } else {
                 const info=_hsInfo(a,c);
                 if(info&&info.count>0){
-                  // Show day-of-month from lastIso, plus count badge when there were multiple meetings.
-                  const day=info.lastIso?String(parseInt(info.lastIso.slice(8,10),10)):'';
-                  const countBadge=info.count>1?`<span style="opacity:.55;font-size:9px;font-weight:600;margin-left:1px">×${info.count}</span>`:'';
-                  const dayBadge=day?`<span style="opacity:.55;font-size:10px;font-weight:400;margin-left:3px">${day}</span>`:'';
-                  cellHTML=`<strong style="color:var(--green)">✓</strong>${dayBadge}${countBadge}`;
-                  title='Verified in HubSpot — '+info.count+' meeting'+(info.count>1?'s':'')+' in '+c+(info.lastIso?', last on '+_fmtMtgDate(info.lastIso):'');
+                  // Show last-meeting date as "Mon D" plus a count badge when there were multiple meetings.
+                  const dateLabel=_fmtMtgDate(info.lastIso);
+                  const countBadge=info.count>1?`<span style="opacity:.55;font-size:9px;font-weight:600;margin-left:2px">×${info.count}</span>`:'';
+                  const dateBadge=dateLabel?`<span style="opacity:.65;font-size:10px;font-weight:400;margin-left:4px">${dateLabel}</span>`:'';
+                  cellHTML=`<strong style="color:var(--green)">✓</strong>${dateBadge}${countBadge}`;
+                  title='Verified in HubSpot — '+info.count+' meeting'+(info.count>1?'s':'')+' in '+c+(info.lastIso?', last on '+dateLabel:'');
                 } else {
                   cellHTML='<strong style="color:var(--red)">✓</strong>';
                   title=info===null?'Not verified — no Platform ID to match against HubSpot':'Not verified — no HubSpot meeting found for '+c;
