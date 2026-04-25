@@ -393,7 +393,7 @@ function pickTitleDest(dest){
   const m=document.getElementById('titleDropMenu');if(m)m.style.display='none';
   const b=document.getElementById('titleDropBtn');if(b)b.classList.remove('op');
   if(dest==='pipeline'){ss('tab','pipeline');}
-  else if(dest==='goals'){S.goalsOpen=true;render();}
+  else if(dest==='goals'){S.goalsOpen=true;_syncHash();render();}
 }
 document.addEventListener('click',function(e){
   if(!TITLE_DROP_OPEN)return;
@@ -2077,11 +2077,19 @@ function _sfSnapshot(){
   };
 }
 let _spClicks=0;let _spClickTimer=null;
-function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_spClickTimer=setTimeout(()=>{_spClicks=0;},1500);if(_spClicks>=5){_spClicks=0;S.goalsOpen=!S.goalsOpen;render();}}
+function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_spClickTimer=setTimeout(()=>{_spClicks=0;},1500);if(_spClicks>=5){_spClicks=0;S.goalsOpen=!S.goalsOpen;_syncHash();render();}}
 let _acctTabClicks=0,_acctTabTimer=null;
-function _acctTabClick(){_acctTabClicks++;console.log('[forecast] accounts click',_acctTabClicks,'/ 5');if(_acctTabTimer)clearTimeout(_acctTabTimer);_acctTabTimer=setTimeout(()=>{_acctTabClicks=0;},3000);if(_acctTabClicks>=5){_acctTabClicks=0;S.forecastOpen=!S.forecastOpen;console.log('[forecast] open:',S.forecastOpen);render();}}
-function _closeForecast(){S.forecastOpen=false;render();}
-function _closeGoals(){S.goalsOpen=false;render();}
+function _acctTabClick(){_acctTabClicks++;console.log('[forecast] accounts click',_acctTabClicks,'/ 5');if(_acctTabTimer)clearTimeout(_acctTabTimer);_acctTabTimer=setTimeout(()=>{_acctTabClicks=0;},3000);if(_acctTabClicks>=5){_acctTabClicks=0;S.forecastOpen=!S.forecastOpen;console.log('[forecast] open:',S.forecastOpen);_syncHash();render();}}
+function _closeForecast(){S.forecastOpen=false;_syncHash();render();}
+function _closeGoals(){S.goalsOpen=false;_syncHash();render();}
+// Reflect overlay state in the URL hash so it's shareable / bookmarkable.
+// history.replaceState avoids polluting the back-button history.
+function _syncHash(){
+  const target=S.goalsOpen?'#goals':S.forecastOpen?'#forecast':'';
+  if((location.hash||'')!==target){
+    try{history.replaceState(null,'',location.pathname+location.search+target);}catch(e){}
+  }
+}
 function _buildLiveGoalsData(){
   const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Sunny Unger':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
   const WON_S=new Set(['9. Invoice Sent','10. Paid']);
@@ -2562,8 +2570,19 @@ const DARK_TO_LIGHT={
   '#d0d0ec':'#1a1a28','#7777aa':'#555a78','#4a4a6e':'#6a6a88','#55557a':'#6a6a88',
   '#8888aa':'#555a78','#b0b0d0':'#2a2a44','#e0e0ff':'#1a1a28','#5a5a7e':'#6a6a88',
   '#66668a':'#8a8aa0'};
+// One-shot guard so the deep-link hash only fires once per page load.
+// Otherwise re-opens after the user manually closes the overlay.
+let _hashRouted=false;
 function render(){
   if(D&&D.length&&sessionStorage.getItem('_reopen_goals')){sessionStorage.removeItem('_reopen_goals');S.goalsOpen=true;}
+  // Deep-link routing: #goals → open Goals overlay, #forecast → open Forecast.
+  // Wait until D is populated so the iframes have data to render.
+  if(D&&D.length&&!_hashRouted){
+    const _h=(location.hash||'').toLowerCase().replace(/^#\/?/,'');
+    if(_h==='goals'){S.goalsOpen=true;_hashRouted=true;}
+    else if(_h==='forecast'){S.forecastOpen=true;_hashRouted=true;}
+    else if(_h===''){_hashRouted=true;} // no hash → mark handled, don't re-check
+  }
   try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
 function _render(){
   window._noteKeys=[];
@@ -4211,6 +4230,14 @@ rGP=function(){
     if(forecastOverlay)forecastOverlay.style.display='none';
   }
 } // end _render
+// Route on browser back/forward/manual hash edits without reloading the page.
+window.addEventListener('hashchange',()=>{
+  const _h=(location.hash||'').toLowerCase().replace(/^#\/?/,'');
+  const wantGoals=_h==='goals',wantForecast=_h==='forecast';
+  if(wantGoals!==!!S.goalsOpen||wantForecast!==!!S.forecastOpen){
+    S.goalsOpen=wantGoals;S.forecastOpen=wantForecast;render();
+  }
+});
 init();
 </script>
 
