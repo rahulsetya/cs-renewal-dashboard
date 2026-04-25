@@ -163,11 +163,18 @@ const SNAPSHOT_SITE = 'iconnections675.sharepoint.com:/sites/All_ClientSuccess:'
 const SNAPSHOT_PATH = 'Documents/cs_snapshot.json';
 const REDIRECT   = 'https://rahulsetya.github.io/cs-renewal-dashboard/';
 const VALID_OWNERS=new Set(['Support iConnections','Lucy Garber','Joe Romanoff','Christina Chumak','Courtney Krieg','Helen Ramsay','Alex Cherecwich','Andreas Santikos','Juwan Pryce','Kristan Hester','Sunny Unger','Emilie Welch']);
-// Aliased owners: account rows keep their real name (Phoebe / Jovin show as owner),
-// but they roll up under "Support iConnections" in the top-right filter dropdown.
+// Aliased owners: account rows keep their real name (so the Accounts tab
+// still shows the actual CSM), but they roll up under "Support iConnections"
+// in the top-right filter dropdown and pass isValidCSOwner. Keep this in
+// sync with _CSM_DISPLAY in the goals iframe — same Scale-pod humans.
 const RENEWAL_OWNER_ALIAS={
   'phoebe willoughby':'Support iConnections',
   'jovin lee':'Support iConnections',
+  'bryan perez':'Support iConnections',
+  'olivia juliano':'Support iConnections',
+  'mario giron':'Support iConnections',
+  'luis pedro veliz del valle':'Support iConnections',
+  'connor burke':'Support iConnections',
 };
 // True when `accountOwner` should match the `filterOwner` selection — direct or via alias.
 function ownerMatches(accountOwner,filterOwner){
@@ -2367,7 +2374,8 @@ const _CSM_DISPLAY={
   'Bryan Perez':'Scale Team',
   'Olivia Juliano':'Scale Team',
   'Mario Giron':'Scale Team',
-  'Luis Pedro Veliz del Valle':'Scale Team'
+  'Luis Pedro Veliz del Valle':'Scale Team',
+  'Connor Burke':'Scale Team'
 };
 function _buildCadenceData(){
   if(!ENG_RAW||ENG_RAW.length===0)return null;
