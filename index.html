@@ -4522,6 +4522,37 @@ function _exportCadenceXLSX(){
 let _cadAuditPwOK=false,_cadAuditData=null,_cadAuditPwTried=false;
 const _CAD_AUDIT_KEY='cs_cadaudit_v1';
 try{const _raw=localStorage.getItem(_CAD_AUDIT_KEY);if(_raw)_cadAuditData=JSON.parse(_raw);}catch(e){}
+// Bucket-key migration. v1 keyed by "pid|Mon" (no year) — that means a
+// stale 2025 import would falsely "verify" 2026 cadence cells. v2 keys by
+// "pid|YYYY-Mon" so the year must match exactly. If we detect an old-format
+// import, rewrite it in place using the year captured at parse time.
+(function _migrateAuditBucket(){
+  if(!_cadAuditData||!_cadAuditData.bucket)return;
+  const keys=Object.keys(_cadAuditData.bucket);
+  if(!keys.length)return;
+  // Already migrated?  Look for any "YYYY-Mon" suffix.
+  const yearedKey=/\|\d{4}-[A-Za-z]{3}$/;
+  if(yearedKey.test(keys[0]))return;
+  const yr=_cadAuditData.year||new Date().getFullYear();
+  const next={};
+  keys.forEach(k=>{
+    const i=k.lastIndexOf('|');if(i<0){next[k]=_cadAuditData.bucket[k];return;}
+    const pid=k.slice(0,i),mo=k.slice(i+1);
+    next[pid+'|'+yr+'-'+mo]=_cadAuditData.bucket[k];
+  });
+  _cadAuditData.bucket=next;
+  try{localStorage.setItem(_CAD_AUDIT_KEY,JSON.stringify(_cadAuditData));}catch(e){}
+})();
+// Look up "(pid, month)" against the audit bucket using the current calendar
+// year. This is the ONLY place that decides what "verified" means — if the
+// year prefix doesn't match we explicitly return null so the UI shows ✓!
+// (unconfirmed) instead of a false positive.
+function _hsBucket(pid,mo){
+  if(!_cadAuditData||!_cadAuditData.bucket)return null;
+  const p=String(pid||'').trim();if(!p)return null;
+  const yr=new Date().getFullYear();
+  return _cadAuditData.bucket[p+'|'+yr+'-'+mo]||null;
+}
 // The audit scopes to a single month at a time. Defaults to the live current
 // month and auto-tracks across day boundaries until the user manually picks
 // one with the month chips.
@@ -4635,7 +4666,7 @@ function _cadAuditParseFile(file){
         const mo=MO[dt.getMonth()];
         const yr=dt.getFullYear();
         if(year===null)year=yr;
-        const key=pid+'|'+mo;
+        const key=pid+'|'+yr+'-'+mo;
         if(!bucket[key])bucket[key]={count:0,lastDate:null,lastIso:''};
         bucket[key].count++;
         if(!bucket[key].lastDate||dt>bucket[key].lastDate){
@@ -4688,7 +4719,9 @@ function _cadAuditCompute(){
         const v=String((a.calls&&a.calls[mo])||'').trim().toLowerCase();
         const marked=v.startsWith('y');
         const pid=String(a.platformId||'').trim();
-        const b=pid?bucket[pid+'|'+mo]:null;
+        // Year-strict: _hsBucket uses current calendar year, so a stale prior-
+        // year import will not falsely confirm this year's cadence.
+        const b=pid?_hsBucket(pid,mo):null;
         const cnt=b?b.count:0;
         if(marked&&!pid){perCSM[csmName].noPid++;return;}
         let status=null;
@@ -5111,6 +5144,21 @@ function _cadBodyHTML(rid,csmName){
   let accts=month?(cData.months[month]?.accts||[]):[...(cData.allAccts||[])];
   const sort=_cadSort[rid]||{col:'se',dir:1};
   const isYCall=(a,c)=>String((a.calls&&a.calls[c])||'').trim().toLowerCase().startsWith('y');
+  // HubSpot lookup — returns null when no audit data is loaded so the cell
+  // falls back to the original ✓/— rendering. When loaded, returns the
+  // meeting count for that (account, month) so we can flag verified /
+  // unconfirmed / missed-logging cases inline.
+  const auditLoaded=!!(_cadAuditData&&_cadAuditData.bucket);
+  // Strict match: Platform ID must be non-empty AND the audit bucket must
+  // have an entry for (pid, currentYear-month). _hsBucket enforces the year
+  // so verification can only fire when the time frame is an exact match.
+  const _hsCount=(a,c)=>{
+    if(!auditLoaded)return null;
+    const pid=String(a.platformId||'').trim();
+    if(!pid)return null;
+    const b=_hsBucket(pid,c);
+    return b?b.count:0;
+  };
   accts=[...accts].sort((a,b)=>{
     if(sort.col==='se')return sort.dir*((a.se||'').localeCompare(b.se||''));
     if(sort.col==='acct')return sort.dir*((a.acct||'').localeCompare(b.acct||''));
@@ -5120,7 +5168,11 @@ function _cadBodyHTML(rid,csmName){
   const sa=col=>{const s=_cadSort[rid];return s&&s.col===col?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
   const label=month?`${month} — accounts with call`:'All accounts in engagement tracker';
   const colSpan=visCols.length+4;
+  // Inline legend — only visible when audit data is loaded so unaudited
+  // mode keeps its original look.
+  const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification</strong> requires exact <strong>Platform ID + Month + Year</strong> match against HubSpot. <span style="color:var(--green);font-weight:700">✓✓</span> verified · <span style="color:var(--green);font-weight:700">✓</span> tracker Y (no PID to match) · <span style="color:var(--red);font-weight:700">✓!</span> tracker Y but no HubSpot meeting · <span style="color:var(--amber);font-weight:700">⚠</span> HubSpot meeting, tracker blank · <span style="color:var(--dim)">—</span> nothing</div>`:'';
   return`<div style="padding:0"><div style="font-size:11px;color:var(--dim);padding:6px 16px 4px">${label} · <strong style="color:var(--text)">${accts.length}</strong></div>
+    ${legend}
     <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
       <thead><tr style="background:rgba(255,255,255,.04)">
         <th style="text-align:left;padding:5px 16px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','acct')">Account ${sa('acct')}</th>
@@ -5134,7 +5186,22 @@ function _cadBodyHTML(rid,csmName){
         const hasNote=a.notes&&a.notes.trim();
         return`<tr style="border-top:1px solid rgba(255,255,255,.05)">
           <td style="padding:4px 16px;color:var(--text)">${a.acct||a}</td>
-          ${visCols.map(c=>{const isY=isYCall(a,c);return`<td style="text-align:center;padding:4px 8px;color:${isY?'var(--green)':'var(--dim)'}"><strong>${isY?'✓':'—'}</strong></td>`;}).join('')}
+          ${visCols.map(c=>{
+            const isY=isYCall(a,c);
+            const hs=_hsCount(a,c);
+            // Render priority:
+            //  • verified  (Y + HS≥1)         → ✓✓ green, tooltip "Verified"
+            //  • forgot    (blank + HS≥1)     → ⚠ amber
+            //  • unconfd   (Y + HS=0)         → ✓! red
+            //  • Y, no audit / no PID         → ✓ green (legacy)
+            //  • blank                        → — dim
+            let icon='—',color='var(--dim)',title='';
+            if(isY&&hs!==null&&hs>0){icon='✓✓';color='var(--green)';title='Verified — '+hs+' HubSpot meeting'+(hs>1?'s':'')+' in '+c;}
+            else if(!isY&&hs!==null&&hs>0){icon='⚠';color='var(--amber)';title=hs+' HubSpot meeting'+(hs>1?'s':'')+' in '+c+' — tracker is blank';}
+            else if(isY&&hs===0){icon='✓!';color='var(--red)';title='Tracker says Y but no HubSpot meeting found in '+c;}
+            else if(isY){icon='✓';color='var(--green)';title=auditLoaded?'Tracker says Y — no Platform ID to match':'Tracker says Y';}
+            return`<td style="text-align:center;padding:4px 8px;color:${color}" title="${title}"><strong>${icon}</strong></td>`;
+          }).join('')}
           <td style="padding:4px 8px;color:var(--dim);font-size:10px">${fmtSE(a.se)}</td>
           <td style="text-align:center;padding:4px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td>
           <td style="padding:4px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td>
@@ -5277,7 +5344,15 @@ function rCadence(){
       return`
     <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.04),transparent)">
       <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span></h3>
-      <div class="sh">Match key: <strong>Platform ID × Month</strong> (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
+      <div class="sh">Match key: <strong>Platform ID × Month × Year</strong> — verification only fires when all three match exactly (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
+      ${(function(){
+        const auditYr=_cadAuditData.year||0;
+        const curYr=new Date().getFullYear();
+        if(auditYr&&auditYr!==curYr){
+          return`<div style="margin-top:6px;padding:8px 12px;background:rgba(239,68,68,.10);border:1px solid var(--red);border-radius:6px;color:var(--red);font-size:11px;font-weight:600">⚠ This import contains <strong>${auditYr}</strong> meetings, but the dashboard is showing <strong>${curYr}</strong>. Verification will fail until you re-import a current-year HubSpot file.</div>`;
+        }
+        return'';
+      })()}
       <div style="display:flex;align-items:center;gap:8px;margin:12px 0;flex-wrap:wrap">
         <span style="font-size:12px;color:var(--dim);font-weight:600">Auditing:</span>
         ${_moChips}
