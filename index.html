@@ -52,7 +52,7 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .login-card p{color:#64748b;font-size:14px;margin-bottom:28px;line-height:1.6}
 .btn-ms{display:flex;align-items:center;gap:12px;background:#0078d4;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;width:100%;justify-content:center;font-family:inherit}
 .btn-ms:hover{background:#106ebe}
-.btn-refresh{display:flex;align-items:center;justify-content:center;gap:6px;background:#1e293b;color:#94a3b8;border:1px solid #334155;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:120px;white-space:nowrap}
+.btn-refresh{display:flex;align-items:center;gap:6px;background:#1e293b;color:#94a3b8;border:1px solid #334155;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
 .btn-refresh:hover{background:#334155;color:#f8fafc}
 .btn-snapshot{display:flex;align-items:center;gap:6px;background:#1e293b;color:#a78bfa;border:1px solid #4c1d95;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn-snapshot:hover{background:#2e1065;color:#c4b5fd}
@@ -2596,7 +2596,7 @@ function _render(){
       <button class="btn-snapshot" onclick="saveSnapshot()" title="Save current state as baseline for Movement tab">📸 Save Snapshot</button>
       ${PREV_TS?`<span style="font-size:10px;color:#475569">Last saved: ${new Date(PREV_TS).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:'<span style="font-size:10px;color:#334155">No snapshot saved</span>'}
     </div>
-    <button class="btn-refresh" onclick="refreshData()"${S.refreshing?' disabled style="opacity:.6;cursor:wait"':''}>${S.refreshing?'⟳ Refreshing…':'↻ Refresh'}</button>
+    <button class="btn-refresh" onclick="refreshData()"${S.refreshing?' disabled style="opacity:.6;cursor:wait;font-size:11px"':''}>${S.refreshing?'⟳ Refreshing…':'↻ Refresh'}</button>
     ${(()=>{const cur=S.owner||'ALL';const curLbl=cur==='ALL_OWNERS'?'All Owners':(cur==='ALL'||!cur)?'All CS Owners':cur.indexOf('POD:')===0?cur.slice(4):cur;
       return `<div class="owner-dd">
         <button id="ownerDropBtn" class="owner-dd-btn" onclick="toggleOwnerDrop(event)" title="Filter by CS Owner or Pod"><span>${curLbl}</span><span class="cr">▾</span></button>
@@ -6020,7 +6020,7 @@ function rCadence(){
 
 // ── ALL ACCOUNTS ────────────────────────────────────
 // Filterable/sortable table of every account with every engagement field.
-let _aaState={csm:'',search:'',segFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};
+let _aaState={csm:'',search:'',segFilter:'',podFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};
 const _aaCols=[
   {k:'n',l:'Account',w:180},
   {k:'csRep',l:'Target CSM',w:140},
@@ -6067,8 +6067,9 @@ function _aaSort(col){if(_aaState.sortCol===col)_aaState.sortDir=_aaState.sortDi
 function _aaSetCSM(v){_aaState.csm=v;rAllAccts();}
 function _aaSetSearch(v){_aaState.search=v;rAllAccts();}
 function _aaSetSeg(v){_aaState.segFilter=v;rAllAccts();}
+function _aaSetPod(v){_aaState.podFilter=v;rAllAccts();}
 function _aaSetRisk(v){_aaState.riskFilter=v;rAllAccts();}
-function _aaReset(){_aaState={csm:'',search:'',segFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};rAllAccts();}
+function _aaReset(){_aaState={csm:'',search:'',segFilter:'',podFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};rAllAccts();}
 
 function rAllAccts(){
   const el=document.getElementById('tab-all_accounts');
@@ -6078,11 +6079,13 @@ function rAllAccts(){
   // Gather filter options
   const csms=[...new Set(all.map(a=>a.csRep).filter(Boolean))].sort();
   const segs=[...new Set(all.map(a=>a.seg).filter(Boolean))].sort();
+  const pods=[...new Set(all.map(a=>a.pod).filter(Boolean))].sort();
 
   // Apply filters
   let rows=all.slice();
   if(_aaState.csm)rows=rows.filter(r=>r.csRep===_aaState.csm);
   if(_aaState.segFilter)rows=rows.filter(r=>r.seg===_aaState.segFilter);
+  if(_aaState.podFilter)rows=rows.filter(r=>r.pod===_aaState.podFilter);
   if(_aaState.riskFilter==='yes')rows=rows.filter(r=>r.rsk===1);
   else if(_aaState.riskFilter==='no')rows=rows.filter(r=>!r.rsk);
   if(_aaState.search){
@@ -6110,36 +6113,52 @@ function rAllAccts(){
   const callCell=v=>{const s=String(v||'').trim().toLowerCase();if(s.startsWith('y'))return'<span style="color:var(--green);font-weight:700">✓</span>';if(s.startsWith('n'))return'<span style="color:var(--red)">✗</span>';return s?`<span style="color:var(--dim);font-size:10px">${s.substring(0,3)}</span>`:'';};
   const st=`padding:6px 8px;font-size:11px;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
   const thSt=`padding:8px 8px;font-size:10px;font-weight:600;color:var(--dim);text-align:left;cursor:pointer;user-select:none;white-space:nowrap;background:var(--card);position:sticky;top:0;z-index:1;border-bottom:2px solid var(--borderL)`;
-  const filterSt=`background:var(--bg);border:1px solid var(--borderL);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit`;
+  // active vs inactive filter styles for visual polish
+  const filterStBase=`border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;transition:all .12s`;
+  const filterSt=`background:var(--bg);border:1px solid var(--borderL);color:var(--text);${filterStBase}`;
+  const filterStAct=`background:#1e3a5f;border:1px solid #3b82f6;color:#dbeafe;${filterStBase};font-weight:600`;
+  const sel=v=>v?filterStAct:filterSt;
+  const anyActive=!!(_aaState.csm||_aaState.segFilter||_aaState.podFilter||_aaState.riskFilter||_aaState.search);
+  const activeCount=[_aaState.csm,_aaState.segFilter,_aaState.podFilter,_aaState.riskFilter,_aaState.search].filter(Boolean).length;
 
   const _sfR=_sfSnapshot();
   el.innerHTML=`
     <div class="card">
       <h3>All Accounts</h3>
-      <div class="sh">Every account from the Combined Master engagement tab. Filter by CSM/Segment/Risk, search across fields, click column headers to sort.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;align-items:center">
-        <label style="font-size:11px;color:var(--dim)">Target CSM:
-          <select onchange="_aaSetCSM(this.value)" style="${filterSt};margin-left:4px">
+      <div class="sh">Every account from the Combined Master engagement tab. Filter by CSM/Segment/Pod/Risk, search across fields, click column headers to sort.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">CSM</span>
+          <select onchange="_aaSetCSM(this.value)" style="${sel(_aaState.csm)};cursor:pointer">
             <option value="">All (${all.length})</option>
             ${csms.map(c=>`<option value="${c}" ${_aaState.csm===c?'selected':''}>${c}</option>`).join('')}
           </select>
-        </label>
-        <label style="font-size:11px;color:var(--dim)">Segment:
-          <select onchange="_aaSetSeg(this.value)" style="${filterSt};margin-left:4px">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">Segment</span>
+          <select onchange="_aaSetSeg(this.value)" style="${sel(_aaState.segFilter)};cursor:pointer">
             <option value="">All</option>
             ${segs.map(s=>`<option value="${s}" ${_aaState.segFilter===s?'selected':''}>${s}</option>`).join('')}
           </select>
-        </label>
-        <label style="font-size:11px;color:var(--dim)">Risk:
-          <select onchange="_aaSetRisk(this.value)" style="${filterSt};margin-left:4px">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">Pod</span>
+          <select onchange="_aaSetPod(this.value)" style="${sel(_aaState.podFilter)};cursor:pointer" ${pods.length===0?'disabled':''}>
+            <option value="">${pods.length?`All (${pods.length})`:'No pod data'}</option>
+            ${pods.map(p=>`<option value="${p}" ${_aaState.podFilter===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">Risk</span>
+          <select onchange="_aaSetRisk(this.value)" style="${sel(_aaState.riskFilter)};cursor:pointer">
             <option value="">Any</option>
             <option value="yes" ${_aaState.riskFilter==='yes'?'selected':''}>⚠ At risk</option>
             <option value="no" ${_aaState.riskFilter==='no'?'selected':''}>Clean</option>
           </select>
-        </label>
-        <input type="text" data-sf="aa-search" placeholder="Search account, CSM, notes…" value="${(_aaState.search||'').replace(/"/g,'&quot;')}" oninput="_aaSetSearch(this.value)" style="${filterSt};flex:1;min-width:220px">
-        <button onclick="_aaReset()" style="${filterSt};cursor:pointer;color:var(--dim)">Reset</button>
-        <span style="font-size:11px;color:var(--dim);margin-left:auto"><strong style="color:var(--text)">${rows.length}</strong> of ${all.length}</span>
+        </div>
+        <input type="text" data-sf="aa-search" placeholder="🔍 Search account, CSM, notes, pod…" value="${(_aaState.search||'').replace(/"/g,'&quot;')}" oninput="_aaSetSearch(this.value)" style="${sel(_aaState.search)};flex:1;min-width:240px;outline:none">
+        <button onclick="_aaReset()" style="${filterSt};cursor:pointer;${anyActive?'color:#fca5a5;border-color:#7f1d1d':'color:var(--dim);opacity:.6'}" ${anyActive?'':'disabled'}>${anyActive?`Reset (${activeCount})`:'Reset'}</button>
+        <span style="font-size:11px;color:var(--dim);margin-left:auto;padding:6px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border)"><strong style="color:var(--text);font-size:13px">${rows.length}</strong> <span style="opacity:.7">/ ${all.length}</span></span>
       </div>
       <div style="overflow:auto;max-height:72vh;border:1px solid var(--border);border-radius:8px">
         <table style="width:100%;border-collapse:collapse;font-family:var(--mono);table-layout:auto">
