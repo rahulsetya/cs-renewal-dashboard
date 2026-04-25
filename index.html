@@ -4536,30 +4536,48 @@ function _cadAuditParseFile(file){
     try{
       const data=new Uint8Array(ev.target.result);
       const wb=XLSX.read(data,{type:'array'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      if(!rows||!rows.length){alert('Empty file.');return;}
-      // Find header row in first 8 rows: must contain a "Platform ... ID" col
-      // and an "Activity ... date" col. Aliases handle HubSpot variants.
+      if(!wb.SheetNames||!wb.SheetNames.length){alert('Workbook has no sheets.');return;}
+      // HubSpot reports often have a Summary sheet first and the line-item
+      // detail (one row per activity) on a later sheet. Scan ALL sheets and
+      // pick the first one that has both a Platform-ID column and a Date
+      // column in its header. Strict match first; loose fallback if needed.
       const wantPid=['platform companyid','platform company id','platform id','company platform id','hubspot id','hubspot record id','company id','record id'];
       const wantDate=['activity date','last activity date','activity assigned date','meeting date','date','close date'];
-      let hdrRow=-1,pidIdx=-1,dateIdx=-1;
-      for(let r=0;r<Math.min(8,rows.length);r++){
-        const row=(rows[r]||[]).map(v=>String(v||'').trim().toLowerCase());
-        const p=row.findIndex(c=>wantPid.includes(c));
-        const d=row.findIndex(c=>wantDate.some(w=>c===w||c.startsWith(w)));
-        if(p>=0&&d>=0){hdrRow=r;pidIdx=p;dateIdx=d;break;}
+      const tried=[];
+      let rows=null,hdrRow=-1,pidIdx=-1,dateIdx=-1,pickedSheet=null;
+      const _scan=(sheetRows,strict)=>{
+        for(let r=0;r<Math.min(8,sheetRows.length);r++){
+          const row=(sheetRows[r]||[]).map(v=>String(v||'').trim().toLowerCase());
+          const p=strict
+            ?row.findIndex(c=>wantPid.includes(c))
+            :row.findIndex(c=>c.includes('platform')&&c.includes('id'));
+          const d=strict
+            ?row.findIndex(c=>wantDate.some(w=>c===w||c.startsWith(w)))
+            :row.findIndex(c=>c.includes('date'));
+          if(p>=0&&d>=0)return{r,p,d};
+        }
+        return null;
+      };
+      // Pass 1 — strict, every sheet
+      for(const sn of wb.SheetNames){
+        const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+        tried.push({sn,headers:(sheetRows[0]||[]).slice(0,8).join(' | ')});
+        const hit=_scan(sheetRows,true);
+        if(hit){rows=sheetRows;hdrRow=hit.r;pidIdx=hit.p;dateIdx=hit.d;pickedSheet=sn;break;}
       }
+      // Pass 2 — loose, every sheet
       if(hdrRow<0){
-        // Fallback: looser match — any cell containing both "platform" and "id"
-        for(let r=0;r<Math.min(8,rows.length);r++){
-          const row=(rows[r]||[]).map(v=>String(v||'').trim().toLowerCase());
-          const p=row.findIndex(c=>c.includes('platform')&&c.includes('id'));
-          const d=row.findIndex(c=>c.includes('date'));
-          if(p>=0&&d>=0){hdrRow=r;pidIdx=p;dateIdx=d;break;}
+        for(const sn of wb.SheetNames){
+          const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+          const hit=_scan(sheetRows,false);
+          if(hit){rows=sheetRows;hdrRow=hit.r;pidIdx=hit.p;dateIdx=hit.d;pickedSheet=sn;break;}
         }
       }
-      if(hdrRow<0){alert('Could not find Platform ID + Activity Date columns. Headers checked: '+(rows[0]||[]).slice(0,12).join(' | '));return;}
+      if(hdrRow<0){
+        const list=tried.map(t=>'• ['+t.sn+'] '+t.headers).join('\n');
+        alert('Could not find Platform ID + Activity Date columns in any sheet.\n\nSheets scanned:\n'+list);
+        return;
+      }
       const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const bucket={};let parsed=0,year=null;
       const _parseDate=v=>{
@@ -4602,12 +4620,13 @@ function _cadAuditParseFile(file){
       _cadAuditData={
         importedAt:new Date().toISOString(),
         fileName:file.name,
+        sheetName:pickedSheet||'',
         rowsParsed:parsed,
         bucket:bucketSave,
         year:year||new Date().getFullYear()
       };
       try{localStorage.setItem(_CAD_AUDIT_KEY,JSON.stringify(_cadAuditData));}catch(e){}
-      alert('Imported '+parsed+' meetings from '+file.name+'.\nUnique account-months: '+Object.keys(bucketSave).length);
+      alert('Imported '+parsed+' meetings from sheet "'+pickedSheet+'" of '+file.name+'.\nUnique account-months: '+Object.keys(bucketSave).length);
       if(aTab==='cadence')rT('cadence');
     }catch(err){alert('Failed to parse file: '+(err.message||err));}
   };
@@ -4699,6 +4718,7 @@ function _exportCadenceAuditXLSX(){
     ['CS Renewal — Cadence Audit'],
     ['Generated',now.toLocaleString()],
     ['Source File',(_cadAuditData&&_cadAuditData.fileName)||''],
+    ['Source Sheet',(_cadAuditData&&_cadAuditData.sheetName)||''],
     ['Imported At',(_cadAuditData&&_cadAuditData.importedAt)||''],
     ['HubSpot Rows Parsed',(_cadAuditData&&_cadAuditData.rowsParsed)||0],
     ['Match Key','Platform ID × Month (CSM/owner names not used)'],
@@ -5212,7 +5232,7 @@ function rCadence(){
       return`
     <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.04),transparent)">
       <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span></h3>
-      <div class="sh">Match key: <strong>Platform ID × Month</strong> (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code> · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
+      <div class="sh">Match key: <strong>Platform ID × Month</strong> (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0">
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
           <div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:600">Match Rate</div>
