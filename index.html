@@ -5317,8 +5317,11 @@ function rGP(){
   let totalOpen=0,totalWon=0,totalLogos=0,totalDeclined=0;
   pools.forEach(p=>{const d=grrQ[p];totalOpen+=d.open;totalWon+=d.won;totalLogos+=d.logos;totalDeclined+=d.declined});
   const totalWinback=(filtAccts||[]).filter(a=>a.stage==='4a. Attempting again Q2').length;
-  // 4a "Attempting again Q2" is now classified as Declined (not Open), so totalOpen already excludes winbacks.
+  // 4a "Attempting again Q2" is classified as Declined (not Open) for column reporting,
+  // but Declined Early accounts are still re-engageable, so the scenario slider should treat
+  // them as closeable — totalCloseable = pure open + win-back accounts.
   const totalTrulyOpen=totalOpen;
+  const totalCloseable=totalOpen+totalWinback;
   const floorN=Math.ceil(totalLogos*GP_T[tKey]?.floor/100)||0;
   const fullN=Math.ceil(totalLogos*GP_T[tKey]?.full/100)||0;
   const accelN=Math.ceil(totalLogos*GP_T[tKey]?.accel/100)||0;
@@ -5360,22 +5363,22 @@ function rGP(){
     <div class="cards">${(()=>{const tot={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};pools.forEach(p=>{const d=grrQ[p]||{};for(const k in tot)tot[k]+=(d[k]||0);});return poolCard('Total',tot,tgt,q==="Q1");})()}${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}</div>
     ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Wins needed from ${totalTrulyOpen} open + ${totalWinback} Win-back accounts to hit targets</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
-        ${[{l:"Floor ("+GP_T[tKey]?.floor+"%)",n:floorN,g:gapFloor,c:gapFloor<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.floor/100},{l:"Full ("+GP_T[tKey]?.full+"%)",n:fullN,g:gapFull,c:gapFull<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.full/100},{l:"Accel ("+GP_T[tKey]?.accel+"%+)",n:accelN,g:gapAccel,c:gapAccel<=0?"var(--green)":"var(--red)",t:GP_T[tKey]?.accel/100}].map(x=>{const convNeeded=totalOpen>0?Math.max(0,x.g/totalOpen*100):0;return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;text-align:center">
+        ${[{l:"Floor ("+GP_T[tKey]?.floor+"%)",n:floorN,g:gapFloor,c:gapFloor<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.floor/100},{l:"Full ("+GP_T[tKey]?.full+"%)",n:fullN,g:gapFull,c:gapFull<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.full/100},{l:"Accel ("+GP_T[tKey]?.accel+"%+)",n:accelN,g:gapAccel,c:gapAccel<=0?"var(--green)":"var(--red)",t:GP_T[tKey]?.accel/100}].map(x=>{const convNeeded=totalCloseable>0?Math.max(0,x.g/totalCloseable*100):0;return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;text-align:center">
           <div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">${x.l}</div>
           <div style="font-size:22px;font-weight:700;color:${x.c};font-family:var(--mono)">${x.g<=0?'✓ Hit':'Need '+x.g}</div>
           <div style="font-size:11px;color:var(--dim)">${x.n} logos required of ${totalLogos}</div>
-          ${x.g>0?`<div style="font-size:10px;color:var(--muted);margin-top:4px">${pct(convNeeded)} of open accounts</div>`:''}
+          ${x.g>0?`<div style="font-size:10px;color:var(--muted);margin-top:4px">${pct(convNeeded)} of renewable accounts</div>`:''}
         </div>`;}).join('')}
       </div>
       <div style="margin-top:14px">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
-          <label style="font-size:12px;color:var(--muted)">Scenario: How many open accounts (${totalOpen}) do we need to close to hit X%?</label>
-          <span style="font-size:11px;color:var(--dim)">Today (0 closed): <strong style="color:var(--amber)">${pct(totalWon/totalLogos*100)}</strong> · Max (${totalOpen} closed): <strong style="color:var(--green)">${pct((totalWon+totalOpen)/totalLogos*100)}</strong></span>
+          <label style="font-size:12px;color:var(--muted)">Scenario: How many renewable accounts (${totalCloseable}) do we need to close to hit X%? <span style="color:var(--dim);font-size:11px">(${totalOpen} open + ${totalWinback} declined early)</span></label>
+          <span style="font-size:11px;color:var(--dim)">Today (0 closed): <strong style="color:var(--amber)">${pct(totalWon/totalLogos*100)}</strong> · Max (${totalCloseable} closed): <strong style="color:var(--green)">${pct((totalWon+totalCloseable)/totalLogos*100)}</strong></span>
         </div>
         <div style="padding:8px 0;cursor:pointer">
-        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="${totalOpen}" value="${Math.min(gapFloor,totalOpen)}" oninput="updateScenario('${q}',this.value,${totalOpen},${totalWon},${totalLogos})" onmousedown="this.focus()" style="touch-action:none;background:linear-gradient(to right,var(--accent) ${totalOpen>0?Math.round(Math.min(gapFloor,totalOpen)/totalOpen*100):0}%,#1e293b ${totalOpen>0?Math.round(Math.min(gapFloor,totalOpen)/totalOpen*100):0}%)">
+        <input type="range" class="scenario-slider" id="scenario-${q}" min="0" max="${totalCloseable}" value="${Math.min(gapFloor,totalCloseable)}" oninput="updateScenario('${q}',this.value,${totalCloseable},${totalWon},${totalLogos})" onmousedown="this.focus()" style="touch-action:none;background:linear-gradient(to right,var(--accent) ${totalCloseable>0?Math.round(Math.min(gapFloor,totalCloseable)/totalCloseable*100):0}%,#1e293b ${totalCloseable>0?Math.round(Math.min(gapFloor,totalCloseable)/totalCloseable*100):0}%)">
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0 closed</span><span id="scenario-label-${q}">${Math.min(gapFloor,totalOpen)} accounts closed → <strong style="color:var(--accent)">${pct((totalWon+Math.min(gapFloor,totalOpen))/totalLogos*100)}</strong></span><span>${totalOpen} closed</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0 closed</span><span id="scenario-label-${q}">${Math.min(gapFloor,totalCloseable)} accounts closed → <strong style="color:var(--accent)">${pct((totalWon+Math.min(gapFloor,totalCloseable))/totalLogos*100)}</strong></span><span>${totalCloseable} closed</span></div>
       </div>
     </div>`:''}
     <div class="card">
