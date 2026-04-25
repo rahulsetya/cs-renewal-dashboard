@@ -4655,6 +4655,9 @@ function _cadAuditCompute(){
   if(!_cadAuditData||!_cadAuditData.bucket)return null;
   const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
   if(!cd||!cd.cols)return null;
+  // Scope audit to the active quarter's months only — same set the cadence
+  // table is showing. Falls back to all cols if the helper is unavailable.
+  const scopeCols=(typeof _cadVisibleCols==='function')?_cadVisibleCols():cd.cols;
   const bucket=_cadAuditData.bucket;
   const perCSM={};
   const rows=[];
@@ -4662,7 +4665,7 @@ function _cadAuditCompute(){
     const d=cd.csm[csmName];
     perCSM[csmName]={markedY:0,verified:0,unverified:0,forgot:0,noPid:0};
     (d.allAccts||[]).forEach(a=>{
-      cd.cols.forEach(mo=>{
+      scopeCols.forEach(mo=>{
         const v=String((a.calls&&a.calls[mo])||'').trim().toLowerCase();
         const marked=v.startsWith('y');
         const pid=String(a.platformId||'').trim();
@@ -4735,6 +4738,7 @@ function _exportCadenceAuditXLSX(){
     ['Imported At',(_cadAuditData&&_cadAuditData.importedAt)||''],
     ['HubSpot Rows Parsed',(_cadAuditData&&_cadAuditData.rowsParsed)||0],
     ['Match Key','Platform ID × Month (CSM/owner names not used)'],
+    ['Scope','Quarter '+selCadQ+' — months: '+_cadVisibleCols().join(', ')],
     [],
     ['Status legend'],
     ['Confirmed','Tracker marked Y AND HubSpot has ≥1 meeting that month — call verified'],
@@ -4748,7 +4752,7 @@ function _exportCadenceAuditXLSX(){
   XLSX.utils.book_append_sheet(wb,wsSum,'Scorecard');
   XLSX.utils.book_append_sheet(wb,wsDet,'Discrepancies');
   XLSX.utils.book_append_sheet(wb,wsMeta,'About');
-  XLSX.writeFile(wb,'cadence-audit-'+ts+'.xlsx');
+  XLSX.writeFile(wb,'cadence-audit-'+selCadQ.toLowerCase()+'-'+ts+'.xlsx');
 }
 
 const tabsEl=document.getElementById('tabs');
@@ -5252,7 +5256,7 @@ function rCadence(){
       return`
     <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.04),transparent)">
       <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span></h3>
-      <div class="sh">Match key: <strong>Platform ID × Month</strong> (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
+      <div class="sh">Match key: <strong>Platform ID × Month</strong> (CSM/owner names not used). Scope: <strong style="color:var(--accent)">${selCadQ} (${_cadVisibleCols().join(' · ')})</strong> — switch quarters above to re-scope. File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0">
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="Of all the calls a CSM marked 'Y' in the tracker, how many were confirmed by a real meeting in HubSpot?">
           <div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:600">Tracker Accuracy</div>
