@@ -1587,11 +1587,22 @@ async function loadData(forceRefresh=false){
 async function refreshData(){
   // Preserve overlay iframe state across the refresh so clicking ↻ Refresh
   // inside Goals/Forecast doesn't bounce the user back to the default tab.
-  // loadData triggers two renders (S.refreshing→true, then →false), which
-  // each tear down the iframe — we restore once at the very end.
   const _st=_captureIframeState();
-  await loadData(true);
-  _restoreIframeState(_st);
+  // loadData() only flips S.refreshing on the cache-hit path; on a forced
+  // refresh (haveCache becomes false because !forceRefresh is false) it
+  // jumps straight to showLoading() — which the overlay covers — so without
+  // this the topbar's Refresh button never updates to "⟳ Refreshing…".
+  S.refreshing=true;
+  render();
+  try{
+    await loadData(true);
+  }finally{
+    // loadData itself sets S.refreshing=false in its happy & error paths
+    // and re-renders, but make this idempotent in case anything throws
+    // before that runs.
+    if(S.refreshing){S.refreshing=false;render();}
+    _restoreIframeState(_st);
+  }
 }
 function ss(k,v){if(k==='owner'){S.owner=v;S.drill=null;S.aeDrill=null;S.tlDrill=null;}else if(k==='drill'){S.drill=v||null;S.drillFilter={};S.drillFlagOpen=false;}else if(k==='aeDrill')S.aeDrill=v||null;else if(k==='tlDrill')S.tlDrill=v||null;else if(k==='engQtrFilter'){S.engQtrFilter=v;S.aeDrill=null;}else S[k]=v;render();}
 function ssAcctSort(col){const cur=S.acctSort;S.acctSort={col,dir:cur.col===col&&cur.dir==='asc'?'desc':'asc'};render();}
@@ -4192,7 +4203,7 @@ rGP=function(){
     const _gRefBtn=S.refreshing
       ?`<button disabled style="background:${_btnBg};border:1px solid ${_btnBd};color:${_btnTx};padding:5px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:wait;opacity:.6;font-family:inherit;min-width:100px;text-align:center">⟳ Refreshing…</button>`
       :`<button onclick="refreshData()" style="background:${_btnBg};border:1px solid ${_btnBd};color:${_btnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-width:100px;text-align:center">↻ Refresh</button>`;
-    const _gUpdated=lastUpdated?`<span style="font-size:11px;color:${_barMt}">Updated: ${lastUpdated}</span>`:'';
+    const _gUpdated=lastUpdated?`<span style="font-size:11px;color:${_barMt}">${lastUpdated}</span>`:'';
     goalsOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_barBg};border-bottom:1px solid ${_barBd};flex-shrink:0;gap:12px"><span style="font-size:13px;font-weight:700;color:${_barTx};white-space:nowrap">CS Goals & Variable Comp Dashboard</span><div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0"><span style="font-size:11px;color:${_barMt}">${spNote}</span>${_gUpdated}</div><div style="display:flex;gap:8px;align-items:center"><button onclick="ssTheme()" title="Toggle light/dark mode" style="background:${_btnBg};border:1px solid ${_btnBd};color:${_btnTx};padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button>${_gRefBtn}<button onclick="_closeGoals()" style="background:${_btnBg};border:1px solid ${_btnBd};color:${_btnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_goals_iframe" style="flex:1;border:none;background:${_ifBg};" src="about:blank"></iframe>`;
     requestAnimationFrame(()=>{const fr=document.getElementById('_goals_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
@@ -4269,7 +4280,7 @@ rGP=function(){
     const _fRefBtn=S.refreshing
       ?`<button disabled style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:wait;opacity:.6;font-family:inherit;min-width:100px;text-align:center">⟳ Refreshing…</button>`
       :`<button onclick="refreshData()" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-width:100px;text-align:center">↻ Refresh</button>`;
-    const _fUpdated=lastUpdated?`<span style="font-size:11px;color:${_fBarMt}">Updated: ${lastUpdated}</span>`:'';
+    const _fUpdated=lastUpdated?`<span style="font-size:11px;color:${_fBarMt}">${lastUpdated}</span>`:'';
     forecastOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_fBarBg};border-bottom:1px solid ${_fBarBd};flex-shrink:0;gap:12px"><span style="font-size:13px;font-weight:700;color:${_fBarTx};white-space:nowrap">iConnections — Retention & Revenue Forecast 2026</span><div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0"><span style="font-size:11px;color:${_fBarMt}">${fcNote}</span>${_fUpdated}</div><div style="display:flex;gap:8px;align-items:center">${_fcPodSel}<button onclick="ssTheme()" title="Toggle light/dark mode" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button>${_fRefBtn}<button onclick="_closeForecast()" style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_forecast_iframe" style="flex:1;border:none;background:${_fIfBg};" src="about:blank"></iframe>`;
     requestAnimationFrame(()=>{const fr=document.getElementById('_forecast_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
