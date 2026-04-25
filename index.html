@@ -2031,7 +2031,7 @@ function _buildLiveGoalsData(){
   const POOL_MAP={'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise','Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise','Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise','Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise','Sunny Unger':'Enterprise','Joe Romanoff':'Strategic','Support iConnections':'Scale'};
   const WON_S=new Set(['9. Invoice Sent','10. Paid']);
   const CHURNED_S=new Set(['11. Churned']);
-  const DECLINED_S=new Set([]);
+  const DECLINED_S=new Set(['4a. Attempting again Q2']);
   function getQ(se){if(!se)return null;const m=parseInt((se.split('-')[1]||'0'));if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return null;}
   const grr={};
   ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});});
@@ -4417,7 +4417,7 @@ const fmt = n => n>=1e6?`$${(n/1e6).toFixed(1)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}
 const fmtSE = s => {if(!s)return'—';const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1];};
 function _rcSaveSnap(){
   const snap={gpRetention:{},cadence:{}};
-  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=[];
+  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=['4a. Attempting again Q2'];
   ['Q1','Q2','Q3','Q4'].forEach(function(q){snap.gpRetention[q]={};['Enterprise','Strategic','Scale'].forEach(function(p){
     const d=(GRR[q]||{})[p]||{};
     snap.gpRetention[q][p]={
@@ -5245,7 +5245,7 @@ function _renderChkLegend(chartId,legendId){
 // ── ACCOUNT SUB-TABLE (sortable + filterable) ────────
 let _acctSort={},_acctFilt={};
 function _acctTableHTML(rid,q,pool){
-  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=[];
+  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
   const sc=a=>{if(WS.includes(a.stage))return'var(--green)';if(CS.includes(a.stage))return'var(--red)';if(DS.includes(a.stage))return'var(--orange)';return'var(--muted)';};
   let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&(!selGPCSM||a.csRep===selGPCSM)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth)&&(!selGPPod||a.pod===selGPPod));
   const allStages=[...new Set(rows.map(a=>a.stage).filter(Boolean))].sort();
@@ -5301,7 +5301,7 @@ function rGP(){
   const filtAccts=selGPMonth?csmFiltered.filter(a=>(a.se||'').substring(5,7)===selGPMonth):csmFiltered;
 
   // Re-aggregate per-pool data from filtered accounts (or use global GRR when no active filters)
-  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=[];
+  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
   const needsReagg=selGPCSM||selGPMonth||selGPPod;
   const grrQ=needsReagg?(()=>{
     const r={};pools.forEach(p=>{r[p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});
@@ -5317,7 +5317,8 @@ function rGP(){
   let totalOpen=0,totalWon=0,totalLogos=0,totalDeclined=0;
   pools.forEach(p=>{const d=grrQ[p];totalOpen+=d.open;totalWon+=d.won;totalLogos+=d.logos;totalDeclined+=d.declined});
   const totalWinback=(filtAccts||[]).filter(a=>a.stage==='4a. Attempting again Q2').length;
-  const totalTrulyOpen=Math.max(0,totalOpen-totalWinback);
+  // 4a "Attempting again Q2" is now classified as Declined (not Open), so totalOpen already excludes winbacks.
+  const totalTrulyOpen=totalOpen;
   const floorN=Math.ceil(totalLogos*GP_T[tKey]?.floor/100)||0;
   const fullN=Math.ceil(totalLogos*GP_T[tKey]?.full/100)||0;
   const accelN=Math.ceil(totalLogos*GP_T[tKey]?.accel/100)||0;
@@ -6267,7 +6268,7 @@ function rTargets(){
   function ed(title,tgts,pfx){
     return`<div class="card"><h3>${title}</h3><div class="sh">Q1 is CLOSED. Adjust Q2+ below. Q2 = logo retention. Q3+ evolving to GRR.</div>${periods.map(p=>`<div class="target-row"><label>${p.l}</label>${["floor","full","accel"].map(f=>`<div class="fg"><span>${f==="floor"?"Floor":f==="full"?"Full":"Accel"}</span><input type="number" id="${pfx}_${p.k}_${f}" value="${tgts[p.k]?.[f]||''}" onchange="updateTargets('${pfx}')"><span class="pct">%</span></div>`).join('')}</div>`).join('')}</div>`}
   const qs=["Q1","Q2","Q3","Q4"];
-  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=[];
+  const _WS=['9. Invoice Sent','10. Paid'],_CS=['11. Churned'],_DS=['4a. Attempting again Q2'];
   let rows=qs.map(q=>{
     let tl=0,tw=0,tlo=0,tde=0;
     if(ACCTS&&ACCTS.length){
