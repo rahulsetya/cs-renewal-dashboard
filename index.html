@@ -2361,7 +2361,7 @@ function _buildCadenceData(){
   ENG_RAW.forEach(r=>{
     const csm=r.ro||'';if(!csm)return;
     if(!csmMap[csm]){csmMap[csm]={total:0,months:{},allAccts:[]};cols.forEach(c=>{csmMap[csm].months[c]={yes:0,accts:[]};});}
-    const acctObj={acct:r.acct,rsk:r.rsk||0,notes:r.notes||'',calls:r.calls||{},se:excelDateToJS(r.rawEnd)||''};
+    const acctObj={acct:r.acct,rsk:r.rsk||0,notes:r.notes||'',calls:r.calls||{},se:excelDateToJS(r.rawEnd)||'',platformId:r.platformId||''};
     csmMap[csm].total++;
     csmMap[csm].allAccts.push(acctObj);
     cols.forEach(c=>{const v=String((r.calls&&r.calls[c])||'').trim();if(v.toLowerCase().startsWith('y')){csmMap[csm].months[c].yes++;csmMap[csm].months[c].accts.push(acctObj);}});
@@ -4497,6 +4497,226 @@ function _exportCadenceXLSX(){
   XLSX.writeFile(wb,'cadence-'+colMatch.toLowerCase()+'-'+ts+'.xlsx');
 }
 
+// ── CADENCE AUDIT ──────────────────────────────────────────────────────────
+// Hidden, password-gated tool that reconciles a HubSpot meeting export
+// against the self-reported call cadence in the engagement tracker. Match
+// key is **Platform ID × Month only** — CSM/owner names are never used as
+// a join key, since the cadence tracker may be filled out by a different
+// person than the activity owner in HubSpot.
+let _cadAuditPwOK=false,_cadAuditData=null,_cadAuditPwTried=false;
+const _CAD_AUDIT_KEY='cs_cadaudit_v1';
+try{const _raw=localStorage.getItem(_CAD_AUDIT_KEY);if(_raw)_cadAuditData=JSON.parse(_raw);}catch(e){}
+
+function _cadAuditPromptImport(){
+  if(!_cadAuditPwOK){
+    const pw=prompt('Password (Cadence Audit):');
+    if(pw===null)return;
+    if(pw!=='rahulsetya777'){alert('Incorrect.');return;}
+    _cadAuditPwOK=true;
+  }
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.xlsx,.xls,.csv';
+  inp.style.display='none';
+  inp.onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)_cadAuditParseFile(f);document.body.removeChild(inp);};
+  document.body.appendChild(inp);inp.click();
+}
+
+function _cadAuditClear(){
+  if(!confirm('Clear imported HubSpot audit data?'))return;
+  _cadAuditData=null;
+  try{localStorage.removeItem(_CAD_AUDIT_KEY);}catch(e){}
+  if(aTab==='cadence')rT('cadence');
+}
+
+function _cadAuditParseFile(file){
+  const XLSX=(window.parent&&window.parent.XLSX)||window.XLSX;
+  if(!XLSX){alert('Excel library not loaded yet. Try again in a moment.');return;}
+  const fr=new FileReader();
+  fr.onload=ev=>{
+    try{
+      const data=new Uint8Array(ev.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(!rows||!rows.length){alert('Empty file.');return;}
+      // Find header row in first 8 rows: must contain a "Platform ... ID" col
+      // and an "Activity ... date" col. Aliases handle HubSpot variants.
+      const wantPid=['platform companyid','platform company id','platform id','company platform id','hubspot id','hubspot record id','company id','record id'];
+      const wantDate=['activity date','last activity date','activity assigned date','meeting date','date','close date'];
+      let hdrRow=-1,pidIdx=-1,dateIdx=-1;
+      for(let r=0;r<Math.min(8,rows.length);r++){
+        const row=(rows[r]||[]).map(v=>String(v||'').trim().toLowerCase());
+        const p=row.findIndex(c=>wantPid.includes(c));
+        const d=row.findIndex(c=>wantDate.some(w=>c===w||c.startsWith(w)));
+        if(p>=0&&d>=0){hdrRow=r;pidIdx=p;dateIdx=d;break;}
+      }
+      if(hdrRow<0){
+        // Fallback: looser match — any cell containing both "platform" and "id"
+        for(let r=0;r<Math.min(8,rows.length);r++){
+          const row=(rows[r]||[]).map(v=>String(v||'').trim().toLowerCase());
+          const p=row.findIndex(c=>c.includes('platform')&&c.includes('id'));
+          const d=row.findIndex(c=>c.includes('date'));
+          if(p>=0&&d>=0){hdrRow=r;pidIdx=p;dateIdx=d;break;}
+        }
+      }
+      if(hdrRow<0){alert('Could not find Platform ID + Activity Date columns. Headers checked: '+(rows[0]||[]).slice(0,12).join(' | '));return;}
+      const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const bucket={};let parsed=0,year=null;
+      const _parseDate=v=>{
+        if(v==null||v==='')return null;
+        if(typeof v==='number'&&v>1000){
+          // Excel serial → JS date (UTC-safe)
+          const d=new Date((v-25569)*86400*1000);
+          return isNaN(d)?null:d;
+        }
+        const s=String(v).trim();
+        // Try YYYY-MM-DD first
+        const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if(m)return new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]));
+        // Try MM/DD/YYYY or M/D/YYYY
+        const m2=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+        if(m2){let y=parseInt(m2[3]);if(y<100)y+=2000;return new Date(y,parseInt(m2[1])-1,parseInt(m2[2]));}
+        const d=new Date(s);return isNaN(d)?null:d;
+      };
+      for(let r=hdrRow+1;r<rows.length;r++){
+        const row=rows[r]||[];
+        const pid=String(row[pidIdx]||'').trim();
+        if(!pid)continue;
+        const dt=_parseDate(row[dateIdx]);
+        if(!dt)continue;
+        const mo=MO[dt.getMonth()];
+        const yr=dt.getFullYear();
+        if(year===null)year=yr;
+        const key=pid+'|'+mo;
+        if(!bucket[key])bucket[key]={count:0,lastDate:null,lastIso:''};
+        bucket[key].count++;
+        if(!bucket[key].lastDate||dt>bucket[key].lastDate){
+          bucket[key].lastDate=dt;
+          bucket[key].lastIso=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+        }
+        parsed++;
+      }
+      // Strip non-serializable lastDate before saving
+      const bucketSave={};
+      Object.keys(bucket).forEach(k=>{bucketSave[k]={count:bucket[k].count,lastIso:bucket[k].lastIso};});
+      _cadAuditData={
+        importedAt:new Date().toISOString(),
+        fileName:file.name,
+        rowsParsed:parsed,
+        bucket:bucketSave,
+        year:year||new Date().getFullYear()
+      };
+      try{localStorage.setItem(_CAD_AUDIT_KEY,JSON.stringify(_cadAuditData));}catch(e){}
+      alert('Imported '+parsed+' meetings from '+file.name+'.\nUnique account-months: '+Object.keys(bucketSave).length);
+      if(aTab==='cadence')rT('cadence');
+    }catch(err){alert('Failed to parse file: '+(err.message||err));}
+  };
+  fr.onerror=()=>alert('Failed to read file.');
+  fr.readAsArrayBuffer(file);
+}
+
+// Walk every (account, month) pair from the cadence data and tag a status:
+//   verified   — tracker says Y, HubSpot has ≥1 meeting   ✅
+//   unverified — tracker says Y, HubSpot has 0 meetings   ❌
+//   forgot     — tracker says blank/N, HubSpot has ≥1     ⚠
+//   none       — both empty (silently dropped)
+function _cadAuditCompute(){
+  if(!_cadAuditData||!_cadAuditData.bucket)return null;
+  const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
+  if(!cd||!cd.cols)return null;
+  const bucket=_cadAuditData.bucket;
+  const perCSM={};
+  const rows=[];
+  Object.keys(cd.csm).forEach(csmName=>{
+    const d=cd.csm[csmName];
+    perCSM[csmName]={markedY:0,verified:0,unverified:0,forgot:0,noPid:0};
+    (d.allAccts||[]).forEach(a=>{
+      cd.cols.forEach(mo=>{
+        const v=String((a.calls&&a.calls[mo])||'').trim().toLowerCase();
+        const marked=v.startsWith('y');
+        const pid=String(a.platformId||'').trim();
+        const b=pid?bucket[pid+'|'+mo]:null;
+        const cnt=b?b.count:0;
+        if(marked&&!pid){perCSM[csmName].noPid++;return;}
+        let status=null;
+        if(marked&&cnt>0)status='verified';
+        else if(marked&&cnt===0)status='unverified';
+        else if(!marked&&cnt>0)status='forgot';
+        if(marked)perCSM[csmName].markedY++;
+        if(status==='verified')perCSM[csmName].verified++;
+        if(status==='unverified')perCSM[csmName].unverified++;
+        if(status==='forgot')perCSM[csmName].forgot++;
+        if(status){
+          rows.push({
+            csm:csmName,acct:a.acct,pid,month:mo,
+            tracker:marked?'Y':(v||''),
+            hsCount:cnt,
+            lastDate:b?b.lastIso:'',
+            status
+          });
+        }
+      });
+    });
+  });
+  return{perCSM,rows};
+}
+
+function _exportCadenceAuditXLSX(){
+  const XLSX=(window.parent&&window.parent.XLSX)||window.XLSX;
+  if(!XLSX){alert('Excel library not loaded yet.');return;}
+  const audit=_cadAuditCompute();
+  if(!audit){alert('No audit data — import a HubSpot file first.');return;}
+  const now=new Date();
+  const ts=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  // Sheet 1: Per-CSM Scorecard
+  const sumRows=[['CSM','Marked Y (tracker)','Verified (Y + HS≥1)','Unverified (Y + HS=0)','Forgot (HS≥1, blank tracker)','Match Rate','Missing Platform ID']];
+  Object.keys(audit.perCSM).sort().forEach(c=>{
+    const s=audit.perCSM[c];
+    const rate=s.markedY?s.verified/s.markedY:0;
+    sumRows.push([c,s.markedY,s.verified,s.unverified,s.forgot,rate,s.noPid]);
+  });
+  const wsSum=XLSX.utils.aoa_to_sheet(sumRows);
+  const sumRng=XLSX.utils.decode_range(wsSum['!ref']);
+  for(let r=1;r<=sumRng.e.r;r++){
+    const cellRef=XLSX.utils.encode_cell({c:5,r});
+    if(wsSum[cellRef]){wsSum[cellRef].t='n';wsSum[cellRef].z='0%';}
+  }
+  wsSum['!cols']=[{wch:24},{wch:18},{wch:20},{wch:22},{wch:30},{wch:12},{wch:18}];
+  // Sheet 2: Discrepancies
+  const detRows=[['CSM','Account','Platform ID','Month','Tracker','HubSpot Meetings','Last Meeting','Status']];
+  audit.rows.sort((a,b)=>{
+    const order={unverified:0,forgot:1,verified:2};
+    const da=order[a.status]??9,db=order[b.status]??9;
+    if(da!==db)return da-db;
+    return (a.csm||'').localeCompare(b.csm||'')||(a.acct||'').localeCompare(b.acct||'');
+  }).forEach(r=>{
+    detRows.push([r.csm,r.acct,r.pid||'(none)',r.month,r.tracker,r.hsCount,r.lastDate,r.status.toUpperCase()]);
+  });
+  const wsDet=XLSX.utils.aoa_to_sheet(detRows);
+  wsDet['!cols']=[{wch:24},{wch:36},{wch:18},{wch:8},{wch:10},{wch:18},{wch:14},{wch:14}];
+  // Sheet 3: About
+  const meta=[
+    ['CS Renewal — Cadence Audit'],
+    ['Generated',now.toLocaleString()],
+    ['Source File',(_cadAuditData&&_cadAuditData.fileName)||''],
+    ['Imported At',(_cadAuditData&&_cadAuditData.importedAt)||''],
+    ['HubSpot Rows Parsed',(_cadAuditData&&_cadAuditData.rowsParsed)||0],
+    ['Match Key','Platform ID × Month (CSM/owner names not used)'],
+    [],
+    ['Status legend'],
+    ['VERIFIED','Tracker marked Y and HubSpot has ≥1 meeting that month'],
+    ['UNVERIFIED','Tracker marked Y but HubSpot has 0 meetings'],
+    ['FORGOT','HubSpot has ≥1 meeting but tracker is blank/N'],
+  ];
+  const wsMeta=XLSX.utils.aoa_to_sheet(meta);
+  wsMeta['!cols']=[{wch:22},{wch:60}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,wsSum,'Scorecard');
+  XLSX.utils.book_append_sheet(wb,wsDet,'Discrepancies');
+  XLSX.utils.book_append_sheet(wb,wsMeta,'About');
+  XLSX.writeFile(wb,'cadence-audit-'+ts+'.xlsx');
+}
+
 const tabsEl=document.getElementById('tabs');
 tabDefs.forEach(t=>{const b=document.createElement('button');b.textContent=t.l;b.dataset.t=t.id;if(t.id===aTab)b.classList.add('active');b.onclick=()=>{if(t.id==='cadence')_cadTabClicked();sw(t.id);};tabsEl.appendChild(b)});
 
@@ -4897,6 +5117,9 @@ function rCadence(){
       <span style="font-size:12px;color:var(--dim)">Quarter:</span>
       ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="selCadQ='${qq}';rT('cadence')">${qq}</button>`).join('')}
       ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="margin-left:auto;background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
+      ${_cadExportUnlocked?`<button onclick="_cadAuditPromptImport()" style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot meeting export (.xlsx) — password protected">⬆ Import HubSpot${_cadAuditData?' ✓':''}</button>`:''}
+      ${_cadExportUnlocked&&_cadAuditData?`<button onclick="_exportCadenceAuditXLSX()" style="background:#5b21b6;color:#ede9fe;border:1px solid #8b5cf6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export audit comparison (.xlsx)">⬇ Export Audit (.xlsx)</button>`:''}
+      ${_cadExportUnlocked&&_cadAuditData?`<button onclick="_cadAuditClear()" style="background:transparent;color:#f87171;border:1px solid #7f1d1d;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Clear imported audit data">✕ Clear</button>`:''}
     </div>
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
@@ -4958,7 +5181,126 @@ function rCadence(){
           }).join('')}
         </tbody>
       </table>
-    </div>`;}
+    </div>${(function(){
+      // ── Cadence Audit Panel (only when imported HubSpot data exists) ─────
+      if(!_cadExportUnlocked||!_cadAuditData)return'';
+      const audit=_cadAuditCompute();
+      if(!audit)return'';
+      const importedAt=_cadAuditData.importedAt?new Date(_cadAuditData.importedAt).toLocaleString():'—';
+      const fileName=_cadAuditData.fileName||'(unknown)';
+      // Aggregate counts
+      let tMarked=0,tVer=0,tUnv=0,tFor=0,tNoPid=0;
+      Object.values(audit.perCSM).forEach(s=>{tMarked+=s.markedY;tVer+=s.verified;tUnv+=s.unverified;tFor+=s.forgot;tNoPid+=s.noPid;});
+      const overallRate=tMarked?Math.round(tVer/tMarked*100):0;
+      // Per-CSM scorecard rows (skip CSMs with zero activity)
+      const csmRows=Object.keys(audit.perCSM).map(c=>({c,s:audit.perCSM[c]}))
+        .filter(x=>x.s.markedY>0||x.s.unverified>0||x.s.forgot>0)
+        .sort((a,b)=>{
+          const ra=a.s.markedY?a.s.verified/a.s.markedY:0;
+          const rb=b.s.markedY?b.s.verified/b.s.markedY:0;
+          return ra-rb;
+        });
+      // Discrepancy list — show unverified + forgot first, capped at 200
+      const discList=audit.rows.filter(r=>r.status==='unverified'||r.status==='forgot')
+        .sort((a,b)=>{
+          const order={unverified:0,forgot:1};
+          const da=order[a.status]??9,db=order[b.status]??9;
+          if(da!==db)return da-db;
+          return (a.csm||'').localeCompare(b.csm||'')||(a.acct||'').localeCompare(b.acct||'');
+        });
+      const discShown=discList.slice(0,200);
+      return`
+    <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.04),transparent)">
+      <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span></h3>
+      <div class="sh">Match key: <strong>Platform ID × Month</strong> (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code> · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:600">Match Rate</div>
+          <div style="font-size:22px;font-weight:700;color:${overallRate>=80?'var(--green)':overallRate>=50?'var(--amber)':'var(--red)'};font-family:var(--mono)">${overallRate}%</div>
+          <div style="font-size:10px;color:var(--dim)">${tVer} of ${tMarked} marked Y verified</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+          <div style="font-size:10px;color:#10b981;text-transform:uppercase;font-weight:600">✅ Verified</div>
+          <div style="font-size:22px;font-weight:700;color:var(--green);font-family:var(--mono)">${tVer}</div>
+          <div style="font-size:10px;color:var(--dim)">Tracker Y + HS ≥1</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+          <div style="font-size:10px;color:#ef4444;text-transform:uppercase;font-weight:600">❌ Unverified</div>
+          <div style="font-size:22px;font-weight:700;color:var(--red);font-family:var(--mono)">${tUnv}</div>
+          <div style="font-size:10px;color:var(--dim)">Tracker Y, HS = 0</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+          <div style="font-size:10px;color:#fbbf24;text-transform:uppercase;font-weight:600">⚠ Forgot to Log</div>
+          <div style="font-size:22px;font-weight:700;color:var(--amber);font-family:var(--mono)">${tFor}</div>
+          <div style="font-size:10px;color:var(--dim)">HS ≥1, tracker blank/N</div>
+        </div>
+        ${tNoPid?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:600">No Platform ID</div>
+          <div style="font-size:22px;font-weight:700;color:var(--dim);font-family:var(--mono)">${tNoPid}</div>
+          <div style="font-size:10px;color:var(--dim)">Marked Y but missing PID</div>
+        </div>`:''}
+      </div>
+      ${csmRows.length?`<div style="overflow-x:auto;margin-top:8px">
+        <table style="border-collapse:collapse;width:100%;min-width:500px">
+          <thead><tr style="border-bottom:1px solid var(--borderL)">
+            <th style="text-align:left;padding:8px 12px;font-size:11px">CSM</th>
+            <th style="text-align:center;padding:8px 8px;font-size:11px">Marked Y</th>
+            <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--green)">Verified</th>
+            <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--red)">Unverified</th>
+            <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--amber)">Forgot</th>
+            <th style="text-align:center;padding:8px 8px;font-size:11px">Match %</th>
+          </tr></thead>
+          <tbody>
+            ${csmRows.map(x=>{
+              const r=x.s.markedY?Math.round(x.s.verified/x.s.markedY*100):0;
+              const rColor=r>=80?'var(--green)':r>=50?'var(--amber)':'var(--red)';
+              return`<tr style="border-top:1px solid var(--border)">
+                <td style="padding:7px 12px;font-size:12px;font-weight:500">${x.c}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px">${x.s.markedY}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;color:var(--green)">${x.s.verified}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;color:${x.s.unverified?'var(--red)':'var(--dim)'}">${x.s.unverified}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;color:${x.s.forgot?'var(--amber)':'var(--dim)'}">${x.s.forgot}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:13px;font-weight:700;color:${x.s.markedY?rColor:'var(--dim)'}">${x.s.markedY?r+'%':'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`:'<div style="font-size:12px;color:var(--dim);padding:8px 0">No CSM activity to score.</div>'}
+      ${discShown.length?`<div style="margin-top:18px">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Discrepancies <span style="color:var(--dim);font-weight:400">(${discList.length}${discList.length>200?', showing first 200 — full list in Export':''})</span></div>
+        <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+          <table style="border-collapse:collapse;width:100%;min-width:600px;font-size:11px">
+            <thead style="position:sticky;top:0;background:var(--bg)"><tr style="border-bottom:1px solid var(--borderL)">
+              <th style="text-align:left;padding:6px 10px">Status</th>
+              <th style="text-align:left;padding:6px 10px">CSM</th>
+              <th style="text-align:left;padding:6px 10px">Account</th>
+              <th style="text-align:center;padding:6px 10px">Month</th>
+              <th style="text-align:center;padding:6px 10px">Tracker</th>
+              <th style="text-align:center;padding:6px 10px">HS Mtgs</th>
+              <th style="text-align:left;padding:6px 10px">Last Mtg</th>
+              <th style="text-align:left;padding:6px 10px">Platform ID</th>
+            </tr></thead>
+            <tbody>
+              ${discShown.map(r=>{
+                const sc=r.status==='unverified'?'var(--red)':r.status==='forgot'?'var(--amber)':'var(--green)';
+                const sl=r.status==='unverified'?'❌ UNVERIFIED':r.status==='forgot'?'⚠ FORGOT':'✅ VERIFIED';
+                return`<tr style="border-top:1px solid var(--border)">
+                  <td style="padding:5px 10px;color:${sc};font-weight:600;white-space:nowrap">${sl}</td>
+                  <td style="padding:5px 10px">${r.csm}</td>
+                  <td style="padding:5px 10px">${r.acct}</td>
+                  <td style="padding:5px 10px;text-align:center">${r.month}</td>
+                  <td style="padding:5px 10px;text-align:center;font-family:var(--mono)">${r.tracker||'—'}</td>
+                  <td style="padding:5px 10px;text-align:center;font-family:var(--mono);color:${r.hsCount>0?'var(--green)':'var(--dim)'}">${r.hsCount}</td>
+                  <td style="padding:5px 10px;font-family:var(--mono);color:var(--dim)">${r.lastDate||'—'}</td>
+                  <td style="padding:5px 10px;font-family:var(--mono);color:var(--dim)">${r.pid||'(none)'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`:'<div style="font-size:12px;color:var(--green);padding:8px 0">✅ No discrepancies — every Y in the tracker has a matching HubSpot meeting.</div>'}
+    </div>`;
+    })()}`;}
 
 
 // ── ALL ACCOUNTS ────────────────────────────────────
