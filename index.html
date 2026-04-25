@@ -4521,7 +4521,15 @@ function _exportCadenceXLSX(){
 // person than the activity owner in HubSpot.
 let _cadAuditPwOK=false,_cadAuditData=null,_cadAuditPwTried=false;
 const _CAD_AUDIT_KEY='cs_cadaudit_v1';
+// ── TEAM-PUBLISHED AUDIT DATA ───────────────────────────────────────────────
+// This const is rewritten each weekly publish so every dashboard user sees
+// the same verification state without having to import the xlsx themselves.
+// Local imports (in this browser) override it so the publisher can preview
+// before pushing. Format identical to _cadAuditData. Keep the BAKE markers
+// intact — the publish script regex-replaces between them.
+/*BAKE_BEGIN*/const BAKED_AUDIT_DATA=null;/*BAKE_END*/
 try{const _raw=localStorage.getItem(_CAD_AUDIT_KEY);if(_raw)_cadAuditData=JSON.parse(_raw);}catch(e){}
+if(!_cadAuditData&&BAKED_AUDIT_DATA)_cadAuditData=BAKED_AUDIT_DATA;
 // Bucket-key migration. v1 keyed by "pid|Mon" (no year) — that means a
 // stale 2025 import would falsely "verify" 2026 cadence cells. v2 keys by
 // "pid|YYYY-Mon" so the year must match exactly. If we detect an old-format
@@ -4552,6 +4560,39 @@ function _hsBucket(pid,mo){
   const p=String(pid||'').trim();if(!p)return null;
   const yr=new Date().getFullYear();
   return _cadAuditData.bucket[p+'|'+yr+'-'+mo]||null;
+}
+// Publish: download the current audit data as JSON. The publisher hands this
+// file to Claude (or commits it directly into the BAKE_BEGIN/BAKE_END slot
+// in index.html) so every dashboard user sees the same verification state.
+function _cadPublishToTeam(){
+  if(!_cadAuditData||!_cadAuditData.bucket){alert('No audit data to publish — import a HubSpot file first.');return;}
+  const payload={
+    importedAt:_cadAuditData.importedAt||new Date().toISOString(),
+    fileName:_cadAuditData.fileName||'',
+    sheetName:_cadAuditData.sheetName||'',
+    rowsParsed:_cadAuditData.rowsParsed||0,
+    bucket:_cadAuditData.bucket,
+    year:_cadAuditData.year||new Date().getFullYear()
+  };
+  const json=JSON.stringify(payload);
+  const ts=new Date().toISOString().slice(0,10);
+  // Always trigger a file download so the publisher has something to hand off.
+  try{
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='cad-audit-'+ts+'.json';
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+  }catch(e){}
+  // Also try clipboard so they can paste directly to Claude.
+  let copied=false;
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(json);copied=true;
+    }
+  }catch(e){}
+  alert('Published payload ready.\n\n• Downloaded: cad-audit-'+ts+'.json\n'+(copied?'• Also copied to clipboard\n':'')+'\nSend it to Claude and ask to "bake into dashboard". Once committed, every user sees this verification state.');
 }
 // The audit scopes to a single month at a time. Defaults to the live current
 // month and auto-tracks across day boundaries until the user manually picks
@@ -5343,7 +5384,14 @@ function rCadence(){
       const _moChips=(CADENCE_DATA.cols||[]).map(mo=>`<button onclick="_setCadAuditMo('${mo}')" style="background:${mo===_curAuditMo?'#3b82f6':'transparent'};color:${mo===_curAuditMo?'#fff':'var(--text)'};border:1px solid ${mo===_curAuditMo?'#3b82f6':'var(--border)'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${mo}</button>`).join('');
       return`
     <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.04),transparent)">
-      <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span></h3>
+      <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span>${(function(){
+        // Source indicator. Local localStorage import always wins (publisher
+        // preview). When localStorage is empty we show a published-source pill.
+        const hasLocal=(function(){try{return!!localStorage.getItem(_CAD_AUDIT_KEY);}catch(e){return false;}})();
+        if(hasLocal)return`<span style="font-size:10px;background:rgba(59,130,246,.20);color:#60a5fa;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">LOCAL IMPORT</span>`;
+        if(BAKED_AUDIT_DATA)return`<span style="font-size:10px;background:rgba(34,197,94,.20);color:#22c55e;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">TEAM-PUBLISHED</span>`;
+        return'';
+      })()}</h3>
       <div class="sh">Match key: <strong>Platform ID × Month × Year</strong> — verification only fires when all three match exactly (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
       ${(function(){
         const auditYr=_cadAuditData.year||0;
@@ -5357,6 +5405,8 @@ function rCadence(){
         <span style="font-size:12px;color:var(--dim);font-weight:600">Auditing:</span>
         ${_moChips}
         <span style="font-size:11px;color:var(--dim)">Showing <strong style="color:var(--accent)">${_curAuditMo} ${(_cadAuditData.year||new Date().getFullYear())}</strong> only${_cadAuditMoPinned?'':` <span style="color:var(--dim)">(auto-tracking live month)</span>`}</span>
+        <span style="flex:1"></span>
+        <button onclick="_cadPublishToTeam()" title="Download this audit data as a JSON file so it can be baked into the dashboard for the whole team" style="background:#10b981;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">📤 Publish to Team</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0">
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="Of all the calls a CSM marked 'Y' in the tracker, how many were confirmed by a real meeting in HubSpot?">
