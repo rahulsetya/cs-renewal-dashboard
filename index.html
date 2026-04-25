@@ -4657,6 +4657,19 @@ let _cadDiscSort={col:'acct',dir:'asc'};
 let _cadDiscFilt={status:'',csm:''};
 function _cadDiscSetFilt(k,v){_cadDiscFilt[k]=v||'';if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
 function _cadDiscClearFilt(){_cadDiscFilt={status:'',csm:''};if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
+// Drive-by from a CSM-row chip ("❌3" / "⚠2") on the main cadence table:
+// pre-fills both filter dropdowns then scrolls to the Review & Resolve
+// section so the CSM lands right on their pending rows. setTimeout gives
+// the re-render a tick to install the new section node before scroll.
+function _cadJumpToReview(csmName,statusKey){
+  _cadDiscFilt.status=statusKey||'';
+  _cadDiscFilt.csm=csmName||'';
+  if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
+  setTimeout(()=>{
+    const el=document.getElementById('cad-review-section');
+    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  },80);
+}
 function _cadDiscSetSort(col){
   if(_cadDiscSort.col===col)_cadDiscSort.dir=_cadDiscSort.dir==='asc'?'desc':'asc';
   else{_cadDiscSort.col=col;_cadDiscSort.dir='asc';}
@@ -5533,6 +5546,13 @@ function rCadence(){
   const _rcTs=_rcSnap?new Date(_rcSnap.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):null;
   const _rcCad=_rcSnap?.cadence||null;
   const _rcCadD=(csm,month,cur)=>{if(!_rcCad||!_rcCad[csm])return'';const old=(_rcCad[csm].months||{})[month]||0,diff=cur-old;if(!diff)return'';return`<span style="font-size:9px;font-weight:700;color:${diff>0?'var(--green)':'var(--red)'};display:block">${diff>0?'▲':'▼'}${Math.abs(diff)}</span>`;};
+  // Audit-derived discrepancy chips per CSM. Computed once for the whole
+  // table and looked up by CSM name in the row render. Counts are scoped
+  // to the audit panel's selected month (NOT the visible quarter), so the
+  // chips and the Review & Resolve table stay aligned. Returns null when
+  // no HubSpot import is loaded — chips just don't render in that case.
+  const _audit=_cadAuditData?_cadAuditCompute():null;
+  const _auditMo=_audit?_liveCadAuditMo():'';
   el.innerHTML=`
     <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--dim)">Quarter:</span>
@@ -5575,9 +5595,20 @@ function rCadence(){
             const qTot=visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0),0);
             const snapQTot=_rcCad?.[c.n]?visCols.reduce((s,m)=>s+((_rcCad[c.n].months||{})[m]||0),0):null;
             const qTotDiff=snapQTot!==null?qTot-snapQTot:0;
+            // Discrepancy chips (❌ unconfirmed / ⚠ missed logging) — only when
+            // an audit is loaded and the CSM has at least one in the audit
+            // month. event.stopPropagation keeps clicks from also expanding
+            // the CSM's account panel (the parent <td> has its own onclick).
+            const _stats=_audit?_audit.perCSM[c.n]:null;
+            const _unv=_stats?_stats.unverified||0:0;
+            const _frg=_stats?_stats.forgot||0:0;
+            const _csmEsc=c.n.replace(/'/g,"\\'");
+            const _chipBase='display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px;cursor:pointer;font-family:var(--mono);vertical-align:middle';
+            const _unvChip=_unv>0?`<span onclick="event.stopPropagation();_cadJumpToReview('${_csmEsc}','unverified')" title="${_unv} unconfirmed call${_unv>1?'s':''} in ${_auditMo} — click to review" style="${_chipBase};background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.4)">❌ ${_unv}</span>`:'';
+            const _frgChip=_frg>0?`<span onclick="event.stopPropagation();_cadJumpToReview('${_csmEsc}','forgot')" title="${_frg} missed-logging call${_frg>1?'s':''} in ${_auditMo} — click to review" style="${_chipBase};background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.4)">⚠ ${_frg}</span>`:'';
             return`<tr style="border-top:1px solid var(--border);background:${isSP?'var(--roseG)':'transparent'}">
               <td style="padding:7px 12px;cursor:pointer" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}',null)">
-                <span style="font-size:13px;font-weight:500;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)">${c.n}</span>
+                <span style="font-size:13px;font-weight:500;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)">${c.n}</span>${_unvChip}${_frgChip}
                 <div style="font-size:10px;color:var(--dim)">${c.pod?c.pod+' · ':''}${cData.total||c.a} accts</div>
               </td>
               <td style="padding:7px 8px"><span class="pill" style="color:${PC[c.seg]||'var(--rose)'}">${isSP?'SP':c.seg}</span></td>
@@ -5789,7 +5820,7 @@ function rCadence(){
           </tbody>
         </table>
       </div>`:'<div style="font-size:12px;color:var(--dim);padding:8px 0">No CSM activity to score.</div>'}
-      ${discPool.length?`<div style="margin-top:18px">
+      ${discPool.length?`<div id="cad-review-section" style="margin-top:18px;scroll-margin-top:60px">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Review & Resolve — <span style="color:var(--accent)">${_curAuditMo}</span> <span style="color:var(--dim);font-weight:400">(${_filtActive?`${discList.length} of ${discPool.length}`:discList.length}${discList.length>200?', showing first 200':''})</span></div>
         <div style="font-size:10px;color:var(--dim);margin-bottom:6px"><span style="color:var(--red)">❌ Unconfirmed</span> = tracker marked Y but no HubSpot meeting · <span style="color:var(--amber)">⚠ Missed Logging</span> = HubSpot meeting exists but tracker blank · click <strong style="color:var(--green)">Verify</strong> if you confirm the call really happened (e.g. on Zoom), or <strong style="color:var(--accent)">Note</strong> to record context.</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:11px">
