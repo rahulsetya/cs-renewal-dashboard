@@ -1541,6 +1541,31 @@ const RAHUL_MILESTONES=[
 
 function _mboProgress(){try{return JSON.parse(localStorage.getItem('rahul_mbo_progress')||'{}');}catch(e){return{};}}
 function _mboSave(p){try{localStorage.setItem('rahul_mbo_progress',JSON.stringify(p));}catch(e){}}
+// Notes / proof links — parallel store keyed the same way as progress
+// ('1.1', '2.1@2026-05-01', 'ms@2026-04-30'). Kept separate so clearing
+// progress doesn't nuke the attached evidence.
+function _mboNotes(){try{return JSON.parse(localStorage.getItem('rahul_mbo_notes')||'{}');}catch(e){return{};}}
+function _mboNotesSave(n){try{localStorage.setItem('rahul_mbo_notes',JSON.stringify(n));}catch(e){}}
+function _mboNoteIsUrl(s){return /^https?:\/\//i.test(String(s||'').trim());}
+function _mboNoteHTML(s){
+  const v=String(s||'').trim();if(!v)return'';
+  if(_mboNoteIsUrl(v)){
+    const short=v.length>60?v.slice(0,60)+'…':v;
+    return `<a href="${v.replace(/"/g,'&quot;')}" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:underline;word-break:break-all">${short}</a>`;
+  }
+  return `<span style="color:#cbd5e1">${v.replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[ch])}</span>`;
+}
+function _editMBONote(key){
+  event&&event.stopPropagation&&event.stopPropagation();
+  const notes=_mboNotes();
+  const cur=notes[key]||'';
+  const v=prompt('Edit note / link (leave blank to remove):',cur);
+  if(v===null)return;
+  const t=v.trim();
+  if(t)notes[key]=t;else delete notes[key];
+  _mboNotesSave(notes);
+  _rebuildMBOOverlay();
+}
 
 // Recurring KR helpers — each Friday (or other recurrence) is its own
 // completable occurrence tracked in localStorage with key `${k.id}@${iso}`.
@@ -1564,11 +1589,27 @@ function _krFrac(k,p){const t=_krTotal(k);return t?_krDone(k,p)/t:0;}
 
 // Unified toggle for any completable item on the calendar: a single KR
 // (`k.id`), a recurring KR occurrence (`k.id@YYYY-MM-DD`), or a milestone
-// (`ms@YYYY-MM-DD`). Rebuilds the overlay so progress bars + calendar state
-// update consistently, preserving scroll position.
+// (`ms@YYYY-MM-DD`). On mark-complete, prompts for an optional note/link
+// (proof of completion). On uncheck, silently clears both state + note.
+// Rebuilds the overlay so progress bars + calendar state update
+// consistently, preserving scroll position.
 function _toggleMBOKey(key){
   const p=_mboProgress();
-  p[key]=!p[key];
+  const notes=_mboNotes();
+  if(!p[key]){
+    // Marking complete — ask for optional note/link
+    const cur=notes[key]||'';
+    const v=prompt('Mark complete. Add a link or note (proof of completion — optional):',cur);
+    if(v===null)return; // user cancelled — don't mark complete
+    p[key]=true;
+    const t=v.trim();
+    if(t)notes[key]=t;else delete notes[key];
+    _mboNotesSave(notes);
+  } else {
+    // Unchecking — drop progress + note silently
+    p[key]=false;
+    if(notes[key]){delete notes[key];_mboNotesSave(notes);}
+  }
   _mboSave(p);
   _rebuildMBOOverlay();
 }
@@ -1592,6 +1633,7 @@ function _closeRahulMBOs(){const el=document.getElementById('rahul-mbo-overlay')
 function _buildQ2Calendar(){
   // Weekly grid Mar 30 (Mon) → Jul 5 (Sun) — 14 weeks covering all of Q2 2026
   const p=_mboProgress();
+  const notes=_mboNotes();
   const today=new Date();today.setHours(0,0,0,0);
   const start=new Date(2026,2,30); // Mar 30 Mon
   const weeks=[];
@@ -1626,9 +1668,14 @@ function _buildQ2Calendar(){
   // KRs stay neutral gray.
   const renderEvent=(key,label,color,isMilestone)=>{
     const checked=!!p[key];
-    return `<div onclick="_toggleMBOKey('${key}')" style="display:flex;gap:4px;align-items:flex-start;cursor:pointer;margin-top:3px;opacity:${checked?'.55':'1'};user-select:none" title="Click to mark ${checked?'incomplete':'complete'}">`+
+    const note=notes[key]||'';
+    const hasNote=!!note;
+    const noteIcon=hasNote?(_mboNoteIsUrl(note)?'🔗':'📝'):'';
+    const noteTitle=hasNote?('Note: '+note):('');
+    const tooltip=hasNote?noteTitle:`Click to mark ${checked?'incomplete':'complete'}`;
+    return `<div onclick="_toggleMBOKey('${key}')" style="display:flex;gap:4px;align-items:flex-start;cursor:pointer;margin-top:3px;opacity:${checked?'.55':'1'};user-select:none" title="${tooltip.replace(/"/g,'&quot;')}">`+
       `<div style="width:12px;height:12px;border-radius:3px;border:1.5px solid ${checked?color:'#475569'};background:${checked?color:'transparent'};color:#0B1120;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .12s">${checked?'✓':''}</div>`+
-      `<div style="font-size:${isMilestone?'10px':'9px'};color:${isMilestone?color:'#cbd5e1'};font-weight:${isMilestone?'600':'500'};line-height:1.3;text-decoration:${checked?'line-through':'none'}">${label}</div>`+
+      `<div style="font-size:${isMilestone?'10px':'9px'};color:${isMilestone?color:'#cbd5e1'};font-weight:${isMilestone?'600':'500'};line-height:1.3;text-decoration:${checked?'line-through':'none'}">${label}${hasNote?` <span style="opacity:.9">${noteIcon}</span>`:''}</div>`+
       `</div>`;
   };
   let h='<div style="display:flex;flex-direction:column;gap:6px">';
@@ -1667,6 +1714,7 @@ function _buildQ2Calendar(){
 
 function _openRahulMBOs(){
   const p=_mboProgress();
+  const notes=_mboNotes();
   document.body.style.overflow='hidden';
   const overlay=document.createElement('div');
   overlay.id='rahul-mbo-overlay';
@@ -1692,7 +1740,7 @@ function _openRahulMBOs(){
   h+='<div style="height:10px;background:#0B1120;border-radius:6px;overflow:hidden">';
   h+=`<div id="mbo-overall-bar" style="height:100%;background:linear-gradient(90deg,#3b82f6,#06b6d4);width:${overallPct}%;transition:width .3s"></div>`;
   h+='</div>';
-  h+='<div style="font-size:11px;color:#64748b;margin-top:8px">Check off KRs on the cards below OR tap the mini checkboxes in the calendar (each Friday is a separate deliverable) — progress saves automatically.</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-top:8px">Check off items anywhere (calendar, KR cards). Each Friday is its own deliverable. When marking complete you\'ll be prompted for an optional link/note (proof of completion) — shown with 🔗/📝 on the calendar and on the KR card. Everything saves to this device.</div>';
   h+='</div>';
 
   // Weekly calendar
@@ -1782,6 +1830,37 @@ function _openRahulMBOs(){
         h+=`<div style="height:3px;background:#0B1120;border-radius:2px;overflow:hidden;margin-top:6px;max-width:240px"><div style="height:100%;background:#10b981;width:${rpct}%;transition:width .3s"></div></div>`;
       }
       h+=`<div style="display:flex;gap:10px;align-items:center;margin-top:4px;font-size:10px;font-family:'JetBrains Mono',monospace"><span style="color:${overdue?'#ef4444':'#64748b'}">${dueText}</span></div>`;
+      // Notes / proof links
+      if(isRecur){
+        // Compact per-occurrence list of completed Fridays with their notes.
+        // Only show if at least one Friday is checked — otherwise it's noise.
+        const occs=_krOccurrences(k);
+        const checkedOccs=occs.filter(iso=>p[k.id+'@'+iso]);
+        if(checkedOccs.length){
+          h+='<div style="margin-top:8px;padding:8px 10px;background:rgba(16,185,129,.06);border-left:2px solid #10b981;border-radius:4px">';
+          h+='<div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:#10b981;font-weight:600;margin-bottom:4px">Proof of completion</div>';
+          checkedOccs.forEach(iso=>{
+            const dt=new Date(iso+'T00:00:00');
+            const lbl=dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+            const nk=k.id+'@'+iso;
+            const n=notes[nk]||'';
+            h+=`<div style="display:flex;gap:6px;align-items:flex-start;font-size:11px;padding:2px 0;line-height:1.5">`+
+              `<span style="color:#10b981;font-weight:600;min-width:42px">${lbl}</span>`+
+              `<span style="flex:1">${n?_mboNoteHTML(n):'<span style="color:#475569;font-style:italic">no note</span>'}</span>`+
+              `<span onclick="event.stopPropagation();_editMBONote('${nk}')" style="color:#64748b;cursor:pointer;font-size:11px;padding:0 4px" title="Edit note">✎</span>`+
+              `</div>`;
+          });
+          h+='</div>';
+        }
+      } else if(checked){
+        // Single KR note line
+        const n=notes[k.id]||'';
+        h+='<div style="margin-top:6px;padding:6px 10px;background:rgba(16,185,129,.06);border-left:2px solid #10b981;border-radius:4px;display:flex;gap:8px;align-items:flex-start;font-size:11px;line-height:1.5">';
+        h+=`<span style="color:#10b981;font-weight:600">📎</span>`;
+        h+=`<span style="flex:1">${n?_mboNoteHTML(n):'<span style="color:#475569;font-style:italic">no note — click ✎ to add link/proof</span>'}</span>`;
+        h+=`<span onclick="event.stopPropagation();_editMBONote('${k.id}')" style="color:#64748b;cursor:pointer;padding:0 4px" title="Edit note">✎</span>`;
+        h+='</div>';
+      }
       h+='</div></div>';
     });
     h+='</div>';
