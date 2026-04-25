@@ -2352,12 +2352,23 @@ function _buildLiveForecastData(pods){
   return{gp,gpq,gpqr,spq,spq_q,sp_rev};
 }
 // Display-name remap for CSM owner keys. The engagement tracker has the
-// Scale book filed under a single shared owner ("Support iConnections"),
-// but the dashboard CSM roster shows it as "Scale Team". Both _buildCadenceData
-// (here) and _buildLiveCSMRoster (below) must apply the same map so cadence
-// lookups by display name succeed and the TOTAL row counts correctly. Keep
-// them in sync — if you add a new entry, add it in both places.
-const _CSM_DISPLAY={'Support iConnections':'Scale Team'};
+// Scale book is split across a shared inbox owner ("Support iConnections")
+// and two named CSMs (Jovin Lee, Phoebe Willoughby) who both report into
+// the Scale pod. The dashboard rolls all three up under a single "Scale
+// Team" row, so every owner alias has to map to the same display name.
+// _buildCadenceData (here) and _buildLiveCSMRoster (below) both apply this
+// map so cadence lookups by display name succeed and the TOTAL row counts
+// correctly. Keep them in sync — adding an alias here is enough; both
+// callers read this same constant.
+const _CSM_DISPLAY={
+  'Support iConnections':'Scale Team',
+  'Jovin Lee':'Scale Team',
+  'Phoebe Willoughby':'Scale Team',
+  'Bryan Perez':'Scale Team',
+  'Olivia Juliano':'Scale Team',
+  'Mario Giron':'Scale Team',
+  'Luis':'Scale Team'
+};
 function _buildCadenceData(){
   if(!ENG_RAW||ENG_RAW.length===0)return null;
   const firstWithCalls=ENG_RAW.find(r=>r.calls&&Object.keys(r.calls).length>0);
