@@ -1542,73 +1542,67 @@ const RAHUL_MILESTONES=[
 function _mboProgress(){try{return JSON.parse(localStorage.getItem('rahul_mbo_progress')||'{}');}catch(e){return{};}}
 function _mboSave(p){try{localStorage.setItem('rahul_mbo_progress',JSON.stringify(p));}catch(e){}}
 
-function _toggleKR(krid){
-  const p=_mboProgress();
-  p[krid]=!p[krid];
-  _mboSave(p);
-  // Update only this KR's visual state + parent progress bar + overall bar
-  _rerenderMBOProgress();
+// Recurring KR helpers — each Friday (or other recurrence) is its own
+// completable occurrence tracked in localStorage with key `${k.id}@${iso}`.
+function _krOccurrences(k){
+  if(!k.recur)return[k.due];
+  const out=[];
+  const f=new Date(k.recur.from+'T00:00:00'),t=new Date(k.recur.to+'T00:00:00');
+  for(let d=new Date(f);d<=t;d.setDate(d.getDate()+1)){
+    if(d.getDay()===k.recur.weekday){
+      out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+    }
+  }
+  return out;
 }
-function _rerenderMBOProgress(){
+function _krDone(k,p){
+  if(!k.recur)return p[k.id]?1:0;
+  return _krOccurrences(k).filter(iso=>p[k.id+'@'+iso]).length;
+}
+function _krTotal(k){return k.recur?_krOccurrences(k).length:1;}
+function _krFrac(k,p){const t=_krTotal(k);return t?_krDone(k,p)/t:0;}
+
+// Unified toggle for any completable item on the calendar: a single KR
+// (`k.id`), a recurring KR occurrence (`k.id@YYYY-MM-DD`), or a milestone
+// (`ms@YYYY-MM-DD`). Rebuilds the overlay so progress bars + calendar state
+// update consistently, preserving scroll position.
+function _toggleMBOKey(key){
   const p=_mboProgress();
-  // Update each MBO card header bar + percent
-  RAHUL_MBOS.forEach(mbo=>{
-    const done=mbo.krs.filter(k=>p[k.id]).length;
-    const pct=Math.round(done/mbo.krs.length*100);
-    const barEl=document.getElementById('mbo-bar-'+mbo.id);
-    const pctEl=document.getElementById('mbo-pct-'+mbo.id);
-    if(barEl)barEl.style.width=pct+'%';
-    if(pctEl)pctEl.textContent=done+'/'+mbo.krs.length+' · '+pct+'%';
-    mbo.krs.forEach(k=>{
-      const row=document.getElementById('kr-'+k.id.replace('.','_'));
-      if(row){
-        row.style.opacity=p[k.id]?'.55':'1';
-        const chk=row.querySelector('.mbo-chk');
-        if(chk){
-          chk.style.background=p[k.id]?'#10b981':'transparent';
-          chk.style.borderColor=p[k.id]?'#10b981':'#475569';
-          chk.innerHTML=p[k.id]?'✓':'';
-        }
-        const txt=row.querySelector('.mbo-krtxt');
-        if(txt)txt.style.textDecoration=p[k.id]?'line-through':'none';
-      }
-    });
+  p[key]=!p[key];
+  _mboSave(p);
+  _rebuildMBOOverlay();
+}
+function _toggleKR(krid){_toggleMBOKey(krid);} // legacy alias
+
+function _rebuildMBOOverlay(){
+  const overlay=document.getElementById('rahul-mbo-overlay');
+  if(!overlay)return;
+  const scrollTop=overlay.scrollTop;
+  overlay.remove();
+  document.body.style.overflow='';
+  _openRahulMBOs();
+  requestAnimationFrame(()=>{
+    const n=document.getElementById('rahul-mbo-overlay');
+    if(n)n.scrollTop=scrollTop;
   });
-  // Overall
-  let totW=0,earnedW=0;
-  RAHUL_MBOS.forEach(mbo=>{
-    const done=mbo.krs.filter(k=>p[k.id]).length;
-    totW+=mbo.weight;
-    earnedW+=mbo.weight*(done/mbo.krs.length);
-  });
-  const overallPct=totW?Math.round(earnedW/totW*100):0;
-  const ob=document.getElementById('mbo-overall-bar');
-  const op=document.getElementById('mbo-overall-pct');
-  if(ob)ob.style.width=overallPct+'%';
-  if(op)op.textContent=overallPct+'%';
 }
 
 function _closeRahulMBOs(){const el=document.getElementById('rahul-mbo-overlay');if(el)el.remove();document.body.style.overflow='';}
 
 function _buildQ2Calendar(){
   // Weekly grid Mar 30 (Mon) → Jul 5 (Sun) — 14 weeks covering all of Q2 2026
+  const p=_mboProgress();
   const today=new Date();today.setHours(0,0,0,0);
   const start=new Date(2026,2,30); // Mar 30 Mon
   const weeks=[];
   const milestonesByDate={};
   RAHUL_MILESTONES.forEach(m=>{milestonesByDate[m.date]=m;});
-  // Also per-KR due dates (expand recurring KRs into every matching day)
+  // Per-KR due dates (expand recurring KRs into every matching day)
   const krDue={};
   const pushKr=(iso,k,mboId,recur)=>{if(!krDue[iso])krDue[iso]=[];krDue[iso].push({id:k.id,mboId,recur:!!recur});};
   RAHUL_MBOS.forEach(mbo=>mbo.krs.forEach(k=>{
     if(k.recur){
-      const f=new Date(k.recur.from+'T00:00:00'),t=new Date(k.recur.to+'T00:00:00');
-      for(let d=new Date(f);d<=t;d.setDate(d.getDate()+1)){
-        if(d.getDay()===k.recur.weekday){
-          const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-          pushKr(iso,k,mbo.id,true);
-        }
-      }
+      _krOccurrences(k).forEach(iso=>pushKr(iso,k,mbo.id,true));
     } else {
       pushKr(k.due,k,mbo.id,false);
     }
@@ -1626,6 +1620,17 @@ function _buildQ2Calendar(){
     weeks.push({wkStart,wkEnd,days,isCurWeek});
   }
   const fmtD=dt=>dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  // Per-event row inside a day cell — mini checkbox + label. Clicking anywhere
+  // on the row toggles the localStorage key and triggers a full overlay
+  // rebuild. Colors match the event type: milestones get their own accent,
+  // KRs stay neutral gray.
+  const renderEvent=(key,label,color,isMilestone)=>{
+    const checked=!!p[key];
+    return `<div onclick="_toggleMBOKey('${key}')" style="display:flex;gap:4px;align-items:flex-start;cursor:pointer;margin-top:3px;opacity:${checked?'.55':'1'};user-select:none" title="Click to mark ${checked?'incomplete':'complete'}">`+
+      `<div style="width:12px;height:12px;border-radius:3px;border:1.5px solid ${checked?color:'#475569'};background:${checked?color:'transparent'};color:#0B1120;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .12s">${checked?'✓':''}</div>`+
+      `<div style="font-size:${isMilestone?'10px':'9px'};color:${isMilestone?color:'#cbd5e1'};font-weight:${isMilestone?'600':'500'};line-height:1.3;text-decoration:${checked?'line-through':'none'}">${label}</div>`+
+      `</div>`;
+  };
   let h='<div style="display:flex;flex-direction:column;gap:6px">';
   weeks.forEach((wk,wi)=>{
     const wkLabel='Week '+(wi+1)+' · '+fmtD(wk.wkStart)+' – '+fmtD(wk.wkEnd);
@@ -1639,14 +1644,17 @@ function _buildQ2Calendar(){
       wk.days.forEach(d=>{
         const dayName=d.dt.toLocaleDateString('en-US',{weekday:'short'});
         const dayNum=d.dt.getDate();
-        const hasMs=d.ms;
+        const hasMs=!!d.ms;
         const hasKr=d.krs.length>0;
         const bg=hasMs?`${d.ms.c}22`:hasKr?'#1e293b':'#0b1120';
         const bc=hasMs?d.ms.c:hasKr?'#334155':'#1e293b';
-        h+=`<div style="border:1px solid ${bc};background:${bg};border-radius:6px;padding:6px 4px;min-height:${hasMs||hasKr?'70px':'36px'};${d.isToday?'box-shadow:0 0 0 2px #3b82f6':''};${d.isPast&&!hasMs&&!hasKr?'opacity:.4':''}">`;
+        h+=`<div style="border:1px solid ${bc};background:${bg};border-radius:6px;padding:6px 4px;min-height:${hasMs||hasKr?'72px':'36px'};${d.isToday?'box-shadow:0 0 0 2px #3b82f6':''};${d.isPast&&!hasMs&&!hasKr?'opacity:.4':''}">`;
         h+=`<div style="font-size:9px;color:#64748b;font-weight:600">${dayName} ${dayNum}</div>`;
-        if(hasMs)h+=`<div style="font-size:10px;color:${d.ms.c};font-weight:600;margin-top:3px;line-height:1.3">${d.ms.label}</div>`;
-        if(hasKr)h+=`<div style="font-size:9px;color:#94a3b8;margin-top:3px">${d.krs.map(k=>'KR '+k.id).join(', ')}</div>`;
+        if(hasMs)h+=renderEvent('ms@'+d.iso,d.ms.label,d.ms.c,true);
+        d.krs.forEach(k=>{
+          const key=k.recur?(k.id+'@'+d.iso):k.id;
+          h+=renderEvent(key,'KR '+k.id,'#94a3b8',false);
+        });
         h+='</div>';
       });
       h+='</div>';
@@ -1664,7 +1672,7 @@ function _openRahulMBOs(){
   overlay.id='rahul-mbo-overlay';
   overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);overflow-y:auto;padding:24px;backdrop-filter:blur(4px)';
   let totW=0,earnedW=0;
-  RAHUL_MBOS.forEach(mbo=>{const done=mbo.krs.filter(k=>p[k.id]).length;totW+=mbo.weight;earnedW+=mbo.weight*(done/mbo.krs.length);});
+  RAHUL_MBOS.forEach(mbo=>{let mdone=0;mbo.krs.forEach(k=>{mdone+=_krFrac(k,p);});totW+=mbo.weight;earnedW+=mbo.weight*(mdone/mbo.krs.length);});
   const overallPct=totW?Math.round(earnedW/totW*100):0;
 
   let h='<div style="max-width:1100px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif">';
@@ -1684,7 +1692,7 @@ function _openRahulMBOs(){
   h+='<div style="height:10px;background:#0B1120;border-radius:6px;overflow:hidden">';
   h+=`<div id="mbo-overall-bar" style="height:100%;background:linear-gradient(90deg,#3b82f6,#06b6d4);width:${overallPct}%;transition:width .3s"></div>`;
   h+='</div>';
-  h+='<div style="font-size:11px;color:#64748b;margin-top:8px">Check off KRs as you complete them — progress saves automatically.</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-top:8px">Check off KRs on the cards below OR tap the mini checkboxes in the calendar (each Friday is a separate deliverable) — progress saves automatically.</div>';
   h+='</div>';
 
   // Weekly calendar
@@ -1713,8 +1721,10 @@ function _openRahulMBOs(){
 
   // MBO cards
   RAHUL_MBOS.forEach(mbo=>{
-    const done=mbo.krs.filter(k=>p[k.id]).length;
-    const mpct=Math.round(done/mbo.krs.length*100);
+    let doneFrac=0;mbo.krs.forEach(k=>{doneFrac+=_krFrac(k,p);});
+    const mpct=Math.round(doneFrac/mbo.krs.length*100);
+    // Display numerator rounded to 1 decimal when fractional, else integer
+    const doneDisplay=(Math.round(doneFrac*10)/10).toString().replace(/\.0$/,'');
     h+='<div style="background:#111827;border:1px solid #1e293b;border-radius:12px;padding:20px;margin-bottom:16px">';
     // Header
     h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">';
@@ -1729,7 +1739,7 @@ function _openRahulMBOs(){
     // Progress bar
     h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
     h+='<div style="font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;color:#10b981">Key Results</div>';
-    h+=`<div id="mbo-pct-${mbo.id}" style="font-size:11px;color:#94a3b8;font-family:'JetBrains Mono',monospace">${done}/${mbo.krs.length} · ${mpct}%</div>`;
+    h+=`<div id="mbo-pct-${mbo.id}" style="font-size:11px;color:#94a3b8;font-family:'JetBrains Mono',monospace">${doneDisplay}/${mbo.krs.length} · ${mpct}%</div>`;
     h+='</div>';
     h+='<div style="height:4px;background:#0B1120;border-radius:3px;overflow:hidden;margin-bottom:12px">';
     h+=`<div id="mbo-bar-${mbo.id}" style="height:100%;background:#10b981;width:${mpct}%;transition:width .3s"></div>`;
@@ -1738,20 +1748,39 @@ function _openRahulMBOs(){
     // KRs
     h+='<div style="background:#0B1120;border-radius:8px;padding:4px 14px;border:1px solid #1e293b">';
     mbo.krs.forEach((k,ki)=>{
-      const checked=!!p[k.id];
+      const isRecur=!!k.recur;
+      const krDone=_krDone(k,p),krTot=_krTotal(k);
+      const fullyDone=krDone===krTot;
+      const checked=!isRecur&&!!p[k.id];
       const isLast=ki===mbo.krs.length-1;
       const dueDt=new Date(k.due+'T00:00:00');const dueLbl=dueDt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
       const today=new Date();today.setHours(0,0,0,0);
-      const overdue=!checked&&dueDt<today;
+      const overdue=!isRecur&&!checked&&dueDt<today;
       const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-      const dueText=k.recur?`Every ${WD[k.recur.weekday]} from ${dueLbl}`:`Due ${dueLbl}${overdue?' · OVERDUE':''}`;
-      h+=`<div id="kr-${k.id.replace('.','_')}" style="display:flex;gap:10px;padding:12px 0;align-items:flex-start;opacity:${checked?'.55':'1'};${isLast?'':'border-bottom:1px solid #1e293b'};transition:opacity .2s">`;
-      // Checkbox
-      h+=`<div onclick="_toggleKR('${k.id}')" class="mbo-chk" style="width:22px;height:22px;border-radius:6px;border:2px solid ${checked?'#10b981':'#475569'};background:${checked?'#10b981':'transparent'};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;transition:all .15s">${checked?'✓':''}</div>`;
+      const dueText=isRecur
+        ?`Every ${WD[k.recur.weekday]} · ${krDone} of ${krTot} delivered · check off on calendar ↑`
+        :`Due ${dueLbl}${overdue?' · OVERDUE':''}`;
+      const rowOpacity=isRecur?(fullyDone?'.55':'1'):(checked?'.55':'1');
+      const strike=isRecur?(fullyDone?'line-through':'none'):(checked?'line-through':'none');
+      h+=`<div id="kr-${k.id.replace('.','_')}" style="display:flex;gap:10px;padding:12px 0;align-items:flex-start;opacity:${rowOpacity};${isLast?'':'border-bottom:1px solid #1e293b'};transition:opacity .2s">`;
+      // Checkbox OR recurring progress badge
+      if(isRecur){
+        const bgC=fullyDone?'#10b981':'transparent';
+        const brC=fullyDone?'#10b981':'#475569';
+        const txC=fullyDone?'#fff':'#94a3b8';
+        h+=`<div title="Check each ${WD[k.recur.weekday]} in the calendar above" style="width:38px;height:22px;border-radius:6px;border:2px solid ${brC};background:${bgC};color:${txC};font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${krDone}/${krTot}</div>`;
+      } else {
+        h+=`<div onclick="_toggleMBOKey('${k.id}')" class="mbo-chk" style="width:22px;height:22px;border-radius:6px;border:2px solid ${checked?'#10b981':'#475569'};background:${checked?'#10b981':'transparent'};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:1px;transition:all .15s">${checked?'✓':''}</div>`;
+      }
       // Number
       h+=`<div style="width:28px;height:22px;border-radius:4px;background:rgba(59,130,246,.15);color:#3b82f6;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${k.id}</div>`;
       // Text
-      h+=`<div style="flex:1"><div class="mbo-krtxt" style="font-size:13px;color:#cbd5e1;line-height:1.6;text-decoration:${checked?'line-through':'none'}">${k.text}${k.tag?` <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;color:#a78bfa;background:rgba(139,92,246,.15);margin-left:4px">${k.tag}</span>`:''}</div>`;
+      h+=`<div style="flex:1"><div class="mbo-krtxt" style="font-size:13px;color:#cbd5e1;line-height:1.6;text-decoration:${strike}">${k.text}${k.tag?` <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;color:#a78bfa;background:rgba(139,92,246,.15);margin-left:4px">${k.tag}</span>`:''}</div>`;
+      // Mini progress bar for recurring KRs
+      if(isRecur){
+        const rpct=Math.round(krDone/krTot*100);
+        h+=`<div style="height:3px;background:#0B1120;border-radius:2px;overflow:hidden;margin-top:6px;max-width:240px"><div style="height:100%;background:#10b981;width:${rpct}%;transition:width .3s"></div></div>`;
+      }
       h+=`<div style="display:flex;gap:10px;align-items:center;margin-top:4px;font-size:10px;font-family:'JetBrains Mono',monospace"><span style="color:${overdue?'#ef4444':'#64748b'}">${dueText}</span></div>`;
       h+='</div></div>';
     });
