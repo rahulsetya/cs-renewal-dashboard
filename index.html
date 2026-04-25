@@ -5645,7 +5645,12 @@ function rCadence(){
                 const acctEsc=String(r.acct||'').replace(/'/g,"\\'");
                 const pidEsc=String(r.pid||'').replace(/'/g,"\\'");
                 const moEsc=String(r.month||'').replace(/'/g,"\\'");
-                const safeNote=ovr&&ovr.note?ovr.note.replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c])):'';
+                // Note: this code lives inside a parent-page <textarea> that holds the
+                // goals iframe HTML. HTML entities like &lt; / &#39; would be decoded
+                // by the parser when read via .value, corrupting the JS string literals
+                // (e.g. '&#39;' → "'''" → SyntaxError). Use \x26 so the textarea sees
+                // plain characters and the JS engine decodes them back to the entity.
+                const safeNote=ovr&&ovr.note?ovr.note.replace(/[<>&"']/g,c=>({'<':'\x26lt;','>':'\x26gt;','&':'\x26amp;','"':'\x26quot;',"'":'\x26#39;'}[c])):'';
                 const ovrCell=ovr
                   ?`<span style="color:${ovr.status==='verified'?'var(--green)':'var(--accent)'};font-weight:600">${ovr.status==='verified'?'⊕ Verified':'💬 Note'}</span>${ovr.note?` <span style="color:var(--dim)">— ${safeNote}</span>`:''}`
                   :'<span style="color:var(--dim)">—</span>';
