@@ -4864,7 +4864,7 @@ function _cadAuditParseFile(file){
         const yr=dt.getFullYear();
         if(year===null)year=yr;
         const key=pid+'|'+yr+'-'+mo;
-        if(!bucket[key])bucket[key]={count:0,lastDate:null,lastIso:'',lastAssignee:'',assignees:[]};
+        if(!bucket[key])bucket[key]={count:0,lastDate:null,lastIso:'',earliestDate:null,earliestIso:'',lastAssignee:'',assignees:[]};
         bucket[key].count++;
         // Capture assignee. The lastAssignee field always tracks the assignee
         // of the most recent meeting (the same one whose date we display);
@@ -4872,16 +4872,26 @@ function _cadAuditParseFile(file){
         // month, used for the tooltip when more than one person logged calls.
         const assignee=assigneeIdx>=0?String(row[assigneeIdx]||'').trim():'';
         if(assignee&&!bucket[key].assignees.includes(assignee))bucket[key].assignees.push(assignee);
+        const _isoDt=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
         if(!bucket[key].lastDate||dt>bucket[key].lastDate){
           bucket[key].lastDate=dt;
-          bucket[key].lastIso=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+          bucket[key].lastIso=_isoDt;
           bucket[key].lastAssignee=assignee;
+        }
+        // Track earliest meeting in the bucket too. The audit's "Missed
+        // Logging" check uses this to suppress flags for buckets where every
+        // meeting is still in the future — you can't have forgotten to log
+        // a meeting that hasn't happened yet. If a bucket has both past and
+        // future meetings, earliestIso is the past one and the flag stands.
+        if(!bucket[key].earliestDate||dt<bucket[key].earliestDate){
+          bucket[key].earliestDate=dt;
+          bucket[key].earliestIso=_isoDt;
         }
         parsed++;
       }
-      // Strip non-serializable lastDate before saving
+      // Strip non-serializable Date objects before saving
       const bucketSave={};
-      Object.keys(bucket).forEach(k=>{bucketSave[k]={count:bucket[k].count,lastIso:bucket[k].lastIso,lastAssignee:bucket[k].lastAssignee||'',assignees:bucket[k].assignees||[]};});
+      Object.keys(bucket).forEach(k=>{bucketSave[k]={count:bucket[k].count,lastIso:bucket[k].lastIso,earliestIso:bucket[k].earliestIso||bucket[k].lastIso||'',lastAssignee:bucket[k].lastAssignee||'',assignees:bucket[k].assignees||[]};});
       _cadAuditData={
         importedAt:new Date().toISOString(),
         fileName:file.name,
@@ -4932,7 +4942,21 @@ function _cadAuditCompute(){
         let status=null;
         if(marked&&cnt>0)status='verified';
         else if(marked&&cnt===0)status='unverified';
-        else if(!marked&&cnt>0)status='forgot';
+        else if(!marked&&cnt>0){
+          // Don't flag "Missed Logging" if every meeting in this bucket is
+          // still upcoming — CSM can't have forgotten to log a call that
+          // hasn't happened yet. Old imports without earliestIso fall back
+          // to lastIso (best-effort: works for single-meeting buckets,
+          // re-import to get the precise check for multi-meeting months).
+          const earliestIso=b.earliestIso||b.lastIso||'';
+          const today=new Date();
+          const todayIso=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+          if(earliestIso&&earliestIso>todayIso){
+            // All meetings in this bucket are future-dated — silently drop.
+            return;
+          }
+          status='forgot';
+        }
         // Apply manual override: a 'verified' override flips an unverified
         // row to verified for stats purposes (still kept in the rows list
         // with override metadata so the Review panel shows it as resolved).
