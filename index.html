@@ -4432,8 +4432,13 @@ function _cadTabClicked(){
   clearTimeout(_cadTabTimer);
   _cadTabTimer=setTimeout(()=>{_cadTabClicks=0;},2000);
   if(_cadTabClicks>=5&&!_cadExportUnlocked){
-    _cadExportUnlocked=true;_cadTabClicks=0;
-    if(aTab==='cadence')rT('cadence'); // re-render to show the button
+    _cadTabClicks=0;clearTimeout(_cadTabTimer);
+    const pw=prompt('Password:');
+    if(pw===null)return; // user cancelled
+    if(pw!=='rahulsetya777'){alert('Incorrect.');return;}
+    _cadExportUnlocked=true;
+    _cadAuditPwOK=true; // Import flow no longer needs to re-prompt
+    if(aTab==='cadence')rT('cadence'); // re-render to show the buttons
   }
 }
 
@@ -4519,12 +4524,8 @@ const _CAD_AUDIT_KEY='cs_cadaudit_v1';
 try{const _raw=localStorage.getItem(_CAD_AUDIT_KEY);if(_raw)_cadAuditData=JSON.parse(_raw);}catch(e){}
 
 function _cadAuditPromptImport(){
-  if(!_cadAuditPwOK){
-    const pw=prompt('Password (Cadence Audit):');
-    if(pw===null)return;
-    if(pw!=='rahulsetya777'){alert('Incorrect.');return;}
-    _cadAuditPwOK=true;
-  }
+  // Buttons are already gated by the 5-click + password unlock on the
+  // Cadence tab itself, so no second prompt here.
   const inp=document.createElement('input');
   inp.type='file';inp.accept='.xlsx,.xls,.csv';
   inp.style.display='none';
