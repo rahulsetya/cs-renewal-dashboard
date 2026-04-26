@@ -7133,8 +7133,12 @@ const SPQ_Q={
   Q3:{t:25,w:6,o:18,d:0,c:1,mo:"Jul–Sep",st:"upcoming"},
   Q4:{t:47,w:5,o:40,d:0,c:1,mo:"Oct–Dec",st:"future"},
 };
+// Total 2026 renewal book — used to derive the SP residual below.
+// SP source data refreshes weekly; once it has full per-account revenue,
+// switch SP_REV.base to the summed actuals and drop this constant.
+const TOTAL_BOOK=41200000;
 const SP_REV={
-  base:5671000, // $41.2M - $35.5M GP
+  base:TOTAL_BOOK-GP.base, // residual: total book minus measured GP base
   wonOffer:1004000, wonBase:1113000,  // from file (15 won SPs)
   openBase:3434000, // remaining 79 open SPs, scaled from file avg
   openMiami:1987000, // Miami rev proxy for open SPs with booked revenue
@@ -7516,7 +7520,7 @@ function render(){
     }
     if(seg!=='gp'){
       h+=`<div class="qc" style="border:1px solid rgba(224,64,251,.1)"><div style="font-size:13px;font-weight:700;color:var(--pk)">SP Open (${SP.O})</div>
-        <div style="font-size:11px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(SP.O*.1)} logos (+${P(SP.O*.1/SP.T*100)} ret)<br>Rev: +${fS(SP.O*.1*43000*S.exp/100)}</div></div>`;
+        <div style="font-size:11px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(SP.O*.1)} logos (+${P(SP.O*.1/SP.T*100)} ret)<br>Rev: +${fS(SP.O*.1*(SP_REV.base/SP.T)*S.exp/100)}</div></div>`;
     }
     h+=`</div></div>`;
   }
