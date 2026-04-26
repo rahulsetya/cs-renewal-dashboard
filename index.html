@@ -7229,11 +7229,11 @@ function calc(oc,dc,sc,exp){
     const wonRev=qr.wonOff;
     const openOffRev=qr.openWOff*ocR; // pipeline with offers
     const openEstRev=(qr.openBase-qr.openWOff/1.1)*ocR*ef*0.7; // pipeline without offers (rough)
-    const openNoOffBase=qr.openBase-(qr.openWOff>0?qr.openWOff/1.37:0); // base of accounts without offers
+    const openNoOffBase=qr.openBase-(qr.openWOff>0?qr.openWOff/(RNRR.gp/100):0); // base of accounts without offers
     const openNoOffRev=openNoOffBase*ocR*ef;
     const declRev=qr.declBase*dcR*ef;
     const qExp=wonRev+openOffRev+openNoOffRev+declRev;
-    const qRet=(wonRev/1.37)+(qr.openBase*ocR)+(qr.declBase*dcR); // GRR: at 2025 price
+    const qRet=(wonRev/(RNRR.gp/100))+(qr.openBase*ocR)+(qr.declBase*dcR); // GRR: at 2025 price
     gcB+=qr.base;gcE+=qExp;gcRt+=qRet;
     gpR[qk]={base:qr.base,wonRev,openOffRev,openNoOffRev,declRev,qExp,qRet,
       qGrr:qr.base>0?qRet/qr.base*100:0,qNrr:qr.base>0?qExp/qr.base*100:0,
@@ -7245,7 +7245,7 @@ function calc(oc,dc,sc,exp){
   const spOpenRev=SP_REV.openMiami*scR; // use Miami rev as proxy, apply conv rate
   const spOpenEstRev=(SP_REV.openBase-SP_REV.openMiami)*scR*ef*0.8; // remainder
   const spTotExp=spWonRev+spOpenRev+spOpenEstRev;
-  const spTotRet=SP_REV.wonBase*0.83+(SP_REV.openBase*scR); // SP GRR (83% NRR on won)
+  const spTotRet=SP_REV.wonBase*(RNRR.sp/100)+(SP_REV.openBase*scR); // SP GRR (RNRR.sp on won)
   const spGrr=SP_REV.base>0?spTotRet/SP_REV.base*100:0;
   const spNrr=SP_REV.base>0?spTotExp/SP_REV.base*100:0;
   const spRev={base:SP_REV.base,wonRev:spWonRev,openRev:spOpenRev+spOpenEstRev,totExp:spTotExp,totRet:spTotRet,grr:spGrr,nrr:spNrr};
