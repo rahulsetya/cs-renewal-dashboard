@@ -212,6 +212,14 @@ const ENG_DRIVE_KEY   = 'cs_eng_drive_v2';  // bumped when file pointer changes
 const DATA_CACHE_TTL  = 30 * 60 * 1000;  // 30 min — pipeline data
 const ENG_CACHE_TTL   = 2 * 60 * 60 * 1000; // 2 hours — engagement data
 
+// Debug logger — chatty diagnostics print only on localhost or when the user
+// flips `localStorage.cs_debug='1'` in devtools. console.warn / console.error
+// keep firing in production (they signal real problems).
+const DEBUG = (location.hostname==='localhost'||location.hostname==='127.0.0.1'||localStorage.getItem('cs_debug')==='1');
+function dlog(){if(DEBUG)console.log.apply(console,arguments);}
+function dtable(x){if(DEBUG&&console.table)console.table(x);}
+function dinfo(){if(DEBUG)console.info.apply(console,arguments);}
+
 function loadDataCache(allowStale=false){
   try{
     const raw=localStorage.getItem(DATA_CACHE_KEY);
@@ -408,7 +416,7 @@ document.addEventListener('click',function(e){
   const b=document.getElementById('titleDropBtn');if(b)b.classList.remove('op');
 });
 
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,forecastPods:[]};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,goalsOpen:false,forecastPods:[]};
 // Normalize S.forecastPods: always an array of pod names (use 'SP' for all SPs)
 function _fcNormPods(){if(!Array.isArray(S.forecastPods))S.forecastPods=S.forecastPods?[String(S.forecastPods)]:[];return S.forecastPods;}
 function ssForecastPodToggle(p){
@@ -708,7 +716,7 @@ function processSPData(raw){
       if(score>bestScore){bestScore=score;hIdx=r;}
     }
   }
-  console.log('[SP] header-row scan: '+scanLog.join(' | ')+' → picked hIdx='+hIdx+(bestScore<0?' (no row scored ≥3 keywords; defaulting to row 0)':' (best score='+bestScore+')'));
+  dlog('[SP] header-row scan: '+scanLog.join(' | ')+' → picked hIdx='+hIdx+(bestScore<0?' (no row scored ≥3 keywords; defaulting to row 0)':' (best score='+bestScore+')'));
   const hdrs=raw.values[hIdx].map(h=>String(h||'').trim().toLowerCase());
   const ci=k=>{const i=hdrs.findIndex(h=>h.includes(k));return i>=0?i:null;};
   // pick(): return the first header-index that matches any of the keywords, in
@@ -740,9 +748,9 @@ function processSPData(raw){
   // any of "Final Sub End Date", "Contract End", "Sub End", "Renewal Date", etc.
   const cSub=ci('final sub end')||ci('sub end')||ci('subscription end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal');
   // Flat-string logging so console shows it without needing to expand arrays/objects
-  console.log('[SP] total raw rows='+totalRaw+' headerIdx='+hIdx+' → '+(totalRaw-hIdx-1)+' data rows below header');
-  console.log('[SP] headers:\n  '+hdrs.map((h,i)=>i+':'+h).join(' | '));
-  console.log('[SP] detected columns: cAcct='+cAcct+' (header="'+(hdrs[cAcct]||'(none)')+'") cStage='+cStage+' cR25='+cR25+' cR26='+cR26+' cOffer='+cOffer+' cOwner='+cOwner+' cSub='+cSub+' cExcl='+cExcl+' cAE='+cAE+' cNotes='+cNotes+' exclHeader="'+(cExcl!=null?hdrs[cExcl]:'(none matched)')+'" subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
+  dlog('[SP] total raw rows='+totalRaw+' headerIdx='+hIdx+' → '+(totalRaw-hIdx-1)+' data rows below header');
+  dlog('[SP] headers:\n  '+hdrs.map((h,i)=>i+':'+h).join(' | '));
+  dlog('[SP] detected columns: cAcct='+cAcct+' (header="'+(hdrs[cAcct]||'(none)')+'") cStage='+cStage+' cR25='+cR25+' cR26='+cR26+' cOffer='+cOffer+' cOwner='+cOwner+' cSub='+cSub+' cExcl='+cExcl+' cAE='+cAE+' cNotes='+cNotes+' exclHeader="'+(cExcl!=null?hdrs[cExcl]:'(none matched)')+'" subHeader="'+(cSub!=null?hdrs[cSub]:'(none matched)')+'"');
   const data=[];
   let skippedEmpty=0,skippedEmptyExamples=[],skippedExcluded=0,skippedExcludedExamples=[];
   for(let i=hIdx+1;i<raw.values.length;i++){
@@ -781,14 +789,14 @@ function processSPData(raw){
   // Diagnostic: show date-parse success rate + skip reasons
   const sample=data.slice(0,5).map(r=>({n:r.n,sub:r.sub}));
   const withDate=data.filter(r=>r.sub&&r.sub.length>0).length;
-  console.log('[SP] parsed '+data.length+' rows, skipped '+skippedEmpty+' empty-acct, '+skippedExcluded+' Exclude-for-attainment=YES. '+withDate+' have sub date.');
-  if(skippedExcludedExamples.length)console.log('[SP] sample Exclude-for-attainment-filtered out:\n  '+skippedExcludedExamples.join('\n  '));
-  if(skippedEmptyExamples.length)console.log('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
+  dlog('[SP] parsed '+data.length+' rows, skipped '+skippedEmpty+' empty-acct, '+skippedExcluded+' Exclude-for-attainment=YES. '+withDate+' have sub date.');
+  if(skippedExcludedExamples.length)dlog('[SP] sample Exclude-for-attainment-filtered out:\n  '+skippedExcludedExamples.join('\n  '));
+  if(skippedEmptyExamples.length)dlog('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
   // Distinct stage values (column M) — surfaces so the Pipeline stage mapper
   // can be widened if a new free-text stage string appears on the sheet
   const _stageTally={};data.forEach(r=>{const s=r.s||'(blank)';_stageTally[s]=(_stageTally[s]||0)+1;});
-  console.log('[SP] distinct stage values (col M):',_stageTally);
-  console.log('[SP] sample parsed:',sample);
+  dlog('[SP] distinct stage values (col M):',_stageTally);
+  dlog('[SP] sample parsed:',sample);
   return data;
 }
 
@@ -833,7 +841,7 @@ function _mergeSPsIntoD(){
     return row;
   });
   D=D.concat(spRows);
-  console.log(`[SP→D] merged ${spRows.length} SP rows under owner "Emilie Welch"${unmatched?' ('+unmatched+' stage strings did not resolve → defaulted to 1. Uncontacted)':''}`);
+  dlog(`[SP→D] merged ${spRows.length} SP rows under owner "Emilie Welch"${unmatched?' ('+unmatched+' stage strings did not resolve → defaulted to 1. Uncontacted)':''}`);
 }
 
 // ── ENGAGEMENT FETCH ──────────────────────────────────────────────────────────
@@ -912,8 +920,8 @@ async function fetchAllEngagement(token){
         if(data.values[r].some(c=>{const s=String(c||'').trim().toLowerCase();return s==='account'||s==='account name';})){headerRowIdx=r;break;}
       }
       const engHeaders=data.values[headerRowIdx].map(h=>String(h||'').trim());
-      console.log(`=== ${ENG_SHEET.toUpperCase()} SHEET HEADERS (row ${headerRowIdx}, total rows=${data.values.length}) ===`);
-      console.log(engHeaders.map((h,i)=>`${i}:${h}`).join(' | '));
+      dlog(`=== ${ENG_SHEET.toUpperCase()} SHEET HEADERS (row ${headerRowIdx}, total rows=${data.values.length}) ===`);
+      dlog(engHeaders.map((h,i)=>`${i}:${h}`).join(' | '));
       const eColMap={};engHeaders.forEach((h,i)=>{if(!(normKey(h) in eColMap))eColMap[normKey(h)]=i;});
       const ec=(row,name)=>{const i=eColMap[normKey(name)];return i!==undefined?row[i]:'';};
       const ecIdx=name=>{const i=eColMap[normKey(name)];return i!==undefined?i:null;};
@@ -923,7 +931,7 @@ async function fetchAllEngagement(token){
         const idx=engHeaders.findIndex(h=>h.trim().toLowerCase()===m.toLowerCase());
         if(idx>=0)mCallCols.push({ci:idx,hdr:m});
       });
-      console.log('Monthly call cols:',mCallCols.map(c=>c.ci+':'+c.hdr).join(' | ')||'(none found)');
+      dlog('Monthly call cols:',mCallCols.map(c=>c.ci+':'+c.hdr).join(' | ')||'(none found)');
 
       // Resolve key columns up front so we can report if any are missing.
       const cAcct  =ecIdx('Account')    ?? ecIdx('Account Name');
@@ -950,7 +958,7 @@ async function fetchAllEngagement(token){
       const cMt    =ecIdx('Miami Mtgs')    || ecIdx('Miami Meetings');
       const cSent  =ecIdx('Sentiment');
 
-      console.log('[eng] resolved columns:\n  '+[
+      dlog('[eng] resolved columns:\n  '+[
         'Account='+cAcct,'Platform ID='+cPid,'Sales Rep='+cSales,'Segment='+cSeg,'2025 Rev='+cRev25,'2026 Rev='+cRev26,
         'Contract End='+cEnd,'Risk?='+cRisk,'Risk Notes='+cNotes,'Target CSM='+cCsm,'Pod='+cPod,
         'Transition Complete?='+cTxn,'Outreach Sent?='+cOut,'GM Completed?='+cGm,
@@ -1004,13 +1012,13 @@ async function fetchAllEngagement(token){
       if(unknownCSM.length)
         console.warn(`⚠ ${ENG_SHEET}: CSM values not in VALID_OWNERS (check spelling):`,unknownCSM);
       if(!missingCSM.length&&!unknownCSM.length)
-        console.log(`✓ ${ENG_SHEET}: all CSM values matched VALID_OWNERS`);
+        dlog(`✓ ${ENG_SHEET}: all CSM values matched VALID_OWNERS`);
     }
   }catch(e){console.warn(`Failed to fetch ${ENG_SHEET} engagement sheet:`,e);}
 
   ENG_RAW=tmpRaw;
   const engTotal=Object.keys(engMap).length;
-  console.log(`=== ENGAGEMENT LOADED: ${engTotal} accounts ===`);
+  dlog(`=== ENGAGEMENT LOADED: ${engTotal} accounts ===`);
   if(engTotal===0)console.warn(`Engagement data is empty — ${ENG_SHEET} sheet fetch may have failed`);
   return engMap;
 }
@@ -1030,8 +1038,8 @@ async function fetchTop10s(token){
       if(data.values[r].some(c=>{const s=String(c||'').trim().toLowerCase();return s==='account'||s==='account name';})){headerRowIdx=r;break;}
     }
     const hdrs=data.values[headerRowIdx].map(h=>String(h||'').trim());
-    console.log(`=== TOP 10S SHEET HEADERS (row ${headerRowIdx}, total rows=${data.values.length}) ===`);
-    console.log(hdrs.map((h,i)=>`${i}:${h}`).join(' | '));
+    dlog(`=== TOP 10S SHEET HEADERS (row ${headerRowIdx}, total rows=${data.values.length}) ===`);
+    dlog(hdrs.map((h,i)=>`${i}:${h}`).join(' | '));
     const cmap={};hdrs.forEach((h,i)=>{if(!(normKey(h) in cmap))cmap[normKey(h)]=i;});
     const idx=name=>{const i=cmap[normKey(name)];return i!==undefined?i:null;};
     const cAcct = idx('Account')      ?? idx('Account Name');
@@ -1077,7 +1085,7 @@ async function fetchTop10s(token){
         notes: cNotes!=null?String(r[cNotes]||'').trim():''
       });
     }
-    console.log(`=== TOP 10S LOADED: ${rows.length} accounts ===`);
+    dlog(`=== TOP 10S LOADED: ${rows.length} accounts ===`);
     return rows;
   }catch(e){console.warn('Top 10s fetch failed:',e);return[];}
 }
@@ -1155,7 +1163,7 @@ async function loadSnapshotFromSP(token){
     SNAP_HISTORY=sp.history||[];
     if(sp.manual&&sp.manual.ts&&sp.manual.data){
       PREV=sp.manual.data;PREV_TS=sp.manual.ts;
-      console.log('✓ Snapshot loaded from SharePoint:',_snapLabel(PREV_TS));
+      dlog('✓ Snapshot loaded from SharePoint:',_snapLabel(PREV_TS));
     }else{
       // Migrate from localStorage
       try{
@@ -1167,7 +1175,7 @@ async function loadSnapshotFromSP(token){
             const entry={ts:ls.ts,label:_snapLabel(ls.ts),data:ls.data,kpis:{}};
             SNAP_HISTORY=[entry];
             await writeSnapshotFile(token,{manual:entry,history:[entry]});
-            console.log('✓ Migrated local snapshot to SharePoint');
+            dlog('✓ Migrated local snapshot to SharePoint');
           }
         }
       }catch(me){console.warn('Migration failed:',me);}
@@ -1196,7 +1204,7 @@ function _rcNormalize(raw){
   return{latest:entry,history:[entry]};
 }
 async function loadRCSnapshotFromSP(token){
-  try{const raw=await readRCSnapshotFile(token)||{};RC_SNAP_DATA=_rcNormalize(raw);console.log('✓ RC snapshot loaded from SharePoint');}
+  try{const raw=await readRCSnapshotFile(token)||{};RC_SNAP_DATA=_rcNormalize(raw);dlog('✓ RC snapshot loaded from SharePoint');}
   catch(e){console.warn('Could not load RC snapshot from SP:',e);try{RC_SNAP_DATA=_rcNormalize(JSON.parse(localStorage.getItem('cs_rc_snap')||'{}'));}catch(ex){RC_SNAP_DATA={latest:null,history:[]};}}
 }
 function _rcUpdateIframeSnapBar(){
@@ -1369,13 +1377,13 @@ function processData(range, engMap){
   const clrIdxAll=rawHeaders.reduce((a,h,i)=>h==='Notes / Closed Lost Reason'?[...a,i]:a,[]);
 
   // Debug output to help diagnose column issues
-  console.log('=== PIPELINE FILE HEADERS ===');
-  console.log(rawHeaders.join(' | '));
-  console.log('Stage col idx:', colIdx('Stage'));
-  console.log('Renewal Owner col idx:', colIdx('Renewal Owner'));
-  console.log('Contact col idx:', colIdx('Contact'));
+  dlog('=== PIPELINE FILE HEADERS ===');
+  dlog(rawHeaders.join(' | '));
+  dlog('Stage col idx:', colIdx('Stage'));
+  dlog('Renewal Owner col idx:', colIdx('Renewal Owner'));
+  dlog('Contact col idx:', colIdx('Contact'));
   const offerHit=OFFER_COLS.find(c=>colIdx(c)!==undefined);
-  console.log('Offer price col matched:', offerHit, '@ idx', offerHit?colIdx(offerHit):'–');
+  dlog('Offer price col matched:', offerHit, '@ idx', offerHit?colIdx(offerHit):'–');
 
   const data=[];
   let stageUnmatched=[];
@@ -1462,10 +1470,10 @@ function processData(range, engMap){
     throw new Error(`No valid rows found after filtering.<br><br>First 12 headers from row ${detectedHeaderRow+1}:<br><small>${preview}</small><br><br>Headers auto-detected at row ${detectedHeaderRow+1}.`);
   }
 
-  console.log(`Loaded ${data.length} accounts. Owners:`, [...new Set(data.map(d=>d.ro))].join(', '));
+  dlog(`Loaded ${data.length} accounts. Owners:`, [...new Set(data.map(d=>d.ro))].join(', '));
   // Pod-match diagnostics — confirms how many Renewal Master rows successfully linked to an ET pod
   const _podTally={};let _withPod=0;data.forEach(d=>{if(d.pod){_withPod++;_podTally[d.pod]=(_podTally[d.pod]||0)+1;}});
-  console.log(`[pod] ${_withPod}/${data.length} Renewal Master rows matched to a pod.`,_podTally);
+  dlog(`[pod] ${_withPod}/${data.length} Renewal Master rows matched to a pod.`,_podTally);
   return data;
 }
 
@@ -1530,7 +1538,7 @@ async function _fetchFresh(token){
 
 
 async function loadData(forceRefresh=false){
-  if(_loadingInProgress&&!forceRefresh){console.log('loadData: already in progress, skipping');return;}
+  if(_loadingInProgress&&!forceRefresh){dlog('loadData: already in progress, skipping');return;}
   _loadingInProgress=true;
   loadSnapshot();
 
@@ -2109,7 +2117,7 @@ function _sfSnapshot(){
 let _spClicks=0;let _spClickTimer=null;
 function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_spClickTimer=setTimeout(()=>{_spClicks=0;},1500);if(_spClicks>=5){_spClicks=0;S.goalsOpen=!S.goalsOpen;_syncHash();render();}}
 let _acctTabClicks=0,_acctTabTimer=null;
-function _acctTabClick(){_acctTabClicks++;console.log('[forecast] accounts click',_acctTabClicks,'/ 5');if(_acctTabTimer)clearTimeout(_acctTabTimer);_acctTabTimer=setTimeout(()=>{_acctTabClicks=0;},3000);if(_acctTabClicks>=5){_acctTabClicks=0;S.forecastOpen=!S.forecastOpen;console.log('[forecast] open:',S.forecastOpen);_syncHash();render();}}
+function _acctTabClick(){_acctTabClicks++;if(_acctTabTimer)clearTimeout(_acctTabTimer);_acctTabTimer=setTimeout(()=>{_acctTabClicks=0;},3000);if(_acctTabClicks>=5){_acctTabClicks=0;S.forecastOpen=!S.forecastOpen;_syncHash();render();}}
 function _closeForecast(){S.forecastOpen=false;_syncHash();render();}
 function _closeGoals(){S.goalsOpen=false;_syncHash();render();}
 // Reflect overlay state in the URL hash so it's shareable / bookmarkable.
@@ -2183,11 +2191,11 @@ function _buildLiveGoalsData(){
     renewalLookup[key]={stage,rev,se,name:acct,platformId,nameKey:key};
     if(platformId)renewalByPid[platformId]=renewalLookup[key];
   }
-  console.log(`=== ACCOUNT RECONCILIATION ===`);
-  console.log(`Renewal Master rows (non-blank): ${_renewalRawCount}`);
-  console.log(`Renewal Master unique names: ${Object.keys(renewalLookup).length}`);
+  dlog(`=== ACCOUNT RECONCILIATION ===`);
+  dlog(`Renewal Master rows (non-blank): ${_renewalRawCount}`);
+  dlog(`Renewal Master unique names: ${Object.keys(renewalLookup).length}`);
   if(_renewalDupes.length)console.warn(`Renewal Master duplicates (${_renewalDupes.length}):`,_renewalDupes);
-  console.log(`Engagement Tracker accounts: ${(ENG_RAW||[]).length}`);
+  dlog(`Engagement Tracker accounts: ${(ENG_RAW||[]).length}`);
 
   // Drive account list from Engagement Tracker (Platform ID is the authoritative match key;
   // fall back to normalized name if either side is missing a Platform ID).
@@ -2257,17 +2265,17 @@ function _buildLiveGoalsData(){
   }
   const _renewalNotInEngDetail=Object.keys(renewalLookup).filter(k=>!_matchedRenewal.has(k)).map(k=>({name:renewalLookup[k].name,platformId:renewalLookup[k].platformId||''}));
   const _renewalNotInEng=_renewalNotInEngDetail.map(x=>x.name);
-  console.log(`Match breakdown — by Platform ID: ${_matchByPid.length}, by name fallback: ${_matchByName.length}, unmatched ET rows: ${_matchNone.length}`);
+  dlog(`Match breakdown — by Platform ID: ${_matchByPid.length}, by name fallback: ${_matchByName.length}, unmatched ET rows: ${_matchNone.length}`);
   if(_matchByName.length){
-    console.info(`Matched by NAME (no Platform ID on one side):`);
-    console.table(_matchByName);
+    dinfo(`Matched by NAME (no Platform ID on one side):`);
+    dtable(_matchByName);
   }
   if(_renewalNotInEngDetail.length){
     console.warn(`Renewal Master accounts NOT in Engagement Tracker (${_renewalNotInEngDetail.length}):`,_renewalNotInEngDetail);
     console.warn(`Platform IDs only (copy-paste):`,_renewalNotInEngDetail.map(x=>x.platformId).filter(Boolean).join('\n'));
     console.table(_renewalNotInEngDetail);
   }
-  console.log(`Total accounts in dashboard: ${allAccts.length}`);
+  dlog(`Total accounts in dashboard: ${allAccts.length}`);
   const _engNotInRenewalDetail=_matchNone.map(x=>({name:x.et,platformId:x.etPid==='(none)'?'':x.etPid}));
   const _engNotInRenewal=_engNotInRenewalDetail.map(x=>x.name);
   window._acctMismatches={engNotInRenewal:_engNotInRenewal,engNotInRenewalDetail:_engNotInRenewalDetail,renewalNotInEng:_renewalNotInEng,renewalNotInEngDetail:_renewalNotInEngDetail,matchByPid:_matchByPid,matchByName:_matchByName,matchNone:_matchNone};
@@ -2391,7 +2399,7 @@ function _buildLiveForecastData(pods){
       const k=_nkSp(acct);
       if(k){spSubFromMaster[k]=sub;_n++;}
     }
-    console.log('[forecast] SP sub-end map from Renewal Master col '+(subColIdx+1)+' ("'+((hdrRow[subColIdx]||'')+'"').trim()+') → '+_n+' entries');
+    dlog('[forecast] SP sub-end map from Renewal Master col '+(subColIdx+1)+' ("'+((hdrRow[subColIdx]||'')+'"').trim()+') → '+_n+' entries');
   }
   const _spSub=r=>{
     if(r&&r.n){
@@ -2456,7 +2464,7 @@ function _buildLiveForecastData(pods){
     const sp=_spAll.filter(r=>getSpQ(_spSub(r))!==null);
     let _nMaster=0,_nFallback=0;
     _spAll.forEach(r=>{const k=_nkSp(r.n);if(k&&spSubFromMaster[k])_nMaster++;else if(r.sub)_nFallback++;});
-    console.log('[forecast] SP sub-end source split: master='+_nMaster+' sp_raw='+_nFallback+' none='+(_spAll.length-_nMaster-_nFallback)+' (total='+_spAll.length+(_active?' · pods='+[..._active].join(','):'')+')');
+    dlog('[forecast] SP sub-end source split: master='+_nMaster+' sp_raw='+_nFallback+' none='+(_spAll.length-_nMaster-_nFallback)+' (total='+_spAll.length+(_active?' · pods='+[..._active].join(','):'')+')');
     if(sp.length>0){
       // Real sub-end dates exist → compute per-quarter from them.
       spq_q={};
@@ -2488,7 +2496,7 @@ function _buildLiveForecastData(pods){
       }
       // Q4 absorbs rounding so sums match live totals exactly.
       spq_q.Q4={t:T-sT,w:W-sW,o:O-sO,d:0,c:C-sC,mo:qMo.Q4,st:qStat('Q4'),rev:(base||0)-sRev,rw:(wonBase||0)-sRw,rl:(churnRev||0)-sRl,rd:0};
-      console.log('[forecast] SP quarter split scaled from hardcoded estimates (no live sub-end dates). Total='+T+' W='+W+' O='+O+' C='+C);
+      dlog('[forecast] SP quarter split scaled from hardcoded estimates (no live sub-end dates). Total='+T+' W='+W+' O='+O+' C='+C);
     }
   }
   return{gp,gpq,gpqr,spq,spq_q,sp_rev};
@@ -2599,7 +2607,11 @@ const DARK_TO_LIGHT={
   '#2a2a44':'#c0c4d2','#3a3a5a':'#b0b4c4',
   '#d0d0ec':'#1a1a28','#7777aa':'#555a78','#4a4a6e':'#6a6a88','#55557a':'#6a6a88',
   '#8888aa':'#555a78','#b0b0d0':'#2a2a44','#e0e0ff':'#1a1a28','#5a5a7e':'#6a6a88',
-  '#66668a':'#8a8aa0'};
+  '#66668a':'#8a8aa0',
+  // Cadence audit / export accent buttons (Goals)
+  '#1e3a8a':'#2563eb','#5b21b6':'#7c3aed','#065f46':'#059669',
+  // Forecast revenue summary row border-top
+  '#2a2a45':'#cbd5e1'};
 // One-shot guard so the deep-link hash only fires once per page load.
 // Otherwise re-opens after the user manually closes the overlay.
 let _hashRouted=false;
