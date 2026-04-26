@@ -7319,7 +7319,7 @@ function render(){
   ];
   h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:8px">${tiles.map(t=>
     `<div class="kt" data-tt="${_esc(t.t||'')}" style="background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:4px 3px;text-align:center">
-      <div style="font-size:10px;color:#5a5a7e;text-transform:uppercase;letter-spacing:1px;margin-bottom:1px">${t.l}</div>
+      <div style="font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:1px;margin-bottom:1px">${t.l}</div>
       <div style="font-size:16px;font-weight:800;font-family:var(--M);color:${t.c}">${t.v}</div>
       ${t.s?`<div style="font-size:10px;color:var(--mt);margin-top:1px">${t.s}</div>`:''}</div>`).join('')}</div>`;
 
@@ -7399,7 +7399,7 @@ function render(){
       for(const qk of['Q1','Q2','Q3','Q4']){
         const r=m.gpR[qk];
         h+=`<div class="qc" style="font-size:11px;color:var(--dm);line-height:1.8">
-          <div style="font-weight:700;color:#b0b0d0;margin-bottom:1px">${qk} · ${fS(r.base)}</div>
+          <div style="font-weight:700;color:var(--dm);margin-bottom:1px">${qk} · ${fS(r.base)}</div>
           <div>Won: <b style="color:var(--gn)">${fS(r.wonRev)}</b></div>
           <div>Pipeline: <b style="color:var(--pu)">${fS(r.openOffRev+r.openNoOffRev)}</b></div>
           <div>Re-eng: <b style="color:var(--or)">${fS(r.declRev)}</b></div>
@@ -7469,7 +7469,7 @@ function render(){
           {l:"GP Renewal NRR",v:P(RNRR.gp),c:'var(--gn)',s:'+37% expansion'},
           {l:"SP Renewal NRR",v:P(RNRR.sp),c:'var(--rd)',s:'-17% contraction'},
           {l:seg==='gp'?'GP Proj NRR':seg==='sp'?'SP Proj NRR':'Combined NRR',v:P(sNrr),c:cl(sNrr,90),s:'full book projected'},
-        ].map(x=>`<div class="qc"><div style="font-size:10px;color:#5a5a7e">${x.l}</div><div style="font-size:20px;font-weight:800;color:${x.c};font-family:var(--M)">${x.v}</div><div style="font-size:10px;color:var(--mt)">${x.s}</div></div>`).join('')}
+        ].map(x=>`<div class="qc"><div style="font-size:10px;color:var(--mt)">${x.l}</div><div style="font-size:20px;font-weight:800;color:${x.c};font-family:var(--M)">${x.v}</div><div style="font-size:10px;color:var(--mt)">${x.s}</div></div>`).join('')}
       </div>
       <div style="font-size:12px;color:var(--dm);padding:7px 9px;background:var(--bg);border-radius:5px;line-height:1.5">
         <b style="color:#8888aa">Logo vs Revenue:</b> GP accounts renew at <b style="color:var(--gn)">${P(RNRR.gp)}</b> NRR — each saved logo is +37% revenue. SP accounts contract to <b style="color:var(--rd)">${P(RNRR.sp)}</b>. Combined book projects <b style="color:var(--pk)">${$2(m.allExp)}</b> (${P(m.allNrr)} NRR) on a ${$(m.allBase)} base. Revenue-based comp would better reward the expansion value CS creates.
@@ -7494,7 +7494,7 @@ function render(){
         h+=`<div style="font-size:11px;font-weight:600;color:var(--dm);margin-bottom:3px">GP Logo Ret</div>`;
         for(const qk of['Q2','Q3','Q4']){const q=sm.gpL[qk],th=GP_TH[qk];
           h+=`<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
-            <span style="width:16px;font-size:12px;font-weight:700;color:#b0b0d0">${qk}</span>
+            <span style="width:16px;font-size:12px;font-weight:700;color:var(--dm)">${qk}</span>
             <div style="flex:1">${bar(q.cR,100,q.cR>=th[1]?'var(--gn)':q.cR>=th[0]?'var(--or)':'var(--rd)',7)}</div>
             <span style="width:34px;font-size:12px;font-weight:700;text-align:right;font-family:var(--M);color:${q.cR>=th[1]?'var(--gn)':q.cR>=th[0]?'var(--or)':'var(--rd)'}">${P(q.cR)}</span></div>`}
       }
@@ -7549,20 +7549,20 @@ function sidebar(m,seg){
     <table style="font-size:11px;color:var(--dm)"><thead><tr><th style="text-align:left;padding:2px"></th>${Object.entries(SCEN).map(([k,s])=>`<th style="text-align:right;padding:2px;color:${s.c};font-size:10px">${s.l}</th>`).join('')}</tr></thead><tbody>`;
   // GP Logo
   for(const qk of['Q2','Q3','Q4']){const th=GP_TH[qk];
-    h+=`<tr><td style="padding:2px;font-weight:600;color:#b0b0d0">${qk} Logo</td>`;
+    h+=`<tr><td style="padding:2px;font-weight:600;color:var(--dm)">${qk} Logo</td>`;
     for(const[k,s]of Object.entries(SCEN)){const sm=calc(s.oc,s.dc,s.sc,s.exp);const v=sm.gpL[qk].cR;
       h+=`<td style="text-align:right;padding:2px;font-family:var(--M);font-weight:700;color:${v>=th[1]?'var(--gn)':v>=th[0]?'var(--or)':'var(--rd)'}">${P(v)}</td>`}h+=`</tr>`}
   // Revenue
-  h+=`<tr style="border-top:1px solid #2a2a45"><td style="padding:2px;font-weight:600;color:#b0b0d0">NRR</td>`;
+  h+=`<tr style="border-top:1px solid var(--bd)"><td style="padding:2px;font-weight:600;color:var(--dm)">NRR</td>`;
   for(const[k,s]of Object.entries(SCEN)){const sm=calc(s.oc,s.dc,s.sc,s.exp);
     h+=`<td style="text-align:right;padding:2px;font-family:var(--M);font-weight:700;color:${cl(sm.allNrr,90)}">${P(sm.allNrr)}</td>`}
-  h+=`</tr><tr><td style="padding:2px;font-weight:600;color:#b0b0d0">Rev</td>`;
+  h+=`</tr><tr><td style="padding:2px;font-weight:600;color:var(--dm)">Rev</td>`;
   for(const[k,s]of Object.entries(SCEN)){const sm=calc(s.oc,s.dc,s.sc,s.exp);
     h+=`<td style="text-align:right;padding:2px;font-family:var(--M);font-weight:700;color:var(--pk)">${$(sm.allExp)}</td>`}
   h+=`</tr></tbody></table></div>`;
 
   // Universe
-  h+=`<div class="cd"><div class="ct" style="color:#55557a;border-bottom-color:rgba(85,85,122,.12)">Universe</div>
+  h+=`<div class="cd"><div class="ct" style="color:var(--mt);border-bottom-color:var(--bd)">Universe</div>
     <div style="font-size:11px;color:var(--dm);line-height:1.8">
       GP: <b>${GP.T}</b> · ${GP.W}W ${GP.O}O ${GP.D}D ${GP.C}C · ${$(GP.base)}<br>
       SP: <b>${SP.T}</b> · ${SP.W}W ${SP.O}O ${SP.C}C · ~${$(SP_REV.base)}<br>
