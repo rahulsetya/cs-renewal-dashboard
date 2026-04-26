@@ -1333,8 +1333,8 @@ function getWow(d){
   const pi=ST.indexOf(ps),ci=ST.indexOf(d.s);
   if(pi<0||ci<0)return'same';
   if(d.s==='11. Churned'&&ps!=='11. Churned')return'lost';
-  if(d.s==='11. Churned'&&ps!=='11. Churned')return'lost';
-  if((d.s==='7. Signed'||d.s==='9. Invoice Sent')&&ps!=='7. Signed'&&ps!=='9. Invoice Sent')return'won';
+  const _wonStages=['7. Signed','9. Invoice Sent','10. Paid'];
+  if(_wonStages.includes(d.s)&&!_wonStages.includes(ps))return'won';
   if(ci>pi)return'up';if(ci<pi)return'down';return'same';
 }
 
@@ -6353,6 +6353,7 @@ function rAllAccts(){
 
 
 // ── PAYOUT ──────────────────────────────────────────
+let selPayQ="Q2";
 function rPayout(){
   const el=document.getElementById('tab-payout');const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;
   const selPQ=selPayQ||"Q2";
@@ -6447,7 +6448,6 @@ function rPayout(){
     }}}});
   }
 }
-let selPayQ="Q2";
 
 // ── TARGETS ─────────────────────────────────────────
 function rTargets(){
@@ -6833,6 +6833,7 @@ function rRCHistory(){
                 gained=s1Accts.filter(function(a){return!s2Names.has(a.n);});
                 lostAccts=s2Accts.filter(function(a){return!s1Names.has(a.n);});
               }
+              h+='<div style="font-size:11px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px dashed rgba(255,255,255,.08)"><span style="color:var(--green);font-weight:700">▲ '+gained.length+' gained</span> <span style="color:var(--dim);margin:0 4px">·</span> <span style="color:var(--red);font-weight:700">▼ '+lostAccts.length+' lost</span></div>';
               if(!gained.length&&!lostAccts.length){
                 h+='<div style="font-size:11px;color:var(--dim);font-style:italic">Account names are unchanged — the count shift may reflect re-categorization without name changes.</div>';
               }else{
@@ -7166,7 +7167,9 @@ const SCEN={
   best:{l:"Best",c:"#2ed573",oc:65,dc:25,sc:55,exp:140},
 };
 
-var S={tab:'quarterly',seg:'total',oc:50,dc:15,sc:40,exp:130,stairMode:'qtr'};
+const _SDEF={tab:'quarterly',seg:'total',oc:50,dc:15,sc:40,exp:130,stairMode:'qtr'};
+var S=(function(){try{const j=JSON.parse(localStorage.getItem('forecast_S')||'{}');return Object.assign({},_SDEF,j);}catch(e){return Object.assign({},_SDEF);}})();
+function _saveS(){try{localStorage.setItem('forecast_S',JSON.stringify(S));}catch(e){}}
 
 const $=v=>`$${(v/1e6).toFixed(1)}M`;const $2=v=>`$${(v/1e6).toFixed(2)}M`;
 const fS=v=>v>=1e6?`$${(v/1e6).toFixed(1)}M`:`$${(v/1000).toFixed(0)}K`;
@@ -7228,7 +7231,6 @@ function calc(oc,dc,sc,exp){
     const qr=GPQR[qk];
     const wonRev=qr.wonOff;
     const openOffRev=qr.openWOff*ocR; // pipeline with offers
-    const openEstRev=(qr.openBase-qr.openWOff/1.1)*ocR*ef*0.7; // pipeline without offers (rough)
     const openNoOffBase=qr.openBase-(qr.openWOff>0?qr.openWOff/(RNRR.gp/100):0); // base of accounts without offers
     const openNoOffRev=openNoOffBase*ocR*ef;
     const declRev=qr.declBase*dcR*ef;
@@ -7305,7 +7307,7 @@ function render(){
   const _hdrDate=_hdrMo[_hdrD.getMonth()]+' '+_hdrD.getDate()+', '+_hdrD.getFullYear();
   h+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px">
     <div><div style="font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--pu),var(--pk),var(--sa));-webkit-background-clip:text;-webkit-text-fill-color:transparent">iConnections — Retention & Revenue Forecast</div>
-    <div style="font-size:12px;color:var(--mt);margin-top:2px">${_hdrD.getFullYear()} · ${GP.T.toLocaleString()} GP + ${SP.T} SP · ${fS(_hdrTot)} · Baseline: 52.7% · ${_hdrDate}</div></div>
+    <div style="font-size:12px;color:var(--mt);margin-top:2px">${_hdrD.getFullYear()} · ${GP.T.toLocaleString()} GP + ${SP.T} SP · ${fS(_hdrTot)} · Baseline: <span title="2025 actual GP logo retention rate — the starting point against which 2026 quarterly thresholds (floor / full / accel) are set" style="border-bottom:1px dotted currentColor;cursor:help">52.7%</span> · ${_hdrDate}</div></div>
     <div style="display:flex;gap:3px">
       ${[['total','Total'],['gp','GP'],['sp','SP']].map(([k,l])=>`<button class="pl ${seg===k?'a':''}" onclick="setSeg('${k}')">${l}</button>`).join('')}
     </div></div>`;
@@ -7491,8 +7493,9 @@ function render(){
       const sE=seg==='gp'?sm.gpExp:seg==='sp'?sm.spRev.totExp:sm.allExp;
       const sN=seg==='gp'?sm.gpNrr:seg==='sp'?sm.spRev.nrr:sm.allNrr;
       const sG=seg==='gp'?sm.gpGrr:seg==='sp'?sm.spRev.grr:sm.allGrr;
-      h+=`<div class="qc" style="border:1px solid ${sc.c}18">
-        <div style="font-size:13px;font-weight:800;color:${sc.c};margin-bottom:2px">${sc.l} Case</div>
+      const _act=S.oc===sc.oc&&S.dc===sc.dc&&S.sc===sc.sc&&S.exp===sc.exp;
+      h+=`<div class="qc" style="border:${_act?'2px':'1px'} solid ${sc.c}${_act?'80':'18'}">
+        <div style="font-size:13px;font-weight:800;color:${sc.c};margin-bottom:2px">${_act?'● ':''}${sc.l} Case${_act?' <span style="font-size:9px;font-weight:600;color:var(--gn);background:rgba(46,213,115,.12);padding:1px 5px;border-radius:3px;margin-left:4px;text-transform:uppercase;letter-spacing:.5px">active</span>':''}</div>
         <div style="font-size:10px;color:var(--mt);margin-bottom:7px">Open ${sc.oc}% · Decl ${sc.dc}% · SP ${sc.sc}% · Exp ${sc.exp}%</div>`;
       if(seg!=='sp'){
         h+=`<div style="font-size:11px;font-weight:600;color:var(--dm);margin-bottom:3px">GP Logo Ret</div>`;
@@ -7507,11 +7510,11 @@ function render(){
         <div>GRR: <b style="color:${cl(sG,70)};font-family:var(--M)">${P(sG)}</b> · NRR: <b style="color:${cl(sN,90)};font-family:var(--M)">${P(sN)}</b></div>
         ${seg!=='sp'?`<div>GP Comp Q4: <b style="color:${sm.gpL.Q4.pay>=100?'var(--gn)':sm.gpL.Q4.pay>0?'var(--or)':'var(--rd)'}">
           ${Math.round(sm.gpL.Q4.pay)}%</b></div>`:''}</div>
-        <button onclick="applySc('${k}')" style="margin-top:5px;width:100%;padding:3px;border-radius:3px;border:1px solid ${sc.c}44;background:${sc.c}0c;color:${sc.c};font-size:12px;font-weight:700">Apply</button></div>`;
+        <button onclick="applySc('${k}')" ${_act?'disabled':''} style="margin-top:5px;width:100%;padding:3px;border-radius:3px;border:1px solid ${sc.c}${_act?'80':'44'};background:${sc.c}${_act?'25':'0c'};color:${sc.c};font-size:12px;font-weight:700;${_act?'cursor:default;opacity:.85':''}">${_act?'● Active':'Apply'}</button></div>`;
     }
     h+=`</div>`;
     // Sensitivity
-    h+=`<div style="display:grid;grid-template-columns:1fr 1fr ${seg!=='gp'?'1fr':''}; gap:7px">`;
+    h+=`<div style="display:grid;grid-template-columns:${seg==='sp'?'1fr':seg==='gp'?'1fr 1fr':'1fr 1fr 1fr'}; gap:7px">`;
     if(seg!=='sp'){
       h+=`<div class="qc" style="border:1px solid rgba(124,108,255,.1)"><div style="font-size:13px;font-weight:700;color:var(--pu)">GP Open (${GP.O})</div>
         <div style="font-size:11px;color:var(--dm);line-height:1.7;margin-top:2px">+10% = ${Math.round(GP.O*.1)} logos (+${P(GP.O*.1/GP.T*100)} ret)<br>Rev: +${fS(GP.O*.1*34069*S.exp/100)}</div></div>
@@ -7526,7 +7529,7 @@ function render(){
   }
 
   const _ftTot=(GP.base||0)+(SP_REV.base||0);
-  h+=`<div class="ft">${GP.T.toLocaleString()} GP (${fS(GP.base||0)}) + ${SP.T} SP (${fS(SP_REV.base||0)}) · ${fS(_ftTot)} total · Baseline: 52.7% · Churn: ${GP.C} GP (${fS(GP.churnRev||0)}) + ${SP.C} SP (${fS(SP_REV.churnRev||0)}) · Comp = logo-based · GRR/NRR = revenue-based</div>`;
+  h+=`<div class="ft">${GP.T.toLocaleString()} GP (${fS(GP.base||0)}) + ${SP.T} SP (${fS(SP_REV.base||0)}) · ${fS(_ftTot)} total · Baseline: <span title="2025 actual GP logo retention rate — the starting point against which 2026 quarterly thresholds (floor / full / accel) are set" style="border-bottom:1px dotted currentColor;cursor:help">52.7%</span> · Churn: ${GP.C} GP (${fS(GP.churnRev||0)}) + ${SP.C} SP (${fS(SP_REV.churnRev||0)}) · Comp = logo-based · GRR/NRR = revenue-based</div>`;
   document.getElementById('app').innerHTML=h;
 }
 
@@ -7535,7 +7538,7 @@ function sidebar(m,seg){
   for(const[k,l,c]of[['oc','GP Open Conv','var(--pu)'],['dc','GP Dec. Re-eng','var(--or)'],['sc','SP Open Conv','var(--pk)'],['exp','Expansion Factor','var(--gn)']]){
     const v=S[k],mx=k==='exp'?180:100,mn=k==='exp'?80:0;
     h+=`<div class="sr"><div class="sl">${l}</div><button class="sib" onclick="bumpS('${k}',-5)">−</button><input type="range" min="${mn}" max="${mx}" step="5" value="${v}" oninput="setS('${k}',+this.value)"><button class="sib" onclick="bumpS('${k}',5)">+</button><div class="sv" style="color:${c}"><input type="number" min="${mn}" max="${mx}" step="1" value="${v}" onchange="setS('${k}',Math.max(${mn},Math.min(${mx},Math.round(+this.value)||0)))" onkeydown="if(event.key==='Enter')this.blur()" onfocus="this.select()">%</div></div>`}
-  h+=`<div style="display:flex;gap:3px;margin-top:5px">${Object.entries(SCEN).map(([k,s])=>`<button style="flex:1 1 0;min-width:0;padding:3px;border-radius:3px;font-size:11px;font-weight:700;border:1px solid ${s.c}30;background:${s.c}08;color:${s.c}" onclick="applySc('${k}')">${s.l}</button>`).join('')}</div></div>`;
+  h+=`<div style="display:flex;gap:3px;margin-top:5px">${Object.entries(SCEN).map(([k,s])=>{const _act=S.oc===s.oc&&S.dc===s.dc&&S.sc===s.sc&&S.exp===s.exp;return `<button style="flex:1 1 0;min-width:0;padding:3px;border-radius:3px;font-size:11px;font-weight:700;border:1px solid ${s.c}${_act?'':'30'};background:${s.c}${_act?'25':'08'};color:${s.c}" onclick="applySc('${k}')">${_act?'● ':''}${s.l}</button>`;}).join('')}</div></div>`;
 
   // Quarter pipeline details (GP) — stacked above Scenarios
   if(seg!=='sp'){
@@ -7574,12 +7577,12 @@ function sidebar(m,seg){
   return h;
 }
 
-function setTab(t){S.tab=t;render()}
-function setSeg(v){S.seg=v;render()}
-function setStair(m){S.stairMode=m;render()}
-function setS(k,v){S[k]=v;render()}
-function bumpS(k,d){const mx=k==='exp'?180:100,mn=k==='exp'?80:0;S[k]=Math.max(mn,Math.min(mx,(S[k]||0)+d));render()}
-function applySc(k){const s=SCEN[k];S.oc=s.oc;S.dc=s.dc;S.sc=s.sc;S.exp=s.exp;render()}
+function setTab(t){S.tab=t;_saveS();render()}
+function setSeg(v){S.seg=v;_saveS();render()}
+function setStair(m){S.stairMode=m;_saveS();render()}
+function setS(k,v){S[k]=v;_saveS();render()}
+function bumpS(k,d){const mx=k==='exp'?180:100,mn=k==='exp'?80:0;S[k]=Math.max(mn,Math.min(mx,(S[k]||0)+d));_saveS();render()}
+function applySc(k){const s=SCEN[k];S.oc=s.oc;S.dc=s.dc;S.sc=s.sc;S.exp=s.exp;_saveS();render()}
 render();
 </script>
 </body>
