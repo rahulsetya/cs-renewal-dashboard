@@ -5335,7 +5335,7 @@ function rOverview(){
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
     </div>
     <div class="callout">
-      <strong>📊 4-State Pipeline Model:</strong> This dashboard distinguishes between <strong style="color:var(--red)">confirmed churn</strong> (${gLo} GP + ${SP.lost} SP = ${tLo} total, ${fmt(gRL+SP.rl)} revenue) and <strong style="color:var(--orange)">declined early</strong> (${tDe} GP accounts that said no to early renewal but whose renewal dates are still future — re-engageable). The prior "195 lost" GP figure counted both; true confirmed GP churn is just 9 logos ($384K).
+      <strong>📊 4-State Pipeline Model:</strong> This dashboard distinguishes between <strong style="color:var(--red)">confirmed churn</strong> (${gLo} GP + ${SP.lost} SP = ${tLo} total, ${fmt(gRL+SP.rl)} revenue) and <strong style="color:var(--orange)">declined early</strong> (${tDe} GP accounts that said no to early renewal but whose renewal dates are still future — re-engageable). The prior "195 lost" GP figure counted both; true confirmed GP churn is just ${gLo} logos (${fmt(gRL)}).
     </div>
     <div class="grid2">
       <div class="card"><h3>GP Renewal Pipeline</h3><div class="sh">Logo count by quarter — 4-state: won / open / declined early / churned</div><div class="chart-wrap" style="height:240px"><canvas id="c1"></canvas></div>${legend4()}</div>
@@ -6421,7 +6421,7 @@ function rPayout(){
 
     <div class="card" style="overflow-x:auto"><h3>GP Variable Comp Projection — ${selPQ}</h3><div class="sh">${selPQ==="Q1"?'Q1 is CLOSED — all components pay 100%':'Activity data pending · Retention based on current pool performance'}</div><table>${thd}<tbody>${CSM.filter(c=>c.t==="GP").map(c=>pr(c,true)).join('')}</tbody></table></div>
     <div class="card" style="overflow-x:auto"><h3>SP Variable Comp Projection — ${selPQ}</h3><div class="sh">SP pool goaled separately · ${selPQ}: ${SP_T[selPQ]?.floor||'—'}% floor / ${SP_T[selPQ]?.full||'—'}% full / ${SP_T[selPQ]?.accel||'—'}%+ accel</div><table>${thd}<tbody>${CSM.filter(c=>c.t==="SP").map(c=>pr(c,false)).join('')}</tbody></table></div>
-    <div class="callout"><strong>Note on 4-state model:</strong> Retention % for comp uses <strong>confirmed churn only</strong> (9 GP accounts) — not the 186 declined-early accounts. Pool-level retention rates are significantly higher than the prior 3-state model showed.</div>`;
+    <div class="callout"><strong>Note on 4-state model:</strong> Retention % for comp uses <strong>confirmed churn only</strong> (${gLo} GP accounts) — not the ${gDe} declined-early accounts. Pool-level retention rates are significantly higher than the prior 3-state model showed.</div>`;
 
   // Draw payout curve chart
   if(selPQ!=="Q1"&&curveT.floor){
