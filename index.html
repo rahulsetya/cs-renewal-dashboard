@@ -37,7 +37,7 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .rc{background:#0f172a;border-radius:10px;padding:16px 20px}
 .rc h4{font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 .rb{font-size:32px;font-weight:700}.rd{font-size:12px;color:#64748b;margin-top:4px}
-.sg{display:grid;grid-template-columns:125px 1fr 45px 90px 90px 80px 55px;align-items:center;gap:8px;margin-bottom:5px;cursor:pointer;padding:5px 8px;border-radius:6px;transition:background .15s}
+.sg{display:grid;grid-template-columns:125px 1fr 88px 90px 90px 80px 55px;align-items:center;gap:8px;margin-bottom:5px;cursor:pointer;padding:5px 8px;border-radius:6px;transition:background .15s}
 .sg:hover{background:#293548}.sg.act{background:#334155}
 .bb{background:#0f172a;border-radius:5px;height:22px;overflow:hidden;position:relative}
 .bf{height:100%;border-radius:5px;transition:width .4s ease;position:absolute;top:0;left:0}
@@ -4537,6 +4537,22 @@ body.light .scenario-slider{background:linear-gradient(to right,var(--accent) 50
 body.light .scenario-slider::-webkit-slider-thumb{border-color:#eef4f9}
 body.light .scenario-slider::-moz-range-thumb{border-color:#eef4f9}
 body.light .scenario-slider::-moz-range-track{background:#bccedd}
+.owner-dd{position:relative;display:inline-block}
+.owner-dd-btn{background:var(--card);color:var(--text);border:1px solid var(--borderL);padding:5px 10px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;min-width:240px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.owner-dd-btn:hover{background:var(--border)}
+.owner-dd-btn .cr{color:var(--dim);font-size:10px;transition:transform .15s}
+.owner-dd-btn.op .cr{transform:rotate(180deg);color:var(--text)}
+.owner-dd-menu{position:absolute;top:calc(100% + 4px);left:0;background:var(--card);border:1px solid var(--borderL);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:280px;max-height:60vh;overflow-y:auto;z-index:200;padding:4px 0}
+.owner-dd-item{padding:7px 14px;font-size:12px;color:var(--text);cursor:pointer;font-weight:500;white-space:nowrap;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.owner-dd-item:hover{background:var(--border)}
+.owner-dd-item.sel{background:var(--accent);color:#fff}
+.owner-dd-item .ct{color:var(--dim);font-size:11px;font-weight:400}
+.owner-dd-item.sel .ct{color:#bfdbfe}
+.owner-dd-grp{padding:8px 14px 4px;font-size:10px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--border);margin-top:4px}
+.owner-dd-grp:first-child{border-top:none;margin-top:0}
+.owner-dd-cb{display:inline-block;width:13px;height:13px;border:1.5px solid var(--borderL);border-radius:3px;margin-right:8px;vertical-align:-2px;text-align:center;line-height:11px;font-size:10px;font-weight:700;color:transparent;background:transparent;flex-shrink:0}
+.owner-dd-item.sel .owner-dd-cb{background:var(--accent);border-color:var(--accent);color:#fff}
+.owner-dd-sub{padding-left:32px!important;font-size:11px}
 </style>
 </head>
 <body>
@@ -4758,6 +4774,80 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"top10s",l:"Top 10s"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
 var aTab="overview",selGPCSM=null,selGPMonth=null,selGPPod=null;
+// ── GP Retention multi-select owner state ───────────────────────────
+// `selGPOwner` is polymorphic — same shape as parent dashboard's S.owner:
+//   'ALL'                        → all CSMs/pods (default)
+//   ['Christina Chumak', ...]    → array of CSM names + 'POD:<name>' tokens
+// Scale sub-pods are encoded as 'POD:Scale USA'/'POD:Scale Asia'/'POD:Scale Europe'
+// and are matched against a.ae (Sales Rep), mirroring the parent.
+let selGPOwner='ALL';
+let GP_OWNER_DROP_OPEN=false;
+const _GP_SCALE_ASIA_REP   = ae => String(ae||'').trim().toLowerCase().startsWith('edwin');
+const _GP_SCALE_EUROPE_REP = ae => {
+  const a = String(ae||'').trim().toLowerCase();
+  return a==='dx' || a.startsWith('dx ') || a.startsWith('david x');
+};
+function _gpScaleSubPod(a){
+  if(!a||a.pool!=='Scale')return null;
+  if(_GP_SCALE_EUROPE_REP(a.ae))return 'Scale Europe';
+  if(_GP_SCALE_ASIA_REP(a.ae))return 'Scale Asia';
+  return 'Scale USA';
+}
+function _gpOwnerSel(){
+  const v=selGPOwner;
+  if(!v||v==='ALL')return{mode:'ALL',items:[]};
+  const items=Array.isArray(v)?v.slice():[v];
+  if(!items.length)return{mode:'ALL',items:[]};
+  return{mode:'PICK',items};
+}
+function _gpItemMatches(item,a){
+  if(typeof item==='string'&&item.indexOf('POD:')===0){
+    const pod=item.slice(4);
+    if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
+      return a&&a.pool==='Scale'&&_gpScaleSubPod(a)===pod;
+    return a&&a.pod===pod;
+  }
+  return a&&a.csRep===item;
+}
+function _gpMatchesOwnerFilter(a){
+  const sel=_gpOwnerSel();
+  if(sel.mode==='ALL')return true;
+  return sel.items.some(it=>_gpItemMatches(it,a));
+}
+function _gpIsOwnerPickActive(v){
+  const sel=_gpOwnerSel();
+  return sel.mode==='PICK'&&sel.items.indexOf(v)>=0;
+}
+function pickGPOwner(v){
+  if(v==='ALL'){
+    selGPOwner='ALL';
+    GP_OWNER_DROP_OPEN=false;
+    rT('gp_grr');
+    return;
+  }
+  let cur=Array.isArray(selGPOwner)?selGPOwner.slice():(selGPOwner==='ALL'||!selGPOwner)?[]:[selGPOwner];
+  const idx=cur.indexOf(v);
+  if(idx>=0)cur.splice(idx,1);else cur.push(v);
+  selGPOwner=cur.length===0?'ALL':cur;
+  GP_OWNER_DROP_OPEN=true;
+  rT('gp_grr');
+}
+function toggleGPOwnerDrop(e){
+  if(e&&e.stopPropagation)e.stopPropagation();
+  GP_OWNER_DROP_OPEN=!GP_OWNER_DROP_OPEN;
+  const m=document.getElementById('gpOwnerDropMenu');
+  const b=document.getElementById('gpOwnerDropBtn');
+  if(m)m.style.display=GP_OWNER_DROP_OPEN?'block':'none';
+  if(b)b.classList.toggle('op',GP_OWNER_DROP_OPEN);
+}
+document.addEventListener('click',function(e){
+  if(!GP_OWNER_DROP_OPEN)return;
+  const dd=document.querySelector('.owner-dd');
+  if(dd&&dd.contains(e.target))return;
+  GP_OWNER_DROP_OPEN=false;
+  const m=document.getElementById('gpOwnerDropMenu');if(m)m.style.display='none';
+  const b=document.getElementById('gpOwnerDropBtn');if(b)b.classList.remove('op');
+});
 // Live "current quarter" — recomputed on every read so a dashboard left open
 // across a quarter boundary self-corrects on the next tab render.
 function _nowQ(){const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';}
@@ -5543,7 +5633,7 @@ let _acctSort={},_acctFilt={};
 function _acctTableHTML(rid,q,pool){
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
   const sc=a=>{if(WS.includes(a.stage))return'var(--green)';if(CS.includes(a.stage))return'var(--red)';if(DS.includes(a.stage))return'var(--orange)';return'var(--muted)';};
-  let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&(!selGPCSM||a.csRep===selGPCSM)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth)&&(!selGPPod||a.pod===selGPPod));
+  let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth));
   const allStages=[...new Set(rows.map(a=>a.stage).filter(Boolean))].sort();
   const filt=_acctFilt[rid]||'';
   if(filt==='_won')rows=rows.filter(a=>WS.includes(a.stage));
@@ -5561,7 +5651,7 @@ function _acctTableHTML(rid,q,pool){
   const grpOpts=[{v:'_won',l:'Won'},{v:'_ch',l:'Churned'},{v:'_dc',l:'Declined Early'}].map(g=>`<option value="${g.v}"${filt===g.v?' selected':''}>${g.l}</option>`).join('');
   const stOpts=allStages.map(s=>`<option value="${s}"${filt===s?' selected':''}>${s.replace(/^\d+\.\s*/,'')}</option>`).join('');
   const filtActive=filt?`color:var(--accent);border-color:var(--accent)`:`color:var(--dim)`;
-  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> <select onclick="event.stopPropagation()" onchange="_filtAcct('${rid}','${q}','${pool}',this.value)" style="font-size:10px;background:var(--cd);border:1px solid var(--border);${filtActive};border-radius:4px;padding:1px 4px;cursor:pointer;vertical-align:middle;font-family:inherit"><option value="">all</option>${grpOpts}${stOpts?'<option disabled>──────</option>'+stOpts:''}</select>${filt?` <button onclick="event.stopPropagation();_filtAcct('${rid}','${q}','${pool}','')" style="font-size:10px;background:transparent;border:none;color:var(--dim);cursor:pointer;padding:0 2px;vertical-align:middle" title="Clear filter">✕</button>`:''}${rows.length!==((ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&(!selGPCSM||a.csRep===selGPCSM)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth)).length)?` <span style="font-size:10px;color:var(--dim)">${rows.length} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','se')">Sub End ${sa('se')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px">${fmtSE(a.se)}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="7" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
+  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> <select onclick="event.stopPropagation()" onchange="_filtAcct('${rid}','${q}','${pool}',this.value)" style="font-size:10px;background:var(--cd);border:1px solid var(--border);${filtActive};border-radius:4px;padding:1px 4px;cursor:pointer;vertical-align:middle;font-family:inherit"><option value="">all</option>${grpOpts}${stOpts?'<option disabled>──────</option>'+stOpts:''}</select>${filt?` <button onclick="event.stopPropagation();_filtAcct('${rid}','${q}','${pool}','')" style="font-size:10px;background:transparent;border:none;color:var(--dim);cursor:pointer;padding:0 2px;vertical-align:middle" title="Clear filter">✕</button>`:''}${rows.length!==((ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth)).length)?` <span style="font-size:10px;color:var(--dim)">${rows.length} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','se')">Sub End ${sa('se')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px">${fmtSE(a.se)}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="7" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
 function _sortAcct(rid,q,pool,col){const cur=_acctSort[rid]||{col:'rev',dir:-1};_acctSort[rid]={col,dir:cur.col===col?-cur.dir:1};_rAcctTable(rid,q,pool);}
@@ -5590,20 +5680,32 @@ function rGP(){
 
   // Filter setup: all accounts in quarter
   const qAcctsAll=(ACCTS||[]).filter(a=>a.q===q);
-  const podList=[...new Set(qAcctsAll.map(a=>a.pod).filter(Boolean))].sort();
-  if(selGPPod&&!podList.includes(selGPPod))selGPPod=null;
-  // Pod-filtered (CSM dropdown will scope to these accounts)
-  const qAccts=selGPPod?qAcctsAll.filter(a=>a.pod===selGPPod):qAcctsAll;
-  const csmList=[...new Set(qAccts.map(a=>a.csRep).filter(Boolean))].sort();
-  if(selGPCSM&&!csmList.includes(selGPCSM))selGPCSM=null;
-  // CSM-filtered only (used for month button counts)
-  const csmFiltered=selGPCSM?qAccts.filter(a=>a.csRep===selGPCSM):qAccts;
-  // Full filtered (Pod + CSM + month) used everywhere else
-  const filtAccts=selGPMonth?csmFiltered.filter(a=>(a.se||'').substring(5,7)===selGPMonth):csmFiltered;
+  const podList=[...new Set(qAcctsAll.map(a=>a.pod).filter(Boolean))].sort((a,b)=>{
+    // "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
+    const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
+    if(na&&nb)return +na[1]-+nb[1];
+    if(na)return -1;if(nb)return 1;
+    return a.localeCompare(b);
+  });
+  const csmList=[...new Set(qAcctsAll.map(a=>a.csRep).filter(Boolean))].sort();
+  // Drop any selected items that no longer exist in the quarter (data refresh edge case)
+  if(Array.isArray(selGPOwner)){
+    const valid=new Set(csmList.concat(podList.map(p=>'POD:'+p)).concat(['POD:Scale USA','POD:Scale Asia','POD:Scale Europe']));
+    const filtered=selGPOwner.filter(it=>valid.has(it));
+    if(filtered.length!==selGPOwner.length)selGPOwner=filtered.length?filtered:'ALL';
+  }
+  // Pod/CSM/Sub-pod filtered (for month button counts and re-aggregation)
+  const ownerFiltered=qAcctsAll.filter(_gpMatchesOwnerFilter);
+  // Full filtered (Owner + month) used everywhere else
+  const filtAccts=selGPMonth?ownerFiltered.filter(a=>(a.se||'').substring(5,7)===selGPMonth):ownerFiltered;
+  // Back-compat shim: legacy use sites read these names
+  const csmFiltered=ownerFiltered;
+  const qAccts=qAcctsAll;
 
   // Re-aggregate per-pool data from filtered accounts (or use global GRR when no active filters)
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
-  const needsReagg=selGPCSM||selGPMonth||selGPPod;
+  const _ownerActive=selGPOwner!=='ALL';
+  const needsReagg=_ownerActive||selGPMonth;
   const grrQ=needsReagg?(()=>{
     const r={};pools.forEach(p=>{r[p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});
     filtAccts.forEach(a=>{const p=a.pool;if(!r[p])return;r[p].logos++;r[p].rev+=a.rev||0;
@@ -5637,6 +5739,15 @@ function rGP(){
   const _rcD=(p,k,inv)=>{if(!_rcPools||!_rcPools[p])return'';const d=(grrQ[p]||{})[k]||0,old=_rcPools[p][k]||0,diff=d-old;if(!diff)return'';const good=inv?diff<0:diff>0;return`<span style="font-size:9px;font-weight:700;color:${good?'var(--green)':'var(--red)'};margin-left:3px">${diff>0?'▲':'▼'}${Math.abs(diff)}</span>`;};
   const _rcDPct=(p,num,den)=>{if(!_rcPools||!_rcPools[p])return'';const cd=(grrQ[p]||{})[den]||0,cn=(grrQ[p]||{})[num]||0,od=_rcPools[p][den]||0,on_=_rcPools[p][num]||0;if(!cd||!od)return'';const diff=(cd>0?cn/cd*100:0)-(od>0?on_/od*100:0);if(Math.abs(diff)<0.05)return'';return`<span style="font-size:9px;font-weight:700;color:${diff>0?'var(--green)':'var(--red)'};margin-left:3px">${diff>0?'▲':'▼'}${Math.abs(diff).toFixed(1)}pp</span>`;};
 
+  // Header label for the active CSM/Pod filter — single-pick shows the name,
+  // multi-pick shows "N selected", ALL shows nothing.
+  const _gpOwnerLbl=(()=>{
+    const sel=_gpOwnerSel();
+    if(sel.mode==='ALL')return'';
+    if(sel.items.length===1){const x=sel.items[0];return ' · '+(typeof x==='string'&&x.indexOf('POD:')===0?x.slice(4):x);}
+    return ' · '+sel.items.length+' selected';
+  })();
+
   el.innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="_setSelQ('${qq}');selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
@@ -5645,24 +5756,53 @@ function rGP(){
         ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.se||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM:</label>
-        <select onchange="selGPCSM=this.value||null;rT('gp_grr')" style="background:var(--cd);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">
-          <option value=""${!selGPCSM?' selected':''}>All CSMs (${csmFiltered.length})</option>
-          ${csmList.map(c=>`<option value="${c}"${selGPCSM===c?' selected':''}>${c} (${csmFiltered.filter(a=>a.csRep===c).length})</option>`).join('')}
-        </select>
-        ${selGPCSM?`<button onclick="selGPCSM=null;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer">✕ Clear</button>`:''}
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <label style="font-size:12px;color:var(--dim);white-space:nowrap">Pod:</label>
-        <select onchange="selGPPod=this.value||null;selGPCSM=null;rT('gp_grr')" style="background:var(--cd);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">
-          <option value=""${!selGPPod?' selected':''}>All Pods (${qAcctsAll.length})</option>
-          ${podList.map(p=>`<option value="${p}"${selGPPod===p?' selected':''}>${p} (${qAcctsAll.filter(a=>a.pod===p).length})</option>`).join('')}
-        </select>
-        ${selGPPod?`<button onclick="selGPPod=null;selGPCSM=null;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer">✕ Clear</button>`:''}
+        <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM / Pod:</label>
+        ${(()=>{
+          const sel=_gpOwnerSel();
+          let curLbl;
+          if(sel.mode==='ALL')curLbl=`All CSMs & Pods (${qAcctsAll.length})`;
+          else if(sel.items.length===1){const x=sel.items[0];curLbl=(typeof x==='string'&&x.indexOf('POD:')===0)?x.slice(4):x;}
+          else curLbl=sel.items.length+' selected';
+          // Per-quarter, per-row counts (so the dropdown reflects the current quarter view)
+          const _gpPodCounts={};const _gpScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
+          qAcctsAll.forEach(a=>{if(a.pod){_gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;}const sub=_gpScaleSubPod(a);if(sub)_gpScaleSubCounts[sub]++;});
+          const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
+          let menu=`<div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickGPOwner('ALL')"><span>All CSMs &amp; Pods</span><span class="ct">${qAcctsAll.length} accts</span></div>`;
+          if(csmList.length){
+            menu+=`<div class="owner-dd-grp">CSMs</div>`;
+            menu+=csmList.map(c=>{
+              const on=_gpIsOwnerPickActive(c);
+              const ct=qAcctsAll.filter(a=>a.csRep===c).length;
+              return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${ct} accts</span></div>`;
+            }).join('');
+          }
+          if(podList.length){
+            menu+=`<div class="owner-dd-grp">Pods · Engagement Tracker</div>`;
+            menu+=podList.map(p=>{
+              if(p==='Scale'){
+                const on=_gpIsOwnerPickActive('POD:Scale');
+                let h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_gpPodCounts.Scale||0} accts</span></div>`;
+                [['Scale USA',''],['Scale Asia','Edwin'],['Scale Europe','David X']].forEach(([sub,rep])=>{
+                  const son=_gpIsOwnerPickActive('POD:'+sub);
+                  const ct=_gpScaleSubCounts[sub]||0;
+                  h+=`<div class="owner-dd-item owner-dd-sub${son?' sel':''}" onclick="pickGPOwner('POD:${sub}')"><span>${cb(son)}↳ ${sub}${rep?` <span style="color:var(--dim);font-size:10px">· ${rep}</span>`:''}</span><span class="ct">${ct} accts</span></div>`;
+                });
+                return h;
+              }
+              const on=_gpIsOwnerPickActive('POD:'+p);
+              return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
+            }).join('');
+          }
+          return `<div class="owner-dd">
+            <button id="gpOwnerDropBtn" class="owner-dd-btn${GP_OWNER_DROP_OPEN?' op':''}" onclick="toggleGPOwnerDrop(event)" title="Filter by CSM or Pod (multi-select)"><span>${curLbl}</span><span class="cr">▾</span></button>
+            <div id="gpOwnerDropMenu" class="owner-dd-menu" style="display:${GP_OWNER_DROP_OPEN?'block':'none'}" onclick="event.stopPropagation()">${menu}</div>
+          </div>`;
+        })()}
+        ${selGPOwner!=='ALL'?`<button onclick="selGPOwner='ALL';GP_OWNER_DROP_OPEN=false;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
       </div>
     </div>
     <div class="cards">${(()=>{const tot={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};pools.forEach(p=>{const d=grrQ[p]||{};for(const k in tot)tot[k]+=(d[k]||0);});return poolCard('Total',tot,tgt,q==="Q1");})()}${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}</div>
-    ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Wins needed from ${totalTrulyOpen} open + ${totalWinback} Win-back accounts to hit targets</div>
+    ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}${_gpOwnerLbl}</h3><div class="sh">Wins needed from ${totalTrulyOpen} open + ${totalWinback} Win-back accounts to hit targets</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
         ${[{l:"Floor ("+GP_T[tKey]?.floor+"%)",n:floorN,g:gapFloor,c:gapFloor<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.floor/100},{l:"Full ("+GP_T[tKey]?.full+"%)",n:fullN,g:gapFull,c:gapFull<=0?"var(--green)":"var(--amber)",t:GP_T[tKey]?.full/100},{l:"Accel ("+GP_T[tKey]?.accel+"%+)",n:accelN,g:gapAccel,c:gapAccel<=0?"var(--green)":"var(--red)",t:GP_T[tKey]?.accel/100}].map(x=>{const convNeeded=totalCloseable>0?Math.max(0,x.g/totalCloseable*100):0;return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;text-align:center">
           <div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">${x.l}</div>
@@ -5683,14 +5823,14 @@ function rGP(){
       </div>
     </div>`:''}
     <div class="card">
-      <h3>${q} Revenue Context${selGPCSM?' · '+selGPCSM:''}</h3>
+      <h3>${q} Revenue Context${_gpOwnerLbl}</h3>
       <div class="sh">Revenue associated with each pool (for future GRR tracking)${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
       <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined Early</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Floor</th><th style="text-align:right">Accts Needed</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
       <tbody>${pools.map(p=>{const d=grrQ[p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;const pcount=filtAccts.filter(a=>a.pool===p).length;const rid='acr_'+q+'_'+p.replace(/\W/g,'');const floorPct=GP_T[tKey]?.floor||null;const floorNeed=floorPct?Math.max(0,Math.ceil(d.logos*floorPct/100)-d.won):null;const floorMet=floorPct&&d.logos>0&&(d.won/d.logos*100)>=floorPct;return`<tr><td style="font-weight:500;cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','')" title="Click to show accounts"><span id="${rid}_chev" style="display:inline-block;font-size:11px;font-weight:700;color:var(--accent);background:var(--accentG);border:1px solid rgba(59,130,246,.45);width:20px;height:18px;line-height:16px;text-align:center;border-radius:4px;margin-right:8px;vertical-align:middle">▸</span><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p} <span style="font-size:10px;color:var(--dim)">· ${pcount}</span></td><td class="mono" style="text-align:right">${d.logos}${_rcD(p,'logos')}</td><td class="mono" style="text-align:right;color:var(--green);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_won')" title="Show won accounts">${d.won}${_rcD(p,'won')}</td><td class="mono" style="text-align:right;color:var(--red);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_ch')" title="Show churned accounts">${d.lost}${_rcD(p,'lost',true)}</td><td class="mono" style="text-align:right;color:var(--orange);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_dc')" title="Show declined accounts">${d.declined}${_rcD(p,'declined',true)}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}${_rcDPct(p,'won','logos')}</td><td class="mono" style="text-align:right;color:var(--dim)">${floorPct?floorPct+'%':'—'}</td><td class="mono" style="text-align:right;color:${floorMet?'var(--green)':floorNeed>0?'var(--red)':'var(--dim)'}">${floorPct?(floorMet?'✓ met':'+'+floorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr><tr id="${rid}" style="display:none"><td colspan="11" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><div id="${rid}_acct">${_acctTableHTML(rid,q,p)}</div></td></tr>`;}).join('')}
       ${(()=>{const tTl=pools.reduce((s,p)=>s+(grrQ[p].logos||0),0);const tTw=pools.reduce((s,p)=>s+(grrQ[p].won||0),0);const tTlo=pools.reduce((s,p)=>s+(grrQ[p].lost||0),0);const tTde=pools.reduce((s,p)=>s+(grrQ[p].declined||0),0);const tRev=pools.reduce((s,p)=>s+(grrQ[p].rev||0),0);const tRw=pools.reduce((s,p)=>s+(grrQ[p].rw||0),0);const tLr=tTl>0?(tTw/tTl*100):0;const tRr=tRev>0?(tRw/tRev*100):0;const tFloorPct=GP_T[tKey]?.floor||null;const tFloorMet=tFloorPct&&tTl>0&&(tTw/tTl*100)>=tFloorPct;const tFloorNeed=tFloorPct?Math.max(0,Math.ceil(tTl*tFloorPct/100)-tTw):null;return`<tr style="border-top:2px solid rgba(255,255,255,.12);font-weight:700"><td style="color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase">Total</td><td class="mono" style="text-align:right">${tTl}</td><td class="mono" style="text-align:right;color:var(--green)">${tTw}</td><td class="mono" style="text-align:right;color:var(--red)">${tTlo}</td><td class="mono" style="text-align:right;color:var(--orange)">${tTde}</td><td class="mono" style="text-align:right;color:${tLr>=tgt?'var(--green)':'var(--amber)'}">${pct(tLr)}</td><td class="mono" style="text-align:right;color:var(--dim)">${tFloorPct?tFloorPct+'%':'—'}</td><td class="mono" style="text-align:right;color:${tFloorMet?'var(--green)':tFloorNeed>0?'var(--red)':'var(--dim)'}">${tFloorPct?(tFloorMet?'✓ met':'+'+tFloorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(tRev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(tRw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(tRr)}</td></tr>`;})()}
       </tbody></table>
     </div>
-    <div class="card"><h3>${q} GP Pipeline by Pool${selGPCSM?' · '+selGPCSM:''}</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>`;
+    <div class="card"><h3>${q} GP Pipeline by Pool${_gpOwnerLbl}</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>`;
 
   // 4-state stacked bar
   const cData=pools.map(p=>({p,...grrQ[p]}));
