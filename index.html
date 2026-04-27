@@ -5217,17 +5217,34 @@ function _cadJumpToReview(csmName,statusKey){
       const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return(MO[parseInt(iso.slice(5,7),10)-1]||'')+' '+parseInt(iso.slice(8,10),10);
     };
+    // Missed Logging only — show who ran the meeting in HubSpot (often a
+    // teammate, not the CSM). For Unconfirmed there is no HS meeting, so the
+    // column is omitted to keep the panel narrow.
+    const showAssignee=!isUnv;
+    const _fmtAssignee=r=>{
+      const list=Array.isArray(r.assignees)?r.assignees.filter(Boolean):[];
+      const last=String(r.lastAssignee||'').trim();
+      if(!last&&!list.length)return'<span style="color:var(--dim)">—</span>';
+      // If the same person ran every meeting, just show the name.
+      if(list.length<=1)return _esc(last||list[0]||'');
+      // Multiple owners: lead with the most-recent and tooltip the rest.
+      const others=list.filter(x=>x&&x!==last);
+      const tip=('All owners this month: '+list.join(', ')).replace(/"/g,'&quot;');
+      return _esc(last||list[0])+`<span style="margin-left:5px;color:var(--dim);font-size:10px;font-weight:500" title="${tip}">+${others.length}</span>`;
+    };
     const tableHTML=rows.length?`<table style="border-collapse:collapse;width:100%;font-size:11px">
       <thead><tr style="border-bottom:1px solid var(--border)">
         <th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600">Account</th>
         <th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600;width:90px">Month</th>
         <th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600;width:120px">${dateColLabel}</th>
+        ${showAssignee?'<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600;width:140px">Assigned to</th>':''}
         <th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:600">Note</th>
       </tr></thead>
       <tbody>${rows.map(r=>`<tr style="border-top:1px solid rgba(255,255,255,.04)">
         <td style="padding:5px 8px;color:var(--text);font-weight:500">${_esc(r.acct)}</td>
         <td style="padding:5px 8px;color:var(--dim);font-family:var(--mono);font-size:10px">${_esc(r.month)}</td>
         <td style="padding:5px 8px;color:var(--dim);font-family:var(--mono);font-size:10px">${isUnv?(r.tracker==='Y'?'Y':_esc(r.tracker)):_fmtDate(r.lastDate)}</td>
+        ${showAssignee?`<td style="padding:5px 8px;color:var(--text);font-size:10px">${_fmtAssignee(r)}</td>`:''}
         <td style="padding:5px 8px;color:var(--muted);font-size:10px;font-style:italic">${r.override&&r.override.note?_esc(r.override.note):''}</td>
       </tr>`).join('')}</tbody>
     </table>`:`<div style="padding:8px 4px;font-size:11px;color:var(--dim)">No accounts to show.</div>`;
@@ -5561,6 +5578,12 @@ function _cadAuditCompute(){
             tracker:marked?'Y':(v||''),
             hsCount:cnt,
             lastDate:b?b.lastIso:'',
+            // HubSpot activity owner of the most-recent meeting in the bucket,
+            // plus a deduped list of every owner that logged in the bucket.
+            // Surfaced in the Missed Logging panel so the CSM knows who ran
+            // the meeting (often a different teammate) before chasing it down.
+            lastAssignee:b?(b.lastAssignee||''):'',
+            assignees:b?(b.assignees||[]):[],
             status,
             effectiveStatus,
             override:ovr||null
