@@ -1316,6 +1316,13 @@ const OFFER_COLS=[
 
 function computeSignals(row){
   const sg=[],{dy,r25,o,s,mt,rsk}=row;
+  // Suppress all at-risk signals for accounts whose renewal outcome is
+  // already decided. Without this guard, a Won deal with mt=0 (meetings
+  // weren't logged before signing) trips "No Meetings" / "High Rev No
+  // Engagement" and inflates the At Risk count with closed business.
+  // 8. Closed Lost (Not Renewing) normalizes to 4a. Attempting again Q2
+  // upstream (line 1287), so it stays flaggable as an active win-back.
+  if(['7. Signed','9. Invoice Sent','10. Paid','11. Churned'].includes(s))return sg;
   if(s==='1. Uncontacted'&&dy>0&&dy<=90)sg.push('ue');
   if((s==='3. Contacted Follow-up Needed'||s==='4. Contacted Attempting Again')&&o===0)sg.push('en');
   if(mt===0&&s!=='1. Uncontacted')sg.push('co');
