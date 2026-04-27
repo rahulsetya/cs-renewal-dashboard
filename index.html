@@ -1652,8 +1652,7 @@ const RAHUL_MBOS=[
     {id:'2.1',text:'<strong>Weekly cadence report</strong> generated and shared with Tim by <strong>every Friday starting May 1</strong>. Shows per-CSM meeting completion % against their required cadence (monthly / bi-weekly / bi-monthly by segment).',due:'2026-05-01',recur:{weekday:5,from:'2026-05-01',to:'2026-06-26'}},
     {id:'2.2',text:'<strong>Gong audit process</strong> documented and operational — cross-reference engagement tracker entries against Gong recordings weekly. Discrepancies flagged to CSM and Tim within 2 business days.',due:'2026-05-31'},
     {id:'2.3',text:'Cadence data feeds into the <strong>CS Goals Dashboard</strong> (Cadence tab) — CSMs can see their own scores. Dashboard auto-updates from engagement tracker, not manual entry.',due:'2026-05-15'},
-    {id:'2.4',text:'<strong>HubSpot cross-check</strong> report built (or defined if HubSpot integration is pending). Purpose: secondary validation source to catch meetings logged in tracker but not in HubSpot, and vice versa.',due:'2026-06-30'},
-    {id:'2.5',text:'<strong>Sub end dates refreshed</strong> in 2026 Renewal Master sheet — pull latest contract/renewal end dates <strong>every Tuesday</strong> so SP renewal quarter assignment stays accurate. Pipeline & forecast dashboards depend on this for correct quarter buckets.',due:'2026-04-28',recur:{weekday:2,from:'2026-04-28',to:'2026-06-30'}}
+    {id:'2.4',text:'<strong>HubSpot cross-check</strong> report built (or defined if HubSpot integration is pending). Purpose: secondary validation source to catch meetings logged in tracker but not in HubSpot, and vice versa.',due:'2026-06-30'}
   ],grades:[
     {s:'1 — Not Met',c:'#ef4444',d:'No weekly report cadence established, or dashboard cadence tab still showing dashes at quarter end'},
     {s:'2 — Partially Met',c:'#f59e0b',d:'Reports produced but irregular (missed ≥3 weeks), or no Gong audit process in place'},
@@ -1680,6 +1679,13 @@ const RAHUL_MILESTONES=[
   {date:'2026-05-15',label:'Cadence reporting live',c:'#a78bfa'},
   {date:'2026-05-31',label:'Dashboards V1 shipped',c:'#06b6d4'},
   {date:'2026-06-30',label:'HubSpot spec + iteration',c:'#f59e0b'}
+];
+
+// Standalone recurring tasks — calendar-only, NOT tied to any MBO and not
+// counted toward weighted progress. Each occurrence is its own checkbox
+// keyed `task:<id>@YYYY-MM-DD` in localStorage.
+const RAHUL_TASKS=[
+  {id:'subend-et',label:'Refresh sub-end dates (ET)',color:'#a78bfa',recur:{weekday:2,from:'2026-04-28',to:'2026-06-30'}}
 ];
 
 function _mboProgress(){try{return JSON.parse(localStorage.getItem('rahul_mbo_progress')||'{}');}catch(e){return{};}}
@@ -1792,6 +1798,15 @@ function _buildQ2Calendar(){
       pushKr(k.due,k,mbo.id,false);
     }
   }));
+  // Standalone tasks (calendar-only, no MBO). Pushed into the same krDue map
+  // with isTask flag so the day-cell renderer can pick a different label/color.
+  (RAHUL_TASKS||[]).forEach(t=>{
+    if(!t.recur)return;
+    _krOccurrences(t).forEach(iso=>{
+      if(!krDue[iso])krDue[iso]=[];
+      krDue[iso].push({id:t.id,isTask:true,label:t.label,color:t.color||'#a78bfa'});
+    });
+  });
   for(let w=0;w<14;w++){
     const wkStart=new Date(start);wkStart.setDate(start.getDate()+w*7);
     const wkEnd=new Date(wkStart);wkEnd.setDate(wkStart.getDate()+6);
@@ -1842,8 +1857,12 @@ function _buildQ2Calendar(){
         h+=`<div style="font-size:9px;color:#64748b;font-weight:600">${dayName} ${dayNum}</div>`;
         if(hasMs)h+=renderEvent('ms@'+d.iso,d.ms.label,d.ms.c,true);
         d.krs.forEach(k=>{
-          const key=k.recur?(k.id+'@'+d.iso):k.id;
-          h+=renderEvent(key,'KR '+k.id,'#94a3b8',false);
+          if(k.isTask){
+            h+=renderEvent('task:'+k.id+'@'+d.iso,k.label,k.color||'#a78bfa',true);
+          } else {
+            const key=k.recur?(k.id+'@'+d.iso):k.id;
+            h+=renderEvent(key,'KR '+k.id,'#94a3b8',false);
+          }
         });
         h+='</div>';
       });
