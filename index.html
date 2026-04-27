@@ -6603,7 +6603,12 @@ function rCadence(){
 
 // ── ALL ACCOUNTS ────────────────────────────────────
 // Filterable/sortable table of every account with every engagement field.
-let _aaState={csm:'',search:'',segFilter:'',podFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};
+// `owner` is the unified CSM/Pod multi-select (same polymorphic shape as
+// selGPOwner / S.owner in parent): 'ALL' or an array of CSM names + 'POD:<x>'
+// tokens. The off-pod chip uses 'POD:<pod>:OFF' the same way the GP dropdown
+// does, so we can reuse _gpItemMatches verbatim for matching.
+let _aaState={owner:'ALL',search:'',segFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};
+let _AA_OWNER_DROP_OPEN=false;
 const _aaCols=[
   {k:'n',l:'Account',w:180},
   {k:'csRep',l:'Target CSM',w:140},
@@ -6647,12 +6652,59 @@ function _aaGetVal(r,k){
   return r[k];
 }
 function _aaSort(col){if(_aaState.sortCol===col)_aaState.sortDir=_aaState.sortDir==='asc'?'desc':'asc';else{_aaState.sortCol=col;_aaState.sortDir='asc';}rAllAccts();}
-function _aaSetCSM(v){_aaState.csm=v;rAllAccts();}
 function _aaSetSearch(v){_aaState.search=v;rAllAccts();}
 function _aaSetSeg(v){_aaState.segFilter=v;rAllAccts();}
-function _aaSetPod(v){_aaState.podFilter=v;rAllAccts();}
 function _aaSetRisk(v){_aaState.riskFilter=v;rAllAccts();}
-function _aaReset(){_aaState={csm:'',search:'',segFilter:'',podFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};rAllAccts();}
+function _aaReset(){_aaState={owner:'ALL',search:'',segFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};_AA_OWNER_DROP_OPEN=false;rAllAccts();}
+// Owner dropdown helpers — own state separate from GP Retention's selGPOwner
+// so the two dropdowns can be open/closed independently.
+function _aaOwnerSel(){
+  const v=_aaState.owner;
+  if(!v||v==='ALL')return{mode:'ALL',items:[]};
+  const items=Array.isArray(v)?v.slice():[v];
+  if(!items.length)return{mode:'ALL',items:[]};
+  return{mode:'PICK',items};
+}
+function _aaIsOwnerPickActive(v){
+  const sel=_aaOwnerSel();
+  return sel.mode==='PICK'&&sel.items.indexOf(v)>=0;
+}
+function _aaMatchesOwnerFilter(a){
+  const sel=_aaOwnerSel();
+  if(sel.mode==='ALL')return true;
+  // Reuse GP matcher — handles plain CSM names, POD:<pod>, POD:Scale <region>,
+  // and POD:<pod>:OFF for off-pod drilldown.
+  return sel.items.some(it=>_gpItemMatches(it,a));
+}
+function pickAAOwner(v){
+  if(v==='ALL'){_aaState.owner='ALL';_AA_OWNER_DROP_OPEN=false;rAllAccts();return;}
+  let cur=Array.isArray(_aaState.owner)?_aaState.owner.slice():(_aaState.owner==='ALL'||!_aaState.owner)?[]:[_aaState.owner];
+  const idx=cur.indexOf(v);
+  if(idx>=0)cur.splice(idx,1);else cur.push(v);
+  _aaState.owner=cur.length===0?'ALL':cur;
+  _AA_OWNER_DROP_OPEN=true;
+  rAllAccts();
+}
+function toggleAAOwnerDrop(e){
+  if(e&&e.stopPropagation)e.stopPropagation();
+  _AA_OWNER_DROP_OPEN=!_AA_OWNER_DROP_OPEN;
+  const m=document.getElementById('aaOwnerDropMenu');
+  const b=document.getElementById('aaOwnerDropBtn');
+  if(m)m.style.display=_AA_OWNER_DROP_OPEN?'block':'none';
+  if(b)b.classList.toggle('op',_AA_OWNER_DROP_OPEN);
+}
+document.addEventListener('click',function(e){
+  if(!_AA_OWNER_DROP_OPEN)return;
+  // Multiple .owner-dd nodes on the page (GP Retention + All Accounts), so
+  // close only when the click is outside *our* button + menu.
+  const btn=document.getElementById('aaOwnerDropBtn');
+  const menu=document.getElementById('aaOwnerDropMenu');
+  if(btn&&btn.contains(e.target))return;
+  if(menu&&menu.contains(e.target))return;
+  _AA_OWNER_DROP_OPEN=false;
+  if(menu)menu.style.display='none';
+  if(btn)btn.classList.remove('op');
+});
 
 function rAllAccts(){
   const el=document.getElementById('tab-all_accounts');
@@ -6660,15 +6712,35 @@ function rAllAccts(){
   const all=(ACCTS||[]).filter(a=>a.inEng);  // limit to engagement-tracker rows; orphan renewal-master rows lack the fields
 
   // Gather filter options
-  const csms=[...new Set(all.map(a=>a.csRep).filter(Boolean))].sort();
+  const csmList=[...new Set(all.map(a=>a.csRep).filter(Boolean))].sort();
   const segs=[...new Set(all.map(a=>a.seg).filter(Boolean))].sort();
-  const pods=[...new Set(all.map(a=>a.pod).filter(Boolean))].sort();
+  // Pod list — engagement-tracker pods, sorted Pod 1, Pod 2, …, then alphabetic
+  const podSet={};all.forEach(a=>{if(a.pod)podSet[a.pod]=(podSet[a.pod]||0)+1;});
+  const podList=Object.keys(podSet).sort((a,b)=>{
+    const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
+    if(na&&nb)return +na[1]-+nb[1];
+    if(na)return -1;if(nb)return 1;
+    return a.localeCompare(b);
+  });
+  // Drop any stale owner items that no longer match an account (e.g. CSM
+  // renamed). Without this the dropdown can show "1 selected" but yield zero rows.
+  if(Array.isArray(_aaState.owner)){
+    const valid=_aaState.owner.filter(it=>{
+      if(typeof it==='string'&&it.indexOf('POD:')===0){
+        const v=it.slice(4);
+        if(v.endsWith(':OFF'))return!!_GP_POD_CSMS[v.slice(0,-4)];
+        if(v==='Scale USA'||v==='Scale Asia'||v==='Scale Europe')return true;
+        return podList.indexOf(v)>=0||v==='Scale';
+      }
+      return csmList.indexOf(it)>=0;
+    });
+    _aaState.owner=valid.length?valid:'ALL';
+  }
 
   // Apply filters
   let rows=all.slice();
-  if(_aaState.csm)rows=rows.filter(r=>r.csRep===_aaState.csm);
+  rows=rows.filter(_aaMatchesOwnerFilter);
   if(_aaState.segFilter)rows=rows.filter(r=>r.seg===_aaState.segFilter);
-  if(_aaState.podFilter)rows=rows.filter(r=>r.pod===_aaState.podFilter);
   if(_aaState.riskFilter==='yes')rows=rows.filter(r=>r.rsk===1);
   else if(_aaState.riskFilter==='no')rows=rows.filter(r=>!r.rsk);
   if(_aaState.search){
@@ -6701,8 +6773,9 @@ function rAllAccts(){
   const filterSt=`background:var(--bg);border:1px solid var(--borderL);color:var(--text);${filterStBase}`;
   const filterStAct=`background:#1e3a5f;border:1px solid #3b82f6;color:#dbeafe;${filterStBase};font-weight:600`;
   const sel=v=>v?filterStAct:filterSt;
-  const anyActive=!!(_aaState.csm||_aaState.segFilter||_aaState.podFilter||_aaState.riskFilter||_aaState.search);
-  const activeCount=[_aaState.csm,_aaState.segFilter,_aaState.podFilter,_aaState.riskFilter,_aaState.search].filter(Boolean).length;
+  const ownerActive=_aaOwnerSel().mode==='PICK';
+  const anyActive=!!(ownerActive||_aaState.segFilter||_aaState.riskFilter||_aaState.search);
+  const activeCount=[ownerActive,_aaState.segFilter,_aaState.riskFilter,_aaState.search].filter(Boolean).length;
 
   const _sfR=_sfSnapshot();
   el.innerHTML=`
@@ -6711,24 +6784,61 @@ function rAllAccts(){
       <div class="sh">Every account from the Combined Master engagement tab. Filter by CSM/Segment/Pod/Risk, search across fields, click column headers to sort.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">CSM</span>
-          <select onchange="_aaSetCSM(this.value)" style="${sel(_aaState.csm)};cursor:pointer">
-            <option value="">All (${all.length})</option>
-            ${csms.map(c=>`<option value="${c}" ${_aaState.csm===c?'selected':''}>${c}</option>`).join('')}
-          </select>
+          <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">CSM / Pod</span>
+          ${(()=>{
+            const aSel=_aaOwnerSel();
+            const _fmtItem=x=>{if(typeof x!=='string'||x.indexOf('POD:')!==0)return x;const v=x.slice(4);return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;};
+            let curLbl;
+            if(aSel.mode==='ALL')curLbl=`All (${all.length})`;
+            else if(aSel.items.length===1)curLbl=_fmtItem(aSel.items[0]);
+            else curLbl=aSel.items.length+' selected';
+            // Per-row counts so the dropdown reflects the universe of "all engagement-tracker accounts"
+            const _aaPodCounts={};const _aaScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
+            const _aaOffPodCounts={};
+            all.forEach(a=>{if(a.pod){_aaPodCounts[a.pod]=(_aaPodCounts[a.pod]||0)+1;}const sub=_gpScaleSubPod(a);if(sub)_aaScaleSubCounts[sub]++;if(_gpIsOffPod(a)){const cp=_gpCsmPod(a.csRep);if(cp)_aaOffPodCounts[cp]=(_aaOffPodCounts[cp]||0)+1;}});
+            const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
+            let menu=`<div class="owner-dd-item${aSel.mode==='ALL'?' sel':''}" onclick="pickAAOwner('ALL')"><span>All CSMs &amp; Pods</span><span class="ct">${all.length} accts</span></div>`;
+            if(csmList.length){
+              menu+=`<div class="owner-dd-grp">CSMs</div>`;
+              menu+=csmList.map(c=>{
+                const on=_aaIsOwnerPickActive(c);
+                const ct=all.filter(a=>a.csRep===c).length;
+                return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${ct} accts</span></div>`;
+              }).join('');
+            }
+            if(podList.length){
+              menu+=`<div class="owner-dd-grp">Pods · Engagement Tracker</div>`;
+              menu+=podList.map(p=>{
+                if(p==='Scale'){
+                  const on=_aaIsOwnerPickActive('POD:Scale');
+                  let h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_aaPodCounts.Scale||0} accts</span></div>`;
+                  [['Scale USA',''],['Scale Asia','Edwin'],['Scale Europe','David X']].forEach(([sub,rep])=>{
+                    const son=_aaIsOwnerPickActive('POD:'+sub);
+                    const ct=_aaScaleSubCounts[sub]||0;
+                    h+=`<div class="owner-dd-item owner-dd-sub${son?' sel':''}" onclick="pickAAOwner('POD:${sub}')"><span>${cb(son)}↳ ${sub}${rep?` <span style="color:var(--dim);font-size:10px">· ${rep}</span>`:''}</span><span class="ct">${ct} accts</span></div>`;
+                  });
+                  return h;
+                }
+                const on=_aaIsOwnerPickActive('POD:'+p);
+                const off=_aaOffPodCounts[p]||0;
+                const offOn=_aaIsOwnerPickActive('POD:'+p+':OFF');
+                const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickAAOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} off-pod account${off===1?'':'s'} (Sales Rep not in ${p})">⚠ ${off} off-pod</span>`:'';
+                return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_aaPodCounts[p]||0} accts</span></div>`;
+              }).join('');
+            }
+            // Match the rest of the row's "filter is active" visual cue (blue tinted background)
+            const btnExtra=ownerActive?'background:#1e3a5f;border-color:#3b82f6;color:#dbeafe':'';
+            return `<div class="owner-dd">
+              <button id="aaOwnerDropBtn" class="owner-dd-btn${_AA_OWNER_DROP_OPEN?' op':''}" style="${btnExtra}" onclick="toggleAAOwnerDrop(event)" title="Filter by CSM or Pod (multi-select)"><span>${curLbl}</span><span class="cr">▾</span></button>
+              <div id="aaOwnerDropMenu" class="owner-dd-menu" style="display:${_AA_OWNER_DROP_OPEN?'block':'none'}" onclick="event.stopPropagation()">${menu}</div>
+            </div>`;
+          })()}
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">Segment</span>
           <select onchange="_aaSetSeg(this.value)" style="${sel(_aaState.segFilter)};cursor:pointer">
             <option value="">All</option>
             ${segs.map(s=>`<option value="${s}" ${_aaState.segFilter===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">Pod</span>
-          <select onchange="_aaSetPod(this.value)" style="${sel(_aaState.podFilter)};cursor:pointer" ${pods.length===0?'disabled':''}>
-            <option value="">${pods.length?`All (${pods.length})`:'No pod data'}</option>
-            ${pods.map(p=>`<option value="${p}" ${_aaState.podFilter===p?'selected':''}>${p}</option>`).join('')}
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
