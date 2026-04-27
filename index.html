@@ -4856,7 +4856,7 @@ function _cadOvrMarkVerified(pid,mo,acct){
 function _cadOvrAddNote(pid,mo,acct){
   if(!String(pid||'').trim()){alert('Cannot add note — this account has no Platform ID.');return;}
   const ex=_getOvr(pid,mo);
-  const note=prompt('Note for "'+acct+'" — '+mo+':\n(Saves context and clears this row from the Unconfirmed/Missed list. The note is still visible in Review & Resolve.)',(ex&&ex.note)||'');
+  const note=prompt('Note for "'+acct+'" — '+mo+':\n(Saves context. Row stays in Unconfirmed/Missed until you click ✓ Verify.)',(ex&&ex.note)||'');
   if(note===null)return;
   if(!note.trim()&&!ex)return;
   _cadOverrides[_ovrKey(pid,mo)]={status:(ex&&ex.status)||'noted',note:note.trim(),ts:new Date().toISOString()};
@@ -4900,11 +4900,12 @@ function _cadJumpToReview(csmName,statusKey){
     const isOpen=tr.style.display!=='none';
     const curStatus=tr.getAttribute('data-status')||'';
     if(isOpen&&curStatus===statusKey){tr.style.display='none';tr.removeAttribute('data-status');return;}
-    // Build mini table of this CSM's rows for the requested status. Excludes
-    // rows the user has already touched (any override — ✓ Verify OR 💬 Note),
-    // so once you act on a row it leaves the panel. Notes are still visible
-    // in the Review & Resolve table below, so context isn't lost.
-    const rows=audit.rows.filter(r=>r.csm===csmName&&r.status===statusKey&&!r.override);
+    // Build mini table of this CSM's rows for the requested status. Filter
+    // by effectiveStatus, not raw status — a ✓ Verify override flips
+    // effectiveStatus to 'verified' so the row drops out, while a 💬 Note
+    // alone leaves effectiveStatus unchanged so the row stays here with its
+    // note visible until the CSM explicitly verifies.
+    const rows=audit.rows.filter(r=>r.csm===csmName&&r.effectiveStatus===statusKey);
     const isUnv=statusKey==='unverified';
     const color=isUnv?'var(--red)':'var(--amber)';
     const icon=isUnv?'❌':'⚠';
@@ -5242,19 +5243,21 @@ function _cadAuditCompute(){
           }
           status='forgot';
         }
-        // Apply manual override: a 'verified' override flips an unverified
-        // row to verified for the Review-table label. Per-CSM chip counts
-        // (❌ ⚠) drop ANY row with an override — Verify OR Note — so once
-        // you've touched a row it stops nagging you. The row stays in the
-        // rows list with override metadata so it still appears in Review &
-        // Resolve.
+        // Apply manual override: a 'verified' override flips the row to
+        // verified for the Review-table label and removes it from the
+        // ❌/⚠ chip counts and the Unconfirmed/Missed inline panel.
+        // A 'noted' override (💬 Note without ✓ Verify) leaves effective
+        // status unchanged — the row keeps showing as Unconfirmed/Missed
+        // with the note attached, so it doesn't silently disappear just
+        // because someone wrote a comment. Only an explicit ✓ Verify
+        // resolves it.
         const ovr=_getOvr(pid,mo);
         let effectiveStatus=status;
-        if(ovr&&ovr.status==='verified'&&status==='unverified')effectiveStatus='verified';
+        if(ovr&&ovr.status==='verified'&&(status==='unverified'||status==='forgot'))effectiveStatus='verified';
         if(marked)perCSM[csmName].markedY++;
         if(effectiveStatus==='verified')perCSM[csmName].verified++;
-        if(effectiveStatus==='unverified'&&!ovr)perCSM[csmName].unverified++;
-        if(effectiveStatus==='forgot'&&!ovr)perCSM[csmName].forgot++;
+        if(effectiveStatus==='unverified')perCSM[csmName].unverified++;
+        if(effectiveStatus==='forgot')perCSM[csmName].forgot++;
         if(status){
           rows.push({
             csm:csmName,acct:a.acct,pid,month:mo,
@@ -6172,7 +6175,10 @@ function rCadence(){
               ${discShown.map(r=>{
                 const isUnv=r.status==='unverified';
                 const ovr=r.override;
-                const resolved=ovr&&ovr.status==='verified'&&isUnv;
+                // A ✓ Verify override resolves both Unconfirmed and Missed
+                // Logging rows. A 💬 Note alone never resolves — the row
+                // keeps its red/amber status until explicitly verified.
+                const resolved=ovr&&ovr.status==='verified'&&(r.status==='unverified'||r.status==='forgot');
                 const sc=resolved?'var(--green)':(r.status==='unverified'?'var(--red)':r.status==='forgot'?'var(--amber)':'var(--green)');
                 const sl=resolved?'✅ Verified (override)':(r.status==='unverified'?'❌ Unconfirmed':r.status==='forgot'?'⚠ Missed Logging':'✅ Confirmed');
                 const acctEsc=String(r.acct||'').replace(/'/g,"\\'");
