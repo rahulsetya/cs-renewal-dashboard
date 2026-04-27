@@ -69,6 +69,9 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .owner-dd-item.sel .ct{color:#bfdbfe}
 .owner-dd-grp{padding:8px 14px 4px;font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid #293548;margin-top:4px}
 .owner-dd-grp:first-child{border-top:none;margin-top:0}
+.owner-dd-cb{display:inline-block;width:13px;height:13px;border:1.5px solid #475569;border-radius:3px;margin-right:8px;vertical-align:-2px;text-align:center;line-height:11px;font-size:10px;font-weight:700;color:transparent;background:transparent;flex-shrink:0}
+.owner-dd-item.sel .owner-dd-cb{background:#3b82f6;border-color:#3b82f6;color:#fff}
+.owner-dd-sub{padding-left:32px!important;font-size:12px}
 body.light .owner-dd-btn{background:#eef4f9;color:#1e293b;border-color:#9eb6ca}
 body.light .owner-dd-btn:hover{background:#d4e2ee}
 body.light .owner-dd-menu{background:#ffffff;border-color:#9eb6ca;box-shadow:0 8px 24px rgba(0,0,0,.12)}
@@ -204,6 +207,68 @@ function isValidCSOwner(ro){
   if(VALID_OWNERS.has(ro))return true;
   const t=RENEWAL_OWNER_ALIAS[(ro||'').toLowerCase()];
   return !!(t&&VALID_OWNERS.has(t));
+}
+
+// ── Scale sub-pod attribution by Sales Rep ──────────────────────────────────
+// "Scale" pod splits into three regional sub-pods, decided by d.ae:
+//   Scale Asia    → Sales Rep is Edwin
+//   Scale Europe  → Sales Rep is David X
+//   Scale USA     → everyone else on Scale
+// Edit the predicates if rep names change.
+const SCALE_ASIA_REP   = ae => String(ae||'').trim().toLowerCase().startsWith('edwin');
+const SCALE_EUROPE_REP = ae => String(ae||'').trim().toLowerCase().startsWith('david x');
+function _scaleSubPod(row){
+  if(!row||row.pod!=='Scale')return null;
+  if(SCALE_EUROPE_REP(row.ae))return 'Scale Europe';
+  if(SCALE_ASIA_REP(row.ae))return 'Scale Asia';
+  return 'Scale USA';
+}
+
+// ── Owner / pod selection (multi-select) ────────────────────────────────────
+// S.owner can be:
+//   'ALL_OWNERS' → every row, including non-CS owners
+//   'ALL' / null → all CS owners (default)
+//   string       → legacy single pick (treated as 1-item array)
+//   array        → multi-pick; each item is an owner name OR 'POD:<pod>'
+// Virtual sub-pods 'POD:Scale USA' / 'POD:Scale Asia' / 'POD:Scale Europe'
+// expand against d.ae via _scaleSubPod.
+function _ownerSel(){
+  const v=S.owner;
+  if(v==='ALL_OWNERS')return{mode:'ALL_OWNERS',items:[]};
+  if(!v||v==='ALL')return{mode:'ALL',items:[]};
+  const items=Array.isArray(v)?v.slice():[v];
+  if(!items.length)return{mode:'ALL',items:[]};
+  return{mode:'PICK',items};
+}
+function _itemMatches(item,row){
+  if(typeof item==='string'&&item.indexOf('POD:')===0){
+    const pod=item.slice(4);
+    if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
+      return row&&row.pod==='Scale'&&_scaleSubPod(row)===pod;
+    return row&&row.pod===pod;
+  }
+  return row&&ownerMatches(row.ro,item);
+}
+// Pipeline-row filter: 'ALL' restricts to CS owners, 'ALL_OWNERS' opens it up.
+function _matchesOwnerFilter(d){
+  const sel=_ownerSel();
+  if(sel.mode==='ALL_OWNERS')return true;
+  if(sel.mode==='ALL')return isValidCSOwner(d.ro);
+  return sel.items.some(s=>_itemMatches(s,d));
+}
+// ENG_RAW filter: ENG is already CS-scoped upstream so 'ALL' is pass-through.
+function _matchesOwnerFilterEng(r){
+  const sel=_ownerSel();
+  if(sel.mode!=='PICK')return true;
+  return sel.items.some(s=>_itemMatches(s,r));
+}
+function _isOwnerPickActive(v){
+  const sel=_ownerSel();
+  return sel.mode==='PICK'&&sel.items.indexOf(v)>=0;
+}
+function _isSoleOwnerPick(v){
+  const sel=_ownerSel();
+  return sel.mode==='PICK'&&sel.items.length===1&&sel.items[0]===v;
 }
 const SNAPSHOT_KEY    = 'cs_renewal_snapshot_v1';
 const DATA_CACHE_KEY  = 'cs_data_cache_v1';
@@ -378,9 +443,26 @@ function toggleOwnerDrop(e){
   if(b)b.classList.toggle('op',OWNER_DROP_OPEN);
 }
 function pickOwner(v){
-  OWNER_DROP_OPEN=false;
-  const m=document.getElementById('ownerDropMenu');if(m)m.style.display='none';
-  ss('owner',v);
+  // 'ALL' / 'ALL_OWNERS' replace the whole selection and close the dropdown
+  // (terminal picks — nothing left to combine with).
+  if(v==='ALL'||v==='ALL_OWNERS'){
+    OWNER_DROP_OPEN=false;
+    const m=document.getElementById('ownerDropMenu');if(m)m.style.display='none';
+    const b=document.getElementById('ownerDropBtn');if(b)b.classList.remove('op');
+    ss('owner',v);
+    return;
+  }
+  // Owner / pod picks toggle membership in the multi-select array. Empty
+  // array falls back to 'ALL'. Dropdown stays open so the user can stack
+  // more picks; ss() rerenders the DOM, so reopen on the next frame.
+  let cur=Array.isArray(S.owner)?S.owner.slice():(S.owner==='ALL'||S.owner==='ALL_OWNERS'||!S.owner)?[]:[S.owner];
+  const idx=cur.indexOf(v);
+  if(idx>=0)cur.splice(idx,1);else cur.push(v);
+  S.owner=cur.length===0?'ALL':cur;
+  // Render reads OWNER_DROP_OPEN to set initial display, so picks stay open
+  // seamlessly without a reopen-flicker.
+  OWNER_DROP_OPEN=true;
+  ss('owner',S.owner);
 }
 document.addEventListener('click',function(e){
   if(!OWNER_DROP_OPEN)return;
@@ -1237,7 +1319,7 @@ function snapAge(){
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
 function fm(n){if(n<0)return'-'+fm(-n);return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1000?'$'+(n/1000).toFixed(0)+'K':'$'+Math.round(n);}
-function gf(){let d;if(S.owner==='ALL_OWNERS')d=D;else if(S.owner==='ALL'||!S.owner)d=D.filter(d=>isValidCSOwner(d.ro));else if(typeof S.owner==='string'&&S.owner.indexOf('POD:')===0){const pod=S.owner.slice(4);d=D.filter(d=>d.pod===pod);}else d=D.filter(d=>ownerMatches(d.ro,S.owner));if(S.hidePaid)d=d.filter(d=>d.s!=='10. Paid');if(S.hideChurned)d=d.filter(d=>d.s!=='11. Churned');if(S.hideSPs)d=d.filter(d=>!d.__sp);if(S.subMonths&&S.subMonths.length){const now=new Date();const prefixes=S.subMonths.map(off=>{const m=new Date(now.getFullYear(),now.getMonth()+off,1);return`${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-`;});d=d.filter(d=>d.se&&prefixes.some(p=>d.se.startsWith(p)));}return d;}
+function gf(){let d=D.filter(_matchesOwnerFilter);if(S.hidePaid)d=d.filter(d=>d.s!=='10. Paid');if(S.hideChurned)d=d.filter(d=>d.s!=='11. Churned');if(S.hideSPs)d=d.filter(d=>!d.__sp);if(S.subMonths&&S.subMonths.length){const now=new Date();const prefixes=S.subMonths.map(off=>{const m=new Date(now.getFullYear(),now.getMonth()+off,1);return`${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-`;});d=d.filter(d=>d.se&&prefixes.some(p=>d.se.startsWith(p)));}return d;}
 function pct(a,b){return b>0?Math.round(a/b*100):0;}
 function parseNum(v){return parseFloat(String(v||0).replace(/[$,]/g,''))||0;}
 function parseEngEndMonth(v){
@@ -2722,7 +2804,8 @@ function _render(){
   D.forEach(d=>{const t=RENEWAL_OWNER_ALIAS[(d.ro||'').toLowerCase()];if(t&&VALID_OWNERS.has(t))_directOwners.add(t);});
   const owners=[..._directOwners].sort();
   // Pods from engagement tracker col H — filter value is "POD:<label>" so it doesn't collide with owner names
-  const _podCounts={};D.forEach(d=>{if(d.pod){_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;}});
+  const _podCounts={};const _scaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
+  D.forEach(d=>{if(d.pod){_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;}const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;});
   const pods=Object.keys(_podCounts).sort((a,b)=>{
     // Sort "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
     const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
@@ -2740,15 +2823,35 @@ function _render(){
       ${PREV_TS?`<span style="font-size:10px;color:#475569">Last saved: ${new Date(PREV_TS).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:'<span style="font-size:10px;color:#334155">No snapshot saved</span>'}
     </div>
     <button class="btn-refresh" onclick="refreshData()"${S.refreshing?' disabled style="opacity:.6;cursor:wait;font-size:11px"':''}>${S.refreshing?'⟳ Refreshing…':'↻ Refresh'}</button>
-    ${(()=>{const cur=S.owner||'ALL';const curLbl=cur==='ALL_OWNERS'?'All Owners':(cur==='ALL'||!cur)?'All CS Owners':cur.indexOf('POD:')===0?cur.slice(4):cur;
+    ${(()=>{
+      const sel=_ownerSel();
+      let curLbl;
+      if(sel.mode==='ALL_OWNERS')curLbl='All Owners';
+      else if(sel.mode==='ALL')curLbl='All CS Owners';
+      else if(sel.items.length===1){const x=sel.items[0];curLbl=(typeof x==='string'&&x.indexOf('POD:')===0)?x.slice(4):x;}
+      else curLbl=sel.items.length+' selected';
+      const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
       return `<div class="owner-dd">
-        <button id="ownerDropBtn" class="owner-dd-btn" onclick="toggleOwnerDrop(event)" title="Filter by CS Owner or Pod"><span>${curLbl}</span><span class="cr">▾</span></button>
-        <div id="ownerDropMenu" class="owner-dd-menu" style="display:none" onclick="event.stopPropagation()">
-          <div class="owner-dd-item${cur==='ALL_OWNERS'?' sel':''}" onclick="pickOwner('ALL_OWNERS')"><span>All Owners</span></div>
-          <div class="owner-dd-item${cur==='ALL'||!cur?' sel':''}" onclick="pickOwner('ALL')"><span>All CS Owners</span></div>
+        <button id="ownerDropBtn" class="owner-dd-btn${OWNER_DROP_OPEN?' op':''}" onclick="toggleOwnerDrop(event)" title="Filter by CS Owner or Pod (multi-select)"><span>${curLbl}</span><span class="cr">▾</span></button>
+        <div id="ownerDropMenu" class="owner-dd-menu" style="display:${OWNER_DROP_OPEN?'block':'none'}" onclick="event.stopPropagation()">
+          <div class="owner-dd-item${sel.mode==='ALL_OWNERS'?' sel':''}" onclick="pickOwner('ALL_OWNERS')"><span>All Owners</span></div>
+          <div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickOwner('ALL')"><span>All CS Owners</span></div>
           <div class="owner-dd-grp">CS Owners</div>
-          ${owners.map(o=>`<div class="owner-dd-item${cur===o?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${o}</span></div>`).join('')}
-          ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>`<div class="owner-dd-item${cur==='POD:'+p?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${p}</span><span class="ct">${_podCounts[p]} accts</span></div>`).join('')}`:''}
+          ${owners.map(o=>{const on=_isOwnerPickActive(o);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span></div>`;}).join('')}
+          ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
+            if(p==='Scale'){
+              const on=_isOwnerPickActive('POD:Scale');
+              let h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_podCounts.Scale||0} accts</span></div>`;
+              [['Scale USA',''],['Scale Asia','Edwin'],['Scale Europe','David X']].forEach(([sub,rep])=>{
+                const son=_isOwnerPickActive('POD:'+sub);
+                const ct=_scaleSubCounts[sub]||0;
+                h+=`<div class="owner-dd-item owner-dd-sub${son?' sel':''}" onclick="pickOwner('POD:${sub}')"><span>${cb(son)}↳ ${sub}${rep?` <span style="color:#64748b;font-size:10px">· ${rep}</span>`:''}</span><span class="ct">${ct} accts</span></div>`;
+              });
+              return h;
+            }
+            const on=_isOwnerPickActive('POD:'+p);
+            return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
+          }).join('')}`:''}
         </div>
       </div>`;})()}
   </div></div>`;
@@ -2847,7 +2950,7 @@ function _render(){
 
       if(da.length||stageAccts.length){
         // Show SP-only "Offer Price" (col O on GA 26 SPs) when viewing Emilie's SPs
-        const showSPOffer=S.owner==='Emilie Welch';
+        const showSPOffer=_isSoleOwnerPick('Emilie Welch');
         const colSpan=(S.showAE?8:7)+(showSPOffer?1:0);
         h+=`<div class="dr2">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-top:16px">
@@ -3209,7 +3312,7 @@ function _render(){
     });
     // ── Unmatched engagement rows ──
     const pipelineAccts=new Set(f.map(d=>d.c));
-    const engFiltered=(S.owner==='ALL'||S.owner==='ALL_OWNERS')?ENG_RAW:(typeof S.owner==='string'&&S.owner.indexOf('POD:')===0)?ENG_RAW.filter(r=>r.pod===S.owner.slice(4)):ENG_RAW.filter(r=>ownerMatches(r.ro,S.owner));
+    const engFiltered=ENG_RAW.filter(_matchesOwnerFilterEng);
     const unmatched=engFiltered.filter(r=>!pipelineAccts.has(r.acct));
     if(unmatched.length){
       const act=S.drill==='__unmatched__';
@@ -3261,7 +3364,7 @@ function _render(){
     return(yr&&!isNaN(q))?`${yr}-Q${q}`:'__none__';
   };
   if(S.tab==='alleng'){
-    const baseRows=(S.owner==='ALL'||S.owner==='ALL_OWNERS')?ENG_RAW:(typeof S.owner==='string'&&S.owner.indexOf('POD:')===0)?ENG_RAW.filter(r=>r.pod===S.owner.slice(4)):ENG_RAW.filter(r=>ownerMatches(r.ro,S.owner));
+    const baseRows=ENG_RAW.filter(_matchesOwnerFilterEng);
     // Build quarter list for filter
     const allGroups={};
     baseRows.forEach(r=>{const k=toQuarter(r.endMonth);if(!allGroups[k])allGroups[k]=[];allGroups[k].push(r);});
@@ -3473,7 +3576,7 @@ function _render(){
     }else{
       const af=S.engAcctFilter||{};
       const as=S.engAcctSort||{col:'acct',dir:'asc'};
-      const allERows=(S.owner==='ALL'||S.owner==='ALL_OWNERS')?ENG_RAW:(typeof S.owner==='string'&&S.owner.indexOf('POD:')===0)?ENG_RAW.filter(r=>r.pod===S.owner.slice(4)):ENG_RAW.filter(r=>ownerMatches(r.ro,S.owner));
+      const allERows=ENG_RAW.filter(_matchesOwnerFilterEng);
       // Build renewal lookup maps
       const renewalSet=new Set(D.map(d=>d.c));
       const renewalStageMap={};D.forEach(d=>{renewalStageMap[d.c]=d.s;});
@@ -3819,7 +3922,7 @@ function _render(){
       filteredHist.forEach((snap,fi)=>{
         const i=snap._origIdx;
         // filter snap data by owner when not ALL
-        const ownerFilter=d=>S.owner==='ALL'||S.owner==='ALL_OWNERS'||(typeof S.owner==='string'&&S.owner.indexOf('POD:')===0?(acctMap[d]&&acctMap[d].pod===S.owner.slice(4)):(acctMap[d]&&ownerMatches(acctMap[d].ro,S.owner)));
+        const ownerFilter=d=>{const _s=_ownerSel();if(_s.mode!=='PICK')return true;const a=acctMap[d];return !!a&&_s.items.some(it=>_itemMatches(it,a));};
         const snapDataFiltered=snap.data?Object.fromEntries(Object.entries(snap.data).filter(([acct])=>ownerFilter(acct))):snap.data;
         const k=deriveKpisFromData(snapDataFiltered,acctMap);
         const compareIdx=S.hsCompare[i]!==undefined?S.hsCompare[i]:(i+1<hist.length?i+1:-1);
@@ -4052,7 +4155,7 @@ function _render(){
     // Apply sort
     if(sortFns[as.col])rows=rows.sort((a,b)=>sortFns[as.col](a,b)*(as.dir==='asc'?1:-1));
 
-    const showSPOffer=S.owner==='Emilie Welch';
+    const showSPOffer=_isSoleOwnerPick('Emilie Welch');
     const colCount=(S.showAE?10:9)+(showSPOffer?1:0);
     h+=`<div class="cd" style="padding:0;overflow:hidden">
     <div style="padding:8px 14px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between">
