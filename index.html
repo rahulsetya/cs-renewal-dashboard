@@ -4856,7 +4856,7 @@ function _cadOvrMarkVerified(pid,mo,acct){
 function _cadOvrAddNote(pid,mo,acct){
   if(!String(pid||'').trim()){alert('Cannot add note — this account has no Platform ID.');return;}
   const ex=_getOvr(pid,mo);
-  const note=prompt('Note for "'+acct+'" — '+mo+':\n(Doesn\'t change the verification status — just records context.)',(ex&&ex.note)||'');
+  const note=prompt('Note for "'+acct+'" — '+mo+':\n(Saves context and clears this row from the Unconfirmed/Missed list. The note is still visible in Review & Resolve.)',(ex&&ex.note)||'');
   if(note===null)return;
   if(!note.trim()&&!ex)return;
   _cadOverrides[_ovrKey(pid,mo)]={status:(ex&&ex.status)||'noted',note:note.trim(),ts:new Date().toISOString()};
@@ -4900,8 +4900,11 @@ function _cadJumpToReview(csmName,statusKey){
     const isOpen=tr.style.display!=='none';
     const curStatus=tr.getAttribute('data-status')||'';
     if(isOpen&&curStatus===statusKey){tr.style.display='none';tr.removeAttribute('data-status');return;}
-    // Build mini table of this CSM's rows for the requested status.
-    const rows=audit.rows.filter(r=>r.csm===csmName&&r.status===statusKey);
+    // Build mini table of this CSM's rows for the requested status. Excludes
+    // rows the user has already touched (any override — ✓ Verify OR 💬 Note),
+    // so once you act on a row it leaves the panel. Notes are still visible
+    // in the Review & Resolve table below, so context isn't lost.
+    const rows=audit.rows.filter(r=>r.csm===csmName&&r.status===statusKey&&!r.override);
     const isUnv=statusKey==='unverified';
     const color=isUnv?'var(--red)':'var(--amber)';
     const icon=isUnv?'❌':'⚠';
@@ -5240,15 +5243,18 @@ function _cadAuditCompute(){
           status='forgot';
         }
         // Apply manual override: a 'verified' override flips an unverified
-        // row to verified for stats purposes (still kept in the rows list
-        // with override metadata so the Review panel shows it as resolved).
+        // row to verified for the Review-table label. Per-CSM chip counts
+        // (❌ ⚠) drop ANY row with an override — Verify OR Note — so once
+        // you've touched a row it stops nagging you. The row stays in the
+        // rows list with override metadata so it still appears in Review &
+        // Resolve.
         const ovr=_getOvr(pid,mo);
         let effectiveStatus=status;
         if(ovr&&ovr.status==='verified'&&status==='unverified')effectiveStatus='verified';
         if(marked)perCSM[csmName].markedY++;
         if(effectiveStatus==='verified')perCSM[csmName].verified++;
-        if(effectiveStatus==='unverified')perCSM[csmName].unverified++;
-        if(effectiveStatus==='forgot')perCSM[csmName].forgot++;
+        if(effectiveStatus==='unverified'&&!ovr)perCSM[csmName].unverified++;
+        if(effectiveStatus==='forgot'&&!ovr)perCSM[csmName].forgot++;
         if(status){
           rows.push({
             csm:csmName,acct:a.acct,pid,month:mo,
