@@ -72,6 +72,12 @@ tr.ck:hover{background:#2d3a52!important;cursor:pointer}
 .owner-dd-cb{display:inline-block;width:13px;height:13px;border:1.5px solid #475569;border-radius:3px;margin-right:8px;vertical-align:-2px;text-align:center;line-height:11px;font-size:10px;font-weight:700;color:transparent;background:transparent;flex-shrink:0}
 .owner-dd-item.sel .owner-dd-cb{background:#3b82f6;border-color:#3b82f6;color:#fff}
 .owner-dd-sub{padding-left:32px!important;font-size:12px}
+.off-pod-chip{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:4px;background:rgba(251,146,60,.15);color:#fb923c;font-size:10px;font-weight:700;border:1px solid rgba(251,146,60,.35);cursor:pointer;white-space:nowrap}
+.off-pod-chip:hover{background:rgba(251,146,60,.28);color:#fdba74}
+.off-pod-chip.on{background:#fb923c;color:#1e293b;border-color:#fb923c}
+body.light .off-pod-chip{background:rgba(234,88,12,.12);color:#c2410c;border-color:rgba(234,88,12,.4)}
+body.light .off-pod-chip:hover{background:rgba(234,88,12,.22);color:#9a3412}
+body.light .off-pod-chip.on{background:#ea580c;color:#fff;border-color:#ea580c}
 body.light .owner-dd-btn{background:#eef4f9;color:#1e293b;border-color:#9eb6ca}
 body.light .owner-dd-btn:hover{background:#d4e2ee}
 body.light .owner-dd-menu{background:#ffffff;border-color:#9eb6ca;box-shadow:0 8px 24px rgba(0,0,0,.12)}
@@ -230,6 +236,40 @@ function _scaleSubPod(row){
   return 'Scale USA';
 }
 
+// ── Pod composition (CSM ↔ Sales Rep) ───────────────────────────────────────
+// Authoritative pod definitions. An account is "off-pod" when its CSM is on a
+// pod, but its Sales Rep is not in that pod's rep list. Scale is intentionally
+// excluded — it has its own regional sub-pod logic above and accepts any rep.
+// Edit predicates / arrays here when membership changes.
+const POD_REPS = {
+  'Pod 1': ae => /^juliet\b/i.test(String(ae||'').trim()),
+  'Pod 2': ae => /^(earl|sebastian)\b/i.test(String(ae||'').trim()),
+  'Pod 3': ae => {const a=String(ae||'').trim().toLowerCase();return a.startsWith('david johnson')||a.startsWith('jake delaney');},
+  'Pod 4': ae => /^(james|marc)\b/i.test(String(ae||'').trim())
+};
+const POD_CSMS = {
+  'Pod 1': ['Lucy Garber','Christina Chumak'],
+  'Pod 2': ['Courtney Krieg','Juwan Pryce'],
+  'Pod 3': ['Alex Cherecwich','Joe Romanoff'],
+  'Pod 4': ['Sunny Unger']
+};
+function _csmPod(ro){
+  if(!ro)return null;
+  for(const p in POD_CSMS){if(POD_CSMS[p].indexOf(ro)>=0)return p;}
+  return null;
+}
+// Off-pod = CSM on a tracked pod (Pods 1–4) AND Sales Rep is NOT in that pod's rep list.
+// Accepts pipeline rows (.ro/.ae) and iframe accounts (.csRep/.ae).
+function _isOffPod(d){
+  if(!d)return false;
+  const csm=d.ro||d.csRep||'';
+  const ae=d.ae||'';
+  const p=_csmPod(csm);
+  if(!p)return false;          // not on a tracked pod (e.g. Scale, or unknown CSM)
+  if(!ae)return false;         // no rep assigned → don't flag
+  return !POD_REPS[p](ae);
+}
+
 // ── Owner / pod selection (multi-select) ────────────────────────────────────
 // S.owner can be:
 //   'ALL_OWNERS' → every row, including non-CS owners
@@ -249,6 +289,11 @@ function _ownerSel(){
 function _itemMatches(item,row){
   if(typeof item==='string'&&item.indexOf('POD:')===0){
     const pod=item.slice(4);
+    // Off-pod drill: "POD:Pod N:OFF" → CSM in Pod N AND row is off-pod.
+    if(pod.endsWith(':OFF')){
+      const basePod=pod.slice(0,-4);
+      return row&&_csmPod(row.ro)===basePod&&_isOffPod(row);
+    }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
       return row&&row.pod==='Scale'&&_scaleSubPod(row)===pod;
     return row&&row.pod===pod;
@@ -2689,7 +2734,14 @@ function ssDrillSort(col){const cur=S.drillSort;S.drillSort={col,dir:cur.col===c
 function ssDrillFilter(col,val){if(!S.drillFilter)S.drillFilter={};if(val)S.drillFilter[col]=val;else delete S.drillFilter[col];render();}
 function ssDrillFlagToggle(flag,on){if(!S.drillFilter)S.drillFilter={};const a=Array.isArray(S.drillFilter.flags)?S.drillFilter.flags:[];S.drillFilter.flags=on?[...new Set([...a,flag])]:a.filter(f=>f!==flag);render();}
 function ssDrillFlagsSet(vals){if(!S.drillFilter)S.drillFilter={};S.drillFilter.flags=vals||[];render();}
-function roDisp(ro,ae){return S.showAE&&ae?`${ro}<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`:ro;}
+function roDisp(ro,ae,d){
+  let h=ro||'';
+  if(S.showAE&&ae)h+=`<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">AE: ${ae}</span>`;
+  // Off-pod tag: account's CSM is on a tracked pod (Pods 1–4) but its Sales Rep isn't.
+  // Tooltip names the offending pod so the user can act on it.
+  if(d&&_isOffPod(d)){const cp=_csmPod(d.ro||ro);h+=` <span class="off-pod-chip" title="Off-pod: Sales Rep '${(d.ae||ae||'?').replace(/"/g,'')}' is not in ${cp}">⚠ off-pod</span>`;}
+  return h;
+}
 async function init(){
   applyBodyClass();
   const hash=new URLSearchParams(location.hash.replace('#',''));
@@ -2811,7 +2863,10 @@ function _render(){
   const owners=[..._directOwners].sort();
   // Pods from engagement tracker col H — filter value is "POD:<label>" so it doesn't collide with owner names
   const _podCounts={};const _scaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
-  D.forEach(d=>{if(d.pod){_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;}const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;});
+  // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
+  // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
+  const _offPodCounts={};
+  D.forEach(d=>{if(d.pod){_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;}const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;if(_isOffPod(d)){const cp=_csmPod(d.ro);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}});
   const pods=Object.keys(_podCounts).sort((a,b)=>{
     // Sort "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
     const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
@@ -2831,10 +2886,15 @@ function _render(){
     <button class="btn-refresh" onclick="refreshData()"${S.refreshing?' disabled style="opacity:.6;cursor:wait;font-size:11px"':''}>${S.refreshing?'⟳ Refreshing…':'↻ Refresh'}</button>
     ${(()=>{
       const sel=_ownerSel();
+      const _fmtItem=x=>{
+        if(typeof x!=='string'||x.indexOf('POD:')!==0)return x;
+        const v=x.slice(4);
+        return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;
+      };
       let curLbl;
       if(sel.mode==='ALL_OWNERS')curLbl='All Owners';
       else if(sel.mode==='ALL')curLbl='All CS Owners';
-      else if(sel.items.length===1){const x=sel.items[0];curLbl=(typeof x==='string'&&x.indexOf('POD:')===0)?x.slice(4):x;}
+      else if(sel.items.length===1)curLbl=_fmtItem(sel.items[0]);
       else curLbl=sel.items.length+' selected';
       const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
       return `<div class="owner-dd">
@@ -2856,7 +2916,11 @@ function _render(){
               return h;
             }
             const on=_isOwnerPickActive('POD:'+p);
-            return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
+            const off=_offPodCounts[p]||0;
+            const offOn=_isOwnerPickActive('POD:'+p+':OFF');
+            // Stop propagation on the off-pod chip so clicking it doesn't also toggle the parent pod row.
+            const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} off-pod account${off===1?'':'s'} (Sales Rep not in ${p})">⚠ ${off} off-pod</span>`:'';
+            return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
           }).join('')}`:''}
         </div>
       </div>`;})()}
@@ -3071,7 +3135,7 @@ function _render(){
         const seDisp=d.se?`<span style="color:#94a3b8;font-size:11px">${d.se}</span> <span style="color:${dyC};font-size:10px;font-weight:600">(${d.dy<=0?'PAST':d.dy+'d'})</span>`:'–';
         h+=`<tr class="dr" style="${(w==='won'||w==='up')?'background:rgba(52,211,153,0.07)':(w==='down'||w==='lost')?'background:rgba(239,68,68,0.07)':''}">
           <td style="color:#e2e8f0;font-weight:500">${d.c}${d.icn?`<span onclick="event.stopPropagation();event.preventDefault();toggleNoteIdx(${mvNoteIdx})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${nOpen?'▲':'▼'} notes</span>`:''}</td>
-          <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
+          <td style="color:#94a3b8">${roDisp(d.ro,d.ae,d)}</td>
           <td style="font-size:11px;color:#94a3b8">${SH[ps]||ps}</td>
           <td style="text-align:center"><span style="color:${WOW_COLORS[w]};font-weight:700">${WOW_ICONS[w]}</span></td>
           <td style="font-size:11px;color:${CL[d.s]};font-weight:600">${SH[d.s]}</td>
@@ -3118,7 +3182,7 @@ function _render(){
         const stuckNoteIdx=window._noteKeys.length; window._noteKeys.push(stuckKey);
         h+=`<tr class="dr"><td style="color:#e2e8f0;font-weight:500">${d.c}${hasNote?`<span onclick="event.stopPropagation();event.preventDefault();toggleNoteIdx(${stuckNoteIdx})" style="margin-left:6px;font-size:10px;color:#94a3b8;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${noteOpen?'▲':'▼'} notes</span>`:''}</td>
           <td><span style="color:${CL[d.s]};font-weight:600;font-size:11px">${SH[d.s]}</span></td>
-          <td style="color:#94a3b8">${roDisp(d.ro,d.ae)}</td>
+          <td style="color:#94a3b8">${roDisp(d.ro,d.ae,d)}</td>
           <td style="text-align:right;color:#fbbf24;font-weight:600">${d.r25?fm(d.r25):'–'}</td>
           <td style="text-align:right;color:${d.o>0?'#22d3ee':'#334155'}">${d.o>0?fm(d.o):'–'}</td>
           <td style="color:#94a3b8;font-size:11px">${d.se||'–'}</td>
@@ -3184,7 +3248,7 @@ function _render(){
             const nOpen=S.noteOpen===a.c;
             return `<tr class="dr ck" style="background:${idx%2===0?'#0a1628':'transparent'}" onclick="event.stopPropagation();ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
               <td style="padding:5px 12px 5px 28px;font-size:12px;font-weight:500;color:#e2e8f0">${a.c}</td>
-              <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${roDisp(a.ro,a.ae)}</td>
+              <td style="padding:5px 8px;font-size:11px;color:#94a3b8;white-space:nowrap">${roDisp(a.ro,a.ae,a)}</td>
               <td style="padding:5px 8px"><span style="font-size:11px;font-weight:600;color:${CL[a.s]}">${SH[a.s]}</span></td>
               <td style="padding:5px 8px;text-align:right;color:#fbbf24;font-weight:600;font-size:12px">${a.r25?fm(a.r25):'–'}</td>
               <td style="padding:5px 8px;text-align:right;font-size:12px"><span style="color:${a.o>0?'#22d3ee':'#ef4444'};font-weight:600">${a.o>0?fm(a.o):'No Offer'}</span>${dl!==-999?`<span style="font-size:10px;color:${dl>=0?'#34d399':'#ef4444'};margin-left:4px">${dl>=0?'+':''}${Math.round(dl)}%</span>`:''}</td>
@@ -3306,7 +3370,7 @@ function _render(){
         sa.sort((a,b)=>b.r25-a.r25).forEach(a=>{
           h+=`<tr class="dr" style="background:#0f172a">
             <td style="padding-left:28px;color:#e2e8f0;font-weight:500">${a.c}</td>
-            <td style="color:#94a3b8;font-size:11px">${roDisp(a.ro,a.ae)}</td>
+            <td style="color:#94a3b8;font-size:11px">${roDisp(a.ro,a.ae,a)}</td>
             <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
             <td style="text-align:center"><span style="font-size:11px;color:${a.out?'#34d399':'#ef4444'}">${a.out?'✓':'✗'}</span></td>
             <td style="text-align:center"><span style="font-size:11px;color:${a.gms?'#60a5fa':'#475569'}">${a.gms?'✓':'–'}</span></td>
@@ -3694,7 +3758,7 @@ function _render(){
         <td style="color:#475569;font-weight:700">${i+1}</td>
         <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
         <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
-        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae,a)}</td>
         <td style="text-align:right;color:#fbbf24;font-weight:600">${fm(a.r25)}</td>
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'};font-weight:600">${a.o>0?fm(a.o):'–'}</td>
         <td style="text-align:center"><div style="display:flex;align-items:center;justify-content:center;gap:4px">
@@ -3730,7 +3794,7 @@ function _render(){
       h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
         <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
         <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
-        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae,a)}</td>
         <td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td>
         <td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td>
         <td style="text-align:center;font-weight:600;color:${dc}">${a.dy<=0?'PAST DUE':a.dy+'d'}</td>
@@ -3767,7 +3831,7 @@ function _render(){
       const nOpen=S.noteOpen===a.c;
       h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
         <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
-        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae,a)}</td>
         <td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td>
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
         <td style="color:#94a3b8;font-size:11px">${a.se}</td>
@@ -3806,7 +3870,7 @@ function _render(){
       const nOpen=S.noteOpen===a.c;
       h+=`<tr class="dr ck" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
         <td style="color:#e2e8f0;font-weight:500">${a.c}</td>
-        <td style="color:#94a3b8">${roDisp(a.ro,a.ae)}</td>
+        <td style="color:#94a3b8">${roDisp(a.ro,a.ae,a)}</td>
         <td style="text-align:right;color:#fbbf24;font-weight:600">${a.r25?fm(a.r25):'–'}</td>
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
         <td style="color:#94a3b8;font-size:11px">${a.se||'–'}</td>
@@ -4069,7 +4133,7 @@ function _render(){
               const seDisp=d&&d.se?`<span style="color:#94a3b8;font-size:11px">${d.se}</span> <span style="color:${dyC};font-size:10px;font-weight:600">(${d.dy<=0?'PAST':d.dy+'d'})</span>`:'–';
               h+=`<tr class="dr" style="${up?'background:rgba(52,211,153,0.07)':'background:rgba(239,68,68,0.07)'}">`;
               h+=`<td style="color:#e2e8f0;font-weight:500">${mv.acct}${d&&d.icn?`<span onclick="event.stopPropagation();event.preventDefault();toggleNoteIdx(${hsNoteIdx})" style="font-size:10px;color:#475569;margin-left:6px;cursor:pointer;border:1px solid #334155;border-radius:3px;padding:1px 5px">${nOpen?'▲':'▼'} notes</span>`:''}</td>`;
-              h+=`<td style="color:#94a3b8">${d?roDisp(d.ro,d.ae):'–'}</td>`;
+              h+=`<td style="color:#94a3b8">${d?roDisp(d.ro,d.ae,d):'–'}</td>`;
               h+=`<td style="font-size:11px;color:#94a3b8">${SH[mv.from]||mv.from}</td>`;
               h+=`<td style="text-align:center"><span style="color:${icol};font-weight:700">${icon}</span></td>`;
               h+=`<td style="font-size:11px;color:${CL[mv.to]||'#94a3b8'};font-weight:600">${SH[mv.to]||mv.to}</td>`;
@@ -4553,6 +4617,9 @@ body.light .scenario-slider::-moz-range-track{background:#bccedd}
 .owner-dd-cb{display:inline-block;width:13px;height:13px;border:1.5px solid var(--borderL);border-radius:3px;margin-right:8px;vertical-align:-2px;text-align:center;line-height:11px;font-size:10px;font-weight:700;color:transparent;background:transparent;flex-shrink:0}
 .owner-dd-item.sel .owner-dd-cb{background:var(--accent);border-color:var(--accent);color:#fff}
 .owner-dd-sub{padding-left:32px!important;font-size:11px}
+.off-pod-chip{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:4px;background:rgba(251,146,60,.15);color:var(--orange);font-size:10px;font-weight:700;border:1px solid rgba(251,146,60,.35);cursor:pointer;white-space:nowrap}
+.off-pod-chip:hover{background:rgba(251,146,60,.28)}
+.off-pod-chip.on{background:var(--orange);color:#1e293b;border-color:var(--orange)}
 </style>
 </head>
 <body>
@@ -4793,6 +4860,33 @@ function _gpScaleSubPod(a){
   if(_GP_SCALE_ASIA_REP(a.ae))return 'Scale Asia';
   return 'Scale USA';
 }
+// ── Iframe pod composition (mirrors parent POD_REPS / POD_CSMS) ────────────
+// Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't on that
+// pod's rep list. Keep these in sync with the parent definitions.
+const _GP_POD_REPS = {
+  'Pod 1': ae => /^juliet\b/i.test(String(ae||'').trim()),
+  'Pod 2': ae => /^(earl|sebastian)\b/i.test(String(ae||'').trim()),
+  'Pod 3': ae => {const a=String(ae||'').trim().toLowerCase();return a.startsWith('david johnson')||a.startsWith('jake delaney');},
+  'Pod 4': ae => /^(james|marc)\b/i.test(String(ae||'').trim())
+};
+const _GP_POD_CSMS = {
+  'Pod 1': ['Lucy Garber','Christina Chumak'],
+  'Pod 2': ['Courtney Krieg','Juwan Pryce'],
+  'Pod 3': ['Alex Cherecwich','Joe Romanoff'],
+  'Pod 4': ['Sunny Unger']
+};
+function _gpCsmPod(csm){
+  if(!csm)return null;
+  for(const p in _GP_POD_CSMS){if(_GP_POD_CSMS[p].indexOf(csm)>=0)return p;}
+  return null;
+}
+function _gpIsOffPod(a){
+  if(!a)return false;
+  const p=_gpCsmPod(a.csRep);
+  if(!p)return false;
+  if(!a.ae)return false;
+  return !_GP_POD_REPS[p](a.ae);
+}
 function _gpOwnerSel(){
   const v=selGPOwner;
   if(!v||v==='ALL')return{mode:'ALL',items:[]};
@@ -4803,6 +4897,10 @@ function _gpOwnerSel(){
 function _gpItemMatches(item,a){
   if(typeof item==='string'&&item.indexOf('POD:')===0){
     const pod=item.slice(4);
+    if(pod.endsWith(':OFF')){
+      const basePod=pod.slice(0,-4);
+      return a&&_gpCsmPod(a.csRep)===basePod&&_gpIsOffPod(a);
+    }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
       return a&&a.pool==='Scale'&&_gpScaleSubPod(a)===pod;
     return a&&a.pod===pod;
@@ -5743,8 +5841,9 @@ function rGP(){
   // multi-pick shows "N selected", ALL shows nothing.
   const _gpOwnerLbl=(()=>{
     const sel=_gpOwnerSel();
+    const _fmt=x=>{if(typeof x!=='string'||x.indexOf('POD:')!==0)return x;const v=x.slice(4);return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;};
     if(sel.mode==='ALL')return'';
-    if(sel.items.length===1){const x=sel.items[0];return ' · '+(typeof x==='string'&&x.indexOf('POD:')===0?x.slice(4):x);}
+    if(sel.items.length===1)return ' · '+_fmt(sel.items[0]);
     return ' · '+sel.items.length+' selected';
   })();
 
@@ -5759,13 +5858,16 @@ function rGP(){
         <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM / Pod:</label>
         ${(()=>{
           const sel=_gpOwnerSel();
+          const _fmtItem=x=>{if(typeof x!=='string'||x.indexOf('POD:')!==0)return x;const v=x.slice(4);return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;};
           let curLbl;
           if(sel.mode==='ALL')curLbl=`All CSMs & Pods (${qAcctsAll.length})`;
-          else if(sel.items.length===1){const x=sel.items[0];curLbl=(typeof x==='string'&&x.indexOf('POD:')===0)?x.slice(4):x;}
+          else if(sel.items.length===1)curLbl=_fmtItem(sel.items[0]);
           else curLbl=sel.items.length+' selected';
           // Per-quarter, per-row counts (so the dropdown reflects the current quarter view)
           const _gpPodCounts={};const _gpScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
-          qAcctsAll.forEach(a=>{if(a.pod){_gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;}const sub=_gpScaleSubPod(a);if(sub)_gpScaleSubCounts[sub]++;});
+          // Off-pod = CSM in Pods 1–4 but Sales Rep not in that pod's rep list. Count by CSM's pod.
+          const _gpOffPodCounts={};
+          qAcctsAll.forEach(a=>{if(a.pod){_gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;}const sub=_gpScaleSubPod(a);if(sub)_gpScaleSubCounts[sub]++;if(_gpIsOffPod(a)){const cp=_gpCsmPod(a.csRep);if(cp)_gpOffPodCounts[cp]=(_gpOffPodCounts[cp]||0)+1;}});
           const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
           let menu=`<div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickGPOwner('ALL')"><span>All CSMs &amp; Pods</span><span class="ct">${qAcctsAll.length} accts</span></div>`;
           if(csmList.length){
@@ -5790,7 +5892,10 @@ function rGP(){
                 return h;
               }
               const on=_gpIsOwnerPickActive('POD:'+p);
-              return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
+              const off=_gpOffPodCounts[p]||0;
+              const offOn=_gpIsOwnerPickActive('POD:'+p+':OFF');
+              const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickGPOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} off-pod account${off===1?'':'s'} (Sales Rep not in ${p})">⚠ ${off} off-pod</span>`:'';
+              return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
             }).join('');
           }
           return `<div class="owner-dd">
