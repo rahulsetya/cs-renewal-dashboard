@@ -216,7 +216,13 @@ function isValidCSOwner(ro){
 //   Scale USA     → everyone else on Scale
 // Edit the predicates if rep names change.
 const SCALE_ASIA_REP   = ae => String(ae||'').trim().toLowerCase().startsWith('edwin');
-const SCALE_EUROPE_REP = ae => String(ae||'').trim().toLowerCase().startsWith('david x');
+const SCALE_EUROPE_REP = ae => {
+  // Accept the full "David X…" form OR the "DX" shorthand. Anchor "dx" with
+  // either an exact match or a trailing space so we don't accidentally
+  // catch unrelated names that happen to start with the letters "dx".
+  const a = String(ae||'').trim().toLowerCase();
+  return a==='dx' || a.startsWith('dx ') || a.startsWith('david x');
+};
 function _scaleSubPod(row){
   if(!row||row.pod!=='Scale')return null;
   if(SCALE_EUROPE_REP(row.ae))return 'Scale Europe';
