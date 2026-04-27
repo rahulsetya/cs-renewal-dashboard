@@ -5812,6 +5812,9 @@ function rGP(){
   // Drop any selected items that no longer exist in the quarter (data refresh edge case)
   if(Array.isArray(selGPOwner)){
     const valid=new Set(csmList.concat(podList.map(p=>'POD:'+p)).concat(['POD:Scale USA','POD:Scale Asia','POD:Scale Europe']));
+    // Off-pod tokens (POD:<pod>:OFF) reference the authoritative POD definitions, not
+    // engagement-tracker pods, so they're always valid as long as the underlying pod exists.
+    Object.keys(_GP_POD_CSMS).forEach(p=>valid.add('POD:'+p+':OFF'));
     const filtered=selGPOwner.filter(it=>valid.has(it));
     if(filtered.length!==selGPOwner.length)selGPOwner=filtered.length?filtered:'ALL';
   }
