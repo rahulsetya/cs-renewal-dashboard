@@ -4353,10 +4353,11 @@ function _render(){
       // Inject per-account list for pool drilldown
       src=src.replace(/const ACCTS\s*=\s*\[\];/,`const ACCTS=${JSON.stringify(live.allAccts)};`);
       // ── YTD Actuals aggregate (Overview tab tiles) ──────────────────────────
-      // Computed in the parent shell so the cohort matches Renewal Pipeline exactly:
+      // Computed in the parent shell. Cohort = ALL accounts (GP + SP), not just
+      // CS-owned — these tiles reflect the company-wide renewal book.
       //   • GP rows (non-__sp) AND SP rows (__sp:true) — both included
-      //   • Filter by isValidCSOwner(d.ro) — same gate as Renewal Pipeline
-      //   • Won = stage in {7. Signed, 9. Invoice Sent, 10. Paid} (same as Pipeline)
+      //   • No owner filter — all rows in D count
+      //   • Won = stage in {7. Signed, 9. Invoice Sent, 10. Paid} (same as Pipeline won set)
       //   • Churned = {11. Churned}
       //   • Declined-early = {4a. Attempting again Q2}
       //   • Open = everything else
@@ -4373,7 +4374,6 @@ function _render(){
           sp:{wL:0,cL:0,deL:0,oL:0,tL:0,wR:0,cR:0,deR:0,oR:0,tR:0,wR26:0}
         };
         (D||[]).forEach(d=>{
-          if(!isValidCSOwner(d.ro))return;
           const b=d.__sp?_ytd.sp:_ytd.gp;
           const s=d.s||'';
           const r25=d.r25||0,r26=d.o||0;
@@ -5803,11 +5803,11 @@ _updateSnapBar();
 function rOverview(){
   const el=document.getElementById('tab-overview');
   const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;
-  // YTD Actuals (GP + SP, CS-owned) — cohort matches Renewal Pipeline exactly:
+  // YTD Actuals (GP + SP, ALL accounts) — company-wide renewal book:
   //   • Source: parent-shell-injected _YTD_OVERVIEW computed from D (post _mergeSPsIntoD)
-  //   • Filter: isValidCSOwner(d.ro) — same gate as Pipeline view
+  //   • No owner filter — every row in D counts (not just CS-owned)
   //   • Won set: {7. Signed, 9. Invoice Sent, 10. Paid} — includes Signed
-  //   • Includes SPs (Emilie's book) so the wons/totals reconcile with Pipeline
+  //   • Includes SPs (Emilie's book)
   // Multiple cohort views so each metric measures the right thing:
   //   • NRR (Renewed only)   = Σ rev26(won) / Σ rev25(won)
   //   • GRR (Closed cohort)  = Σ rev25(won) / Σ rev25(won+churned)
@@ -5863,8 +5863,8 @@ function rOverview(){
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
     </div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP + SP · CS-Owned · Renewal Pipeline Cohort</div>
-      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Cohort matches Renewal Pipeline:&#10;• GP + SP rows&#10;• Filter: CS-owned (isValidCSOwner)&#10;• Won = stages 7 (Signed) + 9 (Invoice Sent) + 10 (Paid)${_aGpL||_aSpL?'\n• '+_aGpL+' GP + '+_aSpL+' SP accounts in cohort':''}${_aSkip>0?'\n• '+_aSkip+' ET rows excluded (fallback path only)':''}">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total${_aGpL||_aSpL?` <span style="color:var(--dim)">· ${_aGpL} GP + ${_aSpL} SP</span>`:''}${_aSkip>0?` <span style="color:var(--dim)">· ${_aSkip} ET-only excluded</span>`:''}</div>
+      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP + SP · All Accounts</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Company-wide renewal book:&#10;• GP + SP rows (no owner filter)&#10;• Won = stages 7 (Signed) + 9 (Invoice Sent) + 10 (Paid)${_aGpL||_aSpL?'\n• '+_aGpL+' GP + '+_aSpL+' SP accounts in cohort':''}${_aSkip>0?'\n• '+_aSkip+' ET rows excluded (fallback path only)':''}">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total${_aGpL||_aSpL?` <span style="color:var(--dim)">· ${_aGpL} GP + ${_aSpL} SP</span>`:''}${_aSkip>0?` <span style="color:var(--dim)">· ${_aSkip} ET-only excluded</span>`:''}</div>
     </div>
     <div class="cards">
       <div class="stat" title="NRR among accounts that renewed only.&#10;Σ rev26(won) ÷ Σ rev(won)&#10;>100% means renewals are net-expanding (price/seat increases outweigh contractions).&#10;Excludes churned and declined accounts entirely.">
