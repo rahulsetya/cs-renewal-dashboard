@@ -4620,6 +4620,13 @@ body.light .scenario-slider::-moz-range-track{background:#bccedd}
 .off-pod-chip{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:4px;background:rgba(251,146,60,.15);color:var(--orange);font-size:10px;font-weight:700;border:1px solid rgba(251,146,60,.35);cursor:pointer;white-space:nowrap}
 .off-pod-chip:hover{background:rgba(251,146,60,.28)}
 .off-pod-chip.on{background:var(--orange);color:#1e293b;border-color:var(--orange)}
+.combo-toggle{padding:7px 14px;font-size:10px;color:var(--dim);display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(0,0,0,.18);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.combo-toggle .lbl{flex:1}
+.combo-toggle .seg{display:inline-flex;border:1px solid var(--borderL);border-radius:5px;overflow:hidden}
+.combo-toggle .seg button{background:transparent;border:none;color:var(--dim);padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.5px}
+.combo-toggle .seg button:hover:not(.on){color:var(--text);background:var(--border)}
+.combo-toggle .seg button.on{background:var(--accent);color:#fff}
+.combo-toggle .seg button+button{border-left:1px solid var(--borderL)}
 </style>
 </head>
 <body>
@@ -4928,15 +4935,41 @@ function _gpItemMatches(item,a){
   // csRep is literally "Support iConnections".
   return a&&_gpAliasCsm(a.csRep)===item;
 }
+// How CSM picks combine with Pod picks. Within each group it's always OR
+// (picking Lucy + Christina = "either Lucy or Christina"). Across groups:
+//   OR  → Pod 2 ∨ Juwan = all Pod 2 accts plus all Juwan accts
+//   AND → Pod 2 ∧ Juwan = only Juwan's accts that are in Pod 2
+// Off-pod tokens (POD:<pod>:OFF) count as Pod-group items too.
+let _gpComboMode='OR';
+let _aaComboMode='OR';
+function _gpSplitItemsByGroup(items){
+  const csm=[],pod=[];
+  items.forEach(it=>{
+    if(typeof it==='string'&&it.indexOf('POD:')===0)pod.push(it);
+    else csm.push(it);
+  });
+  return{csm,pod};
+}
+function _gpCombine(items,a,mode){
+  if(mode==='AND'){
+    const g=_gpSplitItemsByGroup(items);
+    const csmOk=!g.csm.length||g.csm.some(it=>_gpItemMatches(it,a));
+    const podOk=!g.pod.length||g.pod.some(it=>_gpItemMatches(it,a));
+    return csmOk&&podOk;
+  }
+  return items.some(it=>_gpItemMatches(it,a));
+}
 function _gpMatchesOwnerFilter(a){
   const sel=_gpOwnerSel();
   if(sel.mode==='ALL')return true;
-  return sel.items.some(it=>_gpItemMatches(it,a));
+  return _gpCombine(sel.items,a,_gpComboMode);
 }
 function _gpIsOwnerPickActive(v){
   const sel=_gpOwnerSel();
   return sel.mode==='PICK'&&sel.items.indexOf(v)>=0;
 }
+function pickGPCombo(m){_gpComboMode=m==='AND'?'AND':'OR';GP_OWNER_DROP_OPEN=true;rT('gp_grr');}
+function pickAACombo(m){_aaComboMode=m==='AND'?'AND':'OR';_AA_OWNER_DROP_OPEN=true;rAllAccts();}
 function pickGPOwner(v){
   if(v==='ALL'){
     selGPOwner='ALL';
@@ -5929,6 +5962,9 @@ function rGP(){
               return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${ct} accts</span></div>`;
             }).join('');
           }
+          if(csmList.length&&podList.length){
+            menu+=`<div class="combo-toggle"><span class="lbl">Combine CSM × Pod</span><span class="seg"><button class="${_gpComboMode==='OR'?'on':''}" onclick="pickGPCombo('OR')">OR</button><button class="${_gpComboMode==='AND'?'on':''}" onclick="pickGPCombo('AND')">AND</button></span></div>`;
+          }
           if(podList.length){
             menu+=`<div class="owner-dd-grp">Pods · Engagement Tracker</div>`;
             menu+=podList.map(p=>{
@@ -6701,8 +6737,9 @@ function _aaMatchesOwnerFilter(a){
   const sel=_aaOwnerSel();
   if(sel.mode==='ALL')return true;
   // Reuse GP matcher — handles plain CSM names, POD:<pod>, POD:Scale <region>,
-  // and POD:<pod>:OFF for off-pod drilldown.
-  return sel.items.some(it=>_gpItemMatches(it,a));
+  // and POD:<pod>:OFF for off-pod drilldown. Combine across CSM/Pod groups
+  // per _aaComboMode (AND or OR).
+  return _gpCombine(sel.items,a,_aaComboMode);
 }
 function pickAAOwner(v){
   if(v==='ALL'){_aaState.owner='ALL';_AA_OWNER_DROP_OPEN=false;rAllAccts();return;}
@@ -6837,6 +6874,9 @@ function rAllAccts(){
                 const ct=all.filter(a=>_gpAliasCsm(a.csRep)===c).length;
                 return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${ct} accts</span></div>`;
               }).join('');
+            }
+            if(csmList.length&&podList.length){
+              menu+=`<div class="combo-toggle"><span class="lbl">Combine CSM × Pod</span><span class="seg"><button class="${_aaComboMode==='OR'?'on':''}" onclick="pickAACombo('OR')">OR</button><button class="${_aaComboMode==='AND'?'on':''}" onclick="pickAACombo('AND')">AND</button></span></div>`;
             }
             if(podList.length){
               menu+=`<div class="owner-dd-grp">Pods · Engagement Tracker</div>`;
