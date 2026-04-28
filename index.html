@@ -5770,6 +5770,32 @@ _updateSnapBar();
 function rOverview(){
   const el=document.getElementById('tab-overview');
   const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;
+  // YTD Actuals (GP) — closed decisions only. Excludes open/uncontacted from the
+  // denominator so the metrics reflect what's actually been decided so far, not
+  // what's modeled for the rest of the year. Three views:
+  //   • Logo Retention = won_logos / decided_logos
+  //   • GRR (cohort)   = won_2025rev / decided_2025rev   (≤100% by definition)
+  //   • NRR (cohort)   = won_2026rev / decided_2025rev   (>100% iff expansion exceeds churn)
+  // Renewal NRR (won-only) — Σ rev26(won) / Σ rev(won) — is shown as a sub-figure
+  // since it's the standard "expansion among renewed" benchmark.
+  const _aWS=['9. Invoice Sent','10. Paid'],_aCS=['11. Churned'],_aDS=['4a. Attempting again Q2'];
+  let _aLW=0,_aLC=0,_aLD=0,_aRW=0,_aRC=0,_aRD=0,_a26W=0,_aLOpen=0;
+  (ACCTS||[]).forEach(function(a){
+    const isW=_aWS.includes(a.stage),isC=_aCS.includes(a.stage),isD=_aDS.includes(a.stage);
+    if(isW){_aLW++;_aRW+=a.rev||0;_a26W+=a.rev26||0;}
+    else if(isC){_aLC++;_aRC+=a.rev||0;}
+    else if(isD){_aLD++;_aRD+=a.rev||0;}
+    else _aLOpen++;
+  });
+  const _aDecLogos=_aLW+_aLC+_aLD;
+  const _aDecRev=_aRW+_aRC+_aRD;
+  const _aLogoRet=_aDecLogos>0?(_aLW/_aDecLogos*100):0;
+  const _aGRR=_aDecRev>0?(_aRW/_aDecRev*100):0;
+  const _aNRR=_aDecRev>0?(_a26W/_aDecRev*100):0;
+  const _aRNRR=_aRW>0?(_a26W/_aRW*100):0; // Renewal NRR — expansion among renewed only
+  const _aLogoCol=_aLogoRet>=70?'var(--green)':_aLogoRet>=52.7?'var(--amber)':'var(--red)';
+  const _aGRRCol=_aGRR>=70?'var(--green)':_aGRR>=50?'var(--amber)':'var(--red)';
+  const _aNRRCol=_aNRR>=100?'var(--green)':_aNRR>=80?'var(--amber)':'var(--red)';
   el.innerHTML=`
     <div class="cards">
       <div class="stat" style="position:relative">
@@ -5785,6 +5811,30 @@ function rOverview(){
       ${sc("Revenue at Risk",fmt(tR),"$39.8M tracked of ~$41.2M","var(--amber)")}
       ${sc("Renewed YTD",tW+" logos",fmt(gRW+SP.rw)+" revenue · "+pct(tW/tL*100)+" logo retention","var(--green)")}
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px">
+      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP · Closed Decisions Only</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Decided cohort = won + churned + declined-early. Excludes ${_aLOpen} open/uncontacted accounts.">${_aDecLogos} of ${_aDecLogos+_aLOpen} GP logos decided · ${fmt(_aDecRev)} of ${fmt(_aDecRev+(ACCTS||[]).filter(a=>!_aWS.includes(a.stage)&&!_aCS.includes(a.stage)&&!_aDS.includes(a.stage)).reduce((s,a)=>s+(a.rev||0),0))} 2025 base</div>
+    </div>
+    <div class="cards">
+      <div class="stat" title="Logo Retention = won logos ÷ decided logos. Excludes still-open accounts from denominator.">
+        <div class="bar" style="background:linear-gradient(90deg,${_aLogoCol},transparent)"></div>
+        <div class="label">Logo Retention (Actual)</div>
+        <div class="val" style="color:${_aLogoCol}">${pct(_aLogoRet)}</div>
+        <div class="sub">${_aLW} won of ${_aDecLogos} decided · ${_aLC} churned · ${_aLD} declined</div>
+      </div>
+      <div class="stat" title="GRR = 2025 base of won ÷ 2025 base of decided cohort. Bounded ≤100% — measures pure dollar retention with no expansion credit.">
+        <div class="bar" style="background:linear-gradient(90deg,${_aGRRCol},transparent)"></div>
+        <div class="label">GRR (Actual)</div>
+        <div class="val" style="color:${_aGRRCol}">${pct(_aGRR)}</div>
+        <div class="sub">${fmt(_aRW)} retained of ${fmt(_aDecRev)} decided base</div>
+      </div>
+      <div class="stat" title="NRR = 2026 contract value of won ÷ 2025 base of decided cohort. >100% means expansion among renewals outweighs churn dollars.">
+        <div class="bar" style="background:linear-gradient(90deg,${_aNRRCol},transparent)"></div>
+        <div class="label">NRR (Actual)</div>
+        <div class="val" style="color:${_aNRRCol}">${pct(_aNRR)}</div>
+        <div class="sub">${fmt(_a26W)} 2026 of ${fmt(_aDecRev)} 2025 base · Renewal NRR (won-only): ${pct(_aRNRR)}</div>
+      </div>
     </div>
     <div class="callout">
       <strong>📊 4-State Pipeline Model:</strong> This dashboard distinguishes between <strong style="color:var(--red)">confirmed churn</strong> (${gLo} GP + ${SP.lost} SP = ${tLo} total, ${fmt(gRL+SP.rl)} revenue) and <strong style="color:var(--orange)">declined early</strong> (${tDe} GP accounts that said no to early renewal but whose renewal dates are still future — re-engageable). The prior "195 lost" GP figure counted both; true confirmed GP churn is just ${gLo} logos (${fmt(gRL)}).
