@@ -5770,32 +5770,39 @@ _updateSnapBar();
 function rOverview(){
   const el=document.getElementById('tab-overview');
   const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;
-  // YTD Actuals (GP) — closed decisions only. Excludes open/uncontacted from the
-  // denominator so the metrics reflect what's actually been decided so far, not
-  // what's modeled for the rest of the year. Three views:
-  //   • Logo Retention = won_logos / decided_logos
-  //   • GRR (cohort)   = won_2025rev / decided_2025rev   (≤100% by definition)
-  //   • NRR (cohort)   = won_2026rev / decided_2025rev   (>100% iff expansion exceeds churn)
-  // Renewal NRR (won-only) — Σ rev26(won) / Σ rev(won) — is shown as a sub-figure
-  // since it's the standard "expansion among renewed" benchmark.
+  // YTD Actuals (GP) — multiple cohort views so each metric measures the right thing:
+  //   • NRR (Renewed only)   = Σ rev26(won) / Σ rev(won)         — expansion among accounts that
+  //                                                                actually renewed; should be >100% if
+  //                                                                renewals are net-expanding.
+  //   • GRR (Closed cohort)  = Σ rev(won) / Σ rev(won+churned)   — dollar retention among accounts
+  //                                                                that have rendered a final decision.
+  //                                                                Declined-early excluded (re-engageable).
+  //   • Logo Retention (Annual) = won / total annual book        — pace through the year against the
+  //                                                                full denominator coming up in 2026.
+  //   • Logo Retention (To-Date) = won / (won+churned)           — performance among accounts whose
+  //                                                                renewal moment has produced a final
+  //                                                                outcome. Declined-early excluded.
   const _aWS=['9. Invoice Sent','10. Paid'],_aCS=['11. Churned'],_aDS=['4a. Attempting again Q2'];
-  let _aLW=0,_aLC=0,_aLD=0,_aRW=0,_aRC=0,_aRD=0,_a26W=0,_aLOpen=0;
+  let _aLW=0,_aLC=0,_aLDe=0,_aLOpen=0,_aRW=0,_aRC=0,_aRDe=0,_aROpen=0,_a26W=0;
   (ACCTS||[]).forEach(function(a){
-    const isW=_aWS.includes(a.stage),isC=_aCS.includes(a.stage),isD=_aDS.includes(a.stage);
+    const isW=_aWS.includes(a.stage),isC=_aCS.includes(a.stage),isDe=_aDS.includes(a.stage);
     if(isW){_aLW++;_aRW+=a.rev||0;_a26W+=a.rev26||0;}
     else if(isC){_aLC++;_aRC+=a.rev||0;}
-    else if(isD){_aLD++;_aRD+=a.rev||0;}
-    else _aLOpen++;
+    else if(isDe){_aLDe++;_aRDe+=a.rev||0;}
+    else{_aLOpen++;_aROpen+=a.rev||0;}
   });
-  const _aDecLogos=_aLW+_aLC+_aLD;
-  const _aDecRev=_aRW+_aRC+_aRD;
-  const _aLogoRet=_aDecLogos>0?(_aLW/_aDecLogos*100):0;
-  const _aGRR=_aDecRev>0?(_aRW/_aDecRev*100):0;
-  const _aNRR=_aDecRev>0?(_a26W/_aDecRev*100):0;
-  const _aRNRR=_aRW>0?(_a26W/_aRW*100):0; // Renewal NRR — expansion among renewed only
-  const _aLogoCol=_aLogoRet>=70?'var(--green)':_aLogoRet>=52.7?'var(--amber)':'var(--red)';
-  const _aGRRCol=_aGRR>=70?'var(--green)':_aGRR>=50?'var(--amber)':'var(--red)';
-  const _aNRRCol=_aNRR>=100?'var(--green)':_aNRR>=80?'var(--amber)':'var(--red)';
+  const _aTotLogos=_aLW+_aLC+_aLDe+_aLOpen;
+  const _aTotRev=_aRW+_aRC+_aRDe+_aROpen;
+  const _aClosedLogos=_aLW+_aLC; // final decisions only — declined-early excluded (still re-engageable)
+  const _aClosedRev=_aRW+_aRC;
+  const _aNRR_R=_aRW>0?(_a26W/_aRW*100):0;                      // NRR among renewed (expansion factor)
+  const _aGRR_C=_aClosedRev>0?(_aRW/_aClosedRev*100):0;         // GRR among final decisions
+  const _aLogo_Y=_aTotLogos>0?(_aLW/_aTotLogos*100):0;          // Logo retention vs full annual book
+  const _aLogo_C=_aClosedLogos>0?(_aLW/_aClosedLogos*100):0;    // Logo retention among final decisions
+  const _aColNRR=_aNRR_R>=100?'var(--green)':_aNRR_R>=90?'var(--amber)':'var(--red)';
+  const _aColGRR=_aGRR_C>=80?'var(--green)':_aGRR_C>=60?'var(--amber)':'var(--red)';
+  const _aColLY ='var(--accent)';                               // pace metric — neutral blue; year not over
+  const _aColLC=_aLogo_C>=70?'var(--green)':_aLogo_C>=52.7?'var(--amber)':'var(--red)';
   el.innerHTML=`
     <div class="cards">
       <div class="stat" style="position:relative">
@@ -5812,28 +5819,34 @@ function rOverview(){
       ${sc("Renewed YTD",tW+" logos",fmt(gRW+SP.rw)+" revenue · "+pct(tW/tL*100)+" logo retention","var(--green)")}
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
     </div>
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px">
-      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP · Closed Decisions Only</div>
-      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Decided cohort = won + churned + declined-early. Excludes ${_aLOpen} open/uncontacted accounts.">${_aDecLogos} of ${_aDecLogos+_aLOpen} GP logos decided · ${fmt(_aDecRev)} of ${fmt(_aDecRev+(ACCTS||[]).filter(a=>!_aWS.includes(a.stage)&&!_aCS.includes(a.stage)&&!_aDS.includes(a.stage)).reduce((s,a)=>s+(a.rev||0),0))} 2025 base</div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:500">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total annual book</div>
     </div>
     <div class="cards">
-      <div class="stat" title="Logo Retention = won logos ÷ decided logos. Excludes still-open accounts from denominator.">
-        <div class="bar" style="background:linear-gradient(90deg,${_aLogoCol},transparent)"></div>
-        <div class="label">Logo Retention (Actual)</div>
-        <div class="val" style="color:${_aLogoCol}">${pct(_aLogoRet)}</div>
-        <div class="sub">${_aLW} won of ${_aDecLogos} decided · ${_aLC} churned · ${_aLD} declined</div>
+      <div class="stat" title="NRR among accounts that renewed only.&#10;Σ rev26(won) ÷ Σ rev(won)&#10;>100% means renewals are net-expanding (price/seat increases outweigh contractions).&#10;Excludes churned and declined accounts entirely.">
+        <div class="bar" style="background:linear-gradient(90deg,${_aColNRR},transparent)"></div>
+        <div class="label">NRR (Renewed Accounts)</div>
+        <div class="val" style="color:${_aColNRR}">${pct(_aNRR_R)}</div>
+        <div class="sub">${fmt(_a26W)} 2026 ÷ ${fmt(_aRW)} 2025 base · across ${_aLW} renewed</div>
       </div>
-      <div class="stat" title="GRR = 2025 base of won ÷ 2025 base of decided cohort. Bounded ≤100% — measures pure dollar retention with no expansion credit.">
-        <div class="bar" style="background:linear-gradient(90deg,${_aGRRCol},transparent)"></div>
-        <div class="label">GRR (Actual)</div>
-        <div class="val" style="color:${_aGRRCol}">${pct(_aGRR)}</div>
-        <div class="sub">${fmt(_aRW)} retained of ${fmt(_aDecRev)} decided base</div>
+      <div class="stat" title="GRR among accounts that have rendered a final decision (won or churned).&#10;Σ rev(won) ÷ Σ rev(won + churned)&#10;Declined-early excluded — those are re-engageable.&#10;Bounded ≤100% by definition.">
+        <div class="bar" style="background:linear-gradient(90deg,${_aColGRR},transparent)"></div>
+        <div class="label">GRR (To-Date)</div>
+        <div class="val" style="color:${_aColGRR}">${pct(_aGRR_C)}</div>
+        <div class="sub">${fmt(_aRW)} retained ÷ ${fmt(_aClosedRev)} decided · ${_aLC} churned (${fmt(_aRC)})</div>
       </div>
-      <div class="stat" title="NRR = 2026 contract value of won ÷ 2025 base of decided cohort. >100% means expansion among renewals outweighs churn dollars.">
-        <div class="bar" style="background:linear-gradient(90deg,${_aNRRCol},transparent)"></div>
-        <div class="label">NRR (Actual)</div>
-        <div class="val" style="color:${_aNRRCol}">${pct(_aNRR)}</div>
-        <div class="sub">${fmt(_a26W)} 2026 of ${fmt(_aDecRev)} 2025 base · Renewal NRR (won-only): ${pct(_aRNRR)}</div>
+      <div class="stat" title="Logo retention pace against the full 2026 annual book.&#10;won ÷ total annual book&#10;Will trend upward through the year as more accounts close-won.">
+        <div class="bar" style="background:linear-gradient(90deg,${_aColLY},transparent)"></div>
+        <div class="label">Logo Retention (Annual)</div>
+        <div class="val" style="color:${_aColLY}">${pct(_aLogo_Y)}</div>
+        <div class="sub">${_aLW} won of ${_aTotLogos} total annual book · ${_aLOpen} still open</div>
+      </div>
+      <div class="stat" title="Logo retention among accounts whose renewal moment has produced a final decision.&#10;won ÷ (won + churned)&#10;Declined-early excluded — those are re-engageable.&#10;This is the truest read of CS team performance to date.">
+        <div class="bar" style="background:linear-gradient(90deg,${_aColLC},transparent)"></div>
+        <div class="label">Logo Retention (To-Date)</div>
+        <div class="val" style="color:${_aColLC}">${pct(_aLogo_C)}</div>
+        <div class="sub">${_aLW} won of ${_aClosedLogos} final decisions · 2025 baseline 52.7%</div>
       </div>
     </div>
     <div class="callout">
