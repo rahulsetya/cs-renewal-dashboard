@@ -4352,6 +4352,39 @@ function _render(){
       src=src.replace(/const CHURNED\s*=\s*\[[\s\S]*?\];\s*\n/,`const CHURNED=${JSON.stringify(live.churned)};\n`);
       // Inject per-account list for pool drilldown
       src=src.replace(/const ACCTS\s*=\s*\[\];/,`const ACCTS=${JSON.stringify(live.allAccts)};`);
+      // ── YTD Actuals aggregate (Overview tab tiles) ──────────────────────────
+      // Computed in the parent shell so the cohort matches Renewal Pipeline exactly:
+      //   • GP rows (non-__sp) AND SP rows (__sp:true) — both included
+      //   • Filter by isValidCSOwner(d.ro) — same gate as Renewal Pipeline
+      //   • Won = stage in {7. Signed, 9. Invoice Sent, 10. Paid} (same as Pipeline)
+      //   • Churned = {11. Churned}
+      //   • Declined-early = {4a. Attempting again Q2}
+      //   • Open = everything else
+      // Revenue: r25 = 2025 base, o = 2026 contract value
+      // The iframe consumes this via a single _YTD_OVERVIEW const (no need to
+      // thread individual values through). GP/SP buckets are kept separate so
+      // the iframe could break them out if needed; today they're summed.
+      try{
+        const _ytdWon=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
+        const _ytdChurn=new Set(['11. Churned']);
+        const _ytdDecl=new Set(['4a. Attempting again Q2']);
+        const _ytd={
+          gp:{wL:0,cL:0,deL:0,oL:0,tL:0,wR:0,cR:0,deR:0,oR:0,tR:0,wR26:0},
+          sp:{wL:0,cL:0,deL:0,oL:0,tL:0,wR:0,cR:0,deR:0,oR:0,tR:0,wR26:0}
+        };
+        (D||[]).forEach(d=>{
+          if(!isValidCSOwner(d.ro))return;
+          const b=d.__sp?_ytd.sp:_ytd.gp;
+          const s=d.s||'';
+          const r25=d.r25||0,r26=d.o||0;
+          b.tL++;b.tR+=r25;
+          if(_ytdWon.has(s)){b.wL++;b.wR+=r25;b.wR26+=r26;}
+          else if(_ytdChurn.has(s)){b.cL++;b.cR+=r25;}
+          else if(_ytdDecl.has(s)){b.deL++;b.deR+=r25;}
+          else{b.oL++;b.oR+=r25;}
+        });
+        src=src.replace(/const ACCTS=/,`const _YTD_OVERVIEW=${JSON.stringify(_ytd)};\nconst ACCTS=`);
+      }catch(e){console.warn('[goals] YTD aggregate inject failed:',e);}
       // Inject live SP owner roster (per-owner account count, revenue, won,
       // won revenue) — computed from SP_RAW in _buildLiveGoalsData(). Same
       // shape as the hardcoded fallback: [{o,a,r,w,wr}, ...] sorted by rev.
@@ -5770,31 +5803,37 @@ _updateSnapBar();
 function rOverview(){
   const el=document.getElementById('tab-overview');
   const spRet=SP.logos>0?(SP.won/SP.logos)*100:0;
-  // YTD Actuals (GP) — multiple cohort views so each metric measures the right thing:
-  //   • NRR (Renewed only)   = Σ rev26(won) / Σ rev(won)         — expansion among accounts that
-  //                                                                actually renewed; should be >100% if
-  //                                                                renewals are net-expanding.
-  //   • GRR (Closed cohort)  = Σ rev(won) / Σ rev(won+churned)   — dollar retention among accounts
-  //                                                                that have rendered a final decision.
-  //                                                                Declined-early excluded (re-engageable).
-  //   • Logo Retention (Annual) = won / total annual book        — pace through the year against the
-  //                                                                full denominator coming up in 2026.
-  //   • Logo Retention (To-Date) = won / (won+churned)           — performance among accounts whose
-  //                                                                renewal moment has produced a final
-  //                                                                outcome. Declined-early excluded.
-  const _aWS=['9. Invoice Sent','10. Paid'],_aCS=['11. Churned'],_aDS=['4a. Attempting again Q2'];
+  // YTD Actuals (GP + SP, CS-owned) — cohort matches Renewal Pipeline exactly:
+  //   • Source: parent-shell-injected _YTD_OVERVIEW computed from D (post _mergeSPsIntoD)
+  //   • Filter: isValidCSOwner(d.ro) — same gate as Pipeline view
+  //   • Won set: {7. Signed, 9. Invoice Sent, 10. Paid} — includes Signed
+  //   • Includes SPs (Emilie's book) so the wons/totals reconcile with Pipeline
+  // Multiple cohort views so each metric measures the right thing:
+  //   • NRR (Renewed only)   = Σ rev26(won) / Σ rev25(won)
+  //   • GRR (Closed cohort)  = Σ rev25(won) / Σ rev25(won+churned)
+  //   • Logo Retention (Annual) = won / total CS-owned book
+  //   • Logo Retention (To-Date) = won / (won+churned)
+  // Fallback: if _YTD_OVERVIEW is missing (cache-only loads where GP_RAW_ROWS
+  // didn't trigger the parent injection), iterate ACCTS with the older 9+10 set.
   let _aLW=0,_aLC=0,_aLDe=0,_aLOpen=0,_aRW=0,_aRC=0,_aRDe=0,_aROpen=0,_a26W=0,_aSkip=0;
-  (ACCTS||[]).forEach(function(a){
-    // Cohort = 2026 Renewal Master roster only. ET rows without a Renewal Master
-    // match are tracked operationally but aren't on the renewal calendar, so they
-    // shouldn't count toward retention metrics (they have rev=0 and no stage anyway).
-    if(a.stage==='Not in renewal master'){_aSkip++;return;}
-    const isW=_aWS.includes(a.stage),isC=_aCS.includes(a.stage),isDe=_aDS.includes(a.stage);
-    if(isW){_aLW++;_aRW+=a.rev||0;_a26W+=a.rev26||0;}
-    else if(isC){_aLC++;_aRC+=a.rev||0;}
-    else if(isDe){_aLDe++;_aRDe+=a.rev||0;}
-    else{_aLOpen++;_aROpen+=a.rev||0;}
-  });
+  let _aGpL=0,_aSpL=0; // sub-counts for the band header
+  if(typeof _YTD_OVERVIEW!=='undefined'&&_YTD_OVERVIEW&&_YTD_OVERVIEW.gp&&_YTD_OVERVIEW.sp){
+    const g=_YTD_OVERVIEW.gp,s=_YTD_OVERVIEW.sp;
+    _aLW=g.wL+s.wL; _aLC=g.cL+s.cL; _aLDe=g.deL+s.deL; _aLOpen=g.oL+s.oL;
+    _aRW=g.wR+s.wR; _aRC=g.cR+s.cR; _aRDe=g.deR+s.deR; _aROpen=g.oR+s.oR;
+    _a26W=g.wR26+s.wR26;
+    _aGpL=g.tL; _aSpL=s.tL;
+  }else{
+    const _aWS=['9. Invoice Sent','10. Paid'],_aCS=['11. Churned'],_aDS=['4a. Attempting again Q2'];
+    (ACCTS||[]).forEach(function(a){
+      if(a.stage==='Not in renewal master'){_aSkip++;return;}
+      const isW=_aWS.includes(a.stage),isC=_aCS.includes(a.stage),isDe=_aDS.includes(a.stage);
+      if(isW){_aLW++;_aRW+=a.rev||0;_a26W+=a.rev26||0;}
+      else if(isC){_aLC++;_aRC+=a.rev||0;}
+      else if(isDe){_aLDe++;_aRDe+=a.rev||0;}
+      else{_aLOpen++;_aROpen+=a.rev||0;}
+    });
+  }
   const _aTotLogos=_aLW+_aLC+_aLDe+_aLOpen;
   const _aTotRev=_aRW+_aRC+_aRDe+_aROpen;
   const _aClosedLogos=_aLW+_aLC; // final decisions only — declined-early excluded (still re-engageable)
@@ -5824,8 +5863,8 @@ function rOverview(){
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
     </div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP · 2026 Renewal Master Roster</div>
-      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Cohort = 2026 Renewal Master roster.${_aSkip>0?'\n'+_aSkip+' Engagement Tracker rows excluded (no Renewal Master match — not on renewal calendar).':''}">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total renewal book${_aSkip>0?` <span style="color:var(--dim)">· ${_aSkip} ET-only excluded</span>`:''}</div>
+      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP + SP · CS-Owned · Renewal Pipeline Cohort</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Cohort matches Renewal Pipeline:&#10;• GP + SP rows&#10;• Filter: CS-owned (isValidCSOwner)&#10;• Won = stages 7 (Signed) + 9 (Invoice Sent) + 10 (Paid)${_aGpL||_aSpL?'\n• '+_aGpL+' GP + '+_aSpL+' SP accounts in cohort':''}${_aSkip>0?'\n• '+_aSkip+' ET rows excluded (fallback path only)':''}">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total${_aGpL||_aSpL?` <span style="color:var(--dim)">· ${_aGpL} GP + ${_aSpL} SP</span>`:''}${_aSkip>0?` <span style="color:var(--dim)">· ${_aSkip} ET-only excluded</span>`:''}</div>
     </div>
     <div class="cards">
       <div class="stat" title="NRR among accounts that renewed only.&#10;Σ rev26(won) ÷ Σ rev(won)&#10;>100% means renewals are net-expanding (price/seat increases outweigh contractions).&#10;Excludes churned and declined accounts entirely.">
