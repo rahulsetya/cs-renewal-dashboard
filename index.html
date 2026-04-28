@@ -85,6 +85,19 @@ body.light .owner-dd-item{color:#1e293b}
 body.light .owner-dd-item:hover{background:#eef4f9}
 body.light .owner-dd-item.sel{background:#2563eb;color:#fff}
 body.light .owner-dd-grp{color:#475569;border-top-color:#d4e2ee}
+.combo-toggle{padding:7px 14px;font-size:10px;color:#94a3b8;display:flex;align-items:center;gap:8px;border-top:1px solid #293548;border-bottom:1px solid #293548;background:rgba(0,0,0,.18);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.combo-toggle .lbl{flex:1}
+.combo-toggle .seg{display:inline-flex;border:1px solid #475569;border-radius:5px;overflow:hidden}
+.combo-toggle .seg button{background:transparent;border:none;color:#94a3b8;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.5px}
+.combo-toggle .seg button:hover:not(.on){color:#e2e8f0;background:#293548}
+.combo-toggle .seg button.on{background:#3b82f6;color:#fff}
+.combo-toggle .seg button+button{border-left:1px solid #475569}
+body.light .combo-toggle{color:#475569;border-top-color:#d4e2ee;border-bottom-color:#d4e2ee;background:rgba(0,0,0,.04)}
+body.light .combo-toggle .seg{border-color:#9eb6ca}
+body.light .combo-toggle .seg button{color:#475569}
+body.light .combo-toggle .seg button:hover:not(.on){color:#1e293b;background:#eef4f9}
+body.light .combo-toggle .seg button.on{background:#2563eb;color:#fff}
+body.light .combo-toggle .seg button+button{border-left-color:#9eb6ca}
 .title-dd{position:relative;display:inline-block}
 .title-dd-btn{background:transparent;border:none;color:inherit;font:inherit;cursor:pointer;padding:0;margin:0;display:inline-flex;align-items:center;gap:8px}
 .title-dd-btn h1{margin:0}
@@ -300,18 +313,39 @@ function _itemMatches(item,row){
   }
   return row&&ownerMatches(row.ro,item);
 }
+// AND/OR combine across the CS Owners and Pods groups in the dropdown.
+// Within a group items still OR together; the toggle controls how the two
+// groups combine. Default OR matches the previous flat-OR behavior.
+let _comboMode='OR';
+function _splitItemsByGroup(items){
+  const csm=[],pod=[];
+  items.forEach(it=>{
+    if(typeof it==='string'&&it.indexOf('POD:')===0)pod.push(it);
+    else csm.push(it);
+  });
+  return{csm,pod};
+}
+function _combine(items,row,mode){
+  if(mode==='AND'){
+    const g=_splitItemsByGroup(items);
+    const csmOk=!g.csm.length||g.csm.some(it=>_itemMatches(it,row));
+    const podOk=!g.pod.length||g.pod.some(it=>_itemMatches(it,row));
+    return csmOk&&podOk;
+  }
+  return items.some(s=>_itemMatches(s,row));
+}
 // Pipeline-row filter: 'ALL' restricts to CS owners, 'ALL_OWNERS' opens it up.
 function _matchesOwnerFilter(d){
   const sel=_ownerSel();
   if(sel.mode==='ALL_OWNERS')return true;
   if(sel.mode==='ALL')return isValidCSOwner(d.ro);
-  return sel.items.some(s=>_itemMatches(s,d));
+  return _combine(sel.items,d,_comboMode);
 }
 // ENG_RAW filter: ENG is already CS-scoped upstream so 'ALL' is pass-through.
 function _matchesOwnerFilterEng(r){
   const sel=_ownerSel();
   if(sel.mode!=='PICK')return true;
-  return sel.items.some(s=>_itemMatches(s,r));
+  return _combine(sel.items,r,_comboMode);
 }
 function _isOwnerPickActive(v){
   const sel=_ownerSel();
@@ -512,6 +546,13 @@ function pickOwner(v){
   S.owner=cur.length===0?'ALL':cur;
   // Render reads OWNER_DROP_OPEN to set initial display, so picks stay open
   // seamlessly without a reopen-flicker.
+  OWNER_DROP_OPEN=true;
+  ss('owner',S.owner);
+}
+// AND/OR toggle handler — controls combine logic across CS Owners × Pods groups.
+// Keeps the dropdown open and triggers a re-render via ss().
+function pickCombo(m){
+  _comboMode=m==='AND'?'AND':'OR';
   OWNER_DROP_OPEN=true;
   ss('owner',S.owner);
 }
@@ -2904,6 +2945,7 @@ function _render(){
           <div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickOwner('ALL')"><span>All CS Owners</span></div>
           <div class="owner-dd-grp">CS Owners</div>
           ${owners.map(o=>{const on=_isOwnerPickActive(o);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span></div>`;}).join('')}
+          ${(owners.length&&pods.length)?`<div class="combo-toggle"><span class="lbl">Combine CS Owner × Pod</span><span class="seg"><button class="${_comboMode==='OR'?'on':''}" onclick="pickCombo('OR')">OR</button><button class="${_comboMode==='AND'?'on':''}" onclick="pickCombo('AND')">AND</button></span></div>`:''}
           ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
             if(p==='Scale'){
               const on=_isOwnerPickActive('POD:Scale');
@@ -3992,7 +4034,7 @@ function _render(){
       filteredHist.forEach((snap,fi)=>{
         const i=snap._origIdx;
         // filter snap data by owner when not ALL
-        const ownerFilter=d=>{const _s=_ownerSel();if(_s.mode!=='PICK')return true;const a=acctMap[d];return !!a&&_s.items.some(it=>_itemMatches(it,a));};
+        const ownerFilter=d=>{const _s=_ownerSel();if(_s.mode!=='PICK')return true;const a=acctMap[d];return !!a&&_combine(_s.items,a,_comboMode);};
         const snapDataFiltered=snap.data?Object.fromEntries(Object.entries(snap.data).filter(([acct])=>ownerFilter(acct))):snap.data;
         const k=deriveKpisFromData(snapDataFiltered,acctMap);
         const compareIdx=S.hsCompare[i]!==undefined?S.hsCompare[i]:(i+1<hist.length?i+1:-1);
