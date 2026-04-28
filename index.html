@@ -5783,8 +5783,12 @@ function rOverview(){
   //                                                                renewal moment has produced a final
   //                                                                outcome. Declined-early excluded.
   const _aWS=['9. Invoice Sent','10. Paid'],_aCS=['11. Churned'],_aDS=['4a. Attempting again Q2'];
-  let _aLW=0,_aLC=0,_aLDe=0,_aLOpen=0,_aRW=0,_aRC=0,_aRDe=0,_aROpen=0,_a26W=0;
+  let _aLW=0,_aLC=0,_aLDe=0,_aLOpen=0,_aRW=0,_aRC=0,_aRDe=0,_aROpen=0,_a26W=0,_aSkip=0;
   (ACCTS||[]).forEach(function(a){
+    // Cohort = 2026 Renewal Master roster only. ET rows without a Renewal Master
+    // match are tracked operationally but aren't on the renewal calendar, so they
+    // shouldn't count toward retention metrics (they have rev=0 and no stage anyway).
+    if(a.stage==='Not in renewal master'){_aSkip++;return;}
     const isW=_aWS.includes(a.stage),isC=_aCS.includes(a.stage),isDe=_aDS.includes(a.stage);
     if(isW){_aLW++;_aRW+=a.rev||0;_a26W+=a.rev26||0;}
     else if(isC){_aLC++;_aRC+=a.rev||0;}
@@ -5820,8 +5824,8 @@ function rOverview(){
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
     </div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP</div>
-      <div style="font-size:11px;color:var(--muted);font-weight:500">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total annual book</div>
+      <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP · 2026 Renewal Master Roster</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Cohort = 2026 Renewal Master roster.${_aSkip>0?'\n'+_aSkip+' Engagement Tracker rows excluded (no Renewal Master match — not on renewal calendar).':''}">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total renewal book${_aSkip>0?` <span style="color:var(--dim)">· ${_aSkip} ET-only excluded</span>`:''}</div>
     </div>
     <div class="cards">
       <div class="stat" title="NRR among accounts that renewed only.&#10;Σ rev26(won) ÷ Σ rev(won)&#10;>100% means renewals are net-expanding (price/seat increases outweigh contractions).&#10;Excludes churned and declined accounts entirely.">
@@ -5836,11 +5840,11 @@ function rOverview(){
         <div class="val" style="color:${_aColGRR}">${pct(_aGRR_C)}</div>
         <div class="sub">${fmt(_aRW)} retained ÷ ${fmt(_aClosedRev)} decided · ${_aLC} churned (${fmt(_aRC)})</div>
       </div>
-      <div class="stat" title="Logo retention pace against the full 2026 annual book.&#10;won ÷ total annual book&#10;Will trend upward through the year as more accounts close-won.">
+      <div class="stat" title="Logo retention pace against the full 2026 Renewal Master roster.&#10;won ÷ total renewal book&#10;Will trend upward through the year as more accounts close-won.">
         <div class="bar" style="background:linear-gradient(90deg,${_aColLY},transparent)"></div>
         <div class="label">Logo Retention (Annual)</div>
         <div class="val" style="color:${_aColLY}">${pct(_aLogo_Y)}</div>
-        <div class="sub">${_aLW} won of ${_aTotLogos} total annual book · ${_aLOpen} still open</div>
+        <div class="sub">${_aLW} won of ${_aTotLogos} renewal book · ${_aLOpen} still open</div>
       </div>
       <div class="stat" title="Logo retention among accounts whose renewal moment has produced a final decision.&#10;won ÷ (won + churned)&#10;Declined-early excluded — those are re-engageable.&#10;This is the truest read of CS team performance to date.">
         <div class="bar" style="background:linear-gradient(90deg,${_aColLC},transparent)"></div>
