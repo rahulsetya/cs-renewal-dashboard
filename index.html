@@ -1007,7 +1007,7 @@ function _mergeSPsIntoD(){
     const row={
       c:r.n,s:stage,ro:'Emilie Welch',csRep:'Emilie Welch',or:'N/A',
       o:r26v,r25:r25v,r24:0,se,dy,em:se?se.substring(0,7):'',
-      mt:0,rsk:0,out:0,gm:0,gms:0,ap:0,sentiment:'',ex:0,snt:0,
+      mt:0,rsk:0,out:0,gm:0,gms:0,ap:0,ex:0,snt:0,
       clr:'',icn:r.notes||'',ae:r.ae||'',pod:'',pid:'',sg:[],ct:'SP',wow:'same',
       spOffer:offerv,__sp:true
     };
@@ -1118,25 +1118,16 @@ async function fetchAllEngagement(token){
       const cNotes =ecIdx('Risk Notes')  || ecIdx('Notes');
       const cCsm   =ecIdx('Target CSM')  || ecIdx('CSM');
       const cPod   =ecIdx('Pod');
-      const cTxn   =ecIdx('Transition Complete?')|| ecIdx('Transition Complete');
-      const cOut   =ecIdx('Outreach Sent?')|| ecIdx('Outreach Sent? (Y/N)')|| ecIdx('Outreach Sent');
       const cGm    =ecIdx('GM Completed?') || ecIdx('GM Completed? (Y/N)') || ecIdx('GM Completed');
       const cNextTP=ecIdx('Next TP Date')  || ecIdx('Next TP');
       const cExp   =ecIdx('Expansion?')    || ecIdx('Expansion');
       // Platform ID — authoritative match key across Renewal Master and ET.
       const cPid   =ecIdx('Platform ID')|| ecIdx('Platform Id')|| ecIdx('Platform Company ID')|| ecIdx('Platform Company Id')|| ecIdx('HubSpot ID')|| ecIdx('HubSpot Record ID')|| ecIdx('Company ID')|| ecIdx('Record ID');
-      // Legacy fields — still looked up in case they appear in the new sheet,
-      // but no longer warned about if absent.
-      const cGms   =ecIdx('GM Scheduled?') || ecIdx('GM Scheduled? (Y/N)') || ecIdx('GM Scheduled');
-      const cAp    =ecIdx('AP Delivered?') || ecIdx('AP Delivered? (Y/N)') || ecIdx('AP Delivered');
-      const cMt    =ecIdx('Miami Mtgs')    || ecIdx('Miami Meetings');
-      const cSent  =ecIdx('Sentiment');
 
       dlog('[eng] resolved columns:\n  '+[
         'Account='+cAcct,'Platform ID='+cPid,'Sales Rep='+cSales,'Segment='+cSeg,'2025 Rev='+cRev25,'2026 Rev='+cRev26,
         'Contract End='+cEnd,'Risk?='+cRisk,'Risk Notes='+cNotes,'Target CSM='+cCsm,'Pod='+cPod,
-        'Transition Complete?='+cTxn,'Outreach Sent?='+cOut,'GM Completed?='+cGm,
-        'Next TP Date='+cNextTP,'Expansion?='+cExp
+        'GM Completed?='+cGm,'Next TP Date='+cNextTP,'Expansion?='+cExp
       ].join(' | '));
 
       const missingKeys=[];
@@ -1158,18 +1149,15 @@ async function fetchAllEngagement(token){
           acct,ro,ae,seg,endMonth:parseEngEndMonth(rawEnd),rawEnd,rev,rev26,
           platformId: cPid !=null?String(row[cPid]||'').trim():'',
           pod:     cPod   !=null?String(row[cPod]||'').trim():'',
-          txnDone: cTxn   !=null?yesNo(row[cTxn])             :0,
-          out:     cOut   !=null?yesNo(row[cOut])             :0,
           gm:      cGm    !=null?yesNo(row[cGm])              :0,
           nextTP:  cNextTP!=null?String(row[cNextTP]||'').trim():'',
           expn:    cExp   !=null?yesNo(row[cExp])             :0,
           rsk:     cRisk  !=null?yesNo(row[cRisk])            :0,
           notes:   cNotes !=null?String(row[cNotes]||'').trim():'',
-          // Legacy fields — keep populated when present so downstream code still works.
-          gms:     cGms   !=null?yesNo(row[cGms])             :0,
-          ap:      cAp    !=null?yesNo(row[cAp])              :0,
-          mt:      cMt    !=null?parseNum(row[cMt])           :0,
-          sentiment:cSent !=null?String(row[cSent]||'').trim():'',
+          // Legacy fields — columns removed from new ET schema; kept on the
+          // record so downstream UI (Engagement Funnel, GP detail table, filters)
+          // still binds without needing a refactor. All values are 0/empty.
+          txnDone: 0, out: 0, gms: 0, ap: 0, mt: 0,
         };
         engMap[acct]=rec;
         tmpRaw.push(rec);
@@ -1628,7 +1616,6 @@ function processData(range, engMap){
     const gm=eng.gm||0;
     const gms=eng.gms||0;
     const ap=eng.ap||0;
-    const sentiment=eng.sentiment||'';
     // Notes hierarchy: col L (iConnections Notes) → col CE → col CF
     const _icnRaw=String(getCell(v,'iConnections Notes')||'').trim();
     const _clrA=clrIdxAll[0]!==undefined?String(v[clrIdxAll[0]]||'').trim():'';
@@ -1638,7 +1625,7 @@ function processData(range, engMap){
     const ae=String(getCell(v,'Sales Rep')||'').trim();
     const csRep=String(getCell(v,'CS Rep')||v[8]||'').trim();
     const em=subEnd?subEnd.substring(0,7):'';
-    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,sentiment,ex:0,snt:0,clr,icn,ae,pod:(eng.pod||''),pid:(_rmPid||eng.platformId||''),sg:[],ct:'Manager',wow:'same'};
+    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,ex:0,snt:0,clr,icn,ae,pod:(eng.pod||''),pid:(_rmPid||eng.platformId||''),sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
     data.push(row);
   }
@@ -3653,7 +3640,6 @@ function _render(){
               <th style="padding:4px 8px;text-align:center;color:#34d399">AP</th>
               <th style="padding:4px 8px;text-align:center;color:#fbbf24">Mtgs</th>
               <th style="padding:4px 8px;text-align:center;color:#ef4444">Risk</th>
-              <th style="padding:4px 8px;text-align:left">Sentiment</th>
             </tr></thead>
             <tbody>${grp.map((r,i)=>{
               const [ey,em]=r.endMonth?r.endMonth.split('-').map(Number):[];
@@ -3671,7 +3657,6 @@ function _render(){
               <td style="padding:5px 8px;text-align:center">${yn(r.ap,'#34d399','#374151')}</td>
               <td style="padding:5px 8px;text-align:center;color:${r.mt>0?'#fbbf24':'#374151'};font-weight:600;font-size:12px">${r.mt||'–'}</td>
               <td style="padding:5px 8px;text-align:center">${r.rsk?'<span style="color:#ef4444;font-size:11px">⚠</span>':'<span style="color:#374151">–</span>'}</td>
-              <td style="padding:5px 8px;font-size:11px;color:#94a3b8">${r.sentiment||'–'}</td>
             </tr>`;}).join('')}</tbody>
           </table>
         </div>`:''}
