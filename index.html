@@ -2417,8 +2417,25 @@ function _buildLiveGoalsData(){
     const isDeclined=DECLINED_S.has(stage);
     const target=q?grr[q][pool]:grrNone[pool];
     target.logos++;target.rev+=rev;
+    // For the All Accounts row, prefer the Engagement Tracker's "Contract End"
+    // (col L) over the Renewal Master's "Final Sub End Date" so the displayed
+    // date and Q match what the CSM actually maintains in the ET. We only
+    // override the per-row display values; the GRR pool aggregation above
+    // (target.logos/won/etc.) still uses the RM-derived se/q to keep the GP
+    // Retention tab consistent. Falls back to RM se if ET has no date.
+    const _aaSeET=(()=>{
+      const raw=r.rawEnd||'';
+      if(!raw)return se;
+      const s=String(raw).trim();
+      if(!s)return se;
+      if(/^\d{4}-\d{2}/.test(s))return s.substring(0,10);
+      const sl=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(sl)return`${sl[3]}-${sl[1].padStart(2,'0')}-${sl[2].padStart(2,'0')}`;
+      return excelDateToJS(raw)||se;
+    })();
+    const _aaQET=getQ(_aaSeET)||q;
     allAccts.push({
-      n:acct,pool,q:q||'none',stage,se,rev,csRep:csm,rsk:r.rsk||0,notes:r.notes||'',
+      n:acct,pool,q:_aaQET||'none',stage,se:_aaSeET,rev,csRep:csm,rsk:r.rsk||0,notes:r.notes||'',
       // Extended fields for the All Accounts tab (April 2026 Combined Master schema)
       ae:r.ae||'',seg:r.seg||'',rev26:r.rev26||0,rawEnd:r.rawEnd||'',
       pod:r.pod||'',txnDone:r.txnDone||0,out:r.out||0,gm:r.gm||0,
