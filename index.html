@@ -4739,7 +4739,7 @@ body.light .scenario-slider::-moz-range-track{background:#bccedd}
   <div id="tab-rules" class="tab-content"></div>
   <div id="tab-rc_history" class="tab-content"></div>
   <div class="footer">
-    <span>Sources: 2026 Renewal Master.xlsx · CS Engagement Tracker April 2026.xlsx | 2025 baseline: 52.7% logo retention | Path: 62% → 67% → 72% → 80% | Q2 = logo retention, Q3+ evolving to GRR</span>
+    <span>Sources: 2026 Renewal Master.xlsx · CS Engagement Tracker April 2026.xlsx | 2025 baseline: 50.05% logo retention | Path: 62% → 67% → 72% → 80% | Q2 = logo retention, Q3+ evolving to GRR</span>
     <span>Last refreshed: March 29, 2026</span>
   </div>
 </div>
@@ -5860,7 +5860,7 @@ function rOverview(){
   const _aColNRR=_aNRR_R>=100?'var(--green)':_aNRR_R>=90?'var(--amber)':'var(--red)';
   const _aColGRR=_aGRR_C>=80?'var(--green)':_aGRR_C>=60?'var(--amber)':'var(--red)';
   const _aColLY ='var(--accent)';                               // pace metric — neutral blue; year not over
-  const _aColLC=_aLogo_C>=70?'var(--green)':_aLogo_C>=52.7?'var(--amber)':'var(--red)';
+  const _aColLC=_aLogo_C>=70?'var(--green)':_aLogo_C>=50.05?'var(--amber)':'var(--red)';
   el.innerHTML=`
     <div class="cards">
       <div class="stat" style="position:relative">
@@ -5904,7 +5904,7 @@ function rOverview(){
         <div class="bar" style="background:linear-gradient(90deg,${_aColLC},transparent)"></div>
         <div class="label">Logo Retention (To-Date)</div>
         <div class="val" style="color:${_aColLC}">${pct(_aLogo_C)}</div>
-        <div class="sub">${_aLW} won of ${_aClosedLogos} final decisions · 2025 baseline 52.7%</div>
+        <div class="sub">${_aLW} won of ${_aClosedLogos} final decisions · 2025 baseline 50.05%</div>
       </div>
     </div>
     ${(()=>{
@@ -5993,7 +5993,7 @@ function rOverview(){
         <div class="dim-label">Revenue at risk: <span style="color:var(--text);font-weight:600">${fmt(SP.rev)}</span></div>
       </div>
     </div>
-    <div class="card"><h3>GP Logo Retention Trajectory</h3><div class="sh">Solid = current | Dashed = target | 2025 baseline: 52.7% → Q4 target: 72% → Path to 80%</div><div class="chart-wrap" style="height:250px"><canvas id="c2"></canvas></div><div id="c2_legend" class="chk-legend"></div></div>
+    <div class="card"><h3>GP Logo Retention Trajectory</h3><div class="sh">Solid = current | Dashed = target | 2025 baseline: 50.05% → Q4 target: 72% → Path to 80%</div><div class="chart-wrap" style="height:250px"><canvas id="c2"></canvas></div><div id="c2_legend" class="chk-legend"></div></div>
     <div class="card"><h3>H1 '26 Variable Comp Structure</h3>
       <div class="grid3">
         <div class="info-box"><div class="title" style="color:var(--accent)">Activity Gate · 50%</div><div class="desc">Meeting cadence % per CSM. Below floor = <strong>both components zero</strong>. Above floor = linear 0→100%.<br>Floor ramps: <span style="color:var(--amber)">Q2: 50% · Q3: 65% · Q4: 75%</span></div></div>
@@ -6013,7 +6013,7 @@ function rOverview(){
 
   const tgts=[100,GP_T.Q2.full,GP_T.Q3.full,GP_T.Q4.full];
   const trD=["Q1","Q2","Q3","Q4"].map((q,i)=>{const r={};["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];r[p]=d.logos>0?+(d.won/d.logos*100).toFixed(1):0});r.tgt=tgts[i];return r});
-  mc('c2',{type:'line',data:{labels:["Q1","Q2","Q3","Q4"],datasets:[{label:'Target',data:trD.map(d=>d.tgt),borderColor:'#ffffff',borderWidth:2,borderDash:[8,4],pointRadius:0,fill:false},{label:'Enterprise',data:trD.map(d=>d.Enterprise),borderColor:PC.Enterprise,borderWidth:2.5,pointRadius:4,fill:false},{label:'Strategic',data:trD.map(d=>d.Strategic),borderColor:PC.Strategic,borderWidth:2.5,pointRadius:4,fill:false},{label:'Scale',data:trD.map(d=>d.Scale),borderColor:PC.Scale,borderWidth:2.5,pointRadius:4,fill:false},{label:'2025 Baseline',data:[52.7,52.7,52.7,52.7],borderColor:'#64748b',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:cD.t}},y:{min:0,max:100,grid:{color:cD.g},ticks:{color:cD.t,callback:v=>v+'%'}}}}});
+  mc('c2',{type:'line',data:{labels:["Q1","Q2","Q3","Q4"],datasets:[{label:'Target',data:trD.map(d=>d.tgt),borderColor:'#ffffff',borderWidth:2,borderDash:[8,4],pointRadius:0,fill:false},{label:'Enterprise',data:trD.map(d=>d.Enterprise),borderColor:PC.Enterprise,borderWidth:2.5,pointRadius:4,fill:false},{label:'Strategic',data:trD.map(d=>d.Strategic),borderColor:PC.Strategic,borderWidth:2.5,pointRadius:4,fill:false},{label:'Scale',data:trD.map(d=>d.Scale),borderColor:PC.Scale,borderWidth:2.5,pointRadius:4,fill:false},{label:'2025 Baseline',data:[50.05,50.05,50.05,50.05],borderColor:'#64748b',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:cD.t}},y:{min:0,max:100,grid:{color:cD.g},ticks:{color:cD.t,callback:v=>v+'%'}}}}});
   _renderChkLegend('c2','c2_legend');
 }
 
@@ -7530,7 +7530,7 @@ function rRules(){
         <strong style="color:var(--text)">Declined Early</strong> — Account declined early outreach (e.g., Miami) but renewal date is still future. Re-engageable and <em>not</em> counted as churn for comp purposes.<br>
         <strong style="color:var(--text)">GRR (Gross Revenue Retention)</strong> — Revenue from renewed accounts ÷ total renewal revenue. Planned metric for Q3+ replacing logo retention.<br>
         <strong style="color:var(--text)">Meeting Cadence</strong> — % of required meetings completed. Enterprise = monthly. Strategic = bi-weekly + QBRs. Scale = bi-monthly + onboarding SLA.<br>
-        <strong style="color:var(--text)">2025 Baseline</strong> — 52.7% logo retention. The starting point the program is designed to improve from.
+        <strong style="color:var(--text)">2025 Baseline</strong> — 50.05% logo retention. The starting point the program is designed to improve from.
       </div>
     </div>
 
@@ -8158,7 +8158,7 @@ function render(){
   const _hdrDate=_hdrMo[_hdrD.getMonth()]+' '+_hdrD.getDate()+', '+_hdrD.getFullYear();
   h+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px">
     <div><div style="font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--pu),var(--pk),var(--sa));-webkit-background-clip:text;-webkit-text-fill-color:transparent">iConnections — Retention & Revenue Forecast</div>
-    <div style="font-size:12px;color:var(--mt);margin-top:2px">${_hdrD.getFullYear()} · ${GP.T.toLocaleString()} GP + ${SP.T} SP · ${fS(_hdrTot)} · Baseline: <span title="2025 actual GP logo retention rate — the starting point against which 2026 quarterly thresholds (floor / full / accel) are set" style="border-bottom:1px dotted currentColor;cursor:help">52.7%</span> · ${_hdrDate}</div></div>
+    <div style="font-size:12px;color:var(--mt);margin-top:2px">${_hdrD.getFullYear()} · ${GP.T.toLocaleString()} GP + ${SP.T} SP · ${fS(_hdrTot)} · Baseline: <span title="2025 actual GP logo retention rate — the starting point against which 2026 quarterly thresholds (floor / full / accel) are set" style="border-bottom:1px dotted currentColor;cursor:help">50.05%</span> · ${_hdrDate}</div></div>
     <div style="display:flex;gap:3px">
       ${[['total','Total'],['gp','GP'],['sp','SP']].map(([k,l])=>`<button class="pl ${seg===k?'a':''}" onclick="setSeg('${k}')">${l}</button>`).join('')}
     </div></div>`;
@@ -8380,7 +8380,7 @@ function render(){
   }
 
   const _ftTot=(GP.base||0)+(SP_REV.base||0);
-  h+=`<div class="ft">${GP.T.toLocaleString()} GP (${fS(GP.base||0)}) + ${SP.T} SP (${fS(SP_REV.base||0)}) · ${fS(_ftTot)} total · Baseline: <span title="2025 actual GP logo retention rate — the starting point against which 2026 quarterly thresholds (floor / full / accel) are set" style="border-bottom:1px dotted currentColor;cursor:help">52.7%</span> · Churn: ${GP.C} GP (${fS(GP.churnRev||0)}) + ${SP.C} SP (${fS(SP_REV.churnRev||0)}) · Comp = logo-based · GRR/NRR = revenue-based</div>`;
+  h+=`<div class="ft">${GP.T.toLocaleString()} GP (${fS(GP.base||0)}) + ${SP.T} SP (${fS(SP_REV.base||0)}) · ${fS(_ftTot)} total · Baseline: <span title="2025 actual GP logo retention rate — the starting point against which 2026 quarterly thresholds (floor / full / accel) are set" style="border-bottom:1px dotted currentColor;cursor:help">50.05%</span> · Churn: ${GP.C} GP (${fS(GP.churnRev||0)}) + ${SP.C} SP (${fS(SP_REV.churnRev||0)}) · Comp = logo-based · GRR/NRR = revenue-based</div>`;
   document.getElementById('app').innerHTML=h;
 }
 
