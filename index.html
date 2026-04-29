@@ -4370,6 +4370,36 @@ function _render(){
         });
         src=src.replace(/const ACCTS=/,`const _YTD_OVERVIEW=${JSON.stringify(_ytd)};\nconst ACCTS=`);
       }catch(e){console.warn('[goals] YTD aggregate inject failed:',e);}
+      // ── 2026 quarterly aggregate (for 2025 vs 2026 comparison) ─────────────
+      // Splits D into Q1-Q4 by the calendar month of Contract End (d.em is
+      // 'YYYY-MM'). Same won set as YTD Actuals: 7+9+10. Includes GP + SP, no
+      // owner filter — matches the cohort we hardcoded for 2025.
+      try{
+        const _ytdWonQ=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
+        const _ytdChurnQ=new Set(['11. Churned']);
+        const _ytdDeclQ=new Set(['4a. Attempting again Q2']);
+        const _qbq={
+          Q1:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
+          Q2:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
+          Q3:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
+          Q4:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0}
+        };
+        (D||[]).forEach(d=>{
+          if(!d.em)return;
+          const m=parseInt(String(d.em).substring(5,7),10);
+          if(!m)return;
+          const q=m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';
+          const b=_qbq[q];
+          const r25=d.r25||0,r26=d.o||0;
+          b.t++;b.tR+=r25;
+          const s=d.s||'';
+          if(_ytdWonQ.has(s)){b.w++;b.wR+=r25;b.wR26+=r26;}
+          else if(_ytdChurnQ.has(s)){b.c++;}
+          else if(_ytdDeclQ.has(s)){b.de++;}
+          else{b.o++;}
+        });
+        src=src.replace(/const ACCTS=/,`const _QBYQ_2026=${JSON.stringify(_qbq)};\nconst ACCTS=`);
+      }catch(e){console.warn('[goals] 2026 quarterly aggregate inject failed:',e);}
       // Inject live SP owner roster (per-owner account count, revenue, won,
       // won revenue) — computed from SP_RAW in _buildLiveGoalsData(). Same
       // shape as the hardcoded fallback: [{o,a,r,w,wr}, ...] sorted by rev.
@@ -5877,6 +5907,80 @@ function rOverview(){
         <div class="sub">${_aLW} won of ${_aClosedLogos} final decisions · 2025 baseline 52.7%</div>
       </div>
     </div>
+    ${(()=>{
+      // ── 2025 vs 2026 quarterly comparison ──────────────────────────────
+      // 2025 numbers are hardcoded (provided by ops). 2026 numbers come from
+      // _QBYQ_2026 (parent-shell aggregate, GP+SP, contract-end-date quarter,
+      // 7+9+10 won set, no owner filter). Δ shows percentage-point change in
+      // logo renewal rate vs same quarter last year.
+      const Q25={
+        Q1:{w:36, t:110, wR:1208650},
+        Q2:{w:87, t:157, wR:3218150},
+        Q3:{w:135,t:253, wR:5011000},
+        Q4:{w:243,t:481, wR:10967094}
+      };
+      const have26=typeof _QBYQ_2026!=='undefined'&&_QBYQ_2026;
+      const Q26=have26?_QBYQ_2026:{Q1:{w:0,t:0,wR:0},Q2:{w:0,t:0,wR:0},Q3:{w:0,t:0,wR:0},Q4:{w:0,t:0,wR:0}};
+      const fmtPct=(w,t)=>t>0?((w/t)*100):0;
+      const sumK=(o,k)=>['Q1','Q2','Q3','Q4'].reduce((a,q)=>a+(o[q][k]||0),0);
+      const tot25={w:sumK(Q25,'w'),t:sumK(Q25,'t'),wR:sumK(Q25,'wR')};
+      const tot26={w:sumK(Q26,'w'),t:sumK(Q26,'t'),wR:sumK(Q26,'wR')};
+      const rowFor=q=>{
+        const a=Q25[q],b=Q26[q];
+        const p25=fmtPct(a.w,a.t),p26=fmtPct(b.w,b.t);
+        const dPts=have26&&b.t>0?(p26-p25):null;
+        const dCol=dPts==null?'var(--dim)':dPts>=2?'var(--green)':dPts>=-2?'var(--amber)':'var(--red)';
+        const dStr=dPts==null?'—':(dPts>=0?'+':'')+dPts.toFixed(1)+' pts';
+        return `<tr style="border-top:1px solid #1e293b">
+          <td style="padding:8px 10px;font-weight:600;color:var(--text)">${q}</td>
+          <td style="padding:8px 10px;text-align:right;color:var(--muted)">${a.w}/${a.t}</td>
+          <td style="padding:8px 10px;text-align:right;color:#fbbf24;font-weight:600">${pct(p25)}</td>
+          <td style="padding:8px 10px;text-align:right;color:var(--muted)">${fmt(a.wR)}</td>
+          <td style="padding:8px 10px;text-align:right;color:var(--muted);border-left:1px solid #1e293b">${have26?b.w+'/'+b.t:'—'}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:600;color:${have26&&p26>=p25?'var(--green)':have26?'var(--red)':'var(--dim)'}">${have26?pct(p26):'—'}</td>
+          <td style="padding:8px 10px;text-align:right;color:var(--muted)">${have26?fmt(b.wR):'—'}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:600;color:${dCol}">${dStr}</td>
+        </tr>`;
+      };
+      const p25T=fmtPct(tot25.w,tot25.t),p26T=fmtPct(tot26.w,tot26.t);
+      const dPtsT=have26&&tot26.t>0?(p26T-p25T):null;
+      const dColT=dPtsT==null?'var(--dim)':dPtsT>=2?'var(--green)':dPtsT>=-2?'var(--amber)':'var(--red)';
+      const dStrT=dPtsT==null?'—':(dPtsT>=0?'+':'')+dPtsT.toFixed(1)+' pts';
+      return `<div style="margin-top:18px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">2025 vs 2026 · Quarterly Renewal Comparison</div>
+          <div style="font-size:11px;color:var(--dim)" title="2025 = hardcoded ops baseline (${tot25.w}/${tot25.t} = ${pct(p25T)}, ${fmt(tot25.wR)} renewed rev).&#10;2026 = live D aggregate · GP + SP · contract-end quarter · won = stages 7+9+10.">All accounts · GP + SP · won = 7+9+10 · quarter by Contract End</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit">
+          <thead>
+            <tr style="border-bottom:2px solid #1e293b;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px">
+              <th style="padding:6px 10px;text-align:left">Quarter</th>
+              <th style="padding:6px 10px;text-align:right">2025 W/T</th>
+              <th style="padding:6px 10px;text-align:right">2025 %</th>
+              <th style="padding:6px 10px;text-align:right">2025 Renewed Rev</th>
+              <th style="padding:6px 10px;text-align:right;border-left:1px solid #1e293b">2026 W/T</th>
+              <th style="padding:6px 10px;text-align:right">2026 %</th>
+              <th style="padding:6px 10px;text-align:right">2026 Renewed Rev</th>
+              <th style="padding:6px 10px;text-align:right">Δ pts (YoY)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${['Q1','Q2','Q3','Q4'].map(rowFor).join('')}
+            <tr style="border-top:2px solid #334155;background:rgba(255,255,255,.02)">
+              <td style="padding:9px 10px;font-weight:700;color:var(--text)">Total</td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600">${tot25.w}/${tot25.t}</td>
+              <td style="padding:9px 10px;text-align:right;color:#fbbf24;font-weight:700">${pct(p25T)}</td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600">${fmt(tot25.wR)}</td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600;border-left:1px solid #1e293b">${have26?tot26.w+'/'+tot26.t:'—'}</td>
+              <td style="padding:9px 10px;text-align:right;font-weight:700;color:${have26&&p26T>=p25T?'var(--green)':have26?'var(--red)':'var(--dim)'}">${have26?pct(p26T):'—'}</td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600">${have26?fmt(tot26.wR):'—'}</td>
+              <td style="padding:9px 10px;text-align:right;font-weight:700;color:${dColT}">${dStrT}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:8px;font-size:10px;color:var(--dim);font-style:italic">2026 quarter assignment is by Contract End date — open/declined/churned accounts in a future quarter still appear in W/T denominator.</div>
+      </div>`;
+    })()}
     <div class="callout">
       <strong>📊 4-State Pipeline Model:</strong> This dashboard distinguishes between <strong style="color:var(--red)">confirmed churn</strong> (${gLo} GP + ${SP.lost} SP = ${tLo} total, ${fmt(gRL+SP.rl)} revenue) and <strong style="color:var(--orange)">declined early</strong> (${tDe} GP accounts that said no to early renewal but whose renewal dates are still future — re-engageable). The prior "195 lost" GP figure counted both; true confirmed GP churn is just ${gLo} logos (${fmt(gRL)}).
     </div>
