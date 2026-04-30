@@ -5965,8 +5965,18 @@ function rOverview(){
         const dStr=dPts==null?'—':(dPts>=0?'+':'')+dPts.toFixed(1)+' pts';
         const rN=realizedNRR(b);
         const rNstr=rN==null?'—':pct(rN);
+        // Build tooltip with HTML entities directly (newline = &#10;) so the
+        // outer template literal doesn't need a .replace() chain — that pattern
+        // (regex literals nested inside template literals inside an IIFE)
+        // tripped up some browser parsers.
         const rNtt=rN==null?'No 2026 data yet for this quarter.':
-          `Realized NRR · ${q}\n2026 won rev: ${fmt(b.wR26||0)}\n2025 base (won + churned + declined): ${fmt((b.wR||0)+(b.cR||0)+(b.deR||0))}\n  · ${b.w} won (${fmt(b.wR||0)})\n  · ${b.c} churned (${fmt(b.cR||0)})\n  · ${b.de} declined-early (${fmt(b.deR||0)})\nOpen excluded: ${b.o} accounts (${fmt(b.oR||0)})`;
+          'Realized NRR — '+q+'&#10;'+
+          '2026 won rev: '+fmt(b.wR26||0)+'&#10;'+
+          '2025 base (won + churned + declined): '+fmt((b.wR||0)+(b.cR||0)+(b.deR||0))+'&#10;'+
+          '  - '+b.w+' won ('+fmt(b.wR||0)+')&#10;'+
+          '  - '+b.c+' churned ('+fmt(b.cR||0)+')&#10;'+
+          '  - '+b.de+' declined-early ('+fmt(b.deR||0)+')&#10;'+
+          'Open excluded: '+b.o+' accounts ('+fmt(b.oR||0)+')';
         return `<tr style="border-top:1px solid #1e293b">
           <td style="padding:8px 10px;font-weight:600;color:var(--text)">${q}</td>
           <td style="padding:8px 10px;text-align:right;color:var(--muted)">${a.w}/${a.t}</td>
@@ -5975,7 +5985,7 @@ function rOverview(){
           <td style="padding:8px 10px;text-align:right;color:var(--muted);border-left:1px solid #1e293b">${have26?b.w+'/'+b.t:'—'}</td>
           <td style="padding:8px 10px;text-align:right;font-weight:600;color:${have26&&p26>=p25?'var(--green)':have26?'var(--red)':'var(--dim)'}">${have26?pct(p26):'—'}</td>
           <td style="padding:8px 10px;text-align:right;color:var(--muted)">${have26?fmt(b.wR):'—'}</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;color:${colNRR(rN)};border-left:1px solid #1e293b" title="${rNtt.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}">${rNstr}</td>
+          <td style="padding:8px 10px;text-align:right;font-weight:700;color:${colNRR(rN)};border-left:1px solid #1e293b" title="${rNtt}">${rNstr}</td>
           <td style="padding:8px 10px;text-align:right;font-weight:600;color:${dCol}">${dStr}</td>
         </tr>`;
       };
@@ -5986,7 +5996,10 @@ function rOverview(){
       const rNT=realizedNRR(tot26);
       const rNTstr=rNT==null?'—':pct(rNT);
       const rNTtt=rNT==null?'No 2026 data yet.':
-        `Realized NRR · YTD (all quarters combined)\n2026 won rev: ${fmt(tot26.wR26||0)}\n2025 base (won + churned + declined): ${fmt((tot26.wR||0)+(tot26.cR||0)+(tot26.deR||0))}\nOpen excluded: ${fmt(tot26.oR||0)}`;
+        'Realized NRR — YTD (all quarters combined)&#10;'+
+        '2026 won rev: '+fmt(tot26.wR26||0)+'&#10;'+
+        '2025 base (won + churned + declined): '+fmt((tot26.wR||0)+(tot26.cR||0)+(tot26.deR||0))+'&#10;'+
+        'Open excluded: '+fmt(tot26.oR||0);
       return `<div style="margin-top:18px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <div style="font-size:13px;font-weight:700;color:var(--text)">2025 vs 2026 · Quarterly Renewal Comparison</div>
@@ -6016,7 +6029,7 @@ function rOverview(){
               <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600;border-left:1px solid #1e293b">${have26?tot26.w+'/'+tot26.t:'—'}</td>
               <td style="padding:9px 10px;text-align:right;font-weight:700;color:${have26&&p26T>=p25T?'var(--green)':have26?'var(--red)':'var(--dim)'}">${have26?pct(p26T):'—'}</td>
               <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600">${have26?fmt(tot26.wR):'—'}</td>
-              <td style="padding:9px 10px;text-align:right;font-weight:700;color:${colNRR(rNT)};border-left:1px solid #1e293b" title="${rNTtt.replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}">${rNTstr}</td>
+              <td style="padding:9px 10px;text-align:right;font-weight:700;color:${colNRR(rNT)};border-left:1px solid #1e293b" title="${rNTtt}">${rNTstr}</td>
               <td style="padding:9px 10px;text-align:right;font-weight:700;color:${dColT}">${dStrT}</td>
             </tr>
           </tbody>
