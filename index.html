@@ -2488,30 +2488,81 @@ function _buildLiveGoalsData(){
   const totalNone=Object.values(grrNone).reduce((a,v)=>a+v.logos,0);
 
   // SP data from SP_RAW if available
-  let spAgg=null;let spOwn=[];let spRisk=[];
+  let spAgg=null;let spOwn=[];let spRisk=[];let spAccts=[];let spOq=null;
   if(SP_RAW&&SP_RAW.length){
     const spWonS=new Set(['signed','invoice sent','paid','won','renewed']);
     const spLostS=new Set(['closed lost','churned','lost','cancelled','canceled']);
     const spAggD={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};
     const ownerMap={};
+    // Per-quarter per-owner aggregate, mirroring GRR shape so the SP Retention
+    // tab can render owner cards per quarter just like GP renders pool cards.
+    spOq={Q1:{},Q2:{},Q3:{},Q4:{}};
+    // Robust month extraction shared with the SP forecast path. Handles
+    // YYYY-MM-DD, MM/DD/YYYY, and Excel serials.
+    const _spGetMo=sub=>{
+      if(sub===null||sub===undefined||sub==='')return 0;
+      const s=String(sub).trim();if(!s)return 0;
+      const n=parseFloat(s);
+      if(!isNaN(n)&&n>=1000&&!s.includes('-')&&!s.includes('/')){
+        const d=new Date((n-25569)*86400*1000);
+        if(!isNaN(d))return d.getUTCMonth()+1;
+      }
+      const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(iso)return parseInt(iso[2],10);
+      const us=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+      if(us)return parseInt(us[1],10);
+      const d=new Date(s);
+      if(!isNaN(d))return d.getMonth()+1;
+      return 0;
+    };
+    const _spGetQ=sub=>{const m=_spGetMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
     SP_RAW.forEach(r=>{
-      const sl=r.s.toLowerCase();
+      const sl=(r.s||'').toLowerCase();
       const isWon=spWonS.has(sl)||['invoice','paid','signed'].some(x=>sl.includes(x));
       const isLost=spLostS.has(sl)||['closed','churn','lost','cancel'].some(x=>sl.includes(x));
-      spAggD.logos++;spAggD.rev+=r.r;
-      if(isWon){spAggD.won++;spAggD.rw+=r.r;}
-      else if(isLost){spAggD.lost++;spAggD.rl+=r.r;}
+      const status=isWon?'won':isLost?'churned':'open';
+      const rev=r.r||0;
+      spAggD.logos++;spAggD.rev+=rev;
+      if(isWon){spAggD.won++;spAggD.rw+=rev;}
+      else if(isLost){spAggD.lost++;spAggD.rl+=rev;}
       else{spAggD.open++;}
-      if(!ownerMap[r.o])ownerMap[r.o]={o:r.o,a:0,r:0,w:0,wr:0};
-      ownerMap[r.o].a++;ownerMap[r.o].r+=r.r;
-      if(isWon){ownerMap[r.o].w++;ownerMap[r.o].wr+=r.r;}
-      if(!isWon&&!isLost)spRisk.push({n:r.n,r:r.r,s:r.s,o:r.o});
+      const owner=r.o||'Unknown';
+      if(!ownerMap[owner])ownerMap[owner]={o:owner,a:0,r:0,w:0,wr:0};
+      ownerMap[owner].a++;ownerMap[owner].r+=rev;
+      if(isWon){ownerMap[owner].w++;ownerMap[owner].wr+=rev;}
+      if(!isWon&&!isLost)spRisk.push({n:r.n,r:rev,s:r.s,o:owner});
+      // Per-quarter per-owner aggregate (only if sub-end resolves to a quarter)
+      const q=_spGetQ(r.sub);
+      if(q&&spOq[q]){
+        if(!spOq[q][owner])spOq[q][owner]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};
+        const b=spOq[q][owner];
+        b.logos++;b.rev+=rev;
+        if(isWon){b.won++;b.rw+=rev;}
+        else if(isLost){b.lost++;b.rl+=rev;}
+        else{b.open++;}
+      }
+      // Per-account row for the SP retention drilldown table — same shape used
+      // by the GP _acctTableHTML renderer (n, q, owner, stage, status, rev, se).
+      // se is normalized to YYYY-MM-DD when the source allows; otherwise empty.
+      let se='';
+      if(r.sub){
+        const ss=String(r.sub).trim();
+        if(/^\d{4}-\d{2}/.test(ss))se=ss.substring(0,10);
+        else{
+          const us=ss.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+          if(us){
+            const yr=us[3].length===2?'20'+us[3]:us[3];
+            se=yr+'-'+us[1].padStart(2,'0')+'-'+us[2].padStart(2,'0');
+          }
+        }
+      }
+      spAccts.push({n:r.n,q:q||'none',owner,stage:r.s||'',status,rev,se,ae:r.ae||'',notes:r.notes||''});
     });
     spAgg=spAggD;
     spOwn=Object.values(ownerMap).filter(o=>o.r>0).sort((a,b)=>b.r-a.r);
     spRisk.sort((a,b)=>b.r-a.r);
   }
-  return{grr,grrNone,totalNone,churned,allAccts,spAgg,spOwn,spRisk};
+  return{grr,grrNone,totalNone,churned,allAccts,spAgg,spOwn,spRisk,spAccts,spOq};
 }
 function _buildLiveForecastData(pods){
   // Mirrors the inline forecast block: computes GPQ, GP, GPQR from D.
@@ -4429,6 +4480,23 @@ function _render(){
       if(live.spRisk&&live.spRisk.length){
         src=src.replace(/const SP_RISK\s*=\s*\[[\s\S]*?\];/,`const SP_RISK=${JSON.stringify(live.spRisk)};`);
       }
+      // Inject SP per-quarter per-owner aggregate (mirrors GRR shape). Used by
+      // the rebuilt SP Retention tab so it can render owner cards per quarter.
+      // Falls back to {} when SP_RAW is unavailable so rSP can degrade
+      // gracefully (single Total card with no per-owner breakdown).
+      if(live.spOq){
+        src=src.replace(/const ACCTS=/,`const SP_OQ=${JSON.stringify(live.spOq)};\nconst ACCTS=`);
+      } else {
+        src=src.replace(/const ACCTS=/,`const SP_OQ={Q1:{},Q2:{},Q3:{},Q4:{}};\nconst ACCTS=`);
+      }
+      // Inject SP per-account list (parallel to ACCTS for GP). Each row is
+      // {n,q,owner,stage,status,rev,se,ae,notes}. Used for the Revenue Context
+      // drilldown table and the Sales-Owner filter dropdown counts.
+      if(live.spAccts&&live.spAccts.length){
+        src=src.replace(/const ACCTS=/,`const SP_ACCTS=${JSON.stringify(live.spAccts)};\nconst ACCTS=`);
+      } else {
+        src=src.replace(/const ACCTS=/,`const SP_ACCTS=[];\nconst ACCTS=`);
+      }
       // ── Live SP data (same source as Forecast) ──────────────────────────────
       // Previously the Goals template kept hardcoded SP/SP_Q. Now we reuse
       // _buildLiveForecastData() so the Goals SP Retention tab shows the same
@@ -5107,6 +5175,101 @@ document.addEventListener('click',function(e){
   const m=document.getElementById('gpOwnerDropMenu');if(m)m.style.display='none';
   const b=document.getElementById('gpOwnerDropBtn');if(b)b.classList.remove('op');
 });
+// ── SP Retention multi-select owner state ───────────────────────────
+// Mirrors the GP owner state machine but keyed off Sales Owner (Steven
+// Reichard, Rob Tappero, …) instead of CSM/Pod. SPs don't have natural
+// pool subdivisions, so the dropdown shows just owners — no Pods, no
+// Off-pod chips, no AND/OR combine toggle.
+let selSPOwner='ALL';
+let selSPMonth=null;
+let SP_OWNER_DROP_OPEN=false;
+function _spOwnerSel(){
+  const v=selSPOwner;
+  if(!v||v==='ALL')return{mode:'ALL',items:[]};
+  const items=Array.isArray(v)?v.slice():[v];
+  if(!items.length)return{mode:'ALL',items:[]};
+  return{mode:'PICK',items};
+}
+function _spMatchesOwnerFilter(a){
+  const sel=_spOwnerSel();
+  if(sel.mode==='ALL')return true;
+  return sel.items.indexOf(a&&a.owner)>=0;
+}
+function _spIsOwnerPickActive(v){
+  const sel=_spOwnerSel();
+  return sel.mode==='PICK'&&sel.items.indexOf(v)>=0;
+}
+function pickSPOwner(v){
+  if(v==='ALL'){
+    selSPOwner='ALL';
+    SP_OWNER_DROP_OPEN=false;
+    rT('sp_grr');
+    return;
+  }
+  let cur=Array.isArray(selSPOwner)?selSPOwner.slice():(selSPOwner==='ALL'||!selSPOwner)?[]:[selSPOwner];
+  const idx=cur.indexOf(v);
+  if(idx>=0)cur.splice(idx,1);else cur.push(v);
+  selSPOwner=cur.length===0?'ALL':cur;
+  SP_OWNER_DROP_OPEN=true;
+  rT('sp_grr');
+}
+function toggleSPOwnerDrop(e){
+  if(e&&e.stopPropagation)e.stopPropagation();
+  SP_OWNER_DROP_OPEN=!SP_OWNER_DROP_OPEN;
+  const m=document.getElementById('spOwnerDropMenu');
+  const b=document.getElementById('spOwnerDropBtn');
+  if(m)m.style.display=SP_OWNER_DROP_OPEN?'block':'none';
+  if(b)b.classList.toggle('op',SP_OWNER_DROP_OPEN);
+}
+document.addEventListener('click',function(e){
+  if(!SP_OWNER_DROP_OPEN)return;
+  const dd=document.getElementById('spOwnerDropMenu');
+  const btn=document.getElementById('spOwnerDropBtn');
+  if(dd&&(dd.contains(e.target)||(btn&&btn.contains(e.target))))return;
+  SP_OWNER_DROP_OPEN=false;
+  if(dd)dd.style.display='none';
+  if(btn)btn.classList.remove('op');
+});
+// SP per-account drilldown table — mirrors _acctTableHTML for GP. Filtered
+// by quarter + owner-filter + month + status (won/churned/declined/all).
+function _spAcctTableHTML(rid,q,owner,filt){
+  const accts=(typeof SP_ACCTS!=='undefined'?SP_ACCTS:[]);
+  let rows=accts.filter(a=>a.q===q&&(owner==='__ALL__'||a.owner===owner)&&_spMatchesOwnerFilter(a)&&(!selSPMonth||(a.se||'').substring(5,7)===selSPMonth));
+  if(filt==='_won')rows=rows.filter(a=>a.status==='won');
+  else if(filt==='_ch')rows=rows.filter(a=>a.status==='churned');
+  if(!rows.length)return'<div style="padding:10px 16px;color:var(--dim);font-size:12px">No accounts in this slice.</div>';
+  rows.sort((a,b)=>(b.rev||0)-(a.rev||0));
+  const stColor=s=>s==='won'?'var(--green)':s==='churned'?'var(--red)':'var(--amber)';
+  const stLabel=s=>s==='won'?'Won':s==='churned'?'Churned':'Open';
+  return`<table style="width:100%;font-size:11px;border-collapse:collapse;margin:4px 0">
+    <thead><tr style="background:rgba(255,255,255,.04)">
+      <th style="text-align:left;padding:5px 16px;color:var(--dim)">Account</th>
+      <th style="text-align:left;padding:5px 8px;color:var(--dim)">Sales Owner</th>
+      <th style="text-align:left;padding:5px 8px;color:var(--dim)">AE</th>
+      <th style="text-align:right;padding:5px 8px;color:var(--dim)">2025 Rev</th>
+      <th style="text-align:left;padding:5px 8px;color:var(--dim)">Sub End</th>
+      <th style="text-align:center;padding:5px 8px;color:var(--dim)">Status</th>
+      <th style="text-align:left;padding:5px 8px;color:var(--dim)">Stage</th>
+    </tr></thead>
+    <tbody>${rows.map(a=>`<tr style="border-top:1px solid rgba(255,255,255,.05)">
+      <td style="padding:4px 16px;color:var(--text);font-weight:500">${a.n}</td>
+      <td style="padding:4px 8px;color:var(--muted)">${a.owner||'—'}</td>
+      <td style="padding:4px 8px;color:var(--muted)">${a.ae||'—'}</td>
+      <td class="mono" style="padding:4px 8px;text-align:right">${fmt(a.rev||0)}</td>
+      <td style="padding:4px 8px;color:var(--dim)">${fmtSE(a.se)}</td>
+      <td style="padding:4px 8px;text-align:center;color:${stColor(a.status)};font-weight:600">${stLabel(a.status)}</td>
+      <td style="padding:4px 8px;color:var(--dim)">${a.stage||'—'}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+function _openSPPool(rid,q,owner,filt){
+  const r=document.getElementById(rid);if(!r)return;
+  const ch=document.getElementById(rid+'_chev');
+  const isOpen=r.style.display!=='none';
+  if(isOpen){r.style.display='none';if(ch)ch.textContent='▸';return;}
+  const tgt=document.getElementById(rid+'_acct');
+  if(tgt)tgt.innerHTML=_spAcctTableHTML(rid,q,owner,filt||'');
+  r.style.display='';if(ch)ch.textContent='▾';
+}
 // Live "current quarter" — recomputed on every read so a dashboard left open
 // across a quarter boundary self-corrects on the next tab render.
 function _nowQ(){const m=new Date().getMonth()+1;return m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';}
@@ -6332,59 +6495,207 @@ function updateScenario(q,val,tOpen,tWon,tLogos){
 
 // ── SP RETENTION ────────────────────────────────────
 function rSP(){
-  const el=document.getElementById('tab-sp_grr');const ret=SP.logos>0?(SP.won/SP.logos)*100:0;const retOpt=SP.logos>0?((SP.won+SP.open*.5)/SP.logos)*100:0;
-  const uncontacted=SP_RISK.filter(a=>a.s==="Uncontacted");
-  const uncontactedRev=uncontacted.reduce((s,a)=>s+a.r,0);
-  el.innerHTML=`
-    <div class="cards">${sc("SP Logos",String(SP.logos),"Managed by Emilie","var(--rose)")}${sc("2025 Revenue",fmt(SP.rev),"Annual renewal pool","var(--rose)")}${sc("Logo Retention",pct(ret),"Optimistic: "+pct(retOpt),ret>=55?"var(--green)":"var(--amber)")}${sc("Won",SP.won+" logos",SP.open+" still open","var(--green)")}</div>
-    ${poolCard("Service Provider",SP,SP_T.Q2.full,false)}
-    <div class="card" style="margin-top:12px"><h3>SP Quarterly Breakdown</h3><div class="sh">Per-quarter SP retention against comp thresholds · Q1 closed · distribution proportional to GP schedule</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px">
-        ${['Q1','Q2','Q3','Q4'].map(qk=>{
-          const q=SP_Q[qk];const th=SP_T[qk];const gifted=qk==='Q1';
-          const qRet=q.logos>0?(q.won/q.logos)*100:0;
-          const qOpt=q.logos>0?((q.won+q.open*.5)/q.logos)*100:0;
-          const hitFloor=!gifted&&th.floor!=null&&qRet>=th.floor;
-          const hitFull=!gifted&&th.full!=null&&qRet>=th.full;
-          const hitAccel=!gifted&&th.accel!=null&&qRet>=th.accel;
-          const c=gifted?'var(--rose)':(hitFull?'var(--green)':hitFloor?'var(--amber)':'var(--red)');
-          return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-              <div style="font-size:13px;font-weight:700;color:var(--text)">${qk} <span style="color:var(--dim);font-weight:400;font-size:11px">· ${q.mo}</span></div>
-              <div style="font-size:10px;color:var(--dim)">${q.logos} logos · ${fmt(q.rev)}</div>
-            </div>
-            <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:6px">
-              <span style="font-size:24px;font-weight:700;color:${c};font-family:var(--mono)">${gifted?'CLOSED':pct(qRet)}</span>
-              ${!gifted?`<span style="font-size:11px;color:var(--dim)">/ ${th.full}% full</span>`:'<span style="font-size:11px;color:var(--dim)">Q1 · not goaled (closed)</span>'}
-            </div>
-            ${!gifted?`<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Opt (50% open): ${pct(qOpt)}</div>`:'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">&nbsp;</div>'}
-            <div style="display:flex;gap:4px;font-size:10px;margin-bottom:6px">
-              <span style="flex:1;padding:3px 5px;border-radius:3px;background:${hitFloor?'var(--greenG)':'var(--bg)'};border:1px solid ${hitFloor?'var(--green)':'var(--border)'};color:${hitFloor?'var(--green)':'var(--dim)'};text-align:center">${gifted||th.floor==null?'—':'Floor '+th.floor+'%'}</span>
-              <span style="flex:1;padding:3px 5px;border-radius:3px;background:${hitFull?'var(--greenG)':'var(--bg)'};border:1px solid ${hitFull?'var(--green)':'var(--border)'};color:${hitFull?'var(--green)':'var(--dim)'};text-align:center">${gifted?'100%':'Full '+th.full+'%'}</span>
-              <span style="flex:1;padding:3px 5px;border-radius:3px;background:${hitAccel?'var(--greenG)':'var(--bg)'};border:1px solid ${hitAccel?'var(--green)':'var(--border)'};color:${hitAccel?'var(--green)':'var(--dim)'};text-align:center">${gifted||th.accel==null?'—':'Accel '+th.accel+'%'}</span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px;color:var(--dim)">
-              <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:3px"></span>Won: ${q.won}</span>
-              <span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-right:3px"></span>Open: ${q.open}</span>
-              ${q.lost>0?`<span><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-right:3px"></span>Churn: ${q.lost}</span>`:''}
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-    ${uncontacted.length>0?`<div class="callout" style="border-color:var(--rose);margin-top:12px">
-      <strong style="color:var(--rose)">⚠ ${uncontacted.length} Uncontacted Accounts — ${fmt(uncontactedRev)} at risk:</strong> ${uncontacted.map(a=>a.n+' ('+fmt(a.r)+', '+a.o+')').join(' · ')}
-    </div>`:''}
-    <div class="card" style="margin-top:18px;overflow-x:auto"><h3>Pipeline by Sales Owner</h3><div class="sh">SP renewals by sales rep — conversion rate shows % of their logos won</div>
-      <table><thead><tr><th style="text-align:left">Owner</th><th style="text-align:right">Logos</th><th style="text-align:right">2025 Rev</th><th style="text-align:right">Won</th><th style="text-align:right">Conv. %</th><th style="text-align:right">Won Rev</th></tr></thead>
-      <tbody>${SP_OWN.filter(o=>o.r>0).map(o=>{const conv=o.a>0?(o.w/o.a*100):0;return`<tr><td style="font-weight:500">${o.o}</td><td class="mono" style="text-align:right;color:var(--muted)">${o.a}</td><td class="mono" style="text-align:right">${fmt(o.r)}</td><td class="mono" style="text-align:right;color:${o.w>0?'var(--green)':'var(--dim)'}">${o.w}</td><td class="mono" style="text-align:right;color:${conv>30?'var(--green)':conv>0?'var(--amber)':'var(--dim)'}">${pct(conv)}</td><td class="mono" style="text-align:right;color:${o.wr>0?'var(--green)':'var(--dim)'}">${fmt(o.wr)}</td></tr>`}).join('')}</tbody></table></div>
-    <div class="card" style="overflow-x:auto"><h3>Top At-Risk SP Accounts</h3><div class="sh">Largest not yet renewed — by 2025 revenue · Sorted by revenue descending</div>
-      <table><thead><tr><th style="text-align:left">Account</th><th style="text-align:right">2025 Rev</th><th style="text-align:right">Stage</th><th style="text-align:left">Owner</th></tr></thead>
-      <tbody>${SP_RISK.sort((a,b)=>b.r-a.r).map(a=>{const sc2=stC(a.s);return`<tr${a.s==='Uncontacted'?' style="background:var(--roseG)"':''}><td style="font-weight:500">${a.n}${a.s==='Uncontacted'?'<span style="font-size:9px;color:var(--rose);margin-left:5px">NEEDS OUTREACH</span>':''}</td><td class="mono" style="text-align:right;font-weight:600">${fmt(a.r)}</td><td style="text-align:right"><span class="pill" style="color:${sc2.c};background:${sc2.b}">${a.s}</span></td><td style="color:var(--muted)">${a.o}</td></tr>`}).join('')}</tbody></table></div>
-    <div class="grid2">
-      <div class="card"><h3>Sponsor Tiers</h3><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${SP_TIER.map(t=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center;min-width:65px"><div style="font-size:18px;font-weight:700;color:var(--rose);font-family:var(--mono)">${t.c}</div><div style="font-size:10px;color:var(--dim);text-transform:uppercase">${t.t}</div></div>`).join('')}</div></div>
-      <div class="card"><h3>SP Logo Retention Targets</h3><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${[45,50,55,60,65,70].map(p=>{const needed=Math.ceil(SP.logos*p/100);const fromOpen=Math.max(0,needed-SP.won);return`<div style="background:${ret>=p?'var(--greenG)':'var(--bg)'};border:1px solid ${ret>=p?'var(--green)':'var(--border)'};border-radius:8px;padding:8px 14px;text-align:center;min-width:80px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:2px">@ ${p}%</div><div style="font-size:15px;font-weight:700;color:${ret>=p?'var(--green)':'var(--text)'};font-family:var(--mono)">${needed}</div><div style="font-size:10px;color:var(--dim)">${fromOpen>0?fromOpen+' from open':'hit'}</div></div>`}).join('')}</div></div>
+  const el=document.getElementById('tab-sp_grr');const q=_liveSelQ();
+  const tgt=SP_T[q]?.full||55;
+  const QML={Q1:[['01','Jan'],['02','Feb'],['03','Mar']],Q2:[['04','Apr'],['05','May'],['06','Jun']],Q3:[['07','Jul'],['08','Aug'],['09','Sep']],Q4:[['10','Oct'],['11','Nov'],['12','Dec']]};
+
+  // SPs are segmented by Sales Owner (the SP equivalent of GP's Enterprise/
+  // Strategic/Scale pools). When live SP_ACCTS is loaded we re-aggregate from
+  // it so the owner filter + month filter both work; otherwise we degrade to
+  // the static SP_Q quarterly totals.
+  const hasLive=Array.isArray(SP_ACCTS)&&SP_ACCTS.length>0;
+  const qAcctsAll=hasLive?SP_ACCTS.filter(a=>a.q===q):[];
+  const ownerListAll=hasLive?[...new Set(SP_ACCTS.map(a=>a.owner).filter(Boolean))]:[];
+  const ownerListQ=[...new Set(qAcctsAll.map(a=>a.owner).filter(Boolean))].sort((a,b)=>{
+    const ca=qAcctsAll.filter(x=>x.owner===a).reduce((s,x)=>s+(x.rev||0),0);
+    const cb=qAcctsAll.filter(x=>x.owner===b).reduce((s,x)=>s+(x.rev||0),0);
+    return cb-ca;
+  });
+  // Drop any selected owners that no longer exist (data refresh edge case)
+  if(Array.isArray(selSPOwner)){
+    const valid=new Set(ownerListAll);
+    const filtered=selSPOwner.filter(it=>valid.has(it));
+    if(filtered.length!==selSPOwner.length)selSPOwner=filtered.length?filtered:'ALL';
+  }
+  const ownerFiltered=qAcctsAll.filter(_spMatchesOwnerFilter);
+  const filtAccts=selSPMonth?ownerFiltered.filter(a=>(a.se||'').substring(5,7)===selSPMonth):ownerFiltered;
+
+  // Per-owner aggregate from filtered accounts. When no live data, pivot off
+  // the legacy SP_Q quarterly total under a synthetic 'All SPs' bucket so the
+  // tab still renders something useful (single Total card, no breakdown).
+  const _ownerActive=selSPOwner!=='ALL';
+  const needsReagg=hasLive&&(_ownerActive||selSPMonth);
+  const spqByOwner=(()=>{
+    if(!hasLive){
+      const tot=SP_Q[q]||{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};
+      return{__total:{...tot}};
+    }
+    if(needsReagg){
+      const r={};
+      filtAccts.forEach(a=>{
+        const o=a.owner||'Unknown';
+        if(!r[o])r[o]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};
+        r[o].logos++;r[o].rev+=a.rev||0;
+        if(a.status==='won'){r[o].won++;r[o].rw+=a.rev||0;}
+        else if(a.status==='churned'){r[o].lost++;r[o].rl+=a.rev||0;}
+        else r[o].open++;
+      });
+      return r;
+    }
+    return SP_OQ[q]||{};
+  })();
+
+  const ownersInQ=Object.keys(spqByOwner).filter(o=>o!=='__total'&&(spqByOwner[o].logos||0)>0);
+  // Sort owners by revenue desc so the biggest book shows first.
+  ownersInQ.sort((a,b)=>(spqByOwner[b].rev||0)-(spqByOwner[a].rev||0));
+
+  // Total across all owners in the visible slice
+  const totalAgg=(()=>{
+    if(!hasLive)return spqByOwner.__total;
+    const t={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};
+    ownersInQ.forEach(o=>{const d=spqByOwner[o];for(const k in t)t[k]+=(d[k]||0);});
+    return t;
+  })();
+
+  // Scenario modeling — analogous to GP. SPs have no declined-early bucket,
+  // so totalCloseable is just open accounts.
+  const totalOpen=totalAgg.open||0;
+  const totalWon=totalAgg.won||0;
+  const totalLogos=totalAgg.logos||0;
+  const totalDeclined=totalAgg.declined||0;
+  const totalCloseable=totalOpen;
+  const tFull=SP_T[q]?.full||0;
+  const tFloor=SP_T[q]?.floor||0;
+  const tAccel=SP_T[q]?.accel||0;
+  const floorN=tFloor?Math.ceil(totalLogos*tFloor/100):0;
+  const fullN=tFull?Math.ceil(totalLogos*tFull/100):0;
+  const accelN=tAccel?Math.ceil(totalLogos*tAccel/100):0;
+  const gapFloor=Math.max(0,floorN-totalWon);
+  const gapFull=Math.max(0,fullN-totalWon);
+  const gapAccel=Math.max(0,accelN-totalWon);
+
+  // Active filter label for headers — mirrors _gpOwnerLbl.
+  const _spOwnerLbl=(()=>{
+    const sel=_spOwnerSel();
+    if(sel.mode==='ALL')return'';
+    if(sel.items.length===1)return ' · '+sel.items[0];
+    return ' · '+sel.items.length+' selected';
+  })();
+
+  // Per-owner color ramp — keeps Service Provider rose anchor for Total then
+  // cycles through accent colors so the chart bars and pool dots stay distinct.
+  const _spOwnerColors=['#f43f5e','#fb923c','#f59e0b','#10b981','#06b6d4','#3b82f6','#8b5cf6','#ec4899','#84cc16','#14b8a6'];
+  const _spClr=(o,i)=>_spOwnerColors[i%_spOwnerColors.length];
+
+  // Custom pool card for SPs — same shape as poolCard() but uses owner color
+  // (since PC[ownerName] is undefined). gifted=Q1 → CLOSED label.
+  const _spPoolCard=(label,d,target,gifted,clr)=>{
+    const ret=d.logos>0?(d.won/d.logos)*100:0;
+    const retOpt=d.logos>0?((d.won+d.open*.5)/d.logos)*100:0;
+    const at=gifted||ret>=target;
+    const tot=d.logos||1;
+    const segs=[{l:"Won",v:d.won,c:"var(--green)"},{l:"Open",v:d.open,c:"var(--amber)"},{l:"Churned",v:d.lost,c:"var(--red)"}];
+    return`<div class="pool-card">
+      <div class="pool-hdr"><div><span class="pool-dot" style="background:${clr}"></span><span style="font-size:14px;font-weight:600">${label}</span></div><span style="font-size:11px;color:var(--dim)">${d.logos} logos</span></div>
+      <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:3px"><span style="font-size:28px;font-weight:700;color:${at?'var(--green)':'var(--amber)'};font-family:var(--mono)">${gifted?'CLOSED':pct(ret)}</span>${!gifted&&target?`<span style="font-size:12px;color:var(--dim)">/ ${target}% target</span>`:''}</div>
+      ${!gifted?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Optimistic (50% open): ${pct(retOpt)}</div>`:''}
+      <div class="bar-stack">${segs.filter(s=>s.v>0).map(s=>`<div style="width:${(s.v/tot)*100}%;background:${s.c}"></div>`).join('')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:var(--dim)">${segs.filter(s=>s.v>0).map(s=>`<span><span style="width:5px;height:5px;border-radius:50%;background:${s.c};display:inline-block;margin-right:3px"></span>${s.l}: ${s.v}</span>`).join('')}</div>
+      ${d.rev?`<div style="margin-top:8px;font-size:11px;color:var(--dim)">Revenue at risk: <span style="color:var(--text);font-weight:600">${fmt(d.rev)}</span></div>`:''}
     </div>`;
+  };
+
+  // 3-state legend (SPs have no declined-early bucket).
+  const _spLegend3=()=>`<div class="legend-row">${[{l:"Won (renewed)",c:"var(--green)"},{l:"Open (in progress)",c:"var(--amber)"},{l:"Churned (confirmed lost)",c:"var(--red)"}].map(x=>`<span><span class="legend-dot" style="background:${x.c}"></span>${x.l}</span>`).join('')}</div>`;
+
+  el.innerHTML=`
+    <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="_setSelQ('${qq}');selSPMonth=null;rT('sp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
+        ${QML[q].map(([mn,ml])=>{const cnt=hasLive?ownerFiltered.filter(a=>(a.se||'').substring(5,7)===mn).length:0;return`<button class="qbtn ${selSPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selSPMonth=selSPMonth==='${mn}'?null:'${mn}';rT('sp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
+      </div>
+      ${hasLive?`<div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--dim);white-space:nowrap">Sales Owner:</label>
+        ${(()=>{
+          const sel=_spOwnerSel();
+          let curLbl;
+          if(sel.mode==='ALL')curLbl=`All Owners (${qAcctsAll.length})`;
+          else if(sel.items.length===1)curLbl=sel.items[0];
+          else curLbl=sel.items.length+' selected';
+          const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
+          let menu=`<div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickSPOwner('ALL')"><span>All Owners</span><span class="ct">${qAcctsAll.length} accts</span></div>`;
+          if(ownerListQ.length){
+            menu+=`<div class="owner-dd-grp">Sales Owners</div>`;
+            menu+=ownerListQ.map(o=>{
+              const on=_spIsOwnerPickActive(o);
+              const ct=qAcctsAll.filter(a=>a.owner===o).length;
+              return`<div class="owner-dd-item${on?' sel':''}" onclick="pickSPOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span><span class="ct">${ct} accts</span></div>`;
+            }).join('');
+          }
+          return`<div class="owner-dd">
+            <button id="spOwnerDropBtn" class="owner-dd-btn${SP_OWNER_DROP_OPEN?' op':''}" onclick="toggleSPOwnerDrop(event)" title="Filter by Sales Owner (multi-select)"><span>${curLbl}</span><span class="cr">▾</span></button>
+            <div id="spOwnerDropMenu" class="owner-dd-menu" style="display:${SP_OWNER_DROP_OPEN?'block':'none'}" onclick="event.stopPropagation()">${menu}</div>
+          </div>`;
+        })()}
+        ${selSPOwner!=='ALL'?`<button onclick="selSPOwner='ALL';SP_OWNER_DROP_OPEN=false;rT('sp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
+      </div>`:''}
+    </div>
+    <div class="cards">${_spPoolCard('Total',totalAgg,tgt,q==='Q1','#f43f5e')}${ownersInQ.map((o,i)=>_spPoolCard(o,spqByOwner[o],tgt,q==='Q1',_spClr(o,i+1))).join('')}</div>
+    ${q!=='Q1'?`<div class="card"><h3>What Needs to Happen — ${q}${_spOwnerLbl}</h3><div class="sh">Wins needed from ${totalOpen} open accounts to hit SP comp targets</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
+        ${[{l:'Floor ('+tFloor+'%)',n:floorN,g:gapFloor,c:gapFloor<=0?'var(--green)':'var(--amber)',t:tFloor/100},{l:'Full ('+tFull+'%)',n:fullN,g:gapFull,c:gapFull<=0?'var(--green)':'var(--amber)',t:tFull/100},{l:'Accel ('+tAccel+'%+)',n:accelN,g:gapAccel,c:gapAccel<=0?'var(--green)':'var(--red)',t:tAccel/100}].map(x=>{const convNeeded=totalCloseable>0?Math.max(0,x.g/totalCloseable*100):0;return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;flex:1;min-width:140px;text-align:center">
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">${x.l}</div>
+          <div style="font-size:22px;font-weight:700;color:${x.c};font-family:var(--mono)">${x.g<=0?'✓ Hit':'Need '+x.g}</div>
+          <div style="font-size:11px;color:var(--dim)">${x.n} logos required of ${totalLogos}</div>
+          ${x.g>0?`<div style="font-size:10px;color:var(--muted);margin-top:4px">${pct(convNeeded)} of open accounts</div>`:''}
+        </div>`;}).join('')}
+      </div>
+      <div style="margin-top:14px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+          <label style="font-size:12px;color:var(--muted)">Scenario: How many open SP accounts (${totalCloseable}) do we need to close to hit X%?</label>
+          <span style="font-size:11px;color:var(--dim)">Today (0 closed): <strong style="color:var(--amber)">${totalLogos>0?pct(totalWon/totalLogos*100):'—'}</strong> · Max (${totalCloseable} closed): <strong style="color:var(--green)">${totalLogos>0?pct((totalWon+totalCloseable)/totalLogos*100):'—'}</strong></span>
+        </div>
+        <div style="padding:8px 0">
+          <input type="range" class="scenario-slider" id="sp-scenario-${q}" min="0" max="${totalCloseable}" value="${Math.min(gapFloor,totalCloseable)}" oninput="updateSPScenario('${q}',this.value,${totalCloseable},${totalWon},${totalLogos})" onmousedown="_sceMD(event,${totalCloseable})" style="touch-action:none;background:linear-gradient(to right,var(--rose) ${totalCloseable>0?Math.round(Math.min(gapFloor,totalCloseable)/totalCloseable*100):0}%,#1e293b ${totalCloseable>0?Math.round(Math.min(gapFloor,totalCloseable)/totalCloseable*100):0}%)">
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span>0 closed</span><span id="sp-scenario-label-${q}">${Math.min(gapFloor,totalCloseable)} accounts closed → <strong style="color:var(--rose)">${totalLogos>0?pct((totalWon+Math.min(gapFloor,totalCloseable))/totalLogos*100):'—'}</strong></span><span>${totalCloseable} closed</span></div>
+      </div>
+    </div>`:''}
+    <div class="card">
+      <h3>${q} SP Revenue Context${_spOwnerLbl}</h3>
+      <div class="sh">Per-Sales-Owner SP renewals · ${hasLive?'live from SharePoint':'static fallback (refresh to load SP_RAW)'}</div>
+      <table><thead><tr><th style="text-align:left">Sales Owner</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Floor</th><th style="text-align:right">Accts Needed</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
+      <tbody>${ownersInQ.map((o,i)=>{const d=spqByOwner[o];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;const rid='spr_'+q+'_'+o.replace(/\W/g,'');const floorMet=tFloor&&d.logos>0&&(d.won/d.logos*100)>=tFloor;const floorNeed=tFloor?Math.max(0,Math.ceil(d.logos*tFloor/100)-d.won):null;return`<tr><td style="font-weight:500;cursor:pointer" onclick="_openSPPool('${rid}','${q}','${o.replace(/'/g,"\\'")}','')" title="Click to show accounts"><span id="${rid}_chev" style="display:inline-block;font-size:11px;font-weight:700;color:var(--rose);background:var(--roseG);border:1px solid rgba(244,63,94,.45);width:20px;height:18px;line-height:16px;text-align:center;border-radius:4px;margin-right:8px;vertical-align:middle">▸</span><span class="pool-dot" style="background:${_spClr(o,i+1)};width:7px;height:7px"></span>${o}</td><td class="mono" style="text-align:right">${d.logos}</td><td class="mono" style="text-align:right;color:var(--green);cursor:pointer" onclick="_openSPPool('${rid}','${q}','${o.replace(/'/g,"\\'")}','_won')" title="Show won accounts">${d.won}</td><td class="mono" style="text-align:right;color:var(--red);cursor:pointer" onclick="_openSPPool('${rid}','${q}','${o.replace(/'/g,"\\'")}','_ch')" title="Show churned accounts">${d.lost}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}</td><td class="mono" style="text-align:right;color:var(--dim)">${tFloor?tFloor+'%':'—'}</td><td class="mono" style="text-align:right;color:${floorMet?'var(--green)':floorNeed>0?'var(--red)':'var(--dim)'}">${tFloor?(floorMet?'✓ met':'+'+floorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr><tr id="${rid}" style="display:none"><td colspan="10" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><div id="${rid}_acct">${_spAcctTableHTML(rid,q,o,'')}</div></td></tr>`;}).join('')}
+      ${(()=>{const tFloorMet=tFloor&&totalLogos>0&&(totalWon/totalLogos*100)>=tFloor;const tFloorNeed=tFloor?Math.max(0,Math.ceil(totalLogos*tFloor/100)-totalWon):null;const tLr=totalLogos>0?(totalWon/totalLogos*100):0;const tRr=totalAgg.rev>0?(totalAgg.rw/totalAgg.rev*100):0;return`<tr style="border-top:2px solid rgba(255,255,255,.12);font-weight:700"><td style="color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase">Total</td><td class="mono" style="text-align:right">${totalLogos}</td><td class="mono" style="text-align:right;color:var(--green)">${totalWon}</td><td class="mono" style="text-align:right;color:var(--red)">${totalAgg.lost||0}</td><td class="mono" style="text-align:right;color:${tLr>=tgt?'var(--green)':'var(--amber)'}">${pct(tLr)}</td><td class="mono" style="text-align:right;color:var(--dim)">${tFloor?tFloor+'%':'—'}</td><td class="mono" style="text-align:right;color:${tFloorMet?'var(--green)':tFloorNeed>0?'var(--red)':'var(--dim)'}">${tFloor?(tFloorMet?'✓ met':'+'+tFloorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(totalAgg.rev||0)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(totalAgg.rw||0)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(tRr)}</td></tr>`;})()}
+      </tbody></table>
+    </div>
+    <div class="card"><h3>${q} SP Pipeline by Sales Owner${_spOwnerLbl}</h3><div class="sh">Logo count: won / open / churned</div><div class="chart-wrap" style="height:220px"><canvas id="spc3"></canvas></div>${_spLegend3()}</div>`;
+
+  // 3-state stacked bar (SPs have no declined-early bucket)
+  const cData=ownersInQ.map(o=>({o,...spqByOwner[o]}));
+  if(cData.length){
+    mc('spc3',{type:'bar',data:{labels:cData.map(d=>d.o),datasets:[
+      {label:'Won',data:cData.map(d=>d.won||0),backgroundColor:'#10b981',borderRadius:3,datalabels:stackLabels},
+      {label:'Open',data:cData.map(d=>d.open||0),backgroundColor:'#f59e0b',borderRadius:3,datalabels:stackLabels},
+      {label:'Churned',data:cData.map(d=>d.lost||0),backgroundColor:'#ef4444',borderRadius:{topLeft:3,topRight:3}}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cD.t,boxWidth:10,font:{size:10}}},tooltip:{mode:'index',callbacks:{afterBody:function(ctx){const i=ctx[0].dataIndex;const d=cData[i];const tot=(d.won||0)+(d.open||0)+(d.lost||0);return`──────────────\nTotal: ${tot} logos`}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:cD.t}},y:{stacked:true,grid:{color:cD.g},ticks:{color:cD.t}}}}});
+  }
+}
+
+// SP scenario slider — same shape as updateScenario but uses --rose accent.
+function updateSPScenario(q,val,tOpen,tWon,tLogos){
+  const totalOpen=tOpen!==undefined?+tOpen:0;
+  const totalWon=tWon!==undefined?+tWon:0;
+  const totalLogos=tLogos!==undefined?+tLogos:1;
+  const count=+val;
+  const projected=totalWon+count;
+  const retP=totalLogos>0?(projected/totalLogos)*100:0;
+  const lbl=document.getElementById('sp-scenario-label-'+q);
+  if(lbl)lbl.innerHTML=count+' account'+(count!==1?'s':'')+' closed → <strong style="color:var(--rose)">'+pct(retP)+'</strong>';
+  const sl=document.getElementById('sp-scenario-'+q);
+  const fillPct=totalOpen>0?(count/totalOpen*100):0;
+  if(sl)sl.style.background='linear-gradient(to right,var(--rose) '+fillPct+'%,#1e293b '+fillPct+'%)';
 }
 
 // ── CADENCE ─────────────────────────────────────────
@@ -6947,7 +7258,7 @@ const _aaCols=[
   {k:'ae',l:'Sales Rep',w:110},
   {k:'seg',l:'Segment',w:90},
   {k:'stage',l:'Stage',w:140},
-  {k:'q',l:'Q',w:40,center:1},
+  {k:'q',l:'Q',w:60,center:1},
   {k:'se',l:'Contract End',w:100},
   {k:'rev',l:'2025 Rev',w:90,num:1,right:1},
   {k:'rev26',l:'2026 Rev',w:90,num:1,right:1},
@@ -6980,6 +7291,13 @@ const _aaMonths=['Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 function _aaGetVal(r,k){
   if(k.indexOf('call_')===0){const m=k.substring(5);return (r.calls&&r.calls[m])||'';}
+  // Q column sort: combine year + quarter so Q1 26 < Q4 26 < Q1 27. Falls back
+  // to plain quarter when no contract end date is available.
+  if(k==='q'){
+    if(!r.q||r.q==='none')return'';
+    const m=String(r.se||r.rawEnd||'').match(/^(\d{4})-/);
+    return m?(m[1]+'-'+r.q):r.q;
+  }
   return r[k];
 }
 function _aaSort(col){if(_aaState.sortCol===col)_aaState.sortDir=_aaState.sortDir==='asc'?'desc':'asc';else{_aaState.sortCol=col;_aaState.sortDir='asc';}rAllAccts();}
@@ -7212,7 +7530,7 @@ function rAllAccts(){
               <td style="${st};color:var(--muted)">${r.ae||''}</td>
               <td style="${st};color:var(--muted)">${r.seg||''}</td>
               <td style="${st};color:var(--muted);max-width:140px" title="${(r.stage||'').replace(/"/g,'&quot;')}">${(r.stage||'').replace(/^\d+\.\s*/,'')}</td>
-              <td style="${st};text-align:center;color:var(--dim)">${r.q&&r.q!=='none'?r.q:''}</td>
+              <td style="${st};text-align:center;color:var(--dim)">${r.q&&r.q!=='none'?(()=>{const _se=String(r.se||r.rawEnd||'');const _ym=_se.match(/^(\d{4})-/);return _ym?r.q+' '+_ym[1].slice(2):r.q;})():''}</td>
               <td style="${st};color:var(--muted);font-size:10px">${_aaFmtDate(r.se||r.rawEnd)}</td>
               <td style="${st};text-align:right;color:var(--text)">${r.rev?fmt(r.rev):''}</td>
               <td style="${st};text-align:right;color:var(--text)">${r.rev26?fmt(r.rev26):''}</td>
