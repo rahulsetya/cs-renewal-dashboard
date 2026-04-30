@@ -4395,14 +4395,11 @@ function _render(){
         const _ytdWonQ=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
         const _ytdChurnQ=new Set(['11. Churned']);
         const _ytdDeclQ=new Set(['4a. Attempting again Q2']);
-        // cR/deR/oR added so the iframe can compute Realized NRR per quarter:
-        //   Realized NRR = wR26 / (wR + cR + deR)   — closed cohort denominator
-        // Open accounts (oR) tracked separately for tooltip transparency.
         const _qbq={
-          Q1:{w:0,c:0,de:0,o:0,t:0,wR:0,cR:0,deR:0,oR:0,tR:0,wR26:0},
-          Q2:{w:0,c:0,de:0,o:0,t:0,wR:0,cR:0,deR:0,oR:0,tR:0,wR26:0},
-          Q3:{w:0,c:0,de:0,o:0,t:0,wR:0,cR:0,deR:0,oR:0,tR:0,wR26:0},
-          Q4:{w:0,c:0,de:0,o:0,t:0,wR:0,cR:0,deR:0,oR:0,tR:0,wR26:0}
+          Q1:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
+          Q2:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
+          Q3:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
+          Q4:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0}
         };
         (D||[]).forEach(d=>{
           if(!d.em)return;
@@ -4414,9 +4411,9 @@ function _render(){
           b.t++;b.tR+=r25;
           const s=d.s||'';
           if(_ytdWonQ.has(s)){b.w++;b.wR+=r25;b.wR26+=r26;}
-          else if(_ytdChurnQ.has(s)){b.c++;b.cR+=r25;}
-          else if(_ytdDeclQ.has(s)){b.de++;b.deR+=r25;}
-          else{b.o++;b.oR+=r25;}
+          else if(_ytdChurnQ.has(s)){b.c++;}
+          else if(_ytdDeclQ.has(s)){b.de++;}
+          else{b.o++;}
         });
         src=src.replace(/const ACCTS=/,`const _QBYQ_2026=${JSON.stringify(_qbq)};\nconst ACCTS=`);
       }catch(e){console.warn('[goals] 2026 quarterly aggregate inject failed:',e);}
@@ -5940,43 +5937,17 @@ function rOverview(){
         Q4:{w:243,t:481, wR:10967094}
       };
       const have26=typeof _QBYQ_2026!=='undefined'&&_QBYQ_2026;
-      const _q26z={w:0,t:0,wR:0,cR:0,deR:0,oR:0,tR:0,wR26:0};
-      const Q26=have26?_QBYQ_2026:{Q1:{..._q26z},Q2:{..._q26z},Q3:{..._q26z},Q4:{..._q26z}};
+      const Q26=have26?_QBYQ_2026:{Q1:{w:0,t:0,wR:0},Q2:{w:0,t:0,wR:0},Q3:{w:0,t:0,wR:0},Q4:{w:0,t:0,wR:0}};
       const fmtPct=(w,t)=>t>0?((w/t)*100):0;
       const sumK=(o,k)=>['Q1','Q2','Q3','Q4'].reduce((a,q)=>a+(o[q][k]||0),0);
       const tot25={w:sumK(Q25,'w'),t:sumK(Q25,'t'),wR:sumK(Q25,'wR')};
-      const tot26={w:sumK(Q26,'w'),t:sumK(Q26,'t'),wR:sumK(Q26,'wR'),
-        cR:sumK(Q26,'cR'),deR:sumK(Q26,'deR'),oR:sumK(Q26,'oR'),wR26:sumK(Q26,'wR26')};
-      // Realized NRR = won 2026 ÷ (won 2025 + churned 2025 + declined 2025).
-      // Denominator excludes open (still pending decision) — matches GRR (To-Date)
-      // semantics. Returns null if denominator is 0 or no 2026 data.
-      const realizedNRR=(b)=>{
-        if(!have26)return null;
-        const denom=(b.wR||0)+(b.cR||0)+(b.deR||0);
-        if(denom<=0)return null;
-        return (b.wR26||0)/denom*100;
-      };
-      const colNRR=v=>v==null?'var(--dim)':v>=100?'var(--green)':v>=80?'var(--amber)':'var(--red)';
+      const tot26={w:sumK(Q26,'w'),t:sumK(Q26,'t'),wR:sumK(Q26,'wR')};
       const rowFor=q=>{
         const a=Q25[q],b=Q26[q];
         const p25=fmtPct(a.w,a.t),p26=fmtPct(b.w,b.t);
         const dPts=have26&&b.t>0?(p26-p25):null;
         const dCol=dPts==null?'var(--dim)':dPts>=2?'var(--green)':dPts>=-2?'var(--amber)':'var(--red)';
         const dStr=dPts==null?'—':(dPts>=0?'+':'')+dPts.toFixed(1)+' pts';
-        const rN=realizedNRR(b);
-        const rNstr=rN==null?'—':pct(rN);
-        // Build tooltip with HTML entities directly (newline = &#10;) so the
-        // outer template literal doesn't need a .replace() chain — that pattern
-        // (regex literals nested inside template literals inside an IIFE)
-        // tripped up some browser parsers.
-        const rNtt=rN==null?'No 2026 data yet for this quarter.':
-          'Realized NRR — '+q+'&#10;'+
-          '2026 won rev: '+fmt(b.wR26||0)+'&#10;'+
-          '2025 base (won + churned + declined): '+fmt((b.wR||0)+(b.cR||0)+(b.deR||0))+'&#10;'+
-          '  - '+b.w+' won ('+fmt(b.wR||0)+')&#10;'+
-          '  - '+b.c+' churned ('+fmt(b.cR||0)+')&#10;'+
-          '  - '+b.de+' declined-early ('+fmt(b.deR||0)+')&#10;'+
-          'Open excluded: '+b.o+' accounts ('+fmt(b.oR||0)+')';
         return `<tr style="border-top:1px solid #1e293b">
           <td style="padding:8px 10px;font-weight:600;color:var(--text)">${q}</td>
           <td style="padding:8px 10px;text-align:right;color:var(--muted)">${a.w}/${a.t}</td>
@@ -5985,7 +5956,6 @@ function rOverview(){
           <td style="padding:8px 10px;text-align:right;color:var(--muted);border-left:1px solid #1e293b">${have26?b.w+'/'+b.t:'—'}</td>
           <td style="padding:8px 10px;text-align:right;font-weight:600;color:${have26&&p26>=p25?'var(--green)':have26?'var(--red)':'var(--dim)'}">${have26?pct(p26):'—'}</td>
           <td style="padding:8px 10px;text-align:right;color:var(--muted)">${have26?fmt(b.wR):'—'}</td>
-          <td style="padding:8px 10px;text-align:right;font-weight:700;color:${colNRR(rN)};border-left:1px solid #1e293b" title="${rNtt}">${rNstr}</td>
           <td style="padding:8px 10px;text-align:right;font-weight:600;color:${dCol}">${dStr}</td>
         </tr>`;
       };
@@ -5993,13 +5963,6 @@ function rOverview(){
       const dPtsT=have26&&tot26.t>0?(p26T-p25T):null;
       const dColT=dPtsT==null?'var(--dim)':dPtsT>=2?'var(--green)':dPtsT>=-2?'var(--amber)':'var(--red)';
       const dStrT=dPtsT==null?'—':(dPtsT>=0?'+':'')+dPtsT.toFixed(1)+' pts';
-      const rNT=realizedNRR(tot26);
-      const rNTstr=rNT==null?'—':pct(rNT);
-      const rNTtt=rNT==null?'No 2026 data yet.':
-        'Realized NRR — YTD (all quarters combined)&#10;'+
-        '2026 won rev: '+fmt(tot26.wR26||0)+'&#10;'+
-        '2025 base (won + churned + declined): '+fmt((tot26.wR||0)+(tot26.cR||0)+(tot26.deR||0))+'&#10;'+
-        'Open excluded: '+fmt(tot26.oR||0);
       return `<div style="margin-top:18px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <div style="font-size:13px;font-weight:700;color:var(--text)">2025 vs 2026 · Quarterly Renewal Comparison</div>
@@ -6015,7 +5978,6 @@ function rOverview(){
               <th style="padding:6px 10px;text-align:right;border-left:1px solid #1e293b">2026 W/T</th>
               <th style="padding:6px 10px;text-align:right">2026 %</th>
               <th style="padding:6px 10px;text-align:right">2026 Renewed Rev</th>
-              <th style="padding:6px 10px;text-align:right;border-left:1px solid #1e293b" title="Realized NRR — sum of 2026 revenue on won accounts ÷ sum of 2025 revenue on (won + churned + declined-early). Open accounts excluded since they're still pending. ≥100% = book is net-expanding among accounts that have made it through their renewal moment.">Realized NRR</th>
               <th style="padding:6px 10px;text-align:right">Δ pts (YoY)</th>
             </tr>
           </thead>
@@ -6029,12 +5991,11 @@ function rOverview(){
               <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600;border-left:1px solid #1e293b">${have26?tot26.w+'/'+tot26.t:'—'}</td>
               <td style="padding:9px 10px;text-align:right;font-weight:700;color:${have26&&p26T>=p25T?'var(--green)':have26?'var(--red)':'var(--dim)'}">${have26?pct(p26T):'—'}</td>
               <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600">${have26?fmt(tot26.wR):'—'}</td>
-              <td style="padding:9px 10px;text-align:right;font-weight:700;color:${colNRR(rNT)};border-left:1px solid #1e293b" title="${rNTtt}">${rNTstr}</td>
               <td style="padding:9px 10px;text-align:right;font-weight:700;color:${dColT}">${dStrT}</td>
             </tr>
           </tbody>
         </table>
-        <div style="margin-top:8px;font-size:10px;color:var(--dim);font-style:italic">2026 quarter assignment is by Contract End date — open/declined/churned accounts in a future quarter still appear in W/T denominator. Realized NRR uses won 2026 ÷ (won + churned + declined) 2025 base; open accounts excluded. Hover any cell for the breakdown.</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--dim);font-style:italic">2026 quarter assignment is by Contract End date — open/declined/churned accounts in a future quarter still appear in W/T denominator.</div>
       </div>`;
     })()}
     <div class="callout">
