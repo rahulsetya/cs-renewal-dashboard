@@ -5874,8 +5874,15 @@ function rOverview(){
   const _aGRR_C=_aClosedRev>0?(_aRW/_aClosedRev*100):0;         // GRR among final decisions
   const _aLogo_Y=_aTotLogos>0?(_aLW/_aTotLogos*100):0;          // Logo retention vs full annual book
   const _aLogo_C=_aClosedLogos>0?(_aLW/_aClosedLogos*100):0;    // Logo retention among final decisions
+  // Realized NRR — 2026 won revenue ÷ FULL closed-cohort 2025 base (won + churned + declined-early).
+  // Unlike NRR (Renewed) which only counts won accounts, this captures everything that has hit
+  // its renewal moment so far in the year — answers "what % of the 2025 revenue we expected to
+  // act on this year did we actually keep + grow?". Open accounts excluded (still pending).
+  const _aRealBase=_aRW+_aRC+_aRDe;
+  const _aRealNRR=_aRealBase>0?(_a26W/_aRealBase*100):0;
   const _aColNRR=_aNRR_R>=100?'var(--green)':_aNRR_R>=90?'var(--amber)':'var(--red)';
   const _aColGRR=_aGRR_C>=80?'var(--green)':_aGRR_C>=60?'var(--amber)':'var(--red)';
+  const _aColRN=_aRealNRR>=100?'var(--green)':_aRealNRR>=80?'var(--amber)':'var(--red)';
   const _aColLY ='var(--accent)';                               // pace metric — neutral blue; year not over
   const _aColLC=_aLogo_C>=70?'var(--green)':_aLogo_C>=50.05?'var(--amber)':'var(--red)';
   el.innerHTML=`
@@ -5904,6 +5911,12 @@ function rOverview(){
         <div class="label">NRR (Renewed Accounts)</div>
         <div class="val" style="color:${_aColNRR}">${pct(_aNRR_R)}</div>
         <div class="sub">${fmt(_a26W)} 2026 ÷ ${fmt(_aRW)} 2025 base · across ${_aLW} renewed</div>
+      </div>
+      <div class="stat" title="Realized NRR across the full closed cohort.&#10;Σ rev26(won) ÷ Σ rev(won + churned + declined-early)&#10;Captures everything that has hit its renewal moment YTD — won, churned, and declined.&#10;Open accounts excluded (still pending).&#10;Below 100% means the book is net-shrinking among accounts that have already acted.">
+        <div class="bar" style="background:linear-gradient(90deg,${_aColRN},transparent)"></div>
+        <div class="label">NRR (Realized YTD)</div>
+        <div class="val" style="color:${_aColRN}">${pct(_aRealNRR)}</div>
+        <div class="sub">${fmt(_a26W)} 2026 ÷ ${fmt(_aRealBase)} 2025 base · ${_aLW}W + ${_aLC}C + ${_aLDe}D</div>
       </div>
       <div class="stat" title="GRR among accounts that have rendered a final decision (won or churned).&#10;Σ rev(won) ÷ Σ rev(won + churned)&#10;Declined-early excluded — those are re-engageable.&#10;Bounded ≤100% by definition.">
         <div class="bar" style="background:linear-gradient(90deg,${_aColGRR},transparent)"></div>
