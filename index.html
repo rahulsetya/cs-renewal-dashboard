@@ -6392,7 +6392,47 @@ function _renderChkLegend(chartId,legendId){
 }
 
 // ── ACCOUNT SUB-TABLE (sortable + filterable) ────────
-let _acctSort={},_acctFilt={};
+let _acctSort={},_acctFilt={},_acctFiltMenuOpen={};
+
+// _acctFilt[rid] is now an array of selected stage tokens (legacy callers
+// may still assign a string; this helper normalises). Tokens can be group
+// shortcuts (_won/_ch/_dc/_op) or literal stage strings — a row matches if
+// ANY selected token matches.
+function _acctFiltArr(rid){
+  const raw=_acctFilt[rid];
+  return Array.isArray(raw)?raw:(raw?[raw]:[]);
+}
+function _filtAcctTog(rid,q,pool,val){
+  const arr=[..._acctFiltArr(rid)];
+  const i=arr.indexOf(val);
+  if(i>=0)arr.splice(i,1);else arr.push(val);
+  _acctFilt[rid]=arr;
+  _acctFiltMenuOpen[rid]=true; // keep popover open between toggles
+  _rAcctTable(rid,q,pool);
+}
+function _filtAcctClr(rid,q,pool){
+  _acctFilt[rid]=[];
+  _acctFiltMenuOpen[rid]=true;
+  _rAcctTable(rid,q,pool);
+}
+function _filtAcctMenuTog(rid,q,pool){
+  const isOpen=!!_acctFiltMenuOpen[rid];
+  // Only one popover open at a time — close everyone else first.
+  Object.keys(_acctFiltMenuOpen).forEach(k=>{_acctFiltMenuOpen[k]=false;});
+  _acctFiltMenuOpen[rid]=!isOpen;
+  _rAcctTable(rid,q,pool);
+}
+// Single document-level outside-click listener. Closes any open stage popover
+// on a click anywhere that didn't stopPropagation (the menu and its inputs do).
+if(!window._acctFiltOutsideListener){
+  window._acctFiltOutsideListener=true;
+  document.addEventListener('click',function(){
+    let any=false;
+    Object.keys(_acctFiltMenuOpen).forEach(k=>{if(_acctFiltMenuOpen[k]){_acctFiltMenuOpen[k]=false;any=true;}});
+    if(any)document.querySelectorAll('[id$="_filtmenu"]').forEach(el=>{el.style.display='none';});
+  });
+}
+
 function _acctTableHTML(rid,q,pool){
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
   const sc=a=>{if(WS.includes(a.stage))return'var(--green)';if(CS.includes(a.stage))return'var(--red)';if(DS.includes(a.stage))return'var(--orange)';return'var(--muted)';};
@@ -6400,15 +6440,19 @@ function _acctTableHTML(rid,q,pool){
   // never shows rows whose stage is 'Not in renewal master'.
   let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth));
   const allStages=[...new Set(rows.map(a=>a.stage).filter(Boolean))].sort();
-  const filt=_acctFilt[rid]||'';
-  if(filt==='_won')rows=rows.filter(a=>WS.includes(a.stage));
-  else if(filt==='_ch')rows=rows.filter(a=>CS.includes(a.stage));
-  else if(filt==='_dc')rows=rows.filter(a=>DS.includes(a.stage));
-  // "Open" = anything not yet Won or Churned — i.e. still actively being
-  // worked. Includes Declined Early (4a. Attempting again Q2) since those
-  // are still in-flight from a CSM workload perspective.
-  else if(filt==='_op')rows=rows.filter(a=>!WS.includes(a.stage)&&!CS.includes(a.stage));
-  else if(filt)rows=rows.filter(a=>a.stage===filt);
+  const filtArr=_acctFiltArr(rid);
+  if(filtArr.length){
+    rows=rows.filter(a=>filtArr.some(f=>{
+      if(f==='_won')return WS.includes(a.stage);
+      if(f==='_ch')return CS.includes(a.stage);
+      if(f==='_dc')return DS.includes(a.stage);
+      // "Open" = anything not yet Won or Churned — still actively being
+      // worked. Includes Declined Early since those are in-flight from a
+      // CSM workload perspective.
+      if(f==='_op')return !WS.includes(a.stage)&&!CS.includes(a.stage);
+      return a.stage===f;
+    }));
+  }
   const {col,dir}=_acctSort[rid]||{col:'rev',dir:-1};
   rows=[...rows].sort((a,b)=>{
     if(col==='rev')return dir*(b.rev-a.rev);
@@ -6419,20 +6463,42 @@ function _acctTableHTML(rid,q,pool){
     return 0;
   });
   const sa=c=>{const s=_acctSort[rid];return(s&&s.col===c)?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
-  const grpOpts=[{v:'_won',l:'Won'},{v:'_ch',l:'Churned'},{v:'_dc',l:'Declined Early'},{v:'_op',l:'Open'}].map(g=>`<option value="${g.v}"${filt===g.v?' selected':''}>${g.l}</option>`).join('');
-  const stOpts=allStages.map(s=>`<option value="${s}"${filt===s?' selected':''}>${s.replace(/^\d+\.\s*/,'')}</option>`).join('');
-  const filtActive=filt?`color:var(--accent);border-color:var(--accent)`:`color:var(--dim)`;
-  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> <select onclick="event.stopPropagation()" onchange="_filtAcct('${rid}','${q}','${pool}',this.value)" style="font-size:10px;background:var(--cd);border:1px solid var(--border);${filtActive};border-radius:4px;padding:1px 4px;cursor:pointer;vertical-align:middle;font-family:inherit"><option value="">all</option>${grpOpts}${stOpts?'<option disabled>──────</option>'+stOpts:''}</select>${filt?` <button onclick="event.stopPropagation();_filtAcct('${rid}','${q}','${pool}','')" style="font-size:10px;background:transparent;border:none;color:var(--dim);cursor:pointer;padding:0 2px;vertical-align:middle" title="Clear filter">✕</button>`:''}${rows.length!==((ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth)).length)?` <span style="font-size:10px;color:var(--dim)">${rows.length} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="This is the current sub end date. this will be in the future for WON renewals" onclick="_sortAcct('${rid}','${q}','${pool}','seET')">Sub End (ET) ${sa('seET')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seET?fmtSE(a.seET):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="8" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
+  // Build the multi-select popover. Trigger button shows the summary;
+  // the popover renders a checkbox per group shortcut and per individual
+  // stage that exists in this slice. State persists in _acctFilt[rid].
+  const filtActive=filtArr.length?`color:var(--accent);border-color:var(--accent)`:`color:var(--dim)`;
+  const _filtLabel=(()=>{
+    if(filtArr.length===0)return'all';
+    if(filtArr.length>1)return filtArr.length+' selected';
+    const f=filtArr[0];
+    if(f==='_won')return'Won';
+    if(f==='_ch')return'Churned';
+    if(f==='_dc')return'Declined Early';
+    if(f==='_op')return'Open';
+    return f.replace(/^\d+\.\s*/,'');
+  })();
+  const _isChk=v=>filtArr.includes(v)?' checked':'';
+  const _esc=s=>String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  const _itemS='display:flex;align-items:center;gap:6px;padding:4px 12px;cursor:pointer;font-size:11px;color:var(--text);font-weight:400;white-space:nowrap;user-select:none';
+  const _grpItems=[{v:'_won',l:'Won'},{v:'_ch',l:'Churned'},{v:'_dc',l:'Declined Early'},{v:'_op',l:'Open'}].map(g=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(g.v)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','${pool}','${g.v}')" style="cursor:pointer;margin:0">${g.l}</label>`).join('');
+  const _stItems=allStages.map(s=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(s)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','${pool}','${_esc(s)}')" style="cursor:pointer;margin:0">${s.replace(/^\d+\.\s*/,'')}</label>`).join('');
+  const _menuDisp=_acctFiltMenuOpen[rid]?'block':'none';
+  const _filtCtl=`<span style="position:relative;display:inline-block;vertical-align:middle"><button onclick="event.stopPropagation();_filtAcctMenuTog('${rid}','${q}','${pool}')" style="font-size:10px;background:var(--cd);border:1px solid var(--border);${filtActive};border-radius:4px;padding:1px 6px;cursor:pointer;font-family:inherit;line-height:1.4">${_filtLabel} ▾</button><div id="${rid}_filtmenu" onclick="event.stopPropagation()" style="display:${_menuDisp};position:absolute;top:100%;left:0;z-index:1000;background:var(--cd);border:1px solid var(--border);border-radius:6px;padding:4px 0;min-width:200px;max-height:340px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.45);margin-top:3px">${_grpItems}${_stItems?'<div style="border-top:1px solid var(--border);margin:4px 0"></div>'+_stItems:''}${filtArr.length?`<div style="border-top:1px solid var(--border);margin:4px 0"></div><button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','${pool}')" style="display:block;width:100%;text-align:left;padding:5px 12px;background:transparent;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:inherit">Clear all</button>`:''}</div></span>`;
+  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> ${_filtCtl}${rows.length!==((ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth)).length)?` <span style="font-size:10px;color:var(--dim)">${rows.length} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="This is the current sub end date. this will be in the future for WON renewals" onclick="_sortAcct('${rid}','${q}','${pool}','seET')">Sub End (ET) ${sa('seET')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seET?fmtSE(a.seET):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="8" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
 function _sortAcct(rid,q,pool,col){const cur=_acctSort[rid]||{col:'rev',dir:-1};_acctSort[rid]={col,dir:cur.col===col?-cur.dir:1};_rAcctTable(rid,q,pool);}
-function _filtAcct(rid,q,pool,stage){_acctFilt[rid]=stage;_rAcctTable(rid,q,pool);}
+// Legacy single-token setter — wraps the value into the new array shape so
+// any caller that still hands us a string keeps working.
+function _filtAcct(rid,q,pool,stage){_acctFilt[rid]=stage?[stage]:[];_rAcctTable(rid,q,pool);}
 function _openPool(rid,q,pool,filt){
   var e=document.getElementById(rid);if(!e)return;
   const wasOpen=e.style.display==='';
-  const sameFilt=(_acctFilt[rid]||'')===filt;
+  const target=filt?[filt]:[];
+  const cur=_acctFiltArr(rid);
+  const sameFilt=cur.length===target.length&&cur.every((v,i)=>v===target[i]);
   if(wasOpen&&sameFilt){e.style.display='none';}
-  else{e.style.display='';_acctFilt[rid]=filt;_rAcctTable(rid,q,pool);}
+  else{e.style.display='';_acctFilt[rid]=target;_rAcctTable(rid,q,pool);}
   // Flip the pool-row chevron to mirror the panel's open/closed state.
   // ▸ = closed, ▾ = open. Driven off e.style.display rather than wasOpen
   // so swapping filters while open keeps the arrow pointing down.
