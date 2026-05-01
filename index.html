@@ -5613,9 +5613,21 @@ function _cadOvrClear(pid,mo){
 // Both kept in module scope, no localStorage — resets on reload (fine for a
 // review tool; you don't usually want yesterday's filter sticking around).
 let _cadDiscSort={col:'acct',dir:'asc'};
-let _cadDiscFilt={status:'',csm:''};
+// status is an array (multi-select) so the audit can show e.g. unconfirmed
+// + missed-logging together. Empty array = "All statuses" (no filter). csm
+// stays single-select since it's a long list of names.
+let _cadDiscFilt={status:[],csm:''};
 function _cadDiscSetFilt(k,v){_cadDiscFilt[k]=v||'';if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
-function _cadDiscClearFilt(){_cadDiscFilt={status:'',csm:''};if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
+// Toggle one status in/out of the multi-select. Re-renders so the chip
+// active state and the table both update.
+function _cadDiscToggleStatus(s){
+  const cur=Array.isArray(_cadDiscFilt.status)?_cadDiscFilt.status:[];
+  const i=cur.indexOf(s);
+  if(i>=0)cur.splice(i,1);else cur.push(s);
+  _cadDiscFilt.status=cur;
+  if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
+}
+function _cadDiscClearFilt(){_cadDiscFilt={status:[],csm:''};if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
 // Click handler for the CSM-row discrepancy chips ("❌3" / "⚠2"). Expands
 // (or collapses) an inline panel directly underneath the clicked CSM row
 // showing the offending accounts for that status. We deliberately don't
@@ -7204,13 +7216,16 @@ function rCadence(){
       // a status filter) and for the post-filter "showing X of Y" hint.
       const discPool=audit.rows.filter(r=>r.status==='unverified'||r.status==='forgot');
       const discCSMOptions=[...new Set(discPool.map(r=>r.csm).filter(Boolean))].sort();
-      const _fStatus=_cadDiscFilt.status,_fCsm=_cadDiscFilt.csm;
+      // _fStatus is now an array (multi-select). An empty array = no filter
+      // (show all statuses). Anything in the array narrows the result to
+      // rows whose effectiveStatus is in that set.
+      const _fStatusRaw=_cadDiscFilt.status;
+      const _fStatus=Array.isArray(_fStatusRaw)?_fStatusRaw:(_fStatusRaw?[_fStatusRaw]:[]);
+      const _fCsm=_cadDiscFilt.csm;
       const discList=discPool.filter(r=>{
-        if(_fStatus){
+        if(_fStatus.length){
           const eff=r.effectiveStatus||r.status;
-          if(_fStatus==='unverified'&&eff!=='unverified')return false;
-          if(_fStatus==='forgot'&&eff!=='forgot')return false;
-          if(_fStatus==='verified'&&eff!=='verified')return false;
+          if(!_fStatus.includes(eff))return false;
         }
         if(_fCsm&&r.csm!==_fCsm)return false;
         return true;
@@ -7225,7 +7240,7 @@ function rCadence(){
           return (a.acct||'').localeCompare(b.acct||'')||(a.csm||'').localeCompare(b.csm||'');
         });
       const discShown=discList.slice(0,200);
-      const _filtActive=!!(_fStatus||_fCsm);
+      const _filtActive=!!(_fStatus.length||_fCsm);
       const _curAuditMo=_liveCadAuditMo();
       const _moChips=(CADENCE_DATA.cols||[]).map(mo=>`<button onclick="_setCadAuditMo('${mo}')" style="background:${mo===_curAuditMo?'#3b82f6':'transparent'};color:${mo===_curAuditMo?'#fff':'var(--text)'};border:1px solid ${mo===_curAuditMo?'#3b82f6':'var(--border)'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${mo}</button>`).join('');
       return`
@@ -7313,13 +7328,27 @@ function rCadence(){
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Review & Resolve — <span style="color:var(--accent)">${_curAuditMo}</span> <span style="color:var(--dim);font-weight:400">(${_filtActive?`${discList.length} of ${discPool.length}`:discList.length}${discList.length>200?', showing first 200':''})</span></div>
         <div style="font-size:10px;color:var(--dim);margin-bottom:6px"><span style="color:var(--red)">❌ Unconfirmed</span> = tracker marked Y but no HubSpot meeting · <span style="color:var(--amber)">⚠ Missed Logging</span> = HubSpot meeting exists but tracker blank · click <strong style="color:var(--green)">Verify</strong> if you confirm the call really happened (e.g. on Zoom), or <strong style="color:var(--accent)">Note</strong> to record context.</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:11px">
-          <span style="color:var(--dim);font-weight:600">Filter:</span>
-          <select onchange="_cadDiscSetFilt('status',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer">
-            <option value="" ${_fStatus===''?'selected':''}>All statuses</option>
-            <option value="unverified" ${_fStatus==='unverified'?'selected':''}>❌ Unconfirmed</option>
-            <option value="forgot" ${_fStatus==='forgot'?'selected':''}>⚠ Missed Logging</option>
-            <option value="verified" ${_fStatus==='verified'?'selected':''}>✅ Verified (override)</option>
-          </select>
+          <span style="color:var(--dim);font-weight:600">Status:</span>
+          ${(function(){
+            // Multi-select status chips. Each chip toggles its key in/out of
+            // _cadDiscFilt.status. Empty array = "all" (no chip pressed).
+            // Active chip = solid colored bg + white text. Inactive chip =
+            // transparent bg + colored text + matching colored border so the
+            // semantic still reads.
+            const opts=[
+              {k:'unverified',l:'❌ Unconfirmed',c:'239,68,68',v:'var(--red)'},
+              {k:'forgot',    l:'⚠ Missed Logging',c:'245,158,11',v:'var(--amber)'},
+              {k:'verified',  l:'✅ Verified (override)',c:'16,185,129',v:'var(--green)'}
+            ];
+            return opts.map(o=>{
+              const on=_fStatus.includes(o.k);
+              const bg=on?`rgba(${o.c},.95)`:`rgba(${o.c},.10)`;
+              const col=on?'#fff':o.v;
+              const bd=on?`rgba(${o.c},.95)`:`rgba(${o.c},.45)`;
+              return `<button onclick="_cadDiscToggleStatus('${o.k}')" style="background:${bg};color:${col};border:1px solid ${bd};padding:4px 10px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px" title="Click to toggle. Multiple statuses can be on at once.">${on?'✓ ':''}${o.l}</button>`;
+            }).join('');
+          })()}
+          <span style="color:var(--dim);font-weight:600;margin-left:8px">CSM:</span>
           <select onchange="_cadDiscSetFilt('csm',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;min-width:140px">
             <option value="" ${_fCsm===''?'selected':''}>All CSMs (${discCSMOptions.length})</option>
             ${discCSMOptions.map(c=>`<option value="${c.replace(/"/g,'&quot;')}" ${_fCsm===c?'selected':''}>${c}</option>`).join('')}
