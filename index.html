@@ -174,10 +174,26 @@ const HEADER_ROW  = 14; // 0-based index; row 15 in Excel
 const ENG_FILE_ID = 'f8e92e42-426b-4970-aa5d-7a5f8681a2e5';
 const ENG_OWNER   = 'tfischer_iconnections_io';
 const ENG_SHARE_URL = 'https://iconnections675.sharepoint.com/:x:/r/sites/All_ClientSuccess/_layouts/15/Doc.aspx?sourcedoc=%7BF8E92E42-426B-4970-AA5D-7A5F8681A2E5%7D&file=CS%20Engagement%20Tracker%20April%202026.xlsx&action=default&mobileredirect=true';
+// "Master List 8th attempt" — Joe Romanoff's personal OneDrive workbook with
+// per-account flags (Add 15 Credits / MIA Booth Selection / Outdated Fund
+// Perf / GV Promo). Joined to engagement-tracker rows by Platform Company ID
+// in column B. Separate file from the Renewal Master so it gets its own
+// drive/item resolution + shareId-based fetch.
+const MASTER_LIST_SHARE_URL = 'https://iconnections675-my.sharepoint.com/:x:/g/personal/jromanoff_iconnections_io/IQAHc0wwpyJCToFR00YsI03rAV6-M3rtUGNV_w2Bl8j0V1g';
+const MASTER_LIST_SHEET = 'Master List';
 const ENG_SHEET   = 'Combined Master';
 // Persist resolved engagement drive IDs across page loads
 let _engDriveId=null,_engItemId=null;
 (function(){try{const s=JSON.parse(localStorage.getItem(ENG_DRIVE_KEY)||'{}');_engDriveId=s.d||null;_engItemId=s.i||null;}catch(e){}}());
+// Master List drive resolution — same pattern as engagement tracker. Persists
+// across sessions so we don't pay the /shares/<id>/driveItem lookup every load.
+let _mlDriveId=null,_mlItemId=null;
+const ML_DRIVE_KEY='cs_ml_drive_v1';
+(function(){try{const s=JSON.parse(localStorage.getItem(ML_DRIVE_KEY)||'{}');_mlDriveId=s.d||null;_mlItemId=s.i||null;}catch(e){}}());
+// Parsed Master List rows + lookup map keyed by Platform Company ID. Both are
+// repopulated on every refresh; the lookup is what _buildLiveGoalsData and
+// _buildCadenceData consult to attach flags to each account row.
+let MASTER_LIST_RAW=[],MASTER_LIST_BY_PID={};
 // Per-CSM sheet tab names on CS Engagement Tracker April 2026.xlsx → canonical
 // owner names. Source-of-truth for the dashboard is the "Combined Master" tab
 // (see ENG_SHEET above) which already consolidates every CSM's accounts, so
@@ -409,6 +425,16 @@ function loadTop10Cache(){
 function saveTop10Cache(rows){
   try{localStorage.setItem(TOP10_CACHE_KEY,JSON.stringify({ts:Date.now(),TOP10_RAW:rows}));}
   catch(e){console.warn('Top10 cache save failed:',e);}
+}
+const ML_CACHE_KEY='cs_ml_cache_v1';
+function loadMLCache(){
+  try{const raw=localStorage.getItem(ML_CACHE_KEY);if(!raw)return null;
+    const c=JSON.parse(raw);if(Date.now()-c.ts>ENG_CACHE_TTL)return null;
+    return c.ML||null;}catch(e){return null;}
+}
+function saveMLCache(rows,byPid){
+  try{localStorage.setItem(ML_CACHE_KEY,JSON.stringify({ts:Date.now(),ML:{rows,byPid}}));}
+  catch(e){console.warn('ML cache save failed:',e);}
 }
 let D=[], PREV={}, PREV_TS=null, lastUpdated='', COL={}, COL_LC={}, ENG_RAW=[], SNAP_HISTORY=[], SP_RAW=[], GP_RAW_ROWS=[], GP_RAW_HDR=0, TOP10_RAW=[];
 function deriveKpisFromData(snapData,acctMap){
@@ -1053,6 +1079,80 @@ async function fetchEngSheet(token, sheetName){
   return null;
 }
 
+// ── MASTER LIST FETCH (4 per-account flags) ───────────────────────────────────
+// Mirrors the engagement-tracker pattern: shareId resolution → /shares/<id>/
+// driveItem → workbook content download (SheetJS path) or worksheets range
+// (legacy path). Cache survives in localStorage so the next session skips the
+// resolve hop.
+async function _resolveMasterListDriveItem(token){
+  if(_mlDriveId&&_mlItemId)return;
+  const shareId='u!'+btoa(MASTER_LIST_SHARE_URL).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),60000);
+  let rr;try{rr=await fetch(`https://graph.microsoft.com/v1.0/shares/${shareId}/driveItem`,{headers:{Authorization:`Bearer ${token}`},signal:ctrl.signal});}finally{clearTimeout(tid);}
+  if(rr.ok){const item=await rr.json();_mlDriveId=item.parentReference?.driveId;_mlItemId=item.id;
+    try{localStorage.setItem(ML_DRIVE_KEY,JSON.stringify({d:_mlDriveId,i:_mlItemId}));}catch(e){}}
+  else{
+    const j=await rr.json().catch(()=>({}));
+    throw new Error(`Master List driveItem resolve failed: ${rr.status} ${j.error?.message||''}`);
+  }
+}
+async function fetchMasterListSheet(token){
+  const enc=encodeURIComponent(MASTER_LIST_SHEET);
+  if(USE_SHEETJS){
+    try{
+      await _resolveMasterListDriveItem(token);
+      if(_mlDriveId&&_mlItemId){
+        const wb=await _fetchWorkbookContent(token, _mlDriveId, _mlItemId);
+        return _sheetToValues(wb, MASTER_LIST_SHEET);
+      }
+    }catch(e){console.warn('Master List sheet (content) failed:',e);}
+    return null;
+  }
+  try{
+    await _resolveMasterListDriveItem(token);
+    if(_mlDriveId&&_mlItemId){
+      const r=await fetchWithRetry(`https://graph.microsoft.com/v1.0/drives/${_mlDriveId}/items/${_mlItemId}/workbook/worksheets/${enc}/range(address='A1:Z2000')?$select=values`,{headers:{Authorization:`Bearer ${token}`}});
+      if(r.ok)return r.json();
+    }
+  }catch(e){console.warn('Master List sheet fetch failed:',e);}
+  return null;
+}
+// Parse the Master List sheet into {pid, addCredits, miaBooth, outdated, gvPromo}
+// rows. Columns are pinned to their requested positions:
+//   B (idx 1) → Platform Company ID (join key)
+//   D (idx 3) → Add 15 Credits
+//   E (idx 4) → MIA Booth Selection
+//   F (idx 5) → Outdated Fund Perf
+//   G (idx 6) → GV Promo
+// Cells are normalized to 1 (Yes / Y / TRUE / 1 / ✓) or 0 (anything else).
+// Header row is detected by scanning the first 5 rows for "Platform" or "ID"
+// in column B; falls back to row 0 when no match.
+function processMasterList(range){
+  if(!range||!range.values||!range.values.length)return{rows:[],byPid:{}};
+  const rows=range.values;
+  let hIdx=0;
+  for(let r=0;r<Math.min(5,rows.length);r++){
+    const v=String(rows[r][1]||'').toLowerCase();
+    if(v.includes('platform')||v.includes('id')||v==='b'){hIdx=r;break;}
+  }
+  const isYes=v=>{
+    if(v==null)return 0;
+    const s=String(v).trim().toLowerCase();
+    if(!s)return 0;
+    return(s==='yes'||s==='y'||s==='true'||s==='1'||s==='✓'||s==='x')?1:0;
+  };
+  const out=[],byPid={};
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i];if(!r)continue;
+    const pid=String(r[1]||'').trim();
+    if(!pid)continue;
+    const rec={pid,addCredits:isYes(r[3]),miaBooth:isYes(r[4]),outdated:isYes(r[5]),gvPromo:isYes(r[6])};
+    out.push(rec);byPid[pid]=rec;
+  }
+  dlog(`[ML] parsed ${out.length} master-list rows (header at idx ${hIdx})`);
+  return{rows:out,byPid};
+}
+
 // Normalize abbreviated CSM names from MASTER sheet column AI → full names used in VALID_OWNERS
 // CSM short-name → canonical VALID_OWNERS name. Covers every variant that
 // appears as a tab label on the engagement tracker (Alex C, Andreas,
@@ -1693,6 +1793,10 @@ async function _fetchFresh(token){
   const spRange=await fetchSPSheet(token);
   if(spRange)SP_RAW=processSPData(spRange);
   TOP10_RAW=await fetchTop10s(token);
+  try{
+    const mlRange=await fetchMasterListSheet(token);
+    if(mlRange){const ml=processMasterList(mlRange);MASTER_LIST_RAW=ml.rows;MASTER_LIST_BY_PID=ml.byPid;saveMLCache(MASTER_LIST_RAW,MASTER_LIST_BY_PID);}
+  }catch(e){console.warn('Master List fetch failed:',e);}
   await Promise.all([loadSnapshotFromSP(token),loadRCSnapshotFromSP(token)]);
   D=processData(range,engMap);
   _mergeSPsIntoD();
@@ -1719,6 +1823,7 @@ async function loadData(forceRefresh=false){
     D=cache.D;
     const ec=loadEngCache();if(ec)ENG_RAW=ec;
     const tc=loadTop10Cache();if(tc)TOP10_RAW=tc;
+    const mc=loadMLCache();if(mc){MASTER_LIST_RAW=mc.rows||[];MASTER_LIST_BY_PID=mc.byPid||{};}
     const ageLabel=cache.stale?' · cached':'';
     lastUpdated=cache.lastUpdated+ageLabel;
     S.refreshing=true;
@@ -1752,7 +1857,7 @@ async function loadData(forceRefresh=false){
       // No cache available — fall back to any stale cache we may have
       const stale=loadDataCache(true);
       if(stale&&stale.D&&stale.D.length){
-        D=stale.D;const ec=loadEngCache();if(ec)ENG_RAW=ec;const tc=loadTop10Cache();if(tc)TOP10_RAW=tc;
+        D=stale.D;const ec=loadEngCache();if(ec)ENG_RAW=ec;const tc=loadTop10Cache();if(tc)TOP10_RAW=tc;const mc=loadMLCache();if(mc){MASTER_LIST_RAW=mc.rows||[];MASTER_LIST_BY_PID=mc.byPid||{};}
         lastUpdated=stale.lastUpdated+' · cached';
         S.staleWarning=`SharePoint timed out — showing data from ${stale.staleMinutes}m ago. <button onclick="refreshData()" style="margin-left:8px;padding:2px 10px;border-radius:4px;border:1px solid #fbbf24;background:transparent;color:#fbbf24;font-size:11px;cursor:pointer;font-family:inherit">Retry</button>`;
         render();
@@ -2434,12 +2539,17 @@ function _buildLiveGoalsData(){
       return excelDateToJS(raw)||se;
     })();
     const _aaQET=getQ(_aaSeET)||q;
+    const _mlPid=etPid||(renewal&&renewal.platformId)||'';
+    const _ml=(_mlPid&&MASTER_LIST_BY_PID[_mlPid])||null;
     allAccts.push({
       n:acct,pool,q:_aaQET||'none',stage,se:_aaSeET,rev,csRep:csm,rsk:r.rsk||0,notes:r.notes||'',
       // Extended fields for the All Accounts tab (April 2026 Combined Master schema)
       ae:r.ae||'',seg:r.seg||'',rev26:r.rev26||0,rawEnd:r.rawEnd||'',
       pod:r.pod||'',txnDone:r.txnDone||0,out:r.out||0,gm:r.gm||0,
       nextTP:r.nextTP||'',expn:r.expn||0,calls:r.calls||{},
+      platformId:_mlPid,
+      addCredits:_ml?_ml.addCredits:0,miaBooth:_ml?_ml.miaBooth:0,
+      outdated:_ml?_ml.outdated:0,gvPromo:_ml?_ml.gvPromo:0,
       inEng:1
     });
     if(isWon){target.won++;target.rw+=rev;}
@@ -2459,9 +2569,15 @@ function _buildLiveGoalsData(){
     const isDeclined=DECLINED_S.has(stage);
     const target=q?grr[q]['Scale']:grrNone['Scale'];
     target.logos++;target.rev+=rev;
+    const _rmPid=String(renewal.platformId||'').trim();
+    const _rmMl=(_rmPid&&MASTER_LIST_BY_PID[_rmPid])||null;
     allAccts.push({
       n:renewal.name,pool:'Scale',q:q||'none',stage,se,rev,csRep:'',rsk:0,notes:'Not in engagement tracker',
-      ae:'',seg:'Scale',rev26:0,rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},inEng:0
+      ae:'',seg:'Scale',rev26:0,rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
+      platformId:_rmPid,
+      addCredits:_rmMl?_rmMl.addCredits:0,miaBooth:_rmMl?_rmMl.miaBooth:0,
+      outdated:_rmMl?_rmMl.outdated:0,gvPromo:_rmMl?_rmMl.gvPromo:0,
+      inEng:0
     });
     if(isWon){target.won++;target.rw+=rev;}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:renewal.name,csm:'',rev,q,pool:'Scale',renewal:se,notes:'Not in engagement tracker'});}
@@ -2787,7 +2903,9 @@ function _buildCadenceData(){
     const rawCsm=r.ro||'';if(!rawCsm)return;
     const csm=_CSM_DISPLAY[rawCsm]||rawCsm;  // rename to dashboard display name
     if(!csmMap[csm]){csmMap[csm]={total:0,months:{},allAccts:[]};cols.forEach(c=>{csmMap[csm].months[c]={yes:0,accts:[]};});}
-    const acctObj={acct:r.acct,rsk:r.rsk||0,notes:r.notes||'',calls:r.calls||{},se:excelDateToJS(r.rawEnd)||'',platformId:r.platformId||''};
+    const _cdPid=String(r.platformId||'').trim();
+    const _cdMl=(_cdPid&&MASTER_LIST_BY_PID[_cdPid])||null;
+    const acctObj={acct:r.acct,rsk:r.rsk||0,notes:r.notes||'',calls:r.calls||{},se:excelDateToJS(r.rawEnd)||'',platformId:_cdPid,addCredits:_cdMl?_cdMl.addCredits:0,miaBooth:_cdMl?_cdMl.miaBooth:0,outdated:_cdMl?_cdMl.outdated:0,gvPromo:_cdMl?_cdMl.gvPromo:0};
     csmMap[csm].total++;
     csmMap[csm].allAccts.push(acctObj);
     cols.forEach(c=>{const v=String((r.calls&&r.calls[c])||'').trim();if(v.toLowerCase().startsWith('y')){csmMap[csm].months[c].yes++;csmMap[csm].months[c].accts.push(acctObj);}});
@@ -6745,23 +6863,30 @@ function _cadBodyHTML(rid,csmName){
     const m=parseInt(iso.slice(5,7),10),d=parseInt(iso.slice(8,10),10);
     return(MO[m-1]||'')+' '+d;
   };
+  const _flagKeys=['addCredits','miaBooth','outdated','gvPromo'];
   accts=[...accts].sort((a,b)=>{
     if(sort.col==='se')return sort.dir*((a.se||'').localeCompare(b.se||''));
     if(sort.col==='acct')return sort.dir*((a.acct||'').localeCompare(b.acct||''));
+    if(_flagKeys.includes(sort.col)){const av=a[sort.col]?1:0,bv=b[sort.col]?1:0;return sort.dir*(bv-av);}
     if(visCols.includes(sort.col)){const av=isYCall(a,sort.col)?1:0,bv=isYCall(b,sort.col)?1:0;return sort.dir*(bv-av);}
     return 0;
   });
   const sa=col=>{const s=_cadSort[rid];return s&&s.col===col?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
   const label=month?`${month} — accounts with call`:'All accounts in engagement tracker';
-  const colSpan=visCols.length+3;
+  const colSpan=visCols.length+7;
   // Inline legend — only visible when audit data is loaded so unaudited
   // mode keeps its original look.
   const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification:</strong> <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged · <em style="opacity:.7">date next to ✓ = last meeting · ×N = number of meetings</em></div>`:'';
+  const _yesCell=v=>v?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--dim)">—</span>';
   return`<div style="padding:0"><div style="font-size:11px;color:var(--dim);padding:6px 16px 4px">${label} · <strong style="color:var(--text)">${accts.length}</strong></div>
     ${legend}
     <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
       <thead><tr style="background:rgba(255,255,255,.04)">
         <th style="text-align:left;padding:5px 16px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','acct')">Account ${sa('acct')}</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','addCredits')">Add 15 Credits ${sa('addCredits')}</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','miaBooth')">MIA Booth Selection ${sa('miaBooth')}</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','outdated')">Outdated Fund Perf ${sa('outdated')}</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','gvPromo')">GV Promo ${sa('gvPromo')}</th>
         ${visCols.map(c=>`<th style="text-align:left;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','${c}')">${c} ${sa(c)}</th>`).join('')}
         <th style="text-align:left;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','se')">Sub End ${sa('se')}</th>
         <th style="text-align:center;padding:5px 8px;color:var(--dim)">Risk</th>
@@ -6777,6 +6902,10 @@ function _cadBodyHTML(rid,csmName){
           :`<td style="padding:4px 16px;color:var(--text)">${acctLabel}</td>`;
         return`<tr style="border-top:1px solid rgba(255,255,255,.05)">
           ${acctCell}
+          <td style="text-align:center;padding:4px 8px">${_yesCell(a.addCredits)}</td>
+          <td style="text-align:center;padding:4px 8px">${_yesCell(a.miaBooth)}</td>
+          <td style="text-align:center;padding:4px 8px">${_yesCell(a.outdated)}</td>
+          <td style="text-align:center;padding:4px 8px">${_yesCell(a.gvPromo)}</td>
           ${visCols.map(c=>{
             const isY=isYCall(a,c);
             // Five-state cell render:
@@ -7267,7 +7396,11 @@ const _aaCols=[
   {k:'out',l:'Outreach',w:65,num:1,center:1},
   {k:'gm',l:'GM',w:45,num:1,center:1},
   {k:'expn',l:'Exp?',w:55,num:1,center:1},
-  {k:'nextTP',l:'Next TP',w:100}
+  {k:'nextTP',l:'Next TP',w:100},
+  {k:'addCredits',l:'Add 15 Credits',w:90,num:1,center:1,flag:1},
+  {k:'miaBooth',l:'MIA Booth Selection',w:110,num:1,center:1,flag:1},
+  {k:'outdated',l:'Outdated Fund Perf',w:110,num:1,center:1,flag:1},
+  {k:'gvPromo',l:'GV Promo',w:80,num:1,center:1,flag:1}
 ];
 // Shared date formatter — accepts either an Excel serial number (e.g. 44927)
 // or an ISO "YYYY-MM-DD" string and returns a readable "Mon D, YYYY". Used
@@ -7514,15 +7647,14 @@ function rAllAccts(){
         <table style="width:100%;border-collapse:collapse;font-family:var(--mono);table-layout:auto">
           <thead><tr>
             ${_aaCols.map(c=>`<th onclick="_aaSort('${c.k}')" style="${thSt};min-width:${c.w}px;text-align:${c.right?'right':c.center?'center':'left'}">${c.l}${arr(c.k)}</th>`).join('')}
-            ${_aaMonths.map(m=>`<th onclick="_aaSort('call_${m}')" style="${thSt};min-width:45px;text-align:center">${m}${arr('call_'+m)}</th>`).join('')}
           </tr></thead>
           <tbody>
-            ${rows.length===0?`<tr><td colspan="${_aaCols.length+_aaMonths.length}" style="padding:32px;text-align:center;color:var(--dim)">No accounts match the current filters.</td></tr>`:
+            ${rows.length===0?`<tr><td colspan="${_aaCols.length}" style="padding:32px;text-align:center;color:var(--dim)">No accounts match the current filters.</td></tr>`:
             rows.map(r=>{
               const nameEsc=(r.n||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
               const hasNotes=!!(r.notes&&r.notes.trim());
               const noteOpen=_aaState.openNote===r.n;
-              const cntCols=_aaCols.length+_aaMonths.length;
+              const cntCols=_aaCols.length;
               return `<tr style="${r.rsk?'background:rgba(239,68,68,.04)':''}${noteOpen?';border-bottom:none':''}">
               <td onclick="_aaToggleNote('${nameEsc}')" style="${st};color:var(--text);font-weight:500;max-width:180px;cursor:pointer;user-select:none" title="${hasNotes?'Click to toggle notes':(r.n||'').replace(/"/g,'&quot;')}">${r.n||''}${hasNotes?`<span style="font-size:10px;color:var(--dim);margin-left:6px;white-space:nowrap">${noteOpen?'▾':'▸'} notes</span>`:''}</td>
               <td style="${st};color:var(--accent)">${r.csRep||'<span style=color:var(--dim)>—</span>'}</td>
@@ -7540,7 +7672,10 @@ function rAllAccts(){
               <td style="${st};text-align:center">${yes(r.gm)}</td>
               <td style="${st};text-align:center">${yes(r.expn)}</td>
               <td style="${st};color:var(--muted);font-size:10px">${_aaFmtDate(r.nextTP)}</td>
-              ${_aaMonths.map(m=>`<td style="${st};text-align:center">${callCell((r.calls||{})[m])}</td>`).join('')}
+              <td style="${st};text-align:center">${yes(r.addCredits)}</td>
+              <td style="${st};text-align:center">${yes(r.miaBooth)}</td>
+              <td style="${st};text-align:center">${yes(r.outdated)}</td>
+              <td style="${st};text-align:center">${yes(r.gvPromo)}</td>
             </tr>${noteOpen&&hasNotes?`<tr style="background:${r.rsk?'rgba(239,68,68,.06)':'rgba(255,255,255,.02)'}"><td colspan="${cntCols}" style="padding:10px 14px 12px 28px;font-size:12px;color:var(--muted);line-height:1.6;border-bottom:1px solid var(--border);white-space:normal"><span style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-right:8px">Risk Notes</span>${(r.notes||'').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</td></tr>`:''}`;
             }).join('')}
           </tbody>
