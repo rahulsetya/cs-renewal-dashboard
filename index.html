@@ -616,7 +616,7 @@ document.addEventListener('click',function(e){
   const b=document.getElementById('titleDropBtn');if(b)b.classList.remove('op');
 });
 
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,goalsOpen:false,forecastPods:[]};
+let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],aeDrill:null,tlDrill:null,showAE:false,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,goalsOpen:false,forecastPods:[],pipelineSearch:''};
 // Normalize S.forecastPods: always an array of pod names (use 'SP' for all SPs)
 function _fcNormPods(){if(!Array.isArray(S.forecastPods))S.forecastPods=S.forecastPods?[String(S.forecastPods)]:[];return S.forecastPods;}
 function ssForecastPodToggle(p){
@@ -3182,34 +3182,78 @@ function _render(){
   h+=`</div>`;
   // ── PIPELINE ──
   if(S.tab==='pipeline'){
+    // Pipeline-tab general search. Filters the stage table + drill panel by
+    // matching against account name, owner, AE, stage, sub end, and flag
+    // labels (does NOT touch the global KPI cards above — those still show
+    // unfiltered totals so the search results stay in context).
+    const _psQ=String(S.pipelineSearch||'').trim().toLowerCase();
+    let pf=f, psc=sc, psMaxN=maxN, pPrevSc=prevSc, pStageIn=stageIn, pStageOut=stageOut, pTot=tot, pR25T=r25T, pOffT=offT;
+    if(_psQ){
+      pf=f.filter(d=>{
+        const flagText=(d.sg||[]).map(s=>SIG_L[s]||'').join(' ');
+        const bag=[d.c,d.ro,d.ae,d.s,SH[d.s]||'',d.se,flagText].map(x=>String(x||'').toLowerCase()).join(' ');
+        return bag.indexOf(_psQ)>=0;
+      });
+      psc={};ST.forEach(s=>psc[s]={n:0,r25:0,off:0});
+      pf.forEach(d=>{if(psc[d.s]){psc[d.s].n++;psc[d.s].r25+=d.r25;psc[d.s].off+=d.o;}});
+      psMaxN=Math.max(...ST.map(s=>psc[s].n),1);
+      pPrevSc={};ST.forEach(s=>pPrevSc[s]=0);
+      pStageIn={};pStageOut={};ST.forEach(s=>{pStageIn[s]=0;pStageOut[s]=0;});
+      if(PREV_TS){
+        pf.forEach(d=>{
+          const ps=PREV[d.c];
+          if(ps!==undefined&&pPrevSc[ps]!==undefined)pPrevSc[ps]++;
+          if(ps===undefined||ps===d.s)return;
+          if(pStageOut[ps]!==undefined)pStageOut[ps]++;
+          if(pStageIn[d.s]!==undefined)pStageIn[d.s]++;
+        });
+      }
+      pTot=pf.length;
+      pR25T=pf.reduce((a,d)=>a+d.r25,0);
+      pOffT=pf.reduce((a,d)=>a+(d.__sp?(d.spOffer||0):d.o),0);
+    }
     h+=`<div class="cd" style="padding:20px">`;
+    // Search bar — top of the Pipeline tab. Live updates via ss('pipelineSearch').
+    // Match counter on the right shows "X of Y" while a query is active.
+    h+=`<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input type="text" data-sf="pipeline-search" placeholder="🔍 Search account, owner, AE, stage, sub end, flags…" value="${(S.pipelineSearch||'').replace(/"/g,'&quot;')}" oninput="ss('pipelineSearch',this.value)" style="flex:1;min-width:280px;background:#0a1628;border:1px solid ${_psQ?'#3b82f6':'#1e3a5f'};border-radius:6px;color:#e2e8f0;font-size:13px;padding:8px 12px;font-family:inherit;outline:none">
+      ${_psQ?`<span style="font-size:11px;color:#94a3b8;padding:6px 10px;background:#0a1628;border-radius:6px;border:1px solid #1e3a5f"><strong style="color:#e2e8f0;font-size:13px">${pTot}</strong> <span style="opacity:.7">of ${tot} match</span></span><button onclick="ss('pipelineSearch','')" style="background:transparent;border:1px solid #7f1d1d;color:#fca5a5;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
+    </div>`;
     h+=`<div class="sg" style="cursor:default;margin-bottom:10px"><div style="font-size:11px;color:#475569;text-align:right">Stage</div><div></div><div style="font-size:11px;color:#475569;text-align:right">#</div><div style="font-size:11px;color:#fbbf24;text-align:right;font-weight:600">2025 Rev</div><div style="font-size:11px;color:#22d3ee;text-align:right;font-weight:600">2026 Offer</div><div style="font-size:11px;color:#64748b;text-align:right">Delta $</div><div style="font-size:11px;color:#64748b;text-align:right">Delta %</div></div>`;
     ST.forEach(s=>{
-      const d=sc[s],p=d.n/maxN*100,act=S.drill===s;
+      const d=psc[s],p=d.n/psMaxN*100,act=S.drill===s;
+      // When searching, dim stages with zero matches so the eye lands on stages
+      // that actually contain the result. Click still works (safe: drill table
+      // will show "no accounts match" if user clicks a 0-match stage).
+      const _dim=_psQ&&d.n===0;
+      const _stageTxtCol=act?'#f8fafc':_dim?'#334155':'#94a3b8';
       const dd=d.off>0?d.off-d.r25:-999,dp=d.off>0&&d.r25>0?(d.off-d.r25)/d.r25*100:-999;
-      const inN=PREV_TS?(stageIn[s]||0):0, outN=PREV_TS?(stageOut[s]||0):0;
+      const inN=PREV_TS?(pStageIn[s]||0):0, outN=PREV_TS?(pStageOut[s]||0):0;
       const sdeltaHtml=PREV_TS&&(inN||outN)?`<span style="display:flex;gap:3px;font-size:10px;font-weight:700">${inN?`<span style="color:#34d399">+${inN}</span>`:''}${outN?`<span style="color:#ef4444">-${outN}</span>`:''}</span>`:'<span></span>';
-      h+=`<div class="sg${act?' act':''}" onclick="ss('drill','${act?'':s}')">
-        <div style="font-size:12px;color:${act?'#f8fafc':'#94a3b8'};text-align:right;font-weight:500">${SH[s]}</div>
+      h+=`<div class="sg${act?' act':''}" onclick="ss('drill','${act?'':s}')" style="${_dim?'opacity:.45;':''}cursor:pointer" title="Click to ${act?'collapse':'expand'} ${SH[s]} accounts">
+        <div style="font-size:12px;color:${_stageTxtCol};text-align:right;font-weight:500">${SH[s]} <span style="opacity:.55;font-size:10px;margin-left:2px">${act?'▾':'▸'}</span></div>
         <div class="bb"><div class="bf" style="width:${p}%;background:${CL[s]};${d.n?'min-width:3px':''}"></div></div>
-        <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:0"><span style="font-size:14px;font-weight:700;color:#f8fafc;display:inline-block;text-align:right">${d.n}</span><span style="display:inline-block;padding-left:4px">${sdeltaHtml}</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:0"><span style="font-size:14px;font-weight:700;color:${_dim?'#475569':'#f8fafc'};display:inline-block;text-align:right">${d.n}</span><span style="display:inline-block;padding-left:4px">${sdeltaHtml}</span></div>
         <div style="font-size:12px;color:#fbbf24;text-align:right;font-weight:600">${fm(d.r25)}</div>
         <div style="font-size:12px;color:#22d3ee;text-align:right;font-weight:600">${d.off>0?fm(d.off):'–'}</div>
         <div style="font-size:11px;font-weight:600;text-align:right;color:${dd===-999?'#334155':dd>=0?'#34d399':'#ef4444'}">${dd===-999?'–':(dd>=0?'+':'-')+fm(Math.abs(dd))}</div>
         <div style="font-size:11px;font-weight:600;text-align:right;color:${dp===-999?'#334155':dp>=0?'#34d399':'#ef4444'}">${dp===-999?'–':(dp>=0?'+':'')+Math.round(dp)+'%'}</div>
       </div>`;
     });
-    const tdd=offT-r25T,tdp=r25T?(offT-r25T)/r25T*100:0;
-    const prevTot=PREV_TS?Object.values(prevSc).reduce((a,v)=>a+v,0):null;
-    const totDeltaHtml=prevTot!==null&&tot!==prevTot?`<span style="font-size:10px;font-weight:700;color:${tot>prevTot?'#34d399':'#ef4444'}">${tot>prevTot?'+':''}${tot-prevTot}</span>`:'<span></span>';
+    const tdd=pOffT-pR25T,tdp=pR25T?(pOffT-pR25T)/pR25T*100:0;
+    const prevTot=PREV_TS?Object.values(pPrevSc).reduce((a,v)=>a+v,0):null;
+    const totDeltaHtml=prevTot!==null&&pTot!==prevTot?`<span style="font-size:10px;font-weight:700;color:${pTot>prevTot?'#34d399':'#ef4444'}">${pTot>prevTot?'+':''}${pTot-prevTot}</span>`:'<span></span>';
     h+=`<div class="sg" style="margin-top:10px;padding-top:10px;border-top:1px solid #334155;cursor:default">
-      <div style="font-size:12px;color:#64748b;text-align:right;font-weight:700">TOTAL</div><div></div>
-      <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:0"><span style="font-size:14px;font-weight:700;color:#f8fafc;display:inline-block;min-width:30px;text-align:right">${tot}</span><span style="display:inline-block;min-width:32px;padding-left:4px">${totDeltaHtml}</span></div>
-      <div style="font-size:12px;color:#fbbf24;text-align:right;font-weight:700">${fm(r25T)}</div>
-      <div style="font-size:12px;color:#22d3ee;text-align:right;font-weight:700">${fm(offT)}</div>
+      <div style="font-size:12px;color:#64748b;text-align:right;font-weight:700">TOTAL${_psQ?'<span style="font-size:9px;font-weight:500;color:#94a3b8;margin-left:6px">(filtered)</span>':''}</div><div></div>
+      <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:0"><span style="font-size:14px;font-weight:700;color:#f8fafc;display:inline-block;min-width:30px;text-align:right">${pTot}</span><span style="display:inline-block;min-width:32px;padding-left:4px">${totDeltaHtml}</span></div>
+      <div style="font-size:12px;color:#fbbf24;text-align:right;font-weight:700">${fm(pR25T)}</div>
+      <div style="font-size:12px;color:#22d3ee;text-align:right;font-weight:700">${fm(pOffT)}</div>
       <div style="font-size:11px;font-weight:700;text-align:right;color:${tdd>=0?'#34d399':'#ef4444'}">${tdd>=0?'+':'-'}${fm(Math.abs(tdd))}</div>
       <div style="font-size:11px;font-weight:700;text-align:right;color:${tdp>=0?'#34d399':'#ef4444'}">${tdp>=0?'+':''}${Math.round(tdp)}%</div>
     </div>`;
+    if(_psQ&&pTot===0){
+      h+=`<div style="margin-top:14px;padding:24px;text-align:center;color:#64748b;background:#0a1628;border:1px dashed #334155;border-radius:8px;font-size:13px">No accounts match <strong style="color:#94a3b8">"${(S.pipelineSearch||'').replace(/</g,'&lt;')}"</strong>. <span style="opacity:.7">Try a shorter term or clear the search.</span></div>`;
+    }
     if(S.drill){
       const ds=S.drillSort||{col:'r25',dir:'desc'};
       const df=S.drillFilter||{};
@@ -3222,7 +3266,9 @@ function _render(){
       const dRngPair=(c1,c2)=>`<div style="margin-top:2px;display:flex;flex-direction:column;gap:1px">${dRng(c1,'min $K')}${dRng(c2,'max $K')}</div>`;
       const seToQtr2=se=>{if(!se)return'';const m=se.match(/^(\d{4})-(\d{2})/);return m?`${m[1]} Q${Math.ceil(parseInt(m[2])/3)}`:'';}
 
-      const stageAccts=f.filter(d=>d.s===S.drill);
+      // Use the search-filtered set so the drill panel only shows accounts
+      // that match the top-level pipeline search (when active).
+      const stageAccts=pf.filter(d=>d.s===S.drill);
       const uDOwners=[...new Set(stageAccts.map(a=>a.ro))].sort();
       const uDAE=[...new Set(stageAccts.map(a=>a.ae||'').filter(Boolean))].sort();
       const uDFlags=[...new Set(stageAccts.flatMap(a=>a.sg.map(s=>SIG_L[s])).filter(Boolean))].sort();
@@ -5163,7 +5209,17 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"top10s",l:"Top 10s"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
-var aTab="overview",selGPCSM=null,selGPMonth=null,selGPPod=null;
+var aTab="overview",selGPCSM=null,selGPMonth=[],selGPPod=null;
+// Toggle a month in/out of the GP Retention month filter. Empty array = no
+// month filter (show all months in the active quarter). Multi-select friendly.
+function _toggleGPMonth(mn){
+  if(!Array.isArray(selGPMonth))selGPMonth=[];
+  const i=selGPMonth.indexOf(mn);
+  if(i>=0)selGPMonth.splice(i,1);
+  else selGPMonth.push(mn);
+  rT('gp_grr');
+}
+function _clearGPMonth(){selGPMonth=[];rT('gp_grr');}
 // ── GP Retention multi-select owner state ───────────────────────────
 // `selGPOwner` is polymorphic — same shape as parent dashboard's S.owner:
 //   'ALL'                        → all CSMs/pods (default)
@@ -6476,7 +6532,7 @@ function _gpFiltCtlHTML(q){
     if(na!==nb)return na-nb;
     return (ma[2]||'').localeCompare(mb[2]||'')||String(a).localeCompare(String(b));
   };
-  const allStages=[...new Set((ACCTS||[]).filter(a=>a.qRM===q&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).map(a=>a.stage).filter(Boolean))].sort(_stageSort);
+  const allStages=[...new Set((ACCTS||[]).filter(a=>a.qRM===q&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth.length||selGPMonth.includes((a.seRM||'').substring(5,7)))).map(a=>a.stage).filter(Boolean))].sort(_stageSort);
   const filtActive=filtArr.length?`color:var(--accent);border-color:var(--accent)`:`color:var(--text)`;
   const _filtLabel=(()=>{
     if(filtArr.length===0)return'All stages';
@@ -6491,13 +6547,17 @@ function _gpFiltCtlHTML(q){
   const _isChk=v=>filtArr.includes(v)?' checked':'';
   const _esc=s=>String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');
   const _itemS='display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:12px;color:var(--text);font-weight:400;white-space:nowrap;user-select:none';
-  const _grpItems=[{v:'_won',l:'Won'},{v:'_ch',l:'Churned'},{v:'_dc',l:'Declined Early'},{v:'_op',l:'Open'}].map(g=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(g.v)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','','${g.v}')" style="cursor:pointer;margin:0">${g.l}</label>`).join('');
+  // Group shortcuts (Won/Churned/Declined Early/Open) used to live at the top
+  // of this dropdown. Removed by user request — group filtering is still
+  // reachable by clicking the Won/Lost/Declined cells in the pool tables, which
+  // set _acctFilt[q] to ['_won']/['_ch']/['_dc']. The decode logic below
+  // (_filtLabel + the badge/row filter checks) stays intact for that path.
   const _stItems=allStages.map(s=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(s)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','','${_esc(s)}')" style="cursor:pointer;margin:0">${s.replace(/^\d+\.\s*/,'')}</label>`).join('');
   const _menuDisp=_acctFiltMenuOpen[rid]?'block':'none';
   // External clear button — visible only when a filter is active so the user
   // doesn't have to open the dropdown to reset. Mirrors the in-menu Clear all.
   const _clearBtn=filtArr.length?`<button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','')" title="Clear stage filter" style="font-size:12px;background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 10px;cursor:pointer;font-family:inherit;line-height:1.4;margin-left:6px;vertical-align:middle">✕ Clear</button>`:'';
-  return `<span style="position:relative;display:inline-block;vertical-align:middle"><button onclick="event.stopPropagation();_filtAcctMenuTog('${rid}','${q}','')" style="font-size:12px;background:var(--card);border:1px solid var(--border);${filtActive};border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit;line-height:1.4;font-weight:500">${_filtLabel} ▾</button><div id="${rid}_filtmenu" onclick="event.stopPropagation()" style="display:${_menuDisp};position:absolute;top:100%;left:0;z-index:1000;background:var(--card);border:1px solid var(--borderL);border-radius:6px;padding:4px 0;min-width:220px;max-height:380px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.45);margin-top:4px">${_grpItems}${_stItems?'<div style="border-top:1px solid var(--border);margin:4px 0"></div>'+_stItems:''}${filtArr.length?`<div style="border-top:1px solid var(--border);margin:4px 0"></div><button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','')" style="display:block;width:100%;text-align:left;padding:6px 14px;background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit">Clear all</button>`:''}</div></span>${_clearBtn}`;
+  return `<span style="position:relative;display:inline-block;vertical-align:middle"><button onclick="event.stopPropagation();_filtAcctMenuTog('${rid}','${q}','')" style="font-size:12px;background:var(--card);border:1px solid var(--border);${filtActive};border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit;line-height:1.4;font-weight:500">${_filtLabel} ▾</button><div id="${rid}_filtmenu" onclick="event.stopPropagation()" style="display:${_menuDisp};position:absolute;top:100%;left:0;z-index:1000;background:var(--card);border:1px solid var(--borderL);border-radius:6px;padding:4px 0;min-width:220px;max-height:380px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.45);margin-top:4px">${_stItems}${filtArr.length?`<div style="border-top:1px solid var(--border);margin:4px 0"></div><button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','')" style="display:block;width:100%;text-align:left;padding:6px 14px;background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit">Clear all</button>`:''}</div></span>${_clearBtn}`;
 }
 function _rGpTopFilt(q){
   const el=document.getElementById('gp_top_filt_'+q);
@@ -6511,7 +6571,7 @@ function _rAcctTotalBadge(q){
   const span=document.getElementById('gp_total_count_'+q);
   if(!span)return;
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
-  const base=(ACCTS||[]).filter(a=>a.qRM===q&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth));
+  const base=(ACCTS||[]).filter(a=>a.qRM===q&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth.length||selGPMonth.includes((a.seRM||'').substring(5,7))));
   const filtArr=_acctFiltArr(q);
   if(!filtArr.length){span.textContent=base.length+' total';span.style.color='var(--dim)';return;}
   const filtered=base.filter(a=>filtArr.some(f=>{
@@ -6534,7 +6594,7 @@ function _acctTableHTML(rid,q,pool){
   // se/q — the GP Retention tab is the source of truth for the RM cohort.
   // pool=='' (combined "Total" drilldown) → no pool filter, all 3 pools merged.
   const _allPools=!pool;
-  let rows=(ACCTS||[]).filter(a=>a.qRM===q&&(_allPools||a.pool===pool)&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth));
+  let rows=(ACCTS||[]).filter(a=>a.qRM===q&&(_allPools||a.pool===pool)&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth.length||selGPMonth.includes((a.seRM||'').substring(5,7))));
   // Stage filter is driven by the top-level control above the table
   // (rendered in rGP via _gpFiltCtlHTML), shared across all pools at q scope.
   const filtArr=_acctFiltArr(q);
@@ -6564,7 +6624,7 @@ function _acctTableHTML(rid,q,pool){
   const sa=c=>{const s=_acctSort[q];return(s&&s.col===c)?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
   // Row count delta — pool-scoped for individual drilldowns ("2 of 5 shown"
   // inside Enterprise) and quarter-wide for the combined Total drilldown.
-  const _poolUnfiltered=(ACCTS||[]).filter(a=>a.qRM===q&&(_allPools||a.pool===pool)&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).length;
+  const _poolUnfiltered=(ACCTS||[]).filter(a=>a.qRM===q&&(_allPools||a.pool===pool)&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth.length||selGPMonth.includes((a.seRM||'').substring(5,7)))).length;
   // Pool color dot, only rendered in the combined view as a Pool column so
   // the user can tell Enterprise / Strategic / Scale rows apart at a glance.
   const _poolDot=p=>`<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${PC[p]||'var(--dim)'};margin-right:6px;vertical-align:middle"></span>`;
@@ -6646,7 +6706,7 @@ function rGP(){
   // Full filtered (Owner + month) used everywhere else. Month is matched on
   // seRM (Renewal Master) so the Apr/May/Jun buttons count the cohort by
   // RM date, matching how the quarter filter (qRM) is keyed.
-  const filtAccts=selGPMonth?ownerFiltered.filter(a=>(a.seRM||'').substring(5,7)===selGPMonth):ownerFiltered;
+  const filtAccts=selGPMonth.length?ownerFiltered.filter(a=>selGPMonth.includes((a.seRM||'').substring(5,7))):ownerFiltered;
   // Back-compat shim: legacy use sites read these names
   const csmFiltered=ownerFiltered;
   const qAccts=qAcctsAll;
@@ -6654,7 +6714,7 @@ function rGP(){
   // Re-aggregate per-pool data from filtered accounts (or use global GRR when no active filters)
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
   const _ownerActive=selGPOwner!=='ALL';
-  const needsReagg=_ownerActive||selGPMonth;
+  const needsReagg=_ownerActive||selGPMonth.length;
   const grrQ=needsReagg?(()=>{
     const r={};pools.forEach(p=>{r[p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});
     filtAccts.forEach(a=>{const p=a.pool;if(!r[p])return;r[p].logos++;r[p].rev+=a.rev||0;
@@ -6700,10 +6760,11 @@ function rGP(){
 
   el.innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="_setSelQ('${qq}');selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
+      <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="_setSelQ('${qq}');selGPMonth=[];rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
-        ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.seRM||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
+        ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.seRM||'').substring(5,7)===mn).length;const on=selGPMonth.includes(mn);return`<button class="qbtn ${on?'active':''}" style="padding:4px 10px;font-size:11px" onclick="_toggleGPMonth('${mn}')" title="${on?'Click to remove '+ml+' from filter':'Click to add '+ml+' to filter (multi-select)'}">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
+        ${selGPMonth.length>1?`<button class="qbtn" style="padding:4px 10px;font-size:11px;color:#fca5a5;border-color:#7f1d1d" onclick="_clearGPMonth()" title="Clear all month selections">✕ Clear (${selGPMonth.length})</button>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM / Pod:</label>
@@ -7838,7 +7899,7 @@ function rAllAccts(){
   if(_aaState.search){
     const q=_aaState.search.toLowerCase();
     rows=rows.filter(r=>{
-      const bag=[r.n,r.csRep,r.ae,r.seg,r.stage,r.se,r.notes,r.pod,r.nextTP,r.rawEnd].map(x=>String(x||'').toLowerCase()).join(' ');
+      const bag=[r.n,r.csRep,r.ae,r.seg,r.stage,r.se,r.notes,r.pod,r.nextTP,r.rawEnd,r.platformId].map(x=>String(x||'').toLowerCase()).join(' ');
       return bag.indexOf(q)>=0;
     });
   }
@@ -7981,7 +8042,7 @@ function rAllAccts(){
                   +_flagBtn('gvPromo','GV Promo',_ct('gvPromo'));
           })()}
         </div>
-        <input type="text" data-sf="aa-search" placeholder="🔍 Search account, CSM, notes, pod…" value="${(_aaState.search||'').replace(/"/g,'&quot;')}" oninput="_aaSetSearch(this.value)" style="${sel(_aaState.search)};flex:1;min-width:240px;outline:none">
+        <input type="text" data-sf="aa-search" placeholder="🔍 Search account, CSM, notes, pod, platform ID…" value="${(_aaState.search||'').replace(/"/g,'&quot;')}" oninput="_aaSetSearch(this.value)" style="${sel(_aaState.search)};flex:1;min-width:240px;outline:none">
         <button onclick="_aaReset()" style="${filterSt};cursor:pointer;${anyActive?'color:#fca5a5;border-color:#7f1d1d':'color:var(--dim);opacity:.6'}" ${anyActive?'':'disabled'}>${anyActive?`Reset (${activeCount})`:'Reset'}</button>
         <span style="font-size:11px;color:var(--dim);margin-left:auto;padding:6px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border)"><strong style="color:var(--text);font-size:13px">${rows.length}</strong> <span style="opacity:.7">/ ${all.length}</span></span>
       </div>
