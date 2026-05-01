@@ -6440,15 +6440,53 @@ if(!window._acctFiltOutsideListener){
   });
 }
 
-// Re-render the 3 pool drilldowns + the total-row badge for a quarter. Skips
-// pool tables whose container hasn't been painted yet (collapsed pool rows
-// don't have an _acct div until first opened — _openPool builds them).
+// Re-render the 3 pool drilldowns + the total-row badge + the top-level
+// stage filter trigger for a quarter. Skips pool tables whose container
+// hasn't been painted yet (collapsed pool rows still have an _acct div in
+// the DOM, just hidden).
 function _rAcctTablesForQ(q){
   ['Enterprise','Strategic','Scale'].forEach(p=>{
     const rid='acr_'+q+'_'+p.replace(/\W/g,'');
     if(document.getElementById(rid+'_acct'))_rAcctTable(rid,q,p);
   });
   _rAcctTotalBadge(q);
+  _rGpTopFilt(q);
+}
+// Top-level stage filter that lives above the Revenue Context table. One
+// control per quarter — drives _acctFilt[q], so opening it applies the same
+// filter to all three pool drilldowns. Uses the same _filtAcctTog handler as
+// the legacy in-table popover; pool is passed as '' since the filter is
+// pool-agnostic at this scope.
+function _gpFiltCtlHTML(q){
+  const rid='gpfilt_'+q;
+  const filtArr=_acctFiltArr(q);
+  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
+  // Stage list = every distinct stage in the quarter's RM cohort, after the
+  // owner / month chips have been applied. Matches the chain used by the
+  // pool drilldowns so the dropdown options stay in sync.
+  const allStages=[...new Set((ACCTS||[]).filter(a=>a.qRM===q&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).map(a=>a.stage).filter(Boolean))].sort();
+  const filtActive=filtArr.length?`color:var(--accent);border-color:var(--accent)`:`color:var(--text)`;
+  const _filtLabel=(()=>{
+    if(filtArr.length===0)return'All stages';
+    if(filtArr.length>1)return filtArr.length+' selected';
+    const f=filtArr[0];
+    if(f==='_won')return'Won';
+    if(f==='_ch')return'Churned';
+    if(f==='_dc')return'Declined Early';
+    if(f==='_op')return'Open';
+    return f.replace(/^\d+\.\s*/,'');
+  })();
+  const _isChk=v=>filtArr.includes(v)?' checked':'';
+  const _esc=s=>String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  const _itemS='display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:12px;color:var(--text);font-weight:400;white-space:nowrap;user-select:none';
+  const _grpItems=[{v:'_won',l:'Won'},{v:'_ch',l:'Churned'},{v:'_dc',l:'Declined Early'},{v:'_op',l:'Open'}].map(g=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(g.v)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','','${g.v}')" style="cursor:pointer;margin:0">${g.l}</label>`).join('');
+  const _stItems=allStages.map(s=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(s)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','','${_esc(s)}')" style="cursor:pointer;margin:0">${s.replace(/^\d+\.\s*/,'')}</label>`).join('');
+  const _menuDisp=_acctFiltMenuOpen[rid]?'block':'none';
+  return `<span style="position:relative;display:inline-block;vertical-align:middle"><button onclick="event.stopPropagation();_filtAcctMenuTog('${rid}','${q}','')" style="font-size:12px;background:var(--card);border:1px solid var(--border);${filtActive};border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit;line-height:1.4;font-weight:500">${_filtLabel} ▾</button><div id="${rid}_filtmenu" onclick="event.stopPropagation()" style="display:${_menuDisp};position:absolute;top:100%;left:0;z-index:1000;background:var(--card);border:1px solid var(--borderL);border-radius:6px;padding:4px 0;min-width:220px;max-height:380px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.45);margin-top:4px">${_grpItems}${_stItems?'<div style="border-top:1px solid var(--border);margin:4px 0"></div>'+_stItems:''}${filtArr.length?`<div style="border-top:1px solid var(--border);margin:4px 0"></div><button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','')" style="display:block;width:100%;text-align:left;padding:6px 14px;background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit">Clear all</button>`:''}</div></span>`;
+}
+function _rGpTopFilt(q){
+  const el=document.getElementById('gp_top_filt_'+q);
+  if(el)el.innerHTML=_gpFiltCtlHTML(q);
 }
 // Compute and write the filtered-count badge that lives in the Total row's
 // first cell. Shows "X of Y shown" while a stage filter is active, "Y total"
@@ -6480,10 +6518,8 @@ function _acctTableHTML(rid,q,pool){
   // filters key off the Renewal Master date (qRM/seRM), not the ET-preferred
   // se/q — the GP Retention tab is the source of truth for the RM cohort.
   let rows=(ACCTS||[]).filter(a=>a.qRM===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth));
-  // Stage list for the popover comes from the WHOLE quarter (not just this
-  // pool) so toggling between pool drilldowns doesn't change which stages are
-  // selectable — filter state is shared per-q.
-  const allStages=[...new Set((ACCTS||[]).filter(a=>a.qRM===q&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).map(a=>a.stage).filter(Boolean))].sort();
+  // Stage filter is driven by the top-level control above the table
+  // (rendered in rGP via _gpFiltCtlHTML), shared across all pools at q scope.
   const filtArr=_acctFiltArr(q);
   if(filtArr.length){
     rows=rows.filter(a=>filtArr.some(f=>{
@@ -6506,34 +6542,11 @@ function _acctTableHTML(rid,q,pool){
     return 0;
   });
   const sa=c=>{const s=_acctSort[q];return(s&&s.col===c)?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
-  // Build the multi-select popover. Trigger button shows the summary;
-  // the popover renders a checkbox per group shortcut and per individual
-  // stage that exists in this quarter. State persists in _acctFilt[q] and
-  // is shared across the three pool drilldowns.
-  const filtActive=filtArr.length?`color:var(--accent);border-color:var(--accent)`:`color:var(--dim)`;
-  const _filtLabel=(()=>{
-    if(filtArr.length===0)return'all';
-    if(filtArr.length>1)return filtArr.length+' selected';
-    const f=filtArr[0];
-    if(f==='_won')return'Won';
-    if(f==='_ch')return'Churned';
-    if(f==='_dc')return'Declined Early';
-    if(f==='_op')return'Open';
-    return f.replace(/^\d+\.\s*/,'');
-  })();
-  const _isChk=v=>filtArr.includes(v)?' checked':'';
-  const _esc=s=>String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');
-  const _itemS='display:flex;align-items:center;gap:6px;padding:4px 12px;cursor:pointer;font-size:11px;color:var(--text);font-weight:400;white-space:nowrap;user-select:none';
-  const _grpItems=[{v:'_won',l:'Won'},{v:'_ch',l:'Churned'},{v:'_dc',l:'Declined Early'},{v:'_op',l:'Open'}].map(g=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(g.v)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','${pool}','${g.v}')" style="cursor:pointer;margin:0">${g.l}</label>`).join('');
-  const _stItems=allStages.map(s=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(s)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','${pool}','${_esc(s)}')" style="cursor:pointer;margin:0">${s.replace(/^\d+\.\s*/,'')}</label>`).join('');
-  const _menuDisp=_acctFiltMenuOpen[rid]?'block':'none';
-  // NOTE: must use var(--card), not var(--cd). The original <select> used
-  // var(--cd) too, but it was an undefined-variable typo — native selects
-  // ignore CSS background on the popup so it didn't manifest. The custom
-  // popover here actually paints, and a transparent fallback lets table
-  // rows bleed through.
-  const _filtCtl=`<span style="position:relative;display:inline-block;vertical-align:middle"><button onclick="event.stopPropagation();_filtAcctMenuTog('${rid}','${q}','${pool}')" style="font-size:10px;background:var(--card);border:1px solid var(--border);${filtActive};border-radius:4px;padding:1px 6px;cursor:pointer;font-family:inherit;line-height:1.4">${_filtLabel} ▾</button><div id="${rid}_filtmenu" onclick="event.stopPropagation()" style="display:${_menuDisp};position:absolute;top:100%;left:0;z-index:1000;background:var(--card);border:1px solid var(--borderL);border-radius:6px;padding:4px 0;min-width:200px;max-height:340px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.45);margin-top:3px">${_grpItems}${_stItems?'<div style="border-top:1px solid var(--border);margin:4px 0"></div>'+_stItems:''}${filtArr.length?`<div style="border-top:1px solid var(--border);margin:4px 0"></div><button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','${pool}')" style="display:block;width:100%;text-align:left;padding:5px 12px;background:transparent;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:inherit">Clear all</button>`:''}</div></span>`;
-  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> ${_filtCtl}${rows.length!==((ACCTS||[]).filter(a=>a.qRM===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).length)?` <span style="font-size:10px;color:var(--dim)">${rows.length} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="7" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
+  // Pool-scoped row count delta — still useful inside each drilldown so the
+  // user can see e.g. "2 of 5 shown" inside Enterprise even though the global
+  // filter applies to all three pools.
+  const _poolUnfiltered=(ACCTS||[]).filter(a=>a.qRM===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).length;
+  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="7" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
 function _sortAcct(rid,q,pool,col){const cur=_acctSort[q]||{col:'rev',dir:-1};_acctSort[q]={col,dir:cur.col===col?-cur.dir:1};_rAcctTablesForQ(q);}
@@ -6739,6 +6752,11 @@ function rGP(){
     <div class="card">
       <h3>${q} Revenue Context${_gpOwnerLbl}</h3>
       <div class="sh">Revenue associated with each pool (for future GRR tracking)${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
+      <div style="margin:10px 0 12px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--dim);font-weight:500">Stage filter:</span>
+        <span id="gp_top_filt_${q}">${_gpFiltCtlHTML(q)}</span>
+        <span style="font-size:11px;color:var(--muted)">applies to Enterprise, Strategic, and Scale</span>
+      </div>
       <table><thead><tr><th style="text-align:left">Pool</th><th style="text-align:right">Logos</th><th style="text-align:right">Won</th><th style="text-align:right">Churned</th><th style="text-align:right">Declined Early</th><th style="text-align:right">Logo Ret.</th><th style="text-align:right">Floor</th><th style="text-align:right">Accts Needed</th><th style="text-align:right">Revenue Up</th><th style="text-align:right">Rev Won</th><th style="text-align:right">Rev GRR</th></tr></thead>
       <tbody>${pools.map(p=>{const d=grrQ[p];const lr=d.logos>0?(d.won/d.logos*100):0;const rr=d.rev>0?(d.rw/d.rev*100):0;const pcount=filtAccts.filter(a=>a.pool===p).length;const rid='acr_'+q+'_'+p.replace(/\W/g,'');const floorPct=GP_T[tKey]?.floor||null;const floorNeed=floorPct?Math.max(0,Math.ceil(d.logos*floorPct/100)-d.won):null;const floorMet=floorPct&&d.logos>0&&(d.won/d.logos*100)>=floorPct;return`<tr><td style="font-weight:500;cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','')" title="Click to show accounts"><span id="${rid}_chev" style="display:inline-block;font-size:11px;font-weight:700;color:var(--accent);background:var(--accentG);border:1px solid rgba(59,130,246,.45);width:20px;height:18px;line-height:16px;text-align:center;border-radius:4px;margin-right:8px;vertical-align:middle">▸</span><span class="pool-dot" style="background:${PC[p]};width:7px;height:7px"></span>${p} <span style="font-size:10px;color:var(--dim)">· ${pcount}</span></td><td class="mono" style="text-align:right">${d.logos}${_rcD(p,'logos')}</td><td class="mono" style="text-align:right;color:var(--green);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_won')" title="Show won accounts">${d.won}${_rcD(p,'won')}</td><td class="mono" style="text-align:right;color:var(--red);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_ch')" title="Show churned accounts">${d.lost}${_rcD(p,'lost',true)}</td><td class="mono" style="text-align:right;color:var(--orange);cursor:pointer" onclick="_openPool('${rid}','${q}','${p}','_dc')" title="Show declined accounts">${d.declined}${_rcD(p,'declined',true)}</td><td class="mono" style="text-align:right;color:${lr>=tgt?'var(--green)':'var(--amber)'}">${pct(lr)}${_rcDPct(p,'won','logos')}</td><td class="mono" style="text-align:right;color:var(--dim)">${floorPct?floorPct+'%':'—'}</td><td class="mono" style="text-align:right;color:${floorMet?'var(--green)':floorNeed>0?'var(--red)':'var(--dim)'}">${floorPct?(floorMet?'✓ met':'+'+floorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(d.rev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(d.rw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(rr)}</td></tr><tr id="${rid}" style="display:none"><td colspan="11" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><div id="${rid}_acct">${_acctTableHTML(rid,q,p)}</div></td></tr>`;}).join('')}
       ${(()=>{const tTl=pools.reduce((s,p)=>s+(grrQ[p].logos||0),0);const tTw=pools.reduce((s,p)=>s+(grrQ[p].won||0),0);const tTlo=pools.reduce((s,p)=>s+(grrQ[p].lost||0),0);const tTde=pools.reduce((s,p)=>s+(grrQ[p].declined||0),0);const tRev=pools.reduce((s,p)=>s+(grrQ[p].rev||0),0);const tRw=pools.reduce((s,p)=>s+(grrQ[p].rw||0),0);const tLr=tTl>0?(tTw/tTl*100):0;const tRr=tRev>0?(tRw/tRev*100):0;const tFloorPct=GP_T[tKey]?.floor||null;const tFloorMet=tFloorPct&&tTl>0&&(tTw/tTl*100)>=tFloorPct;const tFloorNeed=tFloorPct?Math.max(0,Math.ceil(tTl*tFloorPct/100)-tTw):null;
