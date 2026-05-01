@@ -6404,10 +6404,10 @@ function _acctTableHTML(rid,q,pool){
   if(filt==='_won')rows=rows.filter(a=>WS.includes(a.stage));
   else if(filt==='_ch')rows=rows.filter(a=>CS.includes(a.stage));
   else if(filt==='_dc')rows=rows.filter(a=>DS.includes(a.stage));
-  // "Open" = anything not yet resolved into Won / Churned / Declined Early —
-  // i.e. still actively being worked (Contacted, Proposal Made, Signature
-  // Requested, Signed, etc.).
-  else if(filt==='_op')rows=rows.filter(a=>!WS.includes(a.stage)&&!CS.includes(a.stage)&&!DS.includes(a.stage));
+  // "Open" = anything not yet Won or Churned — i.e. still actively being
+  // worked. Includes Declined Early (4a. Attempting again Q2) since those
+  // are still in-flight from a CSM workload perspective.
+  else if(filt==='_op')rows=rows.filter(a=>!WS.includes(a.stage)&&!CS.includes(a.stage));
   else if(filt)rows=rows.filter(a=>a.stage===filt);
   const {col,dir}=_acctSort[rid]||{col:'rev',dir:-1};
   rows=[...rows].sort((a,b)=>{
