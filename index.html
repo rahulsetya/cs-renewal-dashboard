@@ -5224,7 +5224,10 @@ let charts={};
 function mc(id,cfg){if(charts[id])charts[id].destroy();const c=document.getElementById(id);if(c)charts[id]=new Chart(c,cfg)}
 const cD={g:'rgba(255,255,255,.07)',t:'#94a3b8'};
 
-function sc(label,value,sub,color){return`<div class="stat"><div class="bar" style="background:linear-gradient(90deg,${color},transparent)"></div><div class="label">${label}</div><div class="val">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`}
+function sc(label,value,sub,color,extra){return`<div class="stat"><div class="bar" style="background:linear-gradient(90deg,${color},transparent)"></div><div class="label">${label}</div><div class="val">${value}</div>${sub?`<div class="sub">${sub}</div>`:''}${extra?`<div style="font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:.2px">${extra}</div>`:''}</div>`}
+// Render a "GP X · SP Y" breakdown line. Used to show per-segment splits on
+// the YTD Actuals tiles. Both args are pre-formatted strings.
+function _segLine(gpStr,spStr){return`<span style="color:#10b981;font-weight:700">GP</span> ${gpStr} <span style="color:#475569;margin:0 3px">·</span> <span style="color:#f43f5e;font-weight:700">SP</span> ${spStr}`}
 function _toggleMismatch(id){const el=document.getElementById('mismatch-'+id);const ar=document.getElementById('mismatch-'+id+'-arrow');if(!el)return;const open=el.style.display==='';el.style.display=open?'none':'';if(ar)ar.textContent=open?'▸':'▾';}
 
 // Pool card (4-state: won/open/declined/lost)
@@ -6284,8 +6287,12 @@ function rOverview(){
   // didn't trigger the parent injection), iterate ACCTS with the older 9+10 set.
   let _aLW=0,_aLC=0,_aLDe=0,_aLOpen=0,_aRW=0,_aRC=0,_aRDe=0,_aROpen=0,_a26W=0,_aSkip=0;
   let _aGpL=0,_aSpL=0; // sub-counts for the band header
+  // Hold references to the GP and SP buckets so the per-tile breakdown line
+  // below can compute segment-specific KPIs (NRR/GRR/Logo Retention per book).
+  let _aGP=null,_aSP=null;
   if(typeof _YTD_OVERVIEW!=='undefined'&&_YTD_OVERVIEW&&_YTD_OVERVIEW.gp&&_YTD_OVERVIEW.sp){
     const g=_YTD_OVERVIEW.gp,s=_YTD_OVERVIEW.sp;
+    _aGP=g; _aSP=s;
     _aLW=g.wL+s.wL; _aLC=g.cL+s.cL; _aLDe=g.deL+s.deL; _aLOpen=g.oL+s.oL;
     _aRW=g.wR+s.wR; _aRC=g.cR+s.cR; _aRDe=g.deR+s.deR; _aROpen=g.oR+s.oR;
     _a26W=g.wR26+s.wR26;
@@ -6320,6 +6327,25 @@ function rOverview(){
   const _aColRN=_aRealNRR>=100?'var(--green)':_aRealNRR>=80?'var(--amber)':'var(--red)';
   const _aColLY ='var(--accent)';                               // pace metric — neutral blue; year not over
   const _aColLC=_aLogo_C>=70?'var(--green)':_aLogo_C>=50.05?'var(--amber)':'var(--red)';
+  // ── Per-segment KPI splits (GP-only and SP-only versions of each tile) ─
+  // Computed only when _YTD_OVERVIEW gave us the gp/sp buckets. Empty strings
+  // when buckets are missing (fallback path) — the tiles render unchanged.
+  const _gpNRR_R=(_aGP&&_aGP.wR>0)?(_aGP.wR26/_aGP.wR*100):0;
+  const _spNRR_R=(_aSP&&_aSP.wR>0)?(_aSP.wR26/_aSP.wR*100):0;
+  const _gpRealBase=_aGP?(_aGP.wR+_aGP.cR+_aGP.deR):0;
+  const _spRealBase=_aSP?(_aSP.wR+_aSP.cR+_aSP.deR):0;
+  const _gpRealNRR=_gpRealBase>0?(_aGP.wR26/_gpRealBase*100):0;
+  const _spRealNRR=_spRealBase>0?(_aSP.wR26/_spRealBase*100):0;
+  const _gpClosedRev=_aGP?(_aGP.wR+_aGP.cR):0;
+  const _spClosedRev=_aSP?(_aSP.wR+_aSP.cR):0;
+  const _gpGRR=_gpClosedRev>0?(_aGP.wR/_gpClosedRev*100):0;
+  const _spGRR=_spClosedRev>0?(_aSP.wR/_spClosedRev*100):0;
+  const _gpLogoY=(_aGP&&_aGP.tL>0)?(_aGP.wL/_aGP.tL*100):0;
+  const _spLogoY=(_aSP&&_aSP.tL>0)?(_aSP.wL/_aSP.tL*100):0;
+  const _gpClosedL=_aGP?(_aGP.wL+_aGP.cL):0;
+  const _spClosedL=_aSP?(_aSP.wL+_aSP.cL):0;
+  const _gpLogoC=_gpClosedL>0?(_aGP.wL/_gpClosedL*100):0;
+  const _spLogoC=_spClosedL>0?(_aSP.wL/_spClosedL*100):0;
   el.innerHTML=`
     <div class="cards">
       <div class="stat" style="position:relative">
@@ -6333,8 +6359,8 @@ function rOverview(){
         </div>`;})()}
       </div>
       ${sc("Revenue at Risk",fmt(tR),"$39.8M tracked of ~$41.2M","var(--amber)")}
-      ${sc("Renewed YTD",tW+" logos",fmt(gRW+SP.rw)+" revenue · "+pct(tW/tL*100)+" logo retention","var(--green)")}
-      ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)")}
+      ${sc("Renewed YTD",tW+" logos",fmt(gRW+SP.rw)+" revenue · "+pct(tW/tL*100)+" logo retention","var(--green)",_segLine(`${gW} (${fmt(gRW)})`,`${SP.won} (${fmt(SP.rw)})`))}
+      ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)",_segLine(`${gLo} (${fmt(gRL)})`,`${SP.lost} (${fmt(SP.rl)})`))}
     </div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px;flex-wrap:wrap;gap:8px">
       <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP + SP · All Accounts</div>
@@ -6346,30 +6372,35 @@ function rOverview(){
         <div class="label">NRR (Renewed Accounts)</div>
         <div class="val" style="color:${_aColNRR}">${pct(_aNRR_R)}</div>
         <div class="sub">${fmt(_a26W)} 2026 ÷ ${fmt(_aRW)} 2025 base · across ${_aLW} renewed</div>
+        ${_aGP&&_aSP?`<div style="font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:.2px">${_segLine(`${pct(_gpNRR_R)} (${_aGP.wL})`,`${pct(_spNRR_R)} (${_aSP.wL})`)}</div>`:''}
       </div>
       <div class="stat" title="Realized NRR across the full closed cohort.&#10;Σ rev26(won) ÷ Σ rev(won + churned + declined-early)&#10;Captures everything that has hit its renewal moment YTD — won, churned, and declined.&#10;Open accounts excluded (still pending).&#10;Below 100% means the book is net-shrinking among accounts that have already acted.">
         <div class="bar" style="background:linear-gradient(90deg,${_aColRN},transparent)"></div>
         <div class="label">NRR (Realized YTD)</div>
         <div class="val" style="color:${_aColRN}">${pct(_aRealNRR)}</div>
         <div class="sub">${fmt(_a26W)} 2026 ÷ ${fmt(_aRealBase)} 2025 base · ${_aLW}W + ${_aLC}C + ${_aLDe}D</div>
+        ${_aGP&&_aSP?`<div style="font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:.2px">${_segLine(pct(_gpRealNRR),pct(_spRealNRR))}</div>`:''}
       </div>
       <div class="stat" title="GRR among accounts that have rendered a final decision (won or churned).&#10;Σ rev(won) ÷ Σ rev(won + churned)&#10;Declined-early excluded — those are re-engageable.&#10;Bounded ≤100% by definition.">
         <div class="bar" style="background:linear-gradient(90deg,${_aColGRR},transparent)"></div>
         <div class="label">GRR (To-Date)</div>
         <div class="val" style="color:${_aColGRR}">${pct(_aGRR_C)}</div>
         <div class="sub">${fmt(_aRW)} retained ÷ ${fmt(_aClosedRev)} decided · ${_aLC} churned (${fmt(_aRC)})</div>
+        ${_aGP&&_aSP?`<div style="font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:.2px">${_segLine(pct(_gpGRR),pct(_spGRR))}</div>`:''}
       </div>
       <div class="stat" title="Logo retention pace against the full 2026 Renewal Master roster.&#10;won ÷ total renewal book&#10;Will trend upward through the year as more accounts close-won.">
         <div class="bar" style="background:linear-gradient(90deg,${_aColLY},transparent)"></div>
         <div class="label">Logo Retention (Annual)</div>
         <div class="val" style="color:${_aColLY}">${pct(_aLogo_Y)}</div>
         <div class="sub">${_aLW} won of ${_aTotLogos} renewal book · ${_aLOpen} still open</div>
+        ${_aGP&&_aSP?`<div style="font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:.2px">${_segLine(`${pct(_gpLogoY)} (${_aGP.wL}/${_aGP.tL})`,`${pct(_spLogoY)} (${_aSP.wL}/${_aSP.tL})`)}</div>`:''}
       </div>
       <div class="stat" title="Logo retention among accounts whose renewal moment has produced a final decision.&#10;won ÷ (won + churned)&#10;Declined-early excluded — those are re-engageable.&#10;This is the truest read of CS team performance to date.">
         <div class="bar" style="background:linear-gradient(90deg,${_aColLC},transparent)"></div>
         <div class="label">Logo Retention (To-Date)</div>
         <div class="val" style="color:${_aColLC}">${pct(_aLogo_C)}</div>
         <div class="sub">${_aLW} won of ${_aClosedLogos} final decisions · 2025 baseline 50.05%</div>
+        ${_aGP&&_aSP?`<div style="font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:.2px">${_segLine(`${pct(_gpLogoC)} (${_aGP.wL}/${_gpClosedL})`,`${pct(_spLogoC)} (${_aSP.wL}/${_spClosedL})`)}</div>`:''}
       </div>
     </div>
     ${(()=>{
