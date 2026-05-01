@@ -6449,6 +6449,9 @@ function _rAcctTablesForQ(q){
     const rid='acr_'+q+'_'+p.replace(/\W/g,'');
     if(document.getElementById(rid+'_acct'))_rAcctTable(rid,q,p);
   });
+  // Combined Total drilldown — pool='' triggers the all-pools view.
+  const totRid='acrtot_'+q;
+  if(document.getElementById(totRid+'_acct'))_rAcctTable(totRid,q,'');
   _rAcctTotalBadge(q);
   _rGpTopFilt(q);
 }
@@ -6464,7 +6467,16 @@ function _gpFiltCtlHTML(q){
   // Stage list = every distinct stage in the quarter's RM cohort, after the
   // owner / month chips have been applied. Matches the chain used by the
   // pool drilldowns so the dropdown options stay in sync.
-  const allStages=[...new Set((ACCTS||[]).filter(a=>a.qRM===q&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).map(a=>a.stage).filter(Boolean))].sort();
+  // Sort by leading stage number (1., 2., …, 4., 4a., 5., …, 9., 10., 11.)
+  // — plain string sort puts "10." before "2." which scrambled the dropdown.
+  const _stageSort=(a,b)=>{
+    const ma=String(a||'').match(/^(\d+)([a-z]*)/i)||[];
+    const mb=String(b||'').match(/^(\d+)([a-z]*)/i)||[];
+    const na=+ma[1]||999,nb=+mb[1]||999;
+    if(na!==nb)return na-nb;
+    return (ma[2]||'').localeCompare(mb[2]||'')||String(a).localeCompare(String(b));
+  };
+  const allStages=[...new Set((ACCTS||[]).filter(a=>a.qRM===q&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).map(a=>a.stage).filter(Boolean))].sort(_stageSort);
   const filtActive=filtArr.length?`color:var(--accent);border-color:var(--accent)`:`color:var(--text)`;
   const _filtLabel=(()=>{
     if(filtArr.length===0)return'All stages';
@@ -6482,7 +6494,10 @@ function _gpFiltCtlHTML(q){
   const _grpItems=[{v:'_won',l:'Won'},{v:'_ch',l:'Churned'},{v:'_dc',l:'Declined Early'},{v:'_op',l:'Open'}].map(g=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(g.v)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','','${g.v}')" style="cursor:pointer;margin:0">${g.l}</label>`).join('');
   const _stItems=allStages.map(s=>`<label style="${_itemS}" onclick="event.stopPropagation()"><input type="checkbox"${_isChk(s)} onclick="event.stopPropagation();_filtAcctTog('${rid}','${q}','','${_esc(s)}')" style="cursor:pointer;margin:0">${s.replace(/^\d+\.\s*/,'')}</label>`).join('');
   const _menuDisp=_acctFiltMenuOpen[rid]?'block':'none';
-  return `<span style="position:relative;display:inline-block;vertical-align:middle"><button onclick="event.stopPropagation();_filtAcctMenuTog('${rid}','${q}','')" style="font-size:12px;background:var(--card);border:1px solid var(--border);${filtActive};border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit;line-height:1.4;font-weight:500">${_filtLabel} ▾</button><div id="${rid}_filtmenu" onclick="event.stopPropagation()" style="display:${_menuDisp};position:absolute;top:100%;left:0;z-index:1000;background:var(--card);border:1px solid var(--borderL);border-radius:6px;padding:4px 0;min-width:220px;max-height:380px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.45);margin-top:4px">${_grpItems}${_stItems?'<div style="border-top:1px solid var(--border);margin:4px 0"></div>'+_stItems:''}${filtArr.length?`<div style="border-top:1px solid var(--border);margin:4px 0"></div><button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','')" style="display:block;width:100%;text-align:left;padding:6px 14px;background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit">Clear all</button>`:''}</div></span>`;
+  // External clear button — visible only when a filter is active so the user
+  // doesn't have to open the dropdown to reset. Mirrors the in-menu Clear all.
+  const _clearBtn=filtArr.length?`<button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','')" title="Clear stage filter" style="font-size:12px;background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 10px;cursor:pointer;font-family:inherit;line-height:1.4;margin-left:6px;vertical-align:middle">✕ Clear</button>`:'';
+  return `<span style="position:relative;display:inline-block;vertical-align:middle"><button onclick="event.stopPropagation();_filtAcctMenuTog('${rid}','${q}','')" style="font-size:12px;background:var(--card);border:1px solid var(--border);${filtActive};border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit;line-height:1.4;font-weight:500">${_filtLabel} ▾</button><div id="${rid}_filtmenu" onclick="event.stopPropagation()" style="display:${_menuDisp};position:absolute;top:100%;left:0;z-index:1000;background:var(--card);border:1px solid var(--borderL);border-radius:6px;padding:4px 0;min-width:220px;max-height:380px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.45);margin-top:4px">${_grpItems}${_stItems?'<div style="border-top:1px solid var(--border);margin:4px 0"></div>'+_stItems:''}${filtArr.length?`<div style="border-top:1px solid var(--border);margin:4px 0"></div><button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','')" style="display:block;width:100%;text-align:left;padding:6px 14px;background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit">Clear all</button>`:''}</div></span>${_clearBtn}`;
 }
 function _rGpTopFilt(q){
   const el=document.getElementById('gp_top_filt_'+q);
@@ -6517,7 +6532,9 @@ function _acctTableHTML(rid,q,pool){
   // never shows rows whose stage is 'Not in renewal master'. Quarter and month
   // filters key off the Renewal Master date (qRM/seRM), not the ET-preferred
   // se/q — the GP Retention tab is the source of truth for the RM cohort.
-  let rows=(ACCTS||[]).filter(a=>a.qRM===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth));
+  // pool=='' (combined "Total" drilldown) → no pool filter, all 3 pools merged.
+  const _allPools=!pool;
+  let rows=(ACCTS||[]).filter(a=>a.qRM===q&&(_allPools||a.pool===pool)&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth));
   // Stage filter is driven by the top-level control above the table
   // (rendered in rGP via _gpFiltCtlHTML), shared across all pools at q scope.
   const filtArr=_acctFiltArr(q);
@@ -6534,19 +6551,25 @@ function _acctTableHTML(rid,q,pool){
     }));
   }
   const {col,dir}=_acctSort[q]||{col:'rev',dir:-1};
+  // Pool sort order matches the table: Enterprise → Strategic → Scale.
+  const _poolOrder={Enterprise:0,Strategic:1,Scale:2};
   rows=[...rows].sort((a,b)=>{
     if(col==='rev')return dir*(b.rev-a.rev);
     if(col==='se')return dir*((a.se||'').localeCompare(b.se||''));
     if(col==='seRM')return dir*((a.seRM||'').localeCompare(b.seRM||''));
     if(col==='stage')return dir*((a.stage||'').localeCompare(b.stage||''));
+    if(col==='pool')return dir*(((_poolOrder[a.pool]??99)-(_poolOrder[b.pool]??99))||(a.n||'').localeCompare(b.n||''));
     return 0;
   });
   const sa=c=>{const s=_acctSort[q];return(s&&s.col===c)?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
-  // Pool-scoped row count delta — still useful inside each drilldown so the
-  // user can see e.g. "2 of 5 shown" inside Enterprise even though the global
-  // filter applies to all three pools.
-  const _poolUnfiltered=(ACCTS||[]).filter(a=>a.qRM===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).length;
-  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="7" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
+  // Row count delta — pool-scoped for individual drilldowns ("2 of 5 shown"
+  // inside Enterprise) and quarter-wide for the combined Total drilldown.
+  const _poolUnfiltered=(ACCTS||[]).filter(a=>a.qRM===q&&(_allPools||a.pool===pool)&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).length;
+  // Pool color dot, only rendered in the combined view as a Pool column so
+  // the user can tell Enterprise / Strategic / Scale rows apart at a glance.
+  const _poolDot=p=>`<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${PC[p]||'var(--dim)'};margin-right:6px;vertical-align:middle"></span>`;
+  const _colspan=_allPools?8:7; // note row colspan must match thead column count
+  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th>${_allPools?`<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','','pool')">Pool ${sa('pool')}</th>`:''}<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td>${_allPools?`<td style="padding:3px 8px;color:var(--dim);white-space:nowrap">${_poolDot(a.pool)}${a.pool||'—'}</td>`:''}<td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${_colspan}" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
 function _sortAcct(rid,q,pool,col){const cur=_acctSort[q]||{col:'rev',dir:-1};_acctSort[q]={col,dir:cur.col===col?-cur.dir:1};_rAcctTablesForQ(q);}
@@ -6556,20 +6579,29 @@ function _filtAcct(rid,q,pool,stage){_acctFilt[q]=stage?[stage]:[];_rAcctTablesF
 function _openPool(rid,q,pool,filt){
   var e=document.getElementById(rid);if(!e)return;
   const wasOpen=e.style.display==='';
-  const target=filt?[filt]:[];
+  // No filter argument = pure expand/collapse. Leave _acctFilt[q] alone so a
+  // user who picked stages from the top dropdown doesn't get wiped just by
+  // clicking a pool row to peek at its accounts. Only the explicit cell
+  // shortcuts (Won / Churned / Declined Early) below replace the filter.
+  if(!filt){
+    e.style.display=wasOpen?'none':'';
+    var chN=document.getElementById(rid+'_chev');
+    if(chN)chN.textContent=e.style.display==='none'?'▸':'▾';
+    // If we just opened it, repaint so the table reflects the active filter
+    // (it may have changed since this panel was last visible).
+    if(!wasOpen)_rAcctTablesForQ(q);
+    return;
+  }
+  // Explicit cell-click shortcut: replace the q-scoped filter with [filt].
+  const target=[filt];
   const cur=_acctFiltArr(q);
   const sameFilt=cur.length===target.length&&cur.every((v,i)=>v===target[i]);
   if(wasOpen&&sameFilt){e.style.display='none';}
   else{
     e.style.display='';
-    // Per-quarter filter: replace whatever was there. Repaint all 3 pool
-    // tables so previously-opened drilldowns reflect the new filter too.
     _acctFilt[q]=target;
     _rAcctTablesForQ(q);
   }
-  // Flip the pool-row chevron to mirror the panel's open/closed state.
-  // ▸ = closed, ▾ = open. Driven off e.style.display rather than wasOpen
-  // so swapping filters while open keeps the arrow pointing down.
   var ch=document.getElementById(rid+'_chev');
   if(ch)ch.textContent=e.style.display==='none'?'▸':'▾';
 }
@@ -6778,7 +6810,8 @@ function rGP(){
         }
         const _qBadgeTxt=_qFiltArr.length?(_qShown+' of '+_qBase+' shown'):(_qBase+' total');
         const _qBadgeCol=_qFiltArr.length?'var(--accent)':'var(--dim)';
-        return`<tr style="border-top:2px solid rgba(255,255,255,.12);font-weight:700"><td style="color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase">Total<span id="gp_total_count_${q}" style="font-size:10px;font-weight:500;letter-spacing:0;text-transform:none;margin-left:8px;color:${_qBadgeCol}">${_qBadgeTxt}</span></td><td class="mono" style="text-align:right">${tTl}</td><td class="mono" style="text-align:right;color:var(--green)">${tTw}</td><td class="mono" style="text-align:right;color:var(--red)">${tTlo}</td><td class="mono" style="text-align:right;color:var(--orange)">${tTde}</td><td class="mono" style="text-align:right;color:${tLr>=tgt?'var(--green)':'var(--amber)'}">${pct(tLr)}</td><td class="mono" style="text-align:right;color:var(--dim)">${tFloorPct?tFloorPct+'%':'—'}</td><td class="mono" style="text-align:right;color:${tFloorMet?'var(--green)':tFloorNeed>0?'var(--red)':'var(--dim)'}">${tFloorPct?(tFloorMet?'✓ met':'+'+tFloorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(tRev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(tRw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(tRr)}</td></tr>`;})()}
+        const _totRid='acrtot_'+q;
+        return`<tr style="border-top:2px solid rgba(255,255,255,.12);font-weight:700"><td style="color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer" onclick="_openPool('${_totRid}','${q}','','')" title="Click to show all accounts"><span id="${_totRid}_chev" style="display:inline-block;font-size:11px;font-weight:700;color:var(--accent);background:var(--accentG);border:1px solid rgba(59,130,246,.45);width:20px;height:18px;line-height:16px;text-align:center;border-radius:4px;margin-right:8px;vertical-align:middle">▸</span>Total<span id="gp_total_count_${q}" style="font-size:10px;font-weight:500;letter-spacing:0;text-transform:none;margin-left:8px;color:${_qBadgeCol}">${_qBadgeTxt}</span></td><td class="mono" style="text-align:right">${tTl}</td><td class="mono" style="text-align:right;color:var(--green)">${tTw}</td><td class="mono" style="text-align:right;color:var(--red)">${tTlo}</td><td class="mono" style="text-align:right;color:var(--orange)">${tTde}</td><td class="mono" style="text-align:right;color:${tLr>=tgt?'var(--green)':'var(--amber)'}">${pct(tLr)}</td><td class="mono" style="text-align:right;color:var(--dim)">${tFloorPct?tFloorPct+'%':'—'}</td><td class="mono" style="text-align:right;color:${tFloorMet?'var(--green)':tFloorNeed>0?'var(--red)':'var(--dim)'}">${tFloorPct?(tFloorMet?'✓ met':'+'+tFloorNeed):'—'}</td><td class="mono" style="text-align:right">${fmt(tRev)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmt(tRw)}</td><td class="mono" style="text-align:right;color:var(--dim)">${pct(tRr)}</td></tr><tr id="${_totRid}" style="display:none"><td colspan="11" style="padding:0 0 8px 0;background:rgba(0,0,0,.2)"><div id="${_totRid}_acct">${_acctTableHTML(_totRid,q,'')}</div></td></tr>`;})()}
       </tbody></table>
     </div>
     <div class="card"><h3>${q} GP Pipeline by Pool${_gpOwnerLbl}</h3><div class="sh">Logo count: won / open / declined early / churned</div><div class="chart-wrap" style="height:220px"><canvas id="c3"></canvas></div>${legend4()}</div>`;
