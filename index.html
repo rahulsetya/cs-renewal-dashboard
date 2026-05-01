@@ -6158,18 +6158,29 @@ function _exportCadenceAuditXLSX(){
   }
   wsSum['!cols']=[{wch:24},{wch:24},{wch:24},{wch:24},{wch:36},{wch:16},{wch:24}];
   // Sheet 2: Discrepancies
-  const detRows=[['CSM','Account','Platform ID','Month','Tracker Says','HubSpot Meetings (count)','Most Recent Meeting','Status']];
+  // Status column reflects effectiveStatus (raw audit result + any manual
+  // ✓ Verify override). A row that was Unconfirmed/Missed but the publisher
+  // manually verified now exports as "Confirmed" with the override note in
+  // the Note column. The original raw audit result is kept in "Audit Status"
+  // so you can still see where the override came from.
+  const detRows=[['CSM','Account','Platform ID','Month','Tracker Says','HubSpot Meetings (count)','Most Recent Meeting','Status','Audit Status','Note']];
   const STATUS_LABEL={verified:'Confirmed',unverified:'Unconfirmed',forgot:'Missed Logging'};
   audit.rows.sort((a,b)=>{
     const order={unverified:0,forgot:1,verified:2};
-    const da=order[a.status]??9,db=order[b.status]??9;
+    const ea=a.effectiveStatus||a.status,eb=b.effectiveStatus||b.status;
+    const da=order[ea]??9,db=order[eb]??9;
     if(da!==db)return da-db;
     return (a.csm||'').localeCompare(b.csm||'')||(a.acct||'').localeCompare(b.acct||'');
   }).forEach(r=>{
-    detRows.push([r.csm,r.acct,r.pid||'(none)',r.month,r.tracker,r.hsCount,r.lastDate,STATUS_LABEL[r.status]||r.status]);
+    const eff=r.effectiveStatus||r.status;
+    const noteCell=r.override?(r.override.note||'(manually verified)'):'';
+    // Audit Status only filled in when override flipped the row, so reviewers
+    // can spot which Confirmeds came from a manual verify vs HubSpot match.
+    const auditCell=(r.override&&r.override.status==='verified'&&r.status!=='verified')?(STATUS_LABEL[r.status]||r.status):'';
+    detRows.push([r.csm,r.acct,r.pid||'(none)',r.month,r.tracker,r.hsCount,r.lastDate,STATUS_LABEL[eff]||eff,auditCell,noteCell]);
   });
   const wsDet=XLSX.utils.aoa_to_sheet(detRows);
-  wsDet['!cols']=[{wch:24},{wch:36},{wch:18},{wch:8},{wch:14},{wch:24},{wch:20},{wch:18}];
+  wsDet['!cols']=[{wch:24},{wch:36},{wch:18},{wch:8},{wch:14},{wch:24},{wch:20},{wch:18},{wch:18},{wch:48}];
   // Sheet 3: About
   const meta=[
     ['CS Renewal — Cadence Audit'],
@@ -6182,10 +6193,15 @@ function _exportCadenceAuditXLSX(){
     ['Scope','Month '+_liveCadAuditMo()+' '+((_cadAuditData&&_cadAuditData.year)||new Date().getFullYear())],
     [],
     ['Status legend'],
-    ['Confirmed','Tracker marked Y AND HubSpot has ≥1 meeting that month — call verified'],
+    ['Confirmed','Tracker marked Y AND HubSpot has ≥1 meeting that month — call verified (or manually verified by reviewer)'],
     ['Unconfirmed','Tracker marked Y BUT no HubSpot meeting found — possible over-report or unlogged meeting'],
     ['Missed Logging','HubSpot has ≥1 meeting BUT tracker is blank/N — CSM forgot to mark it'],
     ['Cannot Match','Tracker marked Y but the account has no Platform ID — excluded from match'],
+    [],
+    ['Manual overrides'],
+    ['Status','Effective status after applying any reviewer ✓ Verify on the Cadence audit panel'],
+    ['Audit Status','Original raw audit result — only populated when a manual verify flipped the row to Confirmed'],
+    ['Note','Reviewer-supplied note attached via ✓ Verify or 💬 Note (e.g. "Meeting was on Zoom, not in HubSpot")'],
   ];
   const wsMeta=XLSX.utils.aoa_to_sheet(meta);
   wsMeta['!cols']=[{wch:22},{wch:60}];
