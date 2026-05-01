@@ -7229,12 +7229,12 @@ function rCadence(){
       const _curAuditMo=_liveCadAuditMo();
       const _moChips=(CADENCE_DATA.cols||[]).map(mo=>`<button onclick="_setCadAuditMo('${mo}')" style="background:${mo===_curAuditMo?'#3b82f6':'transparent'};color:${mo===_curAuditMo?'#fff':'var(--text)'};border:1px solid ${mo===_curAuditMo?'#3b82f6':'var(--border)'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${mo}</button>`).join('');
       return`
-    <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.04),transparent)">
+    <div class="card" style="margin-top:14px;border-color:#3b82f6;background:linear-gradient(180deg,rgba(59,130,246,.06),var(--card))">
       <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence Audit <span style="font-size:11px;color:var(--dim);font-weight:400">vs. HubSpot meetings</span>${(function(){
         // Source indicator: local import (preview) vs. team-published (live for everyone).
-        if(_cadAuditSource==='local')return`<span style="font-size:10px;background:rgba(59,130,246,.20);color:#60a5fa;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">LOCAL IMPORT</span>`;
-        if(_cadAuditSource==='published')return`<span style="font-size:10px;background:rgba(34,197,94,.20);color:#22c55e;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">TEAM-PUBLISHED</span>`;
-        if(_cadAuditSource==='baked')return`<span style="font-size:10px;background:rgba(34,197,94,.20);color:#22c55e;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px">BAKED</span>`;
+        if(_cadAuditSource==='local')return`<span style="font-size:10px;background:rgba(59,130,246,.22);color:var(--accent);border:1px solid rgba(59,130,246,.45);padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">LOCAL IMPORT</span>`;
+        if(_cadAuditSource==='published')return`<span style="font-size:10px;background:rgba(16,185,129,.22);color:var(--green);border:1px solid rgba(16,185,129,.45);padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">TEAM-PUBLISHED</span>`;
+        if(_cadAuditSource==='baked')return`<span style="font-size:10px;background:rgba(16,185,129,.22);color:var(--green);border:1px solid rgba(16,185,129,.45);padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">BAKED</span>`;
         return'';
       })()}</h3>
       <div class="sh">Match key: <strong>Platform ID × Month × Year</strong> — verification only fires when all three match exactly (CSM/owner names not used). File: <code style="color:var(--accent)">${fileName}</code>${_cadAuditData.sheetName?` · Sheet: <code style="color:var(--accent)">${_cadAuditData.sheetName}</code>`:''} · Imported ${importedAt} · ${_cadAuditData.rowsParsed} HS meetings parsed</div>
@@ -7255,59 +7255,60 @@ function rCadence(){
         <button onclick="_cadClearPublishToken()" title="Remove the stored GitHub token from this browser (for rotating credentials)" style="background:transparent;color:var(--dim);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">⟳ Token</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0">
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="Of all the calls a CSM marked 'Y' in the tracker, how many were confirmed by a real meeting in HubSpot?">
-          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:600">Tracker Accuracy</div>
+        <div style="background:var(--accentG);border:1px solid rgba(59,130,246,.35);border-radius:8px;padding:10px 14px" title="Of all the calls a CSM marked 'Y' in the tracker, how many were confirmed by a real meeting in HubSpot?">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600">Tracker Accuracy</div>
           <div style="font-size:22px;font-weight:700;color:${overallRate>=80?'var(--green)':overallRate>=50?'var(--amber)':'var(--red)'};font-family:var(--mono)">${overallRate}%</div>
-          <div style="font-size:10px;color:var(--dim)">${tVer} of ${tMarked} self-reported calls confirmed</div>
+          <div style="font-size:10px;color:var(--muted)">${tVer} of ${tMarked} self-reported calls confirmed</div>
         </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="Tracker said Y and HubSpot has at least one meeting for that account in that month.">
-          <div style="font-size:10px;color:#10b981;text-transform:uppercase;font-weight:600">✅ Confirmed Calls</div>
+        <div style="background:var(--greenG);border:1px solid rgba(16,185,129,.35);border-radius:8px;padding:10px 14px" title="Tracker said Y and HubSpot has at least one meeting for that account in that month.">
+          <div style="font-size:10px;color:var(--green);text-transform:uppercase;font-weight:600">✅ Confirmed Calls</div>
           <div style="font-size:22px;font-weight:700;color:var(--green);font-family:var(--mono)">${tVer}</div>
-          <div style="font-size:10px;color:var(--dim)">Tracker says Y + meeting found in HubSpot</div>
+          <div style="font-size:10px;color:var(--muted)">Tracker says Y + meeting found in HubSpot</div>
         </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="Tracker said Y but no HubSpot meeting was found for that account/month — possible over-reporting or unlogged meeting.">
-          <div style="font-size:10px;color:#ef4444;text-transform:uppercase;font-weight:600">❌ Unconfirmed Calls</div>
+        <div style="background:var(--redG);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:10px 14px" title="Tracker said Y but no HubSpot meeting was found for that account/month — possible over-reporting or unlogged meeting.">
+          <div style="font-size:10px;color:var(--red);text-transform:uppercase;font-weight:600">❌ Unconfirmed Calls</div>
           <div style="font-size:22px;font-weight:700;color:var(--red);font-family:var(--mono)">${tUnv}</div>
-          <div style="font-size:10px;color:var(--dim)">Tracker says Y but no HubSpot meeting</div>
+          <div style="font-size:10px;color:var(--muted)">Tracker says Y but no HubSpot meeting</div>
         </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="HubSpot has a meeting but the tracker is blank or N — CSM forgot to mark it.">
-          <div style="font-size:10px;color:#fbbf24;text-transform:uppercase;font-weight:600">⚠ Missing from Tracker</div>
+        <div style="background:var(--amberG);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:10px 14px" title="HubSpot has a meeting but the tracker is blank or N — CSM forgot to mark it.">
+          <div style="font-size:10px;color:var(--amber);text-transform:uppercase;font-weight:600">⚠ Missing from Tracker</div>
           <div style="font-size:22px;font-weight:700;color:var(--amber);font-family:var(--mono)">${tFor}</div>
-          <div style="font-size:10px;color:var(--dim)">Meeting in HubSpot but tracker blank/N</div>
+          <div style="font-size:10px;color:var(--muted)">Meeting in HubSpot but tracker blank/N</div>
         </div>
-        ${tNoPid?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px" title="Tracker was marked Y but the account has no Platform ID, so we can't match against HubSpot.">
-          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:600">⊘ Cannot Match</div>
-          <div style="font-size:22px;font-weight:700;color:var(--dim);font-family:var(--mono)">${tNoPid}</div>
-          <div style="font-size:10px;color:var(--dim)">Tracker Y but account has no Platform ID</div>
+        ${tNoPid?`<div style="background:var(--bg);border:1px solid var(--borderL);border-radius:8px;padding:10px 14px" title="Tracker was marked Y but the account has no Platform ID, so we can't match against HubSpot.">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600">⊘ Cannot Match</div>
+          <div style="font-size:22px;font-weight:700;color:var(--muted);font-family:var(--mono)">${tNoPid}</div>
+          <div style="font-size:10px;color:var(--muted)">Tracker Y but account has no Platform ID</div>
         </div>`:''}
       </div>
-      ${csmRows.length?`<div style="overflow-x:auto;margin-top:8px">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">Per-CSM Scorecard <span style="color:var(--dim);font-weight:400">(sorted worst-accuracy first)</span></div>
+      ${csmRows.length?`<div style="overflow-x:auto;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Per-CSM Scorecard <span style="color:var(--muted);font-weight:400">(sorted worst-accuracy first)</span></div>
         <table style="border-collapse:collapse;width:100%;min-width:560px">
-          <thead><tr style="border-bottom:1px solid var(--borderL)">
-            <th style="text-align:left;padding:8px 12px;font-size:11px;line-height:1.3">CSM</th>
-            <th style="text-align:center;padding:8px 8px;font-size:11px;line-height:1.3" title="How many calls the CSM marked Y in the engagement tracker.">Self-Reported<br><span style="font-size:9px;color:var(--dim);font-weight:400">(tracker says Y)</span></th>
+          <thead><tr style="border-bottom:2px solid var(--borderL);background:var(--card)">
+            <th style="text-align:left;padding:8px 12px;font-size:11px;line-height:1.3;color:var(--muted)">CSM</th>
+            <th style="text-align:center;padding:8px 8px;font-size:11px;line-height:1.3;color:var(--muted)" title="How many calls the CSM marked Y in the engagement tracker.">Self-Reported<br><span style="font-size:9px;color:var(--dim);font-weight:400">(tracker says Y)</span></th>
             <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--green);line-height:1.3" title="Tracker Y + ≥1 HubSpot meeting that month.">Confirmed<br><span style="font-size:9px;color:var(--dim);font-weight:400">(matched HubSpot)</span></th>
             <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--red);line-height:1.3" title="Tracker Y but no HubSpot meeting found.">Unconfirmed<br><span style="font-size:9px;color:var(--dim);font-weight:400">(no HS meeting)</span></th>
             <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--amber);line-height:1.3" title="HubSpot meeting exists but tracker is blank/N.">Missed Logging<br><span style="font-size:9px;color:var(--dim);font-weight:400">(forgot to mark)</span></th>
-            <th style="text-align:center;padding:8px 8px;font-size:11px;line-height:1.3" title="Confirmed ÷ Self-Reported.">Tracker Accuracy<br><span style="font-size:9px;color:var(--dim);font-weight:400">(confirmed / reported)</span></th>
+            <th style="text-align:center;padding:8px 8px;font-size:11px;line-height:1.3;color:var(--muted)" title="Confirmed ÷ Self-Reported.">Tracker Accuracy<br><span style="font-size:9px;color:var(--dim);font-weight:400">(confirmed / reported)</span></th>
           </tr></thead>
           <tbody>
-            ${csmRows.map(x=>{
+            ${csmRows.map((x,i)=>{
               const r=x.s.markedY?Math.round(x.s.verified/x.s.markedY*100):0;
               const rColor=r>=80?'var(--green)':r>=50?'var(--amber)':'var(--red)';
-              return`<tr style="border-top:1px solid var(--border)">
-                <td style="padding:7px 12px;font-size:12px;font-weight:500">${x.c}</td>
-                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px">${x.s.markedY}</td>
-                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;color:var(--green)">${x.s.verified}</td>
-                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;color:${x.s.unverified?'var(--red)':'var(--dim)'}">${x.s.unverified}</td>
-                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;color:${x.s.forgot?'var(--amber)':'var(--dim)'}">${x.s.forgot}</td>
+              const rowBg=i%2===0?'var(--card)':'transparent';
+              return`<tr style="border-top:1px solid var(--border);background:${rowBg}">
+                <td style="padding:7px 12px;font-size:12px;font-weight:600;color:var(--text)">${x.c}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;color:var(--text)">${x.s.markedY}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;font-weight:600;color:${x.s.verified?'var(--green)':'var(--dim)'}">${x.s.verified}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;font-weight:600;color:${x.s.unverified?'var(--red)':'var(--dim)'}">${x.s.unverified}</td>
+                <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:12px;font-weight:600;color:${x.s.forgot?'var(--amber)':'var(--dim)'}">${x.s.forgot}</td>
                 <td style="text-align:center;padding:7px 8px;font-family:var(--mono);font-size:13px;font-weight:700;color:${x.s.markedY?rColor:'var(--dim)'}">${x.s.markedY?r+'%':'—'}</td>
               </tr>`;
             }).join('')}
           </tbody>
         </table>
-      </div>`:'<div style="font-size:12px;color:var(--dim);padding:8px 0">No CSM activity to score.</div>'}
+      </div>`:'<div style="font-size:12px;color:var(--muted);padding:8px 0">No CSM activity to score.</div>'}
       ${discPool.length?`<div id="cad-review-section" style="margin-top:18px;scroll-margin-top:60px">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Review & Resolve — <span style="color:var(--accent)">${_curAuditMo}</span> <span style="color:var(--dim);font-weight:400">(${_filtActive?`${discList.length} of ${discPool.length}`:discList.length}${discList.length>200?', showing first 200':''})</span></div>
         <div style="font-size:10px;color:var(--dim);margin-bottom:6px"><span style="color:var(--red)">❌ Unconfirmed</span> = tracker marked Y but no HubSpot meeting · <span style="color:var(--amber)">⚠ Missed Logging</span> = HubSpot meeting exists but tracker blank · click <strong style="color:var(--green)">Verify</strong> if you confirm the call really happened (e.g. on Zoom), or <strong style="color:var(--accent)">Note</strong> to record context.</div>
