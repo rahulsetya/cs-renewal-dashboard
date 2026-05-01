@@ -7204,11 +7204,26 @@ function rCadence(){
         if(col==='tracker')return (r.tracker||'').toLowerCase();
         if(col==='hubspot')return r.hsCount||0;
         if(col==='lastMtg')return r.lastDate||'';
+        if(col==='assignee')return (r.lastAssignee||'').toLowerCase();
         if(col==='override'){
           const o=r.override;
           return o?(o.status==='verified'?0:1):2;
         }
         return '';
+      };
+      // Format the HubSpot "Activity assigned to" cell for the Review table.
+      // Lead with the most-recent assignee; if multiple unique owners ran
+      // meetings that month, suffix " +N" with the full list in the tooltip.
+      // Returns a dim em-dash for Unconfirmed rows (no HS meeting → no owner).
+      const _escA=s=>String(s||'').replace(/[<>&"']/g,c=>({'<':'\x26lt;','>':'\x26gt;','&':'\x26amp;','"':'\x26quot;',"'":'\x26#39;'}[c]));
+      const _fmtAssigneeCell=r=>{
+        const list=Array.isArray(r.assignees)?r.assignees.filter(Boolean):[];
+        const last=String(r.lastAssignee||'').trim();
+        if(!last&&!list.length)return'<span style="color:var(--dim)">—</span>';
+        if(list.length<=1)return _escA(last||list[0]||'');
+        const others=list.filter(x=>x&&x!==last);
+        const tip=('All owners this month: '+list.join(', ')).replace(/"/g,'&quot;');
+        return _escA(last||list[0])+`<span style="margin-left:5px;color:var(--dim);font-size:10px;font-weight:500" title="${tip}">+${others.length}</span>`;
       };
       // Build the un-filtered discrepancy pool first — needed both for the
       // CSM dropdown options (you should be able to filter to any CSM that
@@ -7369,6 +7384,7 @@ function rCadence(){
               <th onclick="_cadDiscSetSort('tracker')" ${hov} style="text-align:center;${baseTh}" title="What the CSM put in the engagement tracker. Click to sort.">Tracker${arrow('tracker')}</th>
               <th onclick="_cadDiscSetSort('hubspot')" ${hov} style="text-align:center;${baseTh}" title="Number of meetings logged in HubSpot for this account in this month. Click to sort.">HubSpot${arrow('hubspot')}</th>
               <th onclick="_cadDiscSetSort('lastMtg')" ${hov} style="text-align:left;${baseTh}" title="Date of the most recent HubSpot meeting for this account/month. Click to sort.">Last Mtg${arrow('lastMtg')}</th>
+              <th onclick="_cadDiscSetSort('assignee')" ${hov} style="text-align:left;${baseTh}" title="HubSpot 'Activity assigned to' for the most recent meeting. Empty for Unconfirmed rows (no HS meeting). +N hint = additional unique owners that month, full list in tooltip. Click to sort.">Assigned to${arrow('assignee')}</th>
               <th onclick="_cadDiscSetSort('override')" ${hov} style="text-align:left;${baseTh}" title="Click to sort by override status (verified first, then noted, then none).">Override / Note${arrow('override')}</th>
               <th style="text-align:center;padding:6px 10px;line-height:1.3;color:var(--dim);font-weight:600">Actions</th>
             </tr></thead>`;})()}
@@ -7408,6 +7424,7 @@ function rCadence(){
                   <td style="padding:5px 10px;text-align:center;font-family:var(--mono)">${r.tracker||'—'}</td>
                   <td style="padding:5px 10px;text-align:center;font-family:var(--mono);color:${r.hsCount>0?'var(--green)':'var(--dim)'}">${r.hsCount}</td>
                   <td style="padding:5px 10px;font-family:var(--mono);color:var(--dim)">${r.lastDate||'—'}</td>
+                  <td style="padding:5px 10px;font-size:11px;color:var(--text)">${_fmtAssigneeCell(r)}</td>
                   <td style="padding:5px 10px;font-size:10px">${ovrCell}</td>
                   <td style="padding:5px 10px;text-align:center;white-space:nowrap">${actions}</td>
                 </tr>`;
