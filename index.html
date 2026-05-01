@@ -3215,7 +3215,7 @@ function _render(){
     h+=`<div class="cd" style="padding:20px">`;
     // Search bar — top of the Pipeline tab. Live updates via ss('pipelineSearch').
     // Match counter on the right shows "X of Y" while a query is active.
-    h+=`<div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
+    h+=`<div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;justify-content:flex-start;flex-wrap:wrap">
       <input type="text" data-sf="pipeline-search" placeholder="Search account, owner, AE, Stage" value="${(S.pipelineSearch||'').replace(/"/g,'&quot;')}" oninput="ss('pipelineSearch',this.value)" style="width:260px;background:#0a1628;border:1px solid ${_psQ?'#3b82f6':'#1e3a5f'};border-radius:5px;color:#e2e8f0;font-size:11px;padding:5px 9px;font-family:inherit;outline:none">
       ${_psQ?`<span style="font-size:10px;color:#94a3b8"><strong style="color:#e2e8f0">${pTot}</strong>/${tot}</span><button onclick="ss('pipelineSearch','')" title="Clear search" style="background:transparent;border:1px solid #7f1d1d;color:#fca5a5;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">✕</button>`:''}
     </div>`;
