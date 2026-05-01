@@ -4676,13 +4676,20 @@ function _render(){
           Q1:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
           Q2:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
           Q3:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
-          Q4:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0}
+          Q4:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0},
+          // Bucket for rows in D that have no parseable Contract End month.
+          // Without this, the table total didn't match the YTD subtotal because
+          // em-less rows were silently dropped. Now they roll into "Unscheduled"
+          // so the Total row reconciles to the company-wide YTD count.
+          UN:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0}
         };
         (D||[]).forEach(d=>{
-          if(!d.em)return;
-          const m=parseInt(String(d.em).substring(5,7),10);
-          if(!m)return;
-          const q=m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4';
+          let q;
+          if(!d.em)q='UN';
+          else{
+            const m=parseInt(String(d.em).substring(5,7),10);
+            q=!m?'UN':(m<=3?'Q1':m<=6?'Q2':m<=9?'Q3':'Q4');
+          }
           const b=_qbq[q];
           const r25=d.r25||0,r26=d.o||0;
           b.t++;b.tR+=r25;
@@ -6417,10 +6424,16 @@ function rOverview(){
       };
       const have26=typeof _QBYQ_2026!=='undefined'&&_QBYQ_2026;
       const Q26=have26?_QBYQ_2026:{Q1:{w:0,t:0,wR:0},Q2:{w:0,t:0,wR:0},Q3:{w:0,t:0,wR:0},Q4:{w:0,t:0,wR:0}};
+      // Unscheduled bucket (rows in D with no parseable Contract End month).
+      // Folded into the Total row so the table reconciles to the YTD subtotal
+      // above (325 logos won, 1090 total) — without it the table was short by
+      // however many em-less accounts were in stages 9/10.
+      const Q26un=have26&&_QBYQ_2026.UN?_QBYQ_2026.UN:{w:0,t:0,wR:0};
       const fmtPct=(w,t)=>t>0?((w/t)*100):0;
       const sumK=(o,k)=>['Q1','Q2','Q3','Q4'].reduce((a,q)=>a+(o[q][k]||0),0);
       const tot25={w:sumK(Q25,'w'),t:sumK(Q25,'t'),wR:sumK(Q25,'wR')};
-      const tot26={w:sumK(Q26,'w'),t:sumK(Q26,'t'),wR:sumK(Q26,'wR')};
+      // Total includes Unscheduled so the row matches the YTD subtotal exactly.
+      const tot26={w:sumK(Q26,'w')+Q26un.w,t:sumK(Q26,'t')+Q26un.t,wR:sumK(Q26,'wR')+Q26un.wR};
       const rowFor=q=>{
         const a=Q25[q],b=Q26[q];
         const p25=fmtPct(a.w,a.t),p26=fmtPct(b.w,b.t);
@@ -6474,7 +6487,7 @@ function rOverview(){
             </tr>
           </tbody>
         </table>
-        <div style="margin-top:8px;font-size:10px;color:var(--muted);font-style:italic">2026 quarter assignment is by Contract End date — open/declined/churned accounts in a future quarter still appear in W/T denominator.</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--muted);font-style:italic">2026 quarter assignment is by Contract End date — open/declined/churned accounts in a future quarter still appear in W/T denominator.${Q26un.t?` <span style="color:var(--amber)">${Q26un.t} account${Q26un.t===1?'':'s'} (incl. ${Q26un.w} won) had no parseable Contract End date and are folded into the Total row only.</span>`:''}</div>
       </div>`;
     })()}
     <div class="callout">
