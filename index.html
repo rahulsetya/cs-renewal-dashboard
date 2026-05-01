@@ -3186,12 +3186,48 @@ function _render(){
     // labels (does NOT touch the global KPI cards above — those still show
     // unfiltered totals so the search results stay in context).
     const _psQ=String(S.pipelineSearch||'').trim().toLowerCase();
+    // Quarter token parser — recognizes "q1 2026", "2026 q1", or bare "q1"
+    // and converts it to a sub-end-date filter. Any remaining text after
+    // the quarter token is stripped is matched as a normal substring.
+    // Examples:
+    //   "q1 2026"          → sub end in 2026 Q1 (Jan/Feb/Mar)
+    //   "q2"               → sub end in any-year Q2 (Apr/May/Jun)
+    //   "q3 2026 enterprise" → 2026 Q3 AND text bag contains "enterprise"
+    const _Q_MONTHS={1:['01','02','03'],2:['04','05','06'],3:['07','08','09'],4:['10','11','12']};
+    let _pQFilt=null, _pQResid=_psQ;
+    if(_psQ){
+      const qmYQ=_psQ.match(/\bq([1-4])\s*(20\d{2})\b/)||_psQ.match(/\b(20\d{2})\s*q([1-4])\b/);
+      if(qmYQ){
+        // Two patterns share groups differently — pick the digits that look right
+        const qNum=parseInt(qmYQ[1].length===1?qmYQ[1]:qmYQ[2]);
+        const yr=qmYQ[1].length===4?qmYQ[1]:qmYQ[2];
+        _pQFilt={y:yr,months:_Q_MONTHS[qNum]};
+        _pQResid=_psQ.replace(qmYQ[0],'').trim();
+      }else{
+        const qmBare=_psQ.match(/\bq([1-4])\b/);
+        if(qmBare){
+          _pQFilt={y:null,months:_Q_MONTHS[parseInt(qmBare[1])]};
+          _pQResid=_psQ.replace(qmBare[0],'').trim();
+        }
+      }
+    }
     let pf=f, psc=sc, psMaxN=maxN, pPrevSc=prevSc, pStageIn=stageIn, pStageOut=stageOut, pTot=tot, pR25T=r25T, pOffT=offT;
     if(_psQ){
       pf=f.filter(d=>{
-        const flagText=(d.sg||[]).map(s=>SIG_L[s]||'').join(' ');
-        const bag=[d.c,d.ro,d.ae,d.s,SH[d.s]||'',d.se,flagText].map(x=>String(x||'').toLowerCase()).join(' ');
-        return bag.indexOf(_psQ)>=0;
+        // Quarter filter — applied first so it works alone or combined with text
+        if(_pQFilt){
+          const seY=String(d.se||'').substring(0,4);
+          const seM=String(d.se||'').substring(5,7);
+          if(_pQFilt.y&&seY!==_pQFilt.y)return false;
+          if(!_pQFilt.months.includes(seM))return false;
+        }
+        // Text filter — only run on the residual (with the quarter token stripped)
+        if(_pQResid){
+          const flagText=(d.sg||[]).map(s=>SIG_L[s]||'').join(' ');
+          const bag=[d.c,d.ro,d.ae,d.s,SH[d.s]||'',d.se,flagText].map(x=>String(x||'').toLowerCase()).join(' ');
+          if(bag.indexOf(_pQResid)<0)return false;
+        }
+        return true;
       });
       psc={};ST.forEach(s=>psc[s]={n:0,r25:0,off:0});
       pf.forEach(d=>{if(psc[d.s]){psc[d.s].n++;psc[d.s].r25+=d.r25;psc[d.s].off+=d.o;}});
@@ -3215,7 +3251,7 @@ function _render(){
     // Search bar — top of the Pipeline tab. Live updates via ss('pipelineSearch').
     // Match counter on the right shows "X of Y" while a query is active.
     h+=`<div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;justify-content:flex-start;flex-wrap:wrap">
-      <input type="text" data-sf="pipeline-search" placeholder="Search account, owner, AE, Stage" value="${(S.pipelineSearch||'').replace(/"/g,'&quot;')}" oninput="ss('pipelineSearch',this.value)" style="width:260px;background:#0a1628;border:1px solid ${_psQ?'#3b82f6':'#1e3a5f'};border-radius:5px;color:#e2e8f0;font-size:11px;padding:5px 9px;font-family:inherit;outline:none">
+      <input type="text" data-sf="pipeline-search" placeholder="Search account, owner, AE, Stage, q1 2026…" title="Type 'q1 2026' to filter by sub end quarter — combinable with text (e.g. 'q3 2026 enterprise')" value="${(S.pipelineSearch||'').replace(/"/g,'&quot;')}" oninput="ss('pipelineSearch',this.value)" style="width:300px;background:#0a1628;border:1px solid ${_psQ?'#3b82f6':'#1e3a5f'};border-radius:5px;color:#e2e8f0;font-size:11px;padding:5px 9px;font-family:inherit;outline:none">
       ${_psQ?`<span style="font-size:10px;color:#94a3b8"><strong style="color:#e2e8f0">${pTot}</strong>/${tot}</span><button onclick="ss('pipelineSearch','')" title="Clear search" style="background:transparent;border:1px solid #7f1d1d;color:#fca5a5;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit">✕</button>`:''}
     </div>`;
     h+=`<div class="sg" style="cursor:default;margin-bottom:10px"><div style="font-size:11px;color:#475569;text-align:right">Stage</div><div></div><div style="font-size:11px;color:#475569;text-align:right">#</div><div style="font-size:11px;color:#fbbf24;text-align:right;font-weight:600">2025 Rev</div><div style="font-size:11px;color:#22d3ee;text-align:right;font-weight:600">2026 Offer</div><div style="font-size:11px;color:#64748b;text-align:right">Delta $</div><div style="font-size:11px;color:#64748b;text-align:right">Delta %</div></div>`;
