@@ -4683,6 +4683,10 @@ function _render(){
           // so the Total row reconciles to the company-wide YTD count.
           UN:{w:0,c:0,de:0,o:0,t:0,wR:0,tR:0,wR26:0}
         };
+        // Capture the actual account names in the Unscheduled bucket so the
+        // table can offer a "view 5 accounts" expander instead of just a count.
+        // Sorted later by stage (won first, then declined/churned, then open).
+        const _qbqUn=[];
         (D||[]).forEach(d=>{
           let q;
           if(!d.em)q='UN';
@@ -4698,8 +4702,19 @@ function _render(){
           else if(_ytdChurnQ.has(s)){b.c++;}
           else if(_ytdDeclQ.has(s)){b.de++;}
           else{b.o++;}
+          if(q==='UN'){
+            _qbqUn.push({n:d.c||'',s,ro:d.ro||'',r25,sp:!!d.__sp,seRaw:String(d.se||'').trim()});
+          }
         });
-        src=src.replace(/const ACCTS=/,`const _QBYQ_2026=${JSON.stringify(_qbq)};\nconst ACCTS=`);
+        // Sort: won first (highest priority — these are why Total didn't match),
+        // then churned, declined, open. Within each, by revenue desc.
+        const _unOrder={'9. Invoice Sent':0,'10. Paid':0,'11. Churned':1,'4a. Attempting again Q2':2};
+        _qbqUn.sort((a,b)=>{
+          const oa=_unOrder[a.s]??3,ob=_unOrder[b.s]??3;
+          if(oa!==ob)return oa-ob;
+          return (b.r25||0)-(a.r25||0);
+        });
+        src=src.replace(/const ACCTS=/,`const _QBYQ_2026=${JSON.stringify(_qbq)};\nconst _QBYQ_2026_UN=${JSON.stringify(_qbqUn)};\nconst ACCTS=`);
       }catch(e){console.warn('[goals] 2026 quarterly aggregate inject failed:',e);}
       // Inject live SP owner roster (per-owner account count, revenue, won,
       // won revenue) — computed from SP_RAW in _buildLiveGoalsData(). Same
@@ -5236,6 +5251,8 @@ function sc(label,value,sub,color,extra){return`<div class="stat"><div class="ba
 // the YTD Actuals tiles. Both args are pre-formatted strings.
 function _segLine(gpStr,spStr){return`<span style="color:#10b981;font-weight:700">GP</span> ${gpStr} <span style="color:#475569;margin:0 3px">·</span> <span style="color:#f43f5e;font-weight:700">SP</span> ${spStr}`}
 function _toggleMismatch(id){const el=document.getElementById('mismatch-'+id);const ar=document.getElementById('mismatch-'+id+'-arrow');if(!el)return;const open=el.style.display==='';el.style.display=open?'none':'';if(ar)ar.textContent=open?'▸':'▾';}
+// Toggle the Unscheduled-accounts panel under the 2025v2026 quarterly table.
+function _toggleQbqUn(){const el=document.getElementById('qbqun-panel');const ar=document.getElementById('qbqun-arrow');if(!el)return;const open=el.style.display==='none';el.style.display=open?'block':'none';if(ar)ar.textContent=open?'▾':'▸';}
 
 // Pool card (4-state: won/open/declined/lost)
 function poolCard(pool,d,target,gifted){
@@ -6487,7 +6504,29 @@ function rOverview(){
             </tr>
           </tbody>
         </table>
-        <div style="margin-top:8px;font-size:10px;color:var(--muted);font-style:italic">2026 quarter assignment is by Contract End date — open/declined/churned accounts in a future quarter still appear in W/T denominator.${Q26un.t?` <span style="color:var(--amber)">${Q26un.t} account${Q26un.t===1?'':'s'} (incl. ${Q26un.w} won) had no parseable Contract End date and are folded into the Total row only.</span>`:''}</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--muted);font-style:italic">2026 quarter assignment is by Contract End date — open/declined/churned accounts in a future quarter still appear in W/T denominator.${Q26un.t?` <span style="color:var(--amber);cursor:pointer;font-style:normal;font-weight:600;text-decoration:underline;text-decoration-style:dotted" onclick="_toggleQbqUn()" title="Click to see which accounts are missing a Contract End date">${Q26un.t} account${Q26un.t===1?'':'s'} (incl. ${Q26un.w} won) had no parseable Contract End date and are folded into the Total row only. <span id="qbqun-arrow">▸</span></span>`:''}</div>
+        ${Q26un.t&&typeof _QBYQ_2026_UN!=='undefined'&&_QBYQ_2026_UN.length?`<div id="qbqun-panel" style="display:none;margin-top:8px;background:var(--bg);border:1px solid var(--amber);border-radius:8px;padding:10px 12px;max-height:280px;overflow-y:auto">
+          <div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:6px 14px;align-items:baseline;font-size:11px">
+            <div style="font-size:9px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Type</div>
+            <div style="font-size:9px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Account</div>
+            <div style="font-size:9px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Owner</div>
+            <div style="font-size:9px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Stage</div>
+            <div style="font-size:9px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.4px;text-align:right">2025 Rev</div>
+            ${_QBYQ_2026_UN.map(u=>{
+              const isWon=u.s==='9. Invoice Sent'||u.s==='10. Paid';
+              const isChurn=u.s==='11. Churned';
+              const sCol=isWon?'var(--green)':isChurn?'var(--red)':u.s==='4a. Attempting again Q2'?'var(--orange)':'var(--muted)';
+              const segCol=u.sp?'#f43f5e':'#10b981';
+              const segLbl=u.sp?'SP':'GP';
+              return `<div style="font-size:10px;color:${segCol};font-weight:700">${segLbl}</div>
+              <div style="color:var(--text);font-weight:500">${u.n||'<em style="color:var(--dim)">(unnamed)</em>'}</div>
+              <div style="color:var(--muted);font-size:10px">${u.ro||'—'}</div>
+              <div style="color:${sCol};font-size:10px;font-weight:600">${u.s?(typeof SH!=='undefined'&&SH[u.s])||u.s:'—'}</div>
+              <div style="color:var(--muted);font-family:var(--mono);text-align:right;font-size:10px">${u.r25?fmt(u.r25):'—'}</div>`;
+            }).join('')}
+          </div>
+          <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--borderL);font-size:9px;color:var(--dim);font-style:italic">Fix: add a Final Sub End Date in the source spreadsheet for each row above so it gets bucketed into a quarter.</div>
+        </div>`:''}
       </div>`;
     })()}
     <div class="callout">
