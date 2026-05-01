@@ -6242,12 +6242,12 @@ function rOverview(){
         const dPts=have26&&b.t>0?(p26-p25):null;
         const dCol=dPts==null?'var(--dim)':dPts>=2?'var(--green)':dPts>=-2?'var(--amber)':'var(--red)';
         const dStr=dPts==null?'—':(dPts>=0?'+':'')+dPts.toFixed(1)+' pts';
-        return `<tr style="border-top:1px solid #1e293b">
+        return `<tr style="border-top:1px solid var(--border)">
           <td style="padding:8px 10px;font-weight:600;color:var(--text)">${q}</td>
           <td style="padding:8px 10px;text-align:right;color:var(--muted)">${a.w}/${a.t}</td>
-          <td style="padding:8px 10px;text-align:right;color:#fbbf24;font-weight:600">${pct(p25)}</td>
+          <td style="padding:8px 10px;text-align:right;color:var(--amber);font-weight:600">${pct(p25)}</td>
           <td style="padding:8px 10px;text-align:right;color:var(--muted)">${fmt(a.wR)}</td>
-          <td style="padding:8px 10px;text-align:right;color:var(--muted);border-left:1px solid #1e293b">${have26?b.w+'/'+b.t:'—'}</td>
+          <td style="padding:8px 10px;text-align:right;color:var(--muted);border-left:1px solid var(--border)">${have26?b.w+'/'+b.t:'—'}</td>
           <td style="padding:8px 10px;text-align:right;font-weight:600;color:${have26&&p26>=p25?'var(--green)':have26?'var(--red)':'var(--dim)'}">${have26?pct(p26):'—'}</td>
           <td style="padding:8px 10px;text-align:right;color:var(--muted)">${have26?fmt(b.wR):'—'}</td>
           <td style="padding:8px 10px;text-align:right;font-weight:600;color:${dCol}">${dStr}</td>
@@ -6264,12 +6264,12 @@ function rOverview(){
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit">
           <thead>
-            <tr style="border-bottom:2px solid #1e293b;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px">
+            <tr style="border-bottom:2px solid var(--borderL);color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px">
               <th style="padding:6px 10px;text-align:left">Quarter</th>
               <th style="padding:6px 10px;text-align:right">2025 W/T</th>
               <th style="padding:6px 10px;text-align:right">2025 %</th>
               <th style="padding:6px 10px;text-align:right">2025 Renewed Rev</th>
-              <th style="padding:6px 10px;text-align:right;border-left:1px solid #1e293b">2026 W/T</th>
+              <th style="padding:6px 10px;text-align:right;border-left:1px solid var(--border)">2026 W/T</th>
               <th style="padding:6px 10px;text-align:right">2026 %</th>
               <th style="padding:6px 10px;text-align:right">2026 Renewed Rev</th>
               <th style="padding:6px 10px;text-align:right">Δ pts (YoY)</th>
@@ -6277,12 +6277,12 @@ function rOverview(){
           </thead>
           <tbody>
             ${['Q1','Q2','Q3','Q4'].map(rowFor).join('')}
-            <tr style="border-top:2px solid #334155;background:rgba(255,255,255,.02)">
+            <tr style="border-top:2px solid var(--borderL);background:var(--card)">
               <td style="padding:9px 10px;font-weight:700;color:var(--text)">Total</td>
               <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600">${tot25.w}/${tot25.t}</td>
-              <td style="padding:9px 10px;text-align:right;color:#fbbf24;font-weight:700">${pct(p25T)}</td>
+              <td style="padding:9px 10px;text-align:right;color:var(--amber);font-weight:700">${pct(p25T)}</td>
               <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600">${fmt(tot25.wR)}</td>
-              <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600;border-left:1px solid #1e293b">${have26?tot26.w+'/'+tot26.t:'—'}</td>
+              <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600;border-left:1px solid var(--border)">${have26?tot26.w+'/'+tot26.t:'—'}</td>
               <td style="padding:9px 10px;text-align:right;font-weight:700;color:${have26&&p26T>=p25T?'var(--green)':have26?'var(--red)':'var(--dim)'}">${have26?pct(p26T):'—'}</td>
               <td style="padding:9px 10px;text-align:right;color:var(--text);font-weight:600">${have26?fmt(tot26.wR):'—'}</td>
               <td style="padding:9px 10px;text-align:right;font-weight:700;color:${dColT}">${dStrT}</td>
@@ -7378,7 +7378,15 @@ function rCadence(){
 // selGPOwner / S.owner in parent): 'ALL' or an array of CSM names + 'POD:<x>'
 // tokens. The off-pod chip uses 'POD:<pod>:OFF' the same way the GP dropdown
 // does, so we can reuse _gpItemMatches verbatim for matching.
-let _aaState={owner:'ALL',search:'',segFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};
+let _aaState={owner:'ALL',search:'',segFilter:'',riskFilter:'',flagFilter:{addCredits:0,miaBooth:0,outdated:0,gvPromo:0},sortCol:'n',sortDir:'asc',openNote:''};
+// Capture+restore inner scroll position around re-renders so sorting (and
+// flag-toggles) don't snap the table back to the left.
+function _aaScrollPreserve(fn){
+  const sc=document.getElementById('aa-scroll');
+  const sx=sc?sc.scrollLeft:0,sy=sc?sc.scrollTop:0;
+  fn();
+  requestAnimationFrame(()=>{const sc2=document.getElementById('aa-scroll');if(sc2){sc2.scrollLeft=sx;sc2.scrollTop=sy;}});
+}
 let _AA_OWNER_DROP_OPEN=false;
 const _aaCols=[
   {k:'n',l:'Account',w:180},
@@ -7433,11 +7441,12 @@ function _aaGetVal(r,k){
   }
   return r[k];
 }
-function _aaSort(col){if(_aaState.sortCol===col)_aaState.sortDir=_aaState.sortDir==='asc'?'desc':'asc';else{_aaState.sortCol=col;_aaState.sortDir='asc';}rAllAccts();}
+function _aaSort(col){_aaScrollPreserve(()=>{if(_aaState.sortCol===col)_aaState.sortDir=_aaState.sortDir==='asc'?'desc':'asc';else{_aaState.sortCol=col;_aaState.sortDir='asc';}rAllAccts();});}
 function _aaSetSearch(v){_aaState.search=v;rAllAccts();}
 function _aaSetSeg(v){_aaState.segFilter=v;rAllAccts();}
 function _aaSetRisk(v){_aaState.riskFilter=v;rAllAccts();}
-function _aaReset(){_aaState={owner:'ALL',search:'',segFilter:'',riskFilter:'',sortCol:'n',sortDir:'asc',openNote:''};_AA_OWNER_DROP_OPEN=false;rAllAccts();}
+function _aaToggleFlag(k){_aaScrollPreserve(()=>{if(!_aaState.flagFilter)_aaState.flagFilter={addCredits:0,miaBooth:0,outdated:0,gvPromo:0};_aaState.flagFilter[k]=_aaState.flagFilter[k]?0:1;rAllAccts();});}
+function _aaReset(){_aaState={owner:'ALL',search:'',segFilter:'',riskFilter:'',flagFilter:{addCredits:0,miaBooth:0,outdated:0,gvPromo:0},sortCol:'n',sortDir:'asc',openNote:''};_AA_OWNER_DROP_OPEN=false;rAllAccts();}
 // Owner dropdown helpers — own state separate from GP Retention's selGPOwner
 // so the two dropdowns can be open/closed independently.
 function _aaOwnerSel(){
@@ -7530,6 +7539,13 @@ function rAllAccts(){
   if(_aaState.segFilter)rows=rows.filter(r=>r.seg===_aaState.segFilter);
   if(_aaState.riskFilter==='yes')rows=rows.filter(r=>r.rsk===1);
   else if(_aaState.riskFilter==='no')rows=rows.filter(r=>!r.rsk);
+  // Master List flag filters — each toggled flag narrows to rows where it's "Yes".
+  // Multiple toggled flags AND together (e.g. "Add 15 Credits" AND "GV Promo").
+  const _ff=_aaState.flagFilter||{};
+  if(_ff.addCredits)rows=rows.filter(r=>r.addCredits===1);
+  if(_ff.miaBooth)rows=rows.filter(r=>r.miaBooth===1);
+  if(_ff.outdated)rows=rows.filter(r=>r.outdated===1);
+  if(_ff.gvPromo)rows=rows.filter(r=>r.gvPromo===1);
   if(_aaState.search){
     const q=_aaState.search.toLowerCase();
     rows=rows.filter(r=>{
@@ -7555,14 +7571,30 @@ function rAllAccts(){
   const callCell=v=>{const s=String(v||'').trim().toLowerCase();if(s.startsWith('y'))return'<span style="color:var(--green);font-weight:700">✓</span>';if(s.startsWith('n'))return'<span style="color:var(--red)">✗</span>';return s?`<span style="color:var(--dim);font-size:10px">${s.substring(0,3)}</span>`:'';};
   const st=`padding:6px 8px;font-size:11px;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
   const thSt=`padding:8px 8px;font-size:10px;font-weight:600;color:var(--dim);text-align:left;cursor:pointer;user-select:none;white-space:nowrap;background:var(--card);position:sticky;top:0;z-index:1;border-bottom:2px solid var(--borderL)`;
+  // Account column stays pinned to the left when scrolling horizontally so the
+  // row identity is always visible. Two layers of sticky here:
+  //  • Header corner cell needs z-index:3 (above both top-sticky and left-sticky)
+  //  • Body Account cell needs z-index:2 (above scrolling body cells which are z:auto)
+  // Background must be opaque or content underneath shows through. We use
+  // var(--bg) (slightly darker than the surrounding card) so the pinned column
+  // visually pops as a separate "frozen" zone rather than blending in.
+  const thStPin=thSt+`;left:0;z-index:3;background:var(--bg);box-shadow:2px 0 0 var(--borderL)`;
+  const stPin=st+`;position:sticky;left:0;z-index:2;background:var(--bg);box-shadow:2px 0 0 var(--borderL)`;
+  // Subtle violet tint on the four flag column cells so they read as a related
+  // group separate from the rest of the table.
+  const stFlag=st+`;background:rgba(139,92,246,.05)`;
+  const stFlagFirst=stFlag+`;border-left:2px solid rgba(139,92,246,.3)`;
+  const thFlag=thSt+`;background:rgba(139,92,246,.10)`;
+  const thFlagFirst=thFlag+`;border-left:2px solid rgba(139,92,246,.4)`;
   // active vs inactive filter styles for visual polish
   const filterStBase=`border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;transition:all .12s`;
   const filterSt=`background:var(--bg);border:1px solid var(--borderL);color:var(--text);${filterStBase}`;
   const filterStAct=`background:#1e3a5f;border:1px solid #3b82f6;color:#dbeafe;${filterStBase};font-weight:600`;
   const sel=v=>v?filterStAct:filterSt;
   const ownerActive=_aaOwnerSel().mode==='PICK';
-  const anyActive=!!(ownerActive||_aaState.segFilter||_aaState.riskFilter||_aaState.search);
-  const activeCount=[ownerActive,_aaState.segFilter,_aaState.riskFilter,_aaState.search].filter(Boolean).length;
+  const _flagsActive=Object.values(_aaState.flagFilter||{}).filter(Boolean).length;
+  const anyActive=!!(ownerActive||_aaState.segFilter||_aaState.riskFilter||_aaState.search||_flagsActive);
+  const activeCount=[ownerActive,_aaState.segFilter,_aaState.riskFilter,_aaState.search].filter(Boolean).length+_flagsActive;
 
   const _sfR=_sfSnapshot();
   el.innerHTML=`
@@ -7639,14 +7671,41 @@ function rAllAccts(){
             <option value="no" ${_aaState.riskFilter==='no'?'selected':''}>Clean</option>
           </select>
         </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(139,92,246,.10);border:1px solid rgba(139,92,246,.35);border-radius:8px">
+          <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#7c3aed">Flags</span>
+          ${(()=>{
+            const ff=_aaState.flagFilter||{};
+            const _flagBtn=(k,l,ct)=>{
+              const on=!!ff[k];
+              const base=`border-radius:6px;padding:6px 10px;font-size:11px;font-family:inherit;cursor:pointer;transition:all .12s;white-space:nowrap`;
+              // "Off" state: subtle violet-tinted bg, themed text via var(--text) so it
+              // reads on both light and dark page backgrounds. "On" state: solid violet
+              // pill with white text + outer glow ring so it's unmistakably active.
+              const off=`background:var(--card);border:1px solid rgba(139,92,246,.45);color:var(--text);${base}`;
+              const onSt=`background:#7c3aed;border:1px solid #7c3aed;color:#fff;${base};font-weight:700;box-shadow:0 0 0 2px rgba(139,92,246,.30)`;
+              return `<button onclick="_aaToggleFlag('${k}')" style="${on?onSt:off}" title="${on?'Showing only ':''}${l} ${on?'':'(click to filter)'} · ${ct} accts">${on?'✓ ':''}${l}<span style="opacity:.7;margin-left:5px;font-weight:500">${ct}</span></button>`;
+            };
+            const _ct=k=>all.filter(a=>a[k]===1).length;
+            return _flagBtn('addCredits','Add 15 Credits',_ct('addCredits'))
+                  +_flagBtn('miaBooth','MIA Booth',_ct('miaBooth'))
+                  +_flagBtn('outdated','Outdated Fund Perf',_ct('outdated'))
+                  +_flagBtn('gvPromo','GV Promo',_ct('gvPromo'));
+          })()}
+        </div>
         <input type="text" data-sf="aa-search" placeholder="🔍 Search account, CSM, notes, pod…" value="${(_aaState.search||'').replace(/"/g,'&quot;')}" oninput="_aaSetSearch(this.value)" style="${sel(_aaState.search)};flex:1;min-width:240px;outline:none">
         <button onclick="_aaReset()" style="${filterSt};cursor:pointer;${anyActive?'color:#fca5a5;border-color:#7f1d1d':'color:var(--dim);opacity:.6'}" ${anyActive?'':'disabled'}>${anyActive?`Reset (${activeCount})`:'Reset'}</button>
         <span style="font-size:11px;color:var(--dim);margin-left:auto;padding:6px 10px;background:var(--card);border-radius:6px;border:1px solid var(--border)"><strong style="color:var(--text);font-size:13px">${rows.length}</strong> <span style="opacity:.7">/ ${all.length}</span></span>
       </div>
-      <div style="overflow:auto;max-height:72vh;border:1px solid var(--border);border-radius:8px">
+      <div id="aa-scroll" style="overflow:auto;max-height:72vh;border:1px solid var(--border);border-radius:8px">
         <table style="width:100%;border-collapse:collapse;font-family:var(--mono);table-layout:auto">
           <thead><tr>
-            ${_aaCols.map(c=>`<th onclick="_aaSort('${c.k}')" style="${thSt};min-width:${c.w}px;text-align:${c.right?'right':c.center?'center':'left'}">${c.l}${arr(c.k)}</th>`).join('')}
+            ${_aaCols.map((c,i)=>{
+              const _flagFirst=c.k==='addCredits';
+              const _flag=c.flag;
+              const baseTh=i===0?thStPin:_flag?(_flagFirst?thFlagFirst:thFlag):thSt;
+              const sty=baseTh+`;min-width:${c.w}px;text-align:${c.right?'right':c.center?'center':'left'}`;
+              return `<th onclick="_aaSort('${c.k}')" style="${sty}">${c.l}${arr(c.k)}</th>`;
+            }).join('')}
           </tr></thead>
           <tbody>
             ${rows.length===0?`<tr><td colspan="${_aaCols.length}" style="padding:32px;text-align:center;color:var(--dim)">No accounts match the current filters.</td></tr>`:
@@ -7656,7 +7715,7 @@ function rAllAccts(){
               const noteOpen=_aaState.openNote===r.n;
               const cntCols=_aaCols.length;
               return `<tr style="${r.rsk?'background:rgba(239,68,68,.04)':''}${noteOpen?';border-bottom:none':''}">
-              <td onclick="_aaToggleNote('${nameEsc}')" style="${st};color:var(--text);font-weight:500;max-width:180px;cursor:pointer;user-select:none" title="${hasNotes?'Click to toggle notes':(r.n||'').replace(/"/g,'&quot;')}">${r.n||''}${hasNotes?`<span style="font-size:10px;color:var(--dim);margin-left:6px;white-space:nowrap">${noteOpen?'▾':'▸'} notes</span>`:''}</td>
+              <td onclick="_aaToggleNote('${nameEsc}')" style="${stPin};color:var(--text);font-weight:500;max-width:180px;cursor:pointer;user-select:none${r.rsk?';border-left:3px solid rgba(239,68,68,.55)':''}" title="${hasNotes?'Click to toggle notes':(r.n||'').replace(/"/g,'&quot;')}">${r.n||''}${hasNotes?`<span style="font-size:10px;color:var(--dim);margin-left:6px;white-space:nowrap">${noteOpen?'▾':'▸'} notes</span>`:''}</td>
               <td style="${st};color:var(--accent)">${r.csRep||'<span style=color:var(--dim)>—</span>'}</td>
               <td style="${st};color:var(--muted)">${r.pod||''}</td>
               <td style="${st};color:var(--muted)">${r.ae||''}</td>
@@ -7672,10 +7731,10 @@ function rAllAccts(){
               <td style="${st};text-align:center">${yes(r.gm)}</td>
               <td style="${st};text-align:center">${yes(r.expn)}</td>
               <td style="${st};color:var(--muted);font-size:10px">${_aaFmtDate(r.nextTP)}</td>
-              <td style="${st};text-align:center">${yes(r.addCredits)}</td>
-              <td style="${st};text-align:center">${yes(r.miaBooth)}</td>
-              <td style="${st};text-align:center">${yes(r.outdated)}</td>
-              <td style="${st};text-align:center">${yes(r.gvPromo)}</td>
+              <td style="${stFlagFirst};text-align:center">${yes(r.addCredits)}</td>
+              <td style="${stFlag};text-align:center">${yes(r.miaBooth)}</td>
+              <td style="${stFlag};text-align:center">${yes(r.outdated)}</td>
+              <td style="${stFlag};text-align:center">${yes(r.gvPromo)}</td>
             </tr>${noteOpen&&hasNotes?`<tr style="background:${r.rsk?'rgba(239,68,68,.06)':'rgba(255,255,255,.02)'}"><td colspan="${cntCols}" style="padding:10px 14px 12px 28px;font-size:12px;color:var(--muted);line-height:1.6;border-bottom:1px solid var(--border);white-space:normal"><span style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-right:8px">Risk Notes</span>${(r.notes||'').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</td></tr>`:''}`;
             }).join('')}
           </tbody>
