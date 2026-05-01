@@ -2550,8 +2550,10 @@ function _buildLiveGoalsData(){
       // Capture both date sources separately so the GP Retention drilldown can
       // render them side-by-side. seRM = Renewal Master "Final Sub End Date";
       // seET = Engagement Tracker "Contract End". `se` (above) keeps the
-      // legacy ET-preferred value for back-compat.
-      seRM:se||'',seET:_aaSeET||'',
+      // legacy ET-preferred value for back-compat. qRM is the RM-derived
+      // quarter (parallel to `q`, which is the ET-preferred quarter) so the
+      // GP Retention tab can group by Renewal Master dates exclusively.
+      seRM:se||'',seET:_aaSeET||'',qRM:q||'',
       // Extended fields for the All Accounts tab (April 2026 Combined Master schema)
       ae:r.ae||'',seg:r.seg||'',rev26:r.rev26||0,rawEnd:r.rawEnd||'',
       pod:r.pod||'',txnDone:r.txnDone||0,out:r.out||0,gm:r.gm||0,
@@ -2589,8 +2591,9 @@ function _buildLiveGoalsData(){
     allAccts.push({
       n:renewal.name,pool:'Scale',q:q||'none',stage,se,rev,csRep:'',rsk:0,notes:'Not in engagement tracker',
       // RM-only account (no ET row) → seET stays empty so the drilldown
-      // renders an em-dash for the Engagement Tracker column.
-      seRM:se||'',seET:'',
+      // renders an em-dash for the Engagement Tracker column. qRM mirrors
+      // q here since this branch is RM-only.
+      seRM:se||'',seET:'',qRM:q||'',
       ae:'',seg:'Scale',rev26:0,rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
       platformId:_rmPid,
       addCredits:_rmMl?_rmMl.addCredits:0,miaBooth:_rmMl?_rmMl.miaBooth:0,
@@ -5112,7 +5115,7 @@ function _rcSaveSnap(){
     const d=(GRR[q]||{})[p]||{};
     snap.gpRetention[q][p]={
       logos:d.logos||0,won:d.won||0,lost:d.lost||0,declined:d.declined||0,
-      accounts:(ACCTS||[]).filter(function(a){return a.q===q&&a.pool===p&&a.inRen;}).map(function(a){
+      accounts:(ACCTS||[]).filter(function(a){return a.qRM===q&&a.pool===p&&a.inRen;}).map(function(a){
         return{n:a.n,rev:a.rev||0,csRep:a.csRep||'',
           status:_WS.includes(a.stage)?'won':_CS.includes(a.stage)?'churned':_DS.includes(a.stage)?'declined':'open'};
       })
@@ -6437,8 +6440,10 @@ function _acctTableHTML(rid,q,pool){
   const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
   const sc=a=>{if(WS.includes(a.stage))return'var(--green)';if(CS.includes(a.stage))return'var(--red)';if(DS.includes(a.stage))return'var(--orange)';return'var(--muted)';};
   // GP Retention is RM-only. Strip ET-only accounts (inRen=0) so the drilldown
-  // never shows rows whose stage is 'Not in renewal master'.
-  let rows=(ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth));
+  // never shows rows whose stage is 'Not in renewal master'. Quarter and month
+  // filters key off the Renewal Master date (qRM/seRM), not the ET-preferred
+  // se/q — the GP Retention tab is the source of truth for the RM cohort.
+  let rows=(ACCTS||[]).filter(a=>a.qRM===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth));
   const allStages=[...new Set(rows.map(a=>a.stage).filter(Boolean))].sort();
   const filtArr=_acctFiltArr(rid);
   if(filtArr.length){
@@ -6488,7 +6493,7 @@ function _acctTableHTML(rid,q,pool){
   // popover here actually paints, and a transparent fallback lets table
   // rows bleed through.
   const _filtCtl=`<span style="position:relative;display:inline-block;vertical-align:middle"><button onclick="event.stopPropagation();_filtAcctMenuTog('${rid}','${q}','${pool}')" style="font-size:10px;background:var(--card);border:1px solid var(--border);${filtActive};border-radius:4px;padding:1px 6px;cursor:pointer;font-family:inherit;line-height:1.4">${_filtLabel} ▾</button><div id="${rid}_filtmenu" onclick="event.stopPropagation()" style="display:${_menuDisp};position:absolute;top:100%;left:0;z-index:1000;background:var(--card);border:1px solid var(--borderL);border-radius:6px;padding:4px 0;min-width:200px;max-height:340px;overflow-y:auto;box-shadow:0 6px 18px rgba(0,0,0,.45);margin-top:3px">${_grpItems}${_stItems?'<div style="border-top:1px solid var(--border);margin:4px 0"></div>'+_stItems:''}${filtArr.length?`<div style="border-top:1px solid var(--border);margin:4px 0"></div><button onclick="event.stopPropagation();_filtAcctClr('${rid}','${q}','${pool}')" style="display:block;width:100%;text-align:left;padding:5px 12px;background:transparent;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:inherit">Clear all</button>`:''}</div></span>`;
-  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> ${_filtCtl}${rows.length!==((ACCTS||[]).filter(a=>a.q===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.se||'').substring(5,7)===selGPMonth)).length)?` <span style="font-size:10px;color:var(--dim)">${rows.length} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="7" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
+  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span> ${_filtCtl}${rows.length!==((ACCTS||[]).filter(a=>a.qRM===q&&a.pool===pool&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth||(a.seRM||'').substring(5,7)===selGPMonth)).length)?` <span style="font-size:10px;color:var(--dim)">${rows.length} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="7" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
 function _sortAcct(rid,q,pool,col){const cur=_acctSort[rid]||{col:'rev',dir:-1};_acctSort[rid]={col,dir:cur.col===col?-cur.dir:1};_rAcctTable(rid,q,pool);}
@@ -6520,7 +6525,10 @@ function rGP(){
   const QML={Q1:[['01','Jan'],['02','Feb'],['03','Mar']],Q2:[['04','Apr'],['05','May'],['06','Jun']],Q3:[['07','Jul'],['08','Aug'],['09','Sep']],Q4:[['10','Oct'],['11','Nov'],['12','Dec']]};
 
   // Filter setup: all accounts in quarter, RM-only (GP Retention scope).
-  const qAcctsAll=(ACCTS||[]).filter(a=>a.q===q&&a.inRen);
+  // Quarter is keyed off qRM (Renewal Master Final Sub End Date), not the
+  // ET-preferred q, so a Won account whose ET Contract End slips into next
+  // quarter still rolls up under its RM quarter here.
+  const qAcctsAll=(ACCTS||[]).filter(a=>a.qRM===q&&a.inRen);
   const podList=[...new Set(qAcctsAll.map(a=>a.pod).filter(Boolean))].sort((a,b)=>{
     // "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
     const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
@@ -6544,8 +6552,10 @@ function rGP(){
   }
   // Pod/CSM/Sub-pod filtered (for month button counts and re-aggregation)
   const ownerFiltered=qAcctsAll.filter(_gpMatchesOwnerFilter);
-  // Full filtered (Owner + month) used everywhere else
-  const filtAccts=selGPMonth?ownerFiltered.filter(a=>(a.se||'').substring(5,7)===selGPMonth):ownerFiltered;
+  // Full filtered (Owner + month) used everywhere else. Month is matched on
+  // seRM (Renewal Master) so the Apr/May/Jun buttons count the cohort by
+  // RM date, matching how the quarter filter (qRM) is keyed.
+  const filtAccts=selGPMonth?ownerFiltered.filter(a=>(a.seRM||'').substring(5,7)===selGPMonth):ownerFiltered;
   // Back-compat shim: legacy use sites read these names
   const csmFiltered=ownerFiltered;
   const qAccts=qAcctsAll;
@@ -6602,7 +6612,7 @@ function rGP(){
       <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="_setSelQ('${qq}');selGPMonth=null;rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
-        ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.se||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
+        ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.seRM||'').substring(5,7)===mn).length;return`<button class="qbtn ${selGPMonth===mn?'active':''}" style="padding:4px 10px;font-size:11px" onclick="selGPMonth=selGPMonth==='${mn}'?null:'${mn}';rT('gp_grr')">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM / Pod:</label>
@@ -8016,7 +8026,7 @@ function rTargets(){
   let rows=qs.map(q=>{
     let tl=0,tw=0,tlo=0,tde=0;
     if(ACCTS&&ACCTS.length){
-      ACCTS.filter(function(a){return a.q===q&&a.inRen;}).forEach(function(a){tl++;if(_WS.includes(a.stage))tw++;else if(_CS.includes(a.stage))tlo++;else if(_DS.includes(a.stage))tde++;});
+      ACCTS.filter(function(a){return a.qRM===q&&a.inRen;}).forEach(function(a){tl++;if(_WS.includes(a.stage))tw++;else if(_CS.includes(a.stage))tlo++;else if(_DS.includes(a.stage))tde++;});
     }else{
       ["Enterprise","Strategic","Scale"].forEach(p=>{tl+=GRR[q][p].logos;tw+=GRR[q][p].won;tlo+=GRR[q][p].lost;tde+=GRR[q][p].declined});
     }
