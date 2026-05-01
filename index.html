@@ -441,7 +441,9 @@ function deriveKpisFromData(snapData,acctMap){
   if(!snapData)return{};
   const sum=(arr,k)=>arr.reduce((a,d)=>a+(d[k]||0),0);
   const deals=Object.entries(snapData).map(([c,s])=>({...(acctMap[c]||{}),s}));
-  const won=deals.filter(d=>['7. Signed','9. Invoice Sent','10. Paid'].includes(d.s));
+  // Won = Invoice Sent + Paid only (aligned with GP Retention strict definition).
+  // 7. Signed deals are NOT counted as won until the invoice goes out.
+  const won=deals.filter(d=>['9. Invoice Sent','10. Paid'].includes(d.s));
   const pipe=deals.filter(d=>['5. Proposal Made','6. Signature Requested'].includes(d.s));
   const lost=deals.filter(d=>d.s==='11. Churned');
   const unc=deals.filter(d=>d.s==='1. Uncontacted');
@@ -459,7 +461,7 @@ function deriveKpisFromData(snapData,acctMap){
 }
 function buildSnapshotKpis(){
   const sum=(arr,k)=>arr.reduce((a,d)=>a+(d[k]||0),0);
-  const won=D.filter(d=>['7. Signed','9. Invoice Sent','10. Paid'].includes(d.s));
+  const won=D.filter(d=>['9. Invoice Sent','10. Paid'].includes(d.s));
   const pipe=D.filter(d=>['5. Proposal Made','6. Signature Requested'].includes(d.s));
   const lost=D.filter(d=>d.s==='11. Churned');
   const unc=D.filter(d=>d.s==='1. Uncontacted');
@@ -1602,7 +1604,7 @@ function getWow(d){
   const pi=ST.indexOf(ps),ci=ST.indexOf(d.s);
   if(pi<0||ci<0)return'same';
   if(d.s==='11. Churned'&&ps!=='11. Churned')return'lost';
-  const _wonStages=['7. Signed','9. Invoice Sent','10. Paid'];
+  const _wonStages=['9. Invoice Sent','10. Paid'];
   if(_wonStages.includes(d.s)&&!_wonStages.includes(ps))return'won';
   if(ci>pi)return'up';if(ci<pi)return'down';return'same';
 }
@@ -2709,7 +2711,7 @@ function _buildLiveForecastData(pods){
   //     ENG_RAW pod assignment (user-requested grouping).
   //   • Any other pod filters D (GP) by d.pod matching.
   //   • Empty/missing array → include everything (all GP + all SP).
-  const WON=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
+  const WON=new Set(['9. Invoice Sent','10. Paid']);
   const CHR=new Set(['11. Churned']);
   const DCL=new Set([]);
   const getQ=se=>{if(!se)return null;const m=parseInt((se.substring(5,7)||'0'));return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
@@ -3065,7 +3067,7 @@ function _render(){
     </div>`;
 
   const f=gf(),tot=f.length;
-  const won=f.filter(d=>d.s==='7. Signed'||d.s==='9. Invoice Sent'||d.s==='10. Paid');
+  const won=f.filter(d=>d.s==='9. Invoice Sent'||d.s==='10. Paid');
   const lost=f.filter(d=>d.s==='11. Churned');
   const pipe=f.filter(d=>d.s==='5. Proposal Made'||d.s==='6. Signature Requested');
   const unc=f.filter(d=>d.s==='1. Uncontacted');
@@ -3589,7 +3591,7 @@ function _render(){
       if(!om[d.ro])om[d.ro]={o:d.ro,tot:0,st:{},r25:0,off:0,won:0,lost:0,pipe:0,flags:0};
       om[d.ro].tot++;om[d.ro].st[d.s]=(om[d.ro].st[d.s]||0)+1;
       om[d.ro].r25+=d.r25;om[d.ro].off+=d.o;
-      if(d.s==='7. Signed'||d.s==='9. Invoice Sent')om[d.ro].won++;
+      if(d.s==='9. Invoice Sent'||d.s==='10. Paid')om[d.ro].won++;
       if(d.s==='11. Churned')om[d.ro].lost++;
       if(d.s==='5. Proposal Made'||d.s==='6. Signature Requested')om[d.ro].pipe++;
       if(d.sg.length)om[d.ro].flags++;
@@ -3614,7 +3616,7 @@ function _render(){
     D.forEach(d=>{
       if(!wl[d.ro])wl[d.ro]={o:d.ro,renew:0,r25:0,off:0,won:0,lost:0,active:0};
       wl[d.ro].renew++;wl[d.ro].r25+=d.r25;wl[d.ro].off+=d.o;
-      if(d.s==='7. Signed'||d.s==='9. Invoice Sent')wl[d.ro].won++;
+      if(d.s==='9. Invoice Sent'||d.s==='10. Paid')wl[d.ro].won++;
       if(d.s==='11. Churned')wl[d.ro].lost++;
       if(!['7. Signed','9. Invoice Sent','10. Paid','11. Churned'].includes(d.s))wl[d.ro].active++;
     });
@@ -4517,7 +4519,7 @@ function _render(){
     // Apply filters
     let rows=[...f];
     if(af.stage==='__active__')rows=rows.filter(a=>!['7. Signed','9. Invoice Sent','10. Paid','11. Churned'].includes(a.s));
-    else if(af.stage==='__won__')rows=rows.filter(a=>['7. Signed','9. Invoice Sent','10. Paid'].includes(a.s));
+    else if(af.stage==='__won__')rows=rows.filter(a=>['9. Invoice Sent','10. Paid'].includes(a.s));
     else if(af.stage==='__pipeline__')rows=rows.filter(a=>['5. Proposal Made','6. Signature Requested'].includes(a.s));
     else if(af.stage==='__lost__')rows=rows.filter(a=>['11. Churned'].includes(a.s));
     else if(af.stageIn)rows=rows.filter(a=>af.stageIn.includes(a.s));
@@ -4632,7 +4634,8 @@ function _render(){
       // CS-owned — these tiles reflect the company-wide renewal book.
       //   • GP rows (non-__sp) AND SP rows (__sp:true) — both included
       //   • No owner filter — all rows in D count
-      //   • Won = stage in {7. Signed, 9. Invoice Sent, 10. Paid} (same as Pipeline won set)
+      //   • Won = stage in {9. Invoice Sent, 10. Paid} — strict GP-Retention
+      //     definition. 7. Signed deals are NOT counted as won until invoiced.
       //   • Churned = {11. Churned}
       //   • Declined-early = {4a. Attempting again Q2}
       //   • Open = everything else
@@ -4641,7 +4644,7 @@ function _render(){
       // thread individual values through). GP/SP buckets are kept separate so
       // the iframe could break them out if needed; today they're summed.
       try{
-        const _ytdWon=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
+        const _ytdWon=new Set(['9. Invoice Sent','10. Paid']);
         const _ytdChurn=new Set(['11. Churned']);
         const _ytdDecl=new Set(['4a. Attempting again Q2']);
         const _ytd={
@@ -4662,10 +4665,11 @@ function _render(){
       }catch(e){console.warn('[goals] YTD aggregate inject failed:',e);}
       // ── 2026 quarterly aggregate (for 2025 vs 2026 comparison) ─────────────
       // Splits D into Q1-Q4 by the calendar month of Contract End (d.em is
-      // 'YYYY-MM'). Same won set as YTD Actuals: 7+9+10. Includes GP + SP, no
-      // owner filter — matches the cohort we hardcoded for 2025.
+      // 'YYYY-MM'). Same won set as YTD Actuals: 9+10 only (strict — Signed
+      // doesn't count until invoiced). Includes GP + SP, no owner filter —
+      // matches the cohort we hardcoded for 2025.
       try{
-        const _ytdWonQ=new Set(['7. Signed','9. Invoice Sent','10. Paid']);
+        const _ytdWonQ=new Set(['9. Invoice Sent','10. Paid']);
         const _ytdChurnQ=new Set(['11. Churned']);
         const _ytdDeclQ=new Set(['4a. Attempting again Q2']);
         const _qbq={
@@ -6334,7 +6338,7 @@ function rOverview(){
     </div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px;flex-wrap:wrap;gap:8px">
       <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.6px">YTD Actuals · GP + SP · All Accounts</div>
-      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Company-wide renewal book:&#10;• GP + SP rows (no owner filter)&#10;• Won = stages 7 (Signed) + 9 (Invoice Sent) + 10 (Paid)${_aGpL||_aSpL?'\n• '+_aGpL+' GP + '+_aSpL+' SP accounts in cohort':''}${_aSkip>0?'\n• '+_aSkip+' ET rows excluded (fallback path only)':''}">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total${_aGpL||_aSpL?` <span style="color:var(--dim)">· ${_aGpL} GP + ${_aSpL} SP</span>`:''}${_aSkip>0?` <span style="color:var(--dim)">· ${_aSkip} ET-only excluded</span>`:''}</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:500" title="Company-wide renewal book:&#10;• GP + SP rows (no owner filter)&#10;• Won = stages 9 (Invoice Sent) + 10 (Paid) — strict (7. Signed not counted until invoiced)${_aGpL||_aSpL?'\n• '+_aGpL+' GP + '+_aSpL+' SP accounts in cohort':''}${_aSkip>0?'\n• '+_aSkip+' ET rows excluded (fallback path only)':''}">${_aLW} won · ${_aLC} churned · ${_aLDe} declined-early · ${_aLOpen} open · ${_aTotLogos} total${_aGpL||_aSpL?` <span style="color:var(--dim)">· ${_aGpL} GP + ${_aSpL} SP</span>`:''}${_aSkip>0?` <span style="color:var(--dim)">· ${_aSkip} ET-only excluded</span>`:''}</div>
     </div>
     <div class="cards">
       <div class="stat" title="NRR among accounts that renewed only.&#10;Σ rev26(won) ÷ Σ rev(won)&#10;>100% means renewals are net-expanding (price/seat increases outweigh contractions).&#10;Excludes churned and declined accounts entirely.">
@@ -6410,7 +6414,7 @@ function rOverview(){
       return `<div style="margin-top:18px;background:var(--card);border:1px solid var(--borderL);border-radius:10px;padding:16px;overflow-x:auto">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <div style="font-size:13px;font-weight:700;color:var(--text)">2025 vs 2026 · Quarterly Renewal Comparison</div>
-          <div style="font-size:11px;color:var(--muted)" title="2025 = hardcoded ops baseline (${tot25.w}/${tot25.t} = ${pct(p25T)}, ${fmt(tot25.wR)} renewed rev).&#10;2026 = live D aggregate · GP + SP · contract-end quarter · won = stages 7+9+10.">All accounts · GP + SP · won = 7+9+10 · quarter by Contract End</div>
+          <div style="font-size:11px;color:var(--muted)" title="2025 = hardcoded ops baseline (${tot25.w}/${tot25.t} = ${pct(p25T)}, ${fmt(tot25.wR)} renewed rev).&#10;2026 = live D aggregate · GP + SP · contract-end quarter · won = stages 9+10 (strict).">All accounts · GP + SP · won = 9+10 · quarter by Contract End</div>
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit">
           <thead>
