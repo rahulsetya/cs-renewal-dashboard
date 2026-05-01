@@ -5787,10 +5787,12 @@ function _setCadCurMo(mo){_cadCurMoOverride=mo||null;if(aTab==='cadence')rT('cad
 function _liveCadAuditMo(){
   // If user hasn't pinned, follow live month; else respect their pick.
   // Falls back to first cadence column if live month isn't tracked.
+  // The cadence "View as" override (_cadCurMoOverride) takes precedence over
+  // _nowMo() so a user pinning April there also gets the ❌/⚠ chips for April.
   const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
   const cols=(cd&&cd.cols)||[];
   if(!_cadAuditMoPinned){
-    const live=_nowMo();
+    const live=_cadCurMoOverride||_nowMo();
     _cadAuditMo=cols.includes(live)?live:(cols[cols.length-1]||live);
   }else if(!cols.includes(_cadAuditMo)){
     _cadAuditMo=cols[cols.length-1]||_nowMo();
