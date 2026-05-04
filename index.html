@@ -2429,8 +2429,13 @@ function _buildLiveGoalsData(){
   const DECLINED_S=new Set(['4a. Attempting again Q2']);
   function getQ(se){if(!se)return null;const m=parseInt((se.split('-')[1]||'0'));if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return null;}
   const grr={};
-  ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};});});
-  const grrNone={'Enterprise':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0},'Strategic':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0},'Scale':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0}};
+  // rw  = 2025 base revenue of won accounts (used for GRR / Logo Retention denominators by design)
+  // rw26 = 2026 CONTRACTED revenue of those same won accounts (used for the Renewed YTD tile so it
+  //        reflects the actual 2026 ARR brought in, not the prior year's base). Sourced from the
+  //        Engagement Tracker's offer-price column (r.rev26) — the same field that feeds the NRR
+  //        tile's $X 2026 numerator. Falls back to 0 for RM-only rows that have no ET match.
+  ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rw26:0,rl:0,rd:0};});});
+  const grrNone={'Enterprise':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rw26:0,rl:0,rd:0},'Strategic':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rw26:0,rl:0,rd:0},'Scale':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rw26:0,rl:0,rd:0}};
   const churned=[];
   const allAccts=[];
   // Build renewal master lookup: account name → {stage, rev, se}
@@ -2569,7 +2574,7 @@ function _buildLiveGoalsData(){
       inRen:renewal?1:0
     });
     if(target){
-      if(isWon){target.won++;target.rw+=rev;}
+      if(isWon){target.won++;target.rw+=rev;target.rw26+=(r.rev26||0);}
       else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
       else if(isDeclined){target.declined++;target.rd+=rev;}
       else{target.open++;}
@@ -5238,8 +5243,11 @@ const pct = n => `${n.toFixed(1)}%`;
 const stC = s => {if(["Invoice","Paid","Signed"].some(x=>s.includes(x)))return{c:"var(--green)",b:"var(--greenG)"};if(s.includes("Lost"))return{c:"var(--red)",b:"var(--redG)"};if(["Proposal","Attempting"].some(x=>s.includes(x)))return{c:"var(--amber)",b:"var(--amberG)"};if(s==="Uncontacted")return{c:"var(--rose)",b:"var(--roseG)"};return{c:"var(--dim)",b:"transparent"}};
 
 // Totals (4-state)
-let gL=0,gW=0,gLo=0,gDe=0,gOp=0,gR=0,gRW=0,gRL=0,gRD=0;
-["Q1","Q2","Q3","Q4"].forEach(q=>["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];gL+=d.logos;gW+=d.won;gLo+=d.lost;gDe+=d.declined;gOp+=d.open;gR+=d.rev;gRW+=d.rw;gRL+=d.rl;gRD+=d.rd}));
+// gRW   = 2025 base revenue of GP won accts (used for GRR / Logo Retention)
+// gRW26 = 2026 contracted revenue of those same won accts (used for Renewed
+//         YTD tile so it shows actual 2026 renewal $ instead of 2025 base)
+let gL=0,gW=0,gLo=0,gDe=0,gOp=0,gR=0,gRW=0,gRW26=0,gRL=0,gRD=0;
+["Q1","Q2","Q3","Q4"].forEach(q=>["Enterprise","Strategic","Scale"].forEach(p=>{const d=GRR[q][p];gL+=d.logos;gW+=d.won;gLo+=d.lost;gDe+=d.declined;gOp+=d.open;gR+=d.rev;gRW+=d.rw;gRW26+=(d.rw26||0);gRL+=d.rl;gRD+=d.rd}));
 const tL=gL+SP.logos,tW=gW+SP.won,tLo=gLo+SP.lost,tDe=gDe+SP.declined,tR=gR+SP.rev;
 
 let charts={};
@@ -6383,7 +6391,7 @@ function rOverview(){
         </div>`;})()}
       </div>
       ${sc("Revenue at Risk",fmt(tR),"$39.8M tracked of ~$41.2M","var(--amber)")}
-      ${sc("Renewed YTD",tW+" logos",fmt(gRW+SP.rw)+" revenue · "+pct(tW/tL*100)+" logo retention","var(--green)",_segLine(`${gW} (${fmt(gRW)})`,`${SP.won} (${fmt(SP.rw)})`))}
+      ${sc("Renewed YTD",tW+" logos",fmt(gRW26+SP.rw)+" revenue · "+pct(tW/tL*100)+" logo retention","var(--green)",_segLine(`${gW} (${fmt(gRW26)})`,`${SP.won} (${fmt(SP.rw)})`))}
       ${sc("Confirmed Churn",tLo+" logos",fmt(gRL+SP.rl)+" revenue · "+pct(tLo/tL*100)+" churn rate","var(--red)",_segLine(`${gLo} (${fmt(gRL)})`,`${SP.lost} (${fmt(SP.rl)})`))}
     </div>
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px 2px;flex-wrap:wrap;gap:8px">
