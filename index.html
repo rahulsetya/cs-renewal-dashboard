@@ -2448,6 +2448,17 @@ function _buildLiveGoalsData(){
   (rows[hdr]||[]).forEach((h,i)=>{const k=String(h||'').trim();if(k)cm[k.toLowerCase()]=i;});
   function gc(v,...names){for(const n of names){const i=cm[n.toLowerCase()];if(i!==undefined&&v[i]!==undefined&&v[i]!=='')return v[i];}return '';}
   const revColIdx=(()=>{for(const k of Object.keys(cm)){if(k.includes('2025')&&k.includes('revenue'))return cm[k];}for(const k of Object.keys(cm)){if(k.includes('total revenue'))return cm[k];}return 3;})();
+  // Offer Price column on the Renewal Master (Total Contract Value for 2026).
+  // Single source of truth for "2026 revenue" everywhere in the Goals iframe —
+  // replaces ET's "2026 Revenue" column for the Renewed YTD tile, All Accounts
+  // 2026 Rev column, and Top 10s 2026 Rev column. Hunts for any header
+  // containing 'offer' AND 'price' (covers en/em dash variants); falls back to
+  // the bare 'Offer Price' header. Returns null when no column matches.
+  const offerColIdx=(()=>{
+    for(const k of Object.keys(cm)){if(k.includes('offer')&&k.includes('price'))return cm[k];}
+    return null;
+  })();
+  if(typeof dlog==='function')dlog('[goals-build] Renewal Master offer-price col idx:',offerColIdx);
   // Normalize account names for fuzzy matching between Renewal Master and Engagement Tracker.
   // Handles: case, whitespace, smart quotes, &/and, punctuation, and common legal-entity suffixes.
   function _normKey(s){
@@ -2483,11 +2494,14 @@ function _buildLiveGoalsData(){
       return excelDateToJS(seRaw);
     })();
     const rev=parseNum(v[revColIdx]||'');
+    // 2026 contracted value pulled from the Renewal Master's Offer Price col
+    // (single source of truth — see offerColIdx note above). 0 when missing.
+    const offerPrice=offerColIdx!=null?parseNum(v[offerColIdx]||''):0;
     const platformId=String(gc(v,'Platform ID','Platform Id','Platform Company ID','Platform Company Id','HubSpot ID','HubSpot Record ID','Record ID','HS ID','Company ID')||'').trim();
     const key=_normKey(acct);
     if(!key)continue;
     if(renewalLookup[key])_renewalDupes.push(`${acct} <-> ${renewalLookup[key].name}`);
-    renewalLookup[key]={stage,rev,se,name:acct,platformId,nameKey:key};
+    renewalLookup[key]={stage,rev,offerPrice,se,name:acct,platformId,nameKey:key};
     if(platformId)renewalByPid[platformId]=renewalLookup[key];
   }
   dlog(`=== ACCOUNT RECONCILIATION ===`);
@@ -2561,7 +2575,10 @@ function _buildLiveGoalsData(){
       // GP Retention tab can group by Renewal Master dates exclusively.
       seRM:se||'',seET:_aaSeET||'',qRM:q||'',
       // Extended fields for the All Accounts tab (April 2026 Combined Master schema)
-      ae:r.ae||'',seg:r.seg||'',rev26:r.rev26||0,rawEnd:r.rawEnd||'',
+      // rev26 sources from the Renewal Master's Offer Price column (single
+      // source of truth) — falls back to ET's "2026 Revenue" only if the RM
+      // has no offer price for this account.
+      ae:r.ae||'',seg:r.seg||'',rev26:(renewal&&renewal.offerPrice)||r.rev26||0,rawEnd:r.rawEnd||'',
       pod:r.pod||'',txnDone:r.txnDone||0,out:r.out||0,gm:r.gm||0,
       nextTP:r.nextTP||'',expn:r.expn||0,calls:r.calls||{},
       platformId:_mlPid,
@@ -2574,7 +2591,7 @@ function _buildLiveGoalsData(){
       inRen:renewal?1:0
     });
     if(target){
-      if(isWon){target.won++;target.rw+=rev;target.rw26+=(r.rev26||0);}
+      if(isWon){target.won++;target.rw+=rev;target.rw26+=((renewal&&renewal.offerPrice)||r.rev26||0);}
       else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
       else if(isDeclined){target.declined++;target.rd+=rev;}
       else{target.open++;}
@@ -2600,7 +2617,9 @@ function _buildLiveGoalsData(){
       // renders an em-dash for the Engagement Tracker column. qRM mirrors
       // q here since this branch is RM-only.
       seRM:se||'',seET:'',qRM:q||'',
-      ae:'',seg:'Scale',rev26:0,rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
+      // rev26 sources from Renewal Master's Offer Price col — the only
+      // 2026 number we have for RM-only accounts (no ET row to fall back on).
+      ae:'',seg:'Scale',rev26:renewal.offerPrice||0,rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
       platformId:_rmPid,
       addCredits:_rmMl?_rmMl.addCredits:0,miaBooth:_rmMl?_rmMl.miaBooth:0,
       outdated:_rmMl?_rmMl.outdated:0,gvPromo:_rmMl?_rmMl.gvPromo:0,
@@ -2608,7 +2627,7 @@ function _buildLiveGoalsData(){
       // RM-only accounts are by definition in the renewal master.
       inRen:1
     });
-    if(isWon){target.won++;target.rw+=rev;}
+    if(isWon){target.won++;target.rw+=rev;target.rw26+=(renewal.offerPrice||0);}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:renewal.name,csm:'',rev,q,pool:'Scale',renewal:se,notes:'Not in engagement tracker'});}
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
