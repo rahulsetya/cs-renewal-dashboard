@@ -5988,6 +5988,18 @@ async function _pubCommit(token,jsonContent,sha){
   if(!r.ok){const t=await r.text();throw new Error('Publish failed: '+r.status+' '+t.slice(0,200));}
   return r.json();
 }
+// "Include LP in totals" toggle — when on, the percentage and gap-to-50%
+// calculations use (GP + LP) instead of GP only. Surfaces in the toolbar
+// next to "View as". Off by default; the visual hierarchy of GP-headline /
+// LP-parenthetical doesn't change — only the % numbers do.
+let _cadIncludeLP=false;
+const _CAD_INCLUDE_LP_KEY='cs_cadincludelp_v1';
+try{const _r=localStorage.getItem(_CAD_INCLUDE_LP_KEY);if(_r==='1')_cadIncludeLP=true;}catch(e){}
+function _toggleCadIncludeLP(){
+  _cadIncludeLP=!_cadIncludeLP;
+  try{localStorage.setItem(_CAD_INCLUDE_LP_KEY,_cadIncludeLP?'1':'0');}catch(e){}
+  if(aTab==='cadence')rT('cadence');
+}
 // Auto-publish-on-import — when on, every successful GP or LP HubSpot
 // import auto-fires _cadPublishToTeam so the team sees fresh data without
 // the user clicking 📤 each time. Off by default; flips via the checkbox
@@ -8006,6 +8018,7 @@ function rCadence(){
         ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m=>`<option value="${m}"${_cadCurMoOverride===m?' selected':''}>${m}</option>`).join('')}
       </select>
       ${_cadCurMoIsOverride?`<span style="font-size:10px;color:var(--amber);font-weight:700;background:var(--amberG);border:1px solid rgba(245,158,11,.4);padding:3px 8px;border-radius:10px" title="The +N to 50% badges and Export button are pinned to ${_cadCurMo}, not the live month (${_cadLiveMo}).">📌 pinned to ${_cadCurMo}</span>`:''}
+      ${_cadLPData?`<label onclick="_toggleCadIncludeLP()" title="When ON, percentages and the +N-to-50% gap badge count GP + LP combined. Big numbers in cells stay GP — only the % math changes." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadIncludeLP?'#fb923c':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:5px 10px;border:1px solid ${_cadIncludeLP?'#fb923c':'var(--border)'};border-radius:6px;background:${_cadIncludeLP?'rgba(251,146,60,.08)':'transparent'};margin-left:6px"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_cadIncludeLP?'#fb923c':'var(--dim)'};border-radius:3px;background:${_cadIncludeLP?'#fb923c':'transparent'};color:#0a0e1a;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadIncludeLP?'✓':''}</span>Include LP in % &amp; gap</label>`:''}
       ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="margin-left:auto;background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadAuditPromptImport()" style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot meeting export (.xlsx) — password protected">⬆ Import GP HubSpot${_cadAuditData?' ✓':''}</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadLPImport()" style="background:#7c2d12;color:#fed7aa;border:1px solid #fb923c;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot LP meeting export (.xlsx) — adds an LP column next to each month">⬆ Import LP HubSpot${_cadLPData?' ✓':''}</button>`:''}
@@ -8079,27 +8092,38 @@ function rCadence(){
               <td style="padding:7px 8px"><span class="pill" style="color:${PC[c.seg]||'var(--rose)'}">${isSP?'SP':c.seg}</span></td>
               ${visCols.map(m=>{
                 const cnt=cData.months[m]?.yes||0;
-                const pv=pct(cnt/tot*100);
+                const lpCnt=_cadLPCount(c.n,m);
+                // Effective count for % + gap calculations. When the
+                // "Include LP" toggle is on (and LP data is loaded), GP+LP
+                // combine in the denominator math. The headline GP number
+                // and (LP) parenthetical visuals don't change.
+                const effCnt=cnt+(_cadIncludeLP&&_cadLPData?lpCnt:0);
+                const pv=pct(effCnt/tot*100);
                 // Gap-to-50% badge — only rendered for the current real-world
                 // month (other months are either already settled or still in
                 // the future, so the nag isn't useful). Target = ceil(50% of
                 // the CSM's total accounts). Suppressed for SP/Scale rosters.
                 const gapBadge=(isSP||c.seg==='Scale'||m!==_cadCurMo)?'':(()=>{
-                  const need=Math.max(0,Math.ceil(tot*0.5)-cnt);
+                  const need=Math.max(0,Math.ceil(tot*0.5)-effCnt);
                   return need>0?`<div style="font-size:9px;color:var(--amber);font-weight:600">+${need} to 50%</div>`:`<div style="font-size:9px;color:var(--green);font-weight:600">✓ 50%</div>`;
                 })();
-                const lpCnt=_cadLPCount(c.n,m);
                 // Combined cell — GP (large green) and LP (smaller orange)
-                // on the same line separated by a thin dot. LP only renders
-                // when LP data is loaded; otherwise the cell is GP-only and
-                // looks identical to the pre-LP layout.
+                // on the same line. LP only renders when LP data is loaded;
+                // otherwise the cell is GP-only and identical to pre-LP.
                 const lpInline=_cadLPData?`<span style="font-weight:500;font-size:11px;font-family:var(--mono);color:${lpCnt>0?'#fb923c':'var(--dim)'};opacity:${lpCnt>0?'.85':'.45'};margin-left:8px;letter-spacing:.2px">(${lpCnt})</span>`:'';
-                return `<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${lpInline}${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div>${gapBadge}</td>`;
+                return `<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${lpInline}${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)" title="${_cadIncludeLP&&_cadLPData?'GP+LP / accts ('+effCnt+'/'+tot+')':'GP / accts ('+cnt+'/'+tot+')'}">${pv}</div>${gapBadge}</td>`;
               }).join('')}
               ${(()=>{
                 const lpQTot=_cadLPData?visCols.reduce((s,m)=>s+_cadLPCount(c.n,m),0):0;
                 const lpInline=_cadLPData?`<span style="font-weight:500;font-size:11px;font-family:var(--mono);color:${lpQTot>0?'#fb923c':'var(--dim)'};opacity:${lpQTot>0?'.85':'.45'};margin-left:8px;letter-spacing:.2px">(${lpQTot})</span>`:'';
-                return `<td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}${lpInline}${qTotDiff?`<span style="font-size:9px;font-weight:700;color:${qTotDiff>0?'var(--green)':'var(--red)'};display:block">${qTotDiff>0?'▲':'▼'}${Math.abs(qTotDiff)}</span>`:''}</td>`;
+                // Q-Total percentage — calls per account this quarter. Can
+                // exceed 100% when a CSM averages >1 call per account in the
+                // quarter (multi-touchpoint accounts). Honors the Include-LP
+                // toggle the same way as monthly cells.
+                const qTotEff=qTot+(_cadIncludeLP&&_cadLPData?lpQTot:0);
+                const qTotPct=tot>0?pct(qTotEff/tot*100):'0%';
+                const qPctTitle=_cadIncludeLP&&_cadLPData?`(GP+LP) ${qTotEff}/${tot} accts = calls per account this quarter`:`GP ${qTot}/${tot} accts = calls per account this quarter`;
+                return `<td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}${lpInline}${qTotDiff?`<span style="font-size:9px;font-weight:700;color:${qTotDiff>0?'var(--green)':'var(--red)'};display:block">${qTotDiff>0?'▲':'▼'}${Math.abs(qTotDiff)}</span>`:''}<div style="font-size:10px;color:var(--dim);font-weight:500" title="${qPctTitle}">${qTotPct}</div></td>`;
               })()}
             </tr>
             <tr id="${rid}" style="display:none">
@@ -8141,7 +8165,8 @@ function rCadence(){
               const qDiff=_rcCad?tQ-tQSnap:0;
               const monthCell=(m)=>{
                 const v=monthTot[m].cur;
-                const pv=tAccts?pct(v/tAccts*100):'0%';
+                const effV=v+(_cadIncludeLP&&_cadLPData?monthTot[m].lp:0);
+                const pv=tAccts?pct(effV/tAccts*100):'0%';
                 const dv=_rcCad?v-monthTot[m].snap:0;
                 const diffHTML=dv?`<span style="font-size:9px;font-weight:700;color:${dv>0?'var(--green)':'var(--red)'};display:block">${dv>0?'▲':'▼'}${Math.abs(dv)}</span>`:'';
                 const lpInline=_cadLPData?`<span style="font-weight:500;font-size:11px;font-family:var(--mono);color:${monthTot[m].lp>0?'#fb923c':'var(--dim)'};opacity:${monthTot[m].lp>0?'.85':'.45'};margin-left:8px;letter-spacing:.2px">(${monthTot[m].lp})</span>`:'';
@@ -8149,6 +8174,9 @@ function rCadence(){
               };
               const qDiffHTML=qDiff?`<span style="font-size:9px;font-weight:700;color:${qDiff>0?'var(--green)':'var(--red)'};display:block">${qDiff>0?'▲':'▼'}${Math.abs(qDiff)}</span>`:'';
               const tQLPInline=_cadLPData?`<span style="font-weight:500;font-size:11px;font-family:var(--mono);color:${tQLP>0?'#fb923c':'var(--dim)'};opacity:${tQLP>0?'.85':'.45'};margin-left:8px;letter-spacing:.2px">(${tQLP})</span>`:'';
+              // Subtotal Q-Total %: same toggle behavior as the per-CSM row
+              const tQEff=tQ+(_cadIncludeLP&&_cadLPData?tQLP:0);
+              const tRetEff=tAccts?pct(tQEff/tAccts*100):'0%';
               // First subtotal gets the thick accent border to separate from
               // the CSM list; subsequent subtotals get a thin divider.
               const borderStyle=gi===0?'border-top:2px solid var(--accent)':'border-top:1px solid var(--borderL)';
@@ -8156,7 +8184,7 @@ function rCadence(){
                 <td style="padding:9px 12px;font-size:13px;font-weight:700;color:var(--text)">${g.label} <span style="font-size:10px;color:var(--dim);font-weight:500">(${tCsms} CSM${tCsms!==1?'s':''})</span><div style="font-size:10px;color:var(--dim);font-weight:500">${tAccts.toLocaleString()} accts</div></td>
                 <td style="padding:9px 8px"><span style="font-size:10px;color:var(--dim)">${g.poolText}</span></td>
                 ${visCols.map(monthCell).join('')}
-                <td style="text-align:center;padding:9px 10px;font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent)">${tQ}${tQLPInline}${qDiffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${tRet}</div></td>
+                <td style="text-align:center;padding:9px 10px;font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent)">${tQ}${tQLPInline}${qDiffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${tRetEff}</div></td>
               </tr>`;
             }).join('');
           })()}
