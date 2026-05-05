@@ -6488,17 +6488,50 @@ function _cadAuditParseFile(file){
       // Strip non-serializable Date objects before saving
       const bucketSave={};
       Object.keys(bucket).forEach(k=>{bucketSave[k]={count:bucket[k].count,lastIso:bucket[k].lastIso,earliestIso:bucket[k].earliestIso||bucket[k].lastIso||'',lastAssignee:bucket[k].lastAssignee||'',assignees:bucket[k].assignees||[]};});
+      // Per-month-replace merge — same logic as the LP import. Bucket keys
+      // are 'pid|YYYY-MM', so we extract the month tail to decide which
+      // existing entries to keep. Months in the new file replace fully;
+      // months absent from the new file keep their prior buckets.
+      const newMonthKeys=new Set();
+      Object.keys(bucketSave).forEach(k=>{const i=k.lastIndexOf('|');if(i>=0)newMonthKeys.add(k.slice(i+1));});
+      const mergedBucket={};
+      const prevBucket=(_cadAuditData&&_cadAuditData.bucket)||{};
+      Object.keys(prevBucket).forEach(k=>{
+        const i=k.lastIndexOf('|');
+        const moTail=i>=0?k.slice(i+1):'';
+        if(!newMonthKeys.has(moTail))mergedBucket[k]=prevBucket[k];
+      });
+      Object.keys(bucketSave).forEach(k=>{mergedBucket[k]=bucketSave[k];});
+      // Track import history (newest first) so the audit panel can show
+      // "what's loaded right now" without spelunking the bucket map.
+      const prevImports=(_cadAuditData&&_cadAuditData.imports)||[];
+      const survivingImports=prevImports.filter(im=>!im.months.some(m=>newMonthKeys.has(m)));
+      const newImport={
+        importedAt:new Date().toISOString(),
+        fileName:file.name,
+        sheetName:pickedSheet||'',
+        months:[...newMonthKeys].sort(),
+        rowsParsed:parsed
+      };
+      const allImports=[...survivingImports,newImport];
       _cadAuditData={
         importedAt:new Date().toISOString(),
         fileName:file.name,
         sheetName:pickedSheet||'',
         rowsParsed:parsed,
-        bucket:bucketSave,
-        year:year||new Date().getFullYear()
+        bucket:mergedBucket,
+        year:year||new Date().getFullYear(),
+        imports:allImports
       };
       try{localStorage.setItem(_CAD_AUDIT_KEY,JSON.stringify(_cadAuditData));}catch(e){}
       _cadAuditSource='local';
-      alert('Imported '+parsed+' unique meetings from sheet "'+pickedSheet+'" of '+file.name+'.\n'+(dupesSkipped>0?'Collapsed '+dupesSkipped+' duplicate row'+(dupesSkipped>1?'s':'')+' (same company + same start time = same meeting).\n':'')+'Unique account-months: '+Object.keys(bucketSave).length);
+      // Build a short summary of all months currently loaded so the user can
+      // verify nothing got wiped from a prior import.
+      const allMoLoaded=new Set();
+      Object.keys(mergedBucket).forEach(k=>{const i=k.lastIndexOf('|');if(i>=0)allMoLoaded.add(k.slice(i+1));});
+      const allMoSummary=[...allMoLoaded].sort().join(', ')||'(none)';
+      const overlapNote=[...newMonthKeys].some(m=>Object.keys(prevBucket).some(k=>k.endsWith('|'+m)))?'\n♻ Replaced existing data for: '+[...newMonthKeys].filter(m=>Object.keys(prevBucket).some(k=>k.endsWith('|'+m))).sort().join(', '):'';
+      alert('Imported '+parsed+' unique meetings from sheet "'+pickedSheet+'" of '+file.name+'.'+(dupesSkipped>0?'\nCollapsed '+dupesSkipped+' duplicate row'+(dupesSkipped>1?'s':'')+' (same company + same start time = same meeting).':'')+'\n\nMonths in this file: '+[...newMonthKeys].sort().join(', ')+overlapNote+'\nAll months now loaded: '+allMoSummary+'\nUnique account-months across all imports: '+Object.keys(mergedBucket).length);
       if(aTab==='cadence')rT('cadence');
     }catch(err){alert('Failed to parse file: '+(err.message||err));}
   };
