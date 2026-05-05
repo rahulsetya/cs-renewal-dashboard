@@ -6067,17 +6067,33 @@ function _cadLPDetails(){
     const moStr=moList.filter(m=>e.monthsByCsm[m]).map(m=>m+':'+e.monthsByCsm[m]).join(' · ')||'(no months)';
     return `<tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-family:var(--mono);color:${isOk?'var(--text)':'var(--amber)'};font-size:11px">${e.raw.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</td><td style="padding:5px 10px;font-family:var(--mono);color:${isOk?'#10b981':'var(--red)'};font-size:11px">${e.norm.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}${isOk?'':' <span style="font-size:9px;color:var(--red);font-weight:700">(NO CSM MATCH)</span>'}</td><td style="padding:5px 10px;text-align:right;font-family:var(--mono);font-weight:700;color:${isOk?'var(--text)':'var(--amber)'};font-size:12px">${e.cnt}</td><td style="padding:5px 10px;font-family:var(--mono);color:var(--dim);font-size:10px">${moStr}</td></tr>`;
   };
+  // Aggregate per-month totals across the merged data so the user can see
+  // "what's loaded right now" at a glance, separate from the diag.monthsSeen
+  // which only reflects the latest file.
+  const allMoTotals={};
+  Object.values(d.byCsm||{}).forEach(m=>Object.entries(m).forEach(([mo,v])=>{allMoTotals[mo]=(allMoTotals[mo]||0)+v;}));
+  const monthOrder=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const allMoSorted=Object.keys(allMoTotals).sort((a,b)=>monthOrder.indexOf(a)-monthOrder.indexOf(b));
+  const importsList=Array.isArray(d.imports)?d.imports.slice().sort((a,b)=>(a.importedAt<b.importedAt?1:-1)):[];
   const html=`
     <div onclick="_cadLPDetailsClose()" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:40px">
       <div onclick="event.stopPropagation()" style="background:var(--card);border:1px solid var(--borderL);border-radius:12px;max-width:1100px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)">
         <div style="padding:16px 20px;border-bottom:1px solid var(--borderL);display:flex;justify-content:space-between;align-items:center">
           <div>
             <div style="font-size:15px;font-weight:700;color:var(--text)">🔍 LP HubSpot Import — Parse Details</div>
-            <div style="font-size:11px;color:var(--dim);margin-top:3px">${d.fileName} · sheet "${d.sheetName}" · imported ${new Date(d.importedAt).toLocaleString()}</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:3px">Last import: ${d.fileName} · sheet "${d.sheetName}" · ${new Date(d.importedAt).toLocaleString()}</div>
           </div>
           <button onclick="_cadLPDetailsClose()" style="background:transparent;border:1px solid var(--borderL);color:var(--text);padding:5px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button>
         </div>
         <div style="padding:14px 20px;overflow-y:auto">
+          ${allMoSorted.length?`<div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.4);border-radius:8px;padding:10px 14px;margin-bottom:14px">
+            <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Months currently loaded</div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:13px">${allMoSorted.map(m=>`<span style="color:#fb923c;font-weight:700">${m}: <span style="color:var(--text)">${allMoTotals[m]}</span></span>`).join('')}</div>
+          </div>`:''}
+          ${importsList.length>1?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px">
+            <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Import history (newest first)</div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:11px">${importsList.map(im=>`<div style="display:flex;justify-content:space-between;gap:14px;align-items:baseline"><span style="color:var(--text);font-family:var(--mono)">${im.months.join(', ')}</span><span style="color:var(--dim);font-size:10px;flex:1;text-align:right">${(im.fileName||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))} · ${new Date(im.importedAt).toLocaleString()} · ${im.totalActivities||0} activities</span></div>`).join('')}</div>
+          </div>`:''}
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:18px">
             ${[
               ['Date col detected',(diag.dateColHeader||'?').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),'#10b981'],
@@ -6262,18 +6278,53 @@ function _cadLPParseFile(file){
         totalActivities+=cnt;
         parsed++;
       }
-      _cadLPData={
+      // Merge into any existing _cadLPData rather than overwriting. The new
+      // file replaces every (CSM, month) where the month appears in this
+      // file — so re-importing a month with corrected numbers is the
+      // intended way to "fix" it. Months NOT in this file are left alone.
+      // CSMs in the new file that weren't in the old file get added.
+      // CSMs in the old file but absent from the new file keep their other
+      // months but lose any value for months covered by this new file
+      // (those drop to 0, matching "not mentioned in this file = 0 for
+      //  this month").
+      const newMonths=new Set(Object.keys(monthsSeen));
+      const mergedByCsm={};
+      const prevByCsm=(_cadLPData&&_cadLPData.byCsm)||{};
+      Object.keys(prevByCsm).forEach(csm=>{
+        const oldM=prevByCsm[csm]||{};
+        const keep={};
+        Object.keys(oldM).forEach(mo=>{if(!newMonths.has(mo))keep[mo]=oldM[mo];});
+        if(Object.keys(keep).length)mergedByCsm[csm]=keep;
+      });
+      Object.keys(byCsm).forEach(csm=>{
+        if(!mergedByCsm[csm])mergedByCsm[csm]={};
+        Object.keys(byCsm[csm]).forEach(mo=>{mergedByCsm[csm][mo]=byCsm[csm][mo];});
+      });
+      // Track every month-import so the UI can show "what's loaded".
+      const prevImports=(_cadLPData&&_cadLPData.imports)||[];
+      const survivingImports=prevImports.filter(im=>!im.months.some(m=>newMonths.has(m)));
+      const newImport={
         importedAt:new Date().toISOString(),
         fileName:file.name,
         sheetName:pickedSheet||'',
+        months:Object.keys(monthsSeen).sort((a,b)=>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(a)-['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(b)),
         rowsParsed:parsed,
-        totalActivities,
-        byCsm,
+        totalActivities
+      };
+      const allImports=[...survivingImports,newImport];
+      _cadLPData={
+        importedAt:new Date().toISOString(),
+        fileName:file.name,                      // last file (back-compat)
+        sheetName:pickedSheet||'',
+        rowsParsed:parsed,                       // last file rowsParsed (diag)
+        totalActivities:Object.values(mergedByCsm).reduce((a,m)=>a+Object.values(m).reduce((b,v)=>b+v,0),0),
+        byCsm:mergedByCsm,
         year:year||new Date().getFullYear(),
+        imports:allImports,                       // history of all month-imports
         diag:{
           rawToNorm,
           rawCounts,
-          monthsSeen,
+          monthsSeen,                            // months in the LATEST file
           dupesSkipped:0,
           emptyOwner,
           badDate,
@@ -6284,7 +6335,7 @@ function _cadLPParseFile(file){
         }
       };
       try{localStorage.setItem(_CAD_LP_KEY,JSON.stringify(_cadLPData));}catch(e){}
-      const csmCount=Object.keys(byCsm).length;
+      const csmCount=Object.keys(mergedByCsm).length;
       const _matched=[],_unmatched=[];
       Object.keys(rawToNorm).forEach(raw=>{
         const norm=rawToNorm[raw];
@@ -6293,7 +6344,18 @@ function _cadLPParseFile(file){
       });
       const _summary=_matched.slice(0,8).map(s=>'  ✓ '+s).join('\n')+(_matched.length>8?`\n  … (+${_matched.length-8} more matched)`:'');
       const _unmatchedNote=_unmatched.length?`\n\n⚠ ${_unmatched.length} owner name(s) did NOT match any CSM:\n${_unmatched.slice(0,10).map(s=>'  ✗ '+s).join('\n')}${_unmatched.length>10?'\n  … (+'+(_unmatched.length-10)+' more)':''}`:'';
-      alert(`Imported ${parsed} row(s), ${totalActivities} total LP activities from sheet "${pickedSheet}" of ${file.name}.\n\n• Owner col: "${rows[hdrRow]?.[ownerIdx]}" (col ${String.fromCharCode(65+ownerIdx)})\n• Date col: "${rows[hdrRow]?.[dateIdx]}" (col ${String.fromCharCode(65+dateIdx)})\n• Count col: "${rows[hdrRow]?.[countIdx]}" (col ${String.fromCharCode(65+countIdx)})\n• CSMs with activities: ${csmCount}\n• Months covered: ${Object.keys(monthsSeen).map(m=>m+'='+monthsSeen[m]).join(', ')||'(none)'}\n• Skipped: ${emptyOwner} empty-owner, ${badDate} bad-date, ${badCount} non-numeric-count rows\n\nMatched owners (${_matched.length}):\n${_summary||'  (none)'}${_unmatchedNote}`);
+      // Show the union of all months currently loaded so the user can confirm
+      // their previous April data is still intact after a May upload.
+      const allMonthsLoaded=new Set();
+      Object.values(mergedByCsm).forEach(m=>Object.keys(m).forEach(mo=>allMonthsLoaded.add(mo)));
+      const monthOrder=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const allMoSorted=[...allMonthsLoaded].sort((a,b)=>monthOrder.indexOf(a)-monthOrder.indexOf(b));
+      // Per-month totals across all CSMs (including merged-in old data)
+      const allMoTotals={};
+      Object.values(mergedByCsm).forEach(m=>Object.entries(m).forEach(([mo,v])=>{allMoTotals[mo]=(allMoTotals[mo]||0)+v;}));
+      const allMoSummary=allMoSorted.map(m=>m+'='+allMoTotals[m]).join(', ')||'(none)';
+      const overlapNote=Object.keys(monthsSeen).some(m=>(prevByCsm&&Object.values(prevByCsm).some(c=>c[m])))?'\n\n♻ Replaced existing data for: '+Object.keys(monthsSeen).filter(m=>(prevByCsm&&Object.values(prevByCsm).some(c=>c[m]))).join(', '):'';
+      alert(`Imported ${parsed} row(s), ${totalActivities} new activities from sheet "${pickedSheet}" of ${file.name}.\n\n• Owner col: "${rows[hdrRow]?.[ownerIdx]}" (col ${String.fromCharCode(65+ownerIdx)})\n• Date col: "${rows[hdrRow]?.[dateIdx]}" (col ${String.fromCharCode(65+dateIdx)})\n• Count col: "${rows[hdrRow]?.[countIdx]}" (col ${String.fromCharCode(65+countIdx)})\n• Months in this file: ${Object.keys(monthsSeen).map(m=>m+'='+monthsSeen[m]).join(', ')||'(none)'}\n• Skipped: ${emptyOwner} empty-owner, ${badDate} bad-date, ${badCount} non-numeric-count rows${overlapNote}\n\nALL MONTHS NOW LOADED: ${allMoSummary}\n• ${csmCount} total CSMs across all months\n\nMatched owners in this file (${_matched.length}):\n${_summary||'  (none)'}${_unmatchedNote}`);
       if(aTab==='cadence')rT('cadence');
     }catch(err){alert('Failed to parse LP file: '+(err.message||err));}
   };
