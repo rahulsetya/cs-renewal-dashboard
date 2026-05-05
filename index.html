@@ -5706,6 +5706,23 @@ if(!_cadAuditData&&BAKED_AUDIT_DATA){_cadAuditData=BAKED_AUDIT_DATA;_cadAuditSou
       if(data.overrides&&typeof _cadOverrides!=='undefined'&&Object.keys(_cadOverrides).length===0){
         _cadOverrides=data.overrides;
       }
+      // Pick up team-published LP block — same rule as overrides: only
+      // populate when the user has no local LP import (their import wins).
+      // After this loads, the LP column on the cadence table renders
+      // automatically via _cadLPCount() which reads _cadLPData.byCsm.
+      if(data.lp&&data.lp.byCsm&&!_cadLPData){
+        _cadLPData={
+          importedAt:data.lp.importedAt||data.publishedAt||new Date().toISOString(),
+          fileName:'(team-published)',
+          sheetName:'',
+          rowsParsed:0,
+          totalActivities:data.lp.totalActivities||0,
+          byCsm:data.lp.byCsm,
+          year:data.lp.year||new Date().getFullYear(),
+          imports:data.lp.imports||[],
+          diag:{rawToNorm:{},rawCounts:{},monthsSeen:{},dupesSkipped:0,emptyOwner:0,badDate:0,badCount:0,dateColHeader:'(published)',ownerColHeader:'(published)',countColHeader:'(published)'}
+        };
+      }
       // Re-render whatever's currently active so checkmarks appear.
       if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
     }
@@ -5917,10 +5934,32 @@ async function _pubCommit(token,jsonContent,sha){
   if(!r.ok){const t=await r.text();throw new Error('Publish failed: '+r.status+' '+t.slice(0,200));}
   return r.json();
 }
-async function _cadPublishToTeam(){
-  if(!_cadAuditData||!_cadAuditData.bucket){alert('No audit data to publish — import a HubSpot file first.');return;}
+// Auto-publish-on-import — when on, every successful GP or LP HubSpot
+// import auto-fires _cadPublishToTeam so the team sees fresh data without
+// the user clicking 📤 each time. Off by default; flips via the checkbox
+// next to the Publish button on the audit panel.
+let _cadAutoPublish=false;
+const _CAD_AUTOPUB_KEY='cs_cadautopub_v1';
+try{const _r=localStorage.getItem(_CAD_AUTOPUB_KEY);if(_r==='1')_cadAutoPublish=true;}catch(e){}
+function _toggleCadAutoPublish(){
+  _cadAutoPublish=!_cadAutoPublish;
+  try{localStorage.setItem(_CAD_AUTOPUB_KEY,_cadAutoPublish?'1':'0');}catch(e){}
+  if(aTab==='cadence')rT('cadence');
+}
+async function _cadPublishToTeam(opts){
+  // opts.silent — suppress success alert (used by auto-publish so weekly
+  // imports don't spawn an extra modal after the import-success alert).
+  // opts.silentNoData — when called from auto-publish without any GP data
+  // loaded yet, just return quietly instead of erroring at the user.
+  const silent=opts&&opts.silent;
+  const silentNoData=opts&&opts.silentNoData;
+  if(!_cadAuditData||!_cadAuditData.bucket){
+    if(silentNoData)return;
+    alert('No audit data to publish — import a HubSpot file first.');return;
+  }
   let token=_pubGetToken();
   if(!token){
+    if(silent){console.warn('[auto-publish] no token saved — skipping');return;}
     const msg='Paste your GitHub publish token (starts with github_pat_…)\n\nOne-time setup. Stored in this browser only — never shared, never committed.\n\nIf you don\'t have one yet:\n  GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → Generate new\n  Repo: rahulsetya/cs-renewal-dashboard · Permissions: Contents R+W';
     token=prompt(msg);
     if(!token||!token.trim())return;
@@ -5934,19 +5973,41 @@ async function _cadPublishToTeam(){
     rowsParsed:_cadAuditData.rowsParsed||0,
     bucket:_cadAuditData.bucket,
     year:_cadAuditData.year||new Date().getFullYear(),
+    imports:_cadAuditData.imports||[],
     overrides:(typeof _cadOverrides!=='undefined'?_cadOverrides:{}),
+    // LP block — included only when the publisher has LP data loaded.
+    // Teammates without their own local LP import will pick this up via
+    // _loadPublishedAudit and see the LP column populated.
+    lp:(_cadLPData&&_cadLPData.byCsm)?{
+      byCsm:_cadLPData.byCsm,
+      year:_cadLPData.year||new Date().getFullYear(),
+      importedAt:_cadLPData.importedAt||new Date().toISOString(),
+      imports:_cadLPData.imports||[],
+      totalActivities:_cadLPData.totalActivities||0
+    }:null,
     publishedAt:new Date().toISOString()
   };
   const json=JSON.stringify(payload,null,0);
   try{
     const sha=await _pubGetSha(token);
     await _pubCommit(token,json,sha);
-    alert('✓ Published to team.\n\nLive for everyone in ~60 seconds (GitHub Pages redeploy). Teammates just need to refresh.');
+    if(!silent)alert('✓ Published to team.\n\nLive for everyone in ~60 seconds (GitHub Pages redeploy). Teammates just need to refresh.'+(payload.lp?'\n\nLP data included.':''));
+    else console.log('[auto-publish] ✓ pushed to team',{gpMonths:Object.keys(payload.bucket).length,lpIncluded:!!payload.lp});
   }catch(e){
     const m=String(e.message||e);
     if(m.includes(' 401')||m.includes(' 403')){
       _pubSetToken(null);
-      alert('Token rejected — cleared.\n\nClick Publish again to re-enter it. Common causes:\n  • Token expired (regenerate on GitHub)\n  • Token doesn\'t have Contents:Write\n  • Token isn\'t scoped to this repo');
+      alert('Publish '+(silent?'(auto)':'')+' token rejected — cleared.\n\n'+(silent?'Auto-publish needs a fresh token. Click 📤 Publish to Team manually next time to re-enter it.':'Click Publish again to re-enter it.')+'\n\nCommon causes:\n  • Token expired (regenerate on GitHub)\n  • Token doesn\'t have Contents:Write\n  • Token isn\'t scoped to this repo');
+    }else if(silent){
+      console.error('[auto-publish] failed',m);
+      // Non-modal hint so the user knows but doesn't get a popup wall.
+      try{
+        const t=document.createElement('div');
+        t.textContent='⚠ Auto-publish failed: '+m+' (data is saved locally — click 📤 Publish to retry)';
+        t.style.cssText='position:fixed;bottom:20px;right:20px;z-index:99999;background:#7f1d1d;color:#fecaca;border:1px solid #ef4444;border-radius:8px;padding:10px 14px;font-size:12px;font-family:inherit;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.5)';
+        document.body.appendChild(t);
+        setTimeout(()=>t.remove(),8000);
+      }catch(_){}
     }else{
       alert('Publish failed: '+m);
     }
@@ -6355,8 +6416,14 @@ function _cadLPParseFile(file){
       Object.values(mergedByCsm).forEach(m=>Object.entries(m).forEach(([mo,v])=>{allMoTotals[mo]=(allMoTotals[mo]||0)+v;}));
       const allMoSummary=allMoSorted.map(m=>m+'='+allMoTotals[m]).join(', ')||'(none)';
       const overlapNote=Object.keys(monthsSeen).some(m=>(prevByCsm&&Object.values(prevByCsm).some(c=>c[m])))?'\n\n♻ Replaced existing data for: '+Object.keys(monthsSeen).filter(m=>(prevByCsm&&Object.values(prevByCsm).some(c=>c[m]))).join(', '):'';
-      alert(`Imported ${parsed} row(s), ${totalActivities} new activities from sheet "${pickedSheet}" of ${file.name}.\n\n• Owner col: "${rows[hdrRow]?.[ownerIdx]}" (col ${String.fromCharCode(65+ownerIdx)})\n• Date col: "${rows[hdrRow]?.[dateIdx]}" (col ${String.fromCharCode(65+dateIdx)})\n• Count col: "${rows[hdrRow]?.[countIdx]}" (col ${String.fromCharCode(65+countIdx)})\n• Months in this file: ${Object.keys(monthsSeen).map(m=>m+'='+monthsSeen[m]).join(', ')||'(none)'}\n• Skipped: ${emptyOwner} empty-owner, ${badDate} bad-date, ${badCount} non-numeric-count rows${overlapNote}\n\nALL MONTHS NOW LOADED: ${allMoSummary}\n• ${csmCount} total CSMs across all months\n\nMatched owners in this file (${_matched.length}):\n${_summary||'  (none)'}${_unmatchedNote}`);
+      alert(`Imported ${parsed} row(s), ${totalActivities} new activities from sheet "${pickedSheet}" of ${file.name}.\n\n• Owner col: "${rows[hdrRow]?.[ownerIdx]}" (col ${String.fromCharCode(65+ownerIdx)})\n• Date col: "${rows[hdrRow]?.[dateIdx]}" (col ${String.fromCharCode(65+dateIdx)})\n• Count col: "${rows[hdrRow]?.[countIdx]}" (col ${String.fromCharCode(65+countIdx)})\n• Months in this file: ${Object.keys(monthsSeen).map(m=>m+'='+monthsSeen[m]).join(', ')||'(none)'}\n• Skipped: ${emptyOwner} empty-owner, ${badDate} bad-date, ${badCount} non-numeric-count rows${overlapNote}\n\nALL MONTHS NOW LOADED: ${allMoSummary}\n• ${csmCount} total CSMs across all months\n\nMatched owners in this file (${_matched.length}):\n${_summary||'  (none)'}${_unmatchedNote}${_cadAutoPublish?'\n\n📤 Auto-publishing to team in background…':''}`);
       if(aTab==='cadence')rT('cadence');
+      // Auto-publish if enabled. Note: requires GP audit data to be loaded
+      // too (the publish payload still has GP audit as the primary block).
+      // If only LP is loaded, the publish call returns silently via
+      // silentNoData — better to wait until GP also exists than to push a
+      // half-baked file that wipes the team's GP audit.
+      if(_cadAutoPublish)_cadPublishToTeam({silent:true,silentNoData:true});
     }catch(err){alert('Failed to parse LP file: '+(err.message||err));}
   };
   fr.onerror=()=>alert('Failed to read file.');
@@ -6531,8 +6598,11 @@ function _cadAuditParseFile(file){
       Object.keys(mergedBucket).forEach(k=>{const i=k.lastIndexOf('|');if(i>=0)allMoLoaded.add(k.slice(i+1));});
       const allMoSummary=[...allMoLoaded].sort().join(', ')||'(none)';
       const overlapNote=[...newMonthKeys].some(m=>Object.keys(prevBucket).some(k=>k.endsWith('|'+m)))?'\n♻ Replaced existing data for: '+[...newMonthKeys].filter(m=>Object.keys(prevBucket).some(k=>k.endsWith('|'+m))).sort().join(', '):'';
-      alert('Imported '+parsed+' unique meetings from sheet "'+pickedSheet+'" of '+file.name+'.'+(dupesSkipped>0?'\nCollapsed '+dupesSkipped+' duplicate row'+(dupesSkipped>1?'s':'')+' (same company + same start time = same meeting).':'')+'\n\nMonths in this file: '+[...newMonthKeys].sort().join(', ')+overlapNote+'\nAll months now loaded: '+allMoSummary+'\nUnique account-months across all imports: '+Object.keys(mergedBucket).length);
+      alert('Imported '+parsed+' unique meetings from sheet "'+pickedSheet+'" of '+file.name+'.'+(dupesSkipped>0?'\nCollapsed '+dupesSkipped+' duplicate row'+(dupesSkipped>1?'s':'')+' (same company + same start time = same meeting).':'')+'\n\nMonths in this file: '+[...newMonthKeys].sort().join(', ')+overlapNote+'\nAll months now loaded: '+allMoSummary+'\nUnique account-months across all imports: '+Object.keys(mergedBucket).length+(_cadAutoPublish?'\n\n📤 Auto-publishing to team in background…':''));
       if(aTab==='cadence')rT('cadence');
+      // Auto-publish if enabled. Silent — no extra modal; failures surface
+      // as a non-blocking toast at the bottom-right.
+      if(_cadAutoPublish)_cadPublishToTeam({silent:true});
     }catch(err){alert('Failed to parse file: '+(err.message||err));}
   };
   fr.onerror=()=>alert('Failed to read file.');
@@ -8153,6 +8223,10 @@ function rCadence(){
         ${_moChips}
         <span style="font-size:11px;color:var(--dim)">Showing <strong style="color:var(--accent)">${_curAuditMo} ${(_cadAuditData.year||new Date().getFullYear())}</strong> only${_cadAuditMoPinned?'':` <span style="color:var(--dim)">(auto-tracking live month)</span>`}</span>
         <span style="flex:1"></span>
+        <label onclick="_toggleCadAutoPublish()" title="When ON, every successful GP or LP HubSpot import automatically pushes the new data to the team — no need to click 📤 each week. Failures surface as a small bottom-right toast." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadAutoPublish?'#10b981':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:6px 10px;border:1px solid ${_cadAutoPublish?'#10b981':'var(--border)'};border-radius:6px;background:${_cadAutoPublish?'rgba(16,185,129,.08)':'transparent'}">
+          <span style="display:inline-block;width:14px;height:14px;border:1.5px solid ${_cadAutoPublish?'#10b981':'var(--dim)'};border-radius:3px;background:${_cadAutoPublish?'#10b981':'transparent'};color:#fff;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadAutoPublish?'✓':''}</span>
+          Auto-publish on import
+        </label>
         <button onclick="_cadPublishToTeam()" title="Commit this audit data to GitHub so the whole team sees the same verification state — live in ~60s" style="background:#10b981;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">📤 Publish to Team</button>
         <button onclick="_cadClearPublishToken()" title="Remove the stored GitHub token from this browser (for rotating credentials)" style="background:transparent;color:var(--dim);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">⟳ Token</button>
       </div>
