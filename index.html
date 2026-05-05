@@ -6001,6 +6001,153 @@ function _cadAuditClear(){
   if(aTab==='cadence')rT('cadence');
 }
 
+// ── LP Cadence ──────────────────────────────────────────────────────────────
+// Separate storage for LP (Limited Partner) HubSpot meeting counts, displayed
+// alongside the GP (engagement-tracker-driven) counts in the cadence table.
+// Shape: { importedAt, fileName, sheetName, rowsParsed, year, byCsm: {csmName: {Apr:N, May:N, ...}} }
+// Match key is **CSM × Month** — meetings are aggregated against the activity
+// owner / assignee field on each HubSpot row, then normalized via CSM_NAME_MAP
+// so 'Christina C' and 'Christina Chumak' fold into the same bucket.
+let _cadLPData=null;
+const _CAD_LP_KEY='cs_cadlp_v1';
+try{const _raw=localStorage.getItem(_CAD_LP_KEY);if(_raw)_cadLPData=JSON.parse(_raw);}catch(e){}
+
+// Lookup helper — returns the LP count for (csm, month). 0 when no data loaded
+// or that CSM has no LP meetings in that month.
+function _cadLPCount(csm,mo){
+  if(!_cadLPData||!_cadLPData.byCsm)return 0;
+  const b=_cadLPData.byCsm[csm];
+  return b&&b[mo]?b[mo]:0;
+}
+
+function _cadLPImport(){
+  // Same unlock gating as the GP audit import (button only renders inside the
+  // _cadExportUnlocked block in rCadence).
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.xlsx,.xls,.csv';
+  inp.style.display='none';
+  inp.onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)_cadLPParseFile(f);document.body.removeChild(inp);};
+  document.body.appendChild(inp);inp.click();
+}
+
+function _cadLPClear(){
+  if(!confirm('Clear imported HubSpot LP meeting data?'))return;
+  _cadLPData=null;
+  try{localStorage.removeItem(_CAD_LP_KEY);}catch(e){}
+  if(aTab==='cadence')rT('cadence');
+}
+
+function _cadLPParseFile(file){
+  const XLSX=(window.parent&&window.parent.XLSX)||window.XLSX;
+  if(!XLSX){alert('Excel library not loaded yet. Try again in a moment.');return;}
+  const fr=new FileReader();
+  fr.onload=ev=>{
+    try{
+      const data=new Uint8Array(ev.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      if(!wb.SheetNames||!wb.SheetNames.length){alert('Workbook has no sheets.');return;}
+      // LP meeting export — owner-keyed (vs GP audit which is Platform-ID-keyed).
+      // Hunt for a date column + an owner/assignee column on each sheet.
+      const wantDate=['activity date','last activity date','meeting date','date','close date','start date','contact create date'];
+      const wantOwner=['activity assigned to','assigned to','activity owner','meeting owner','hubspot owner','contact owner','owner'];
+      const tried=[];
+      let rows=null,hdrRow=-1,dateIdx=-1,ownerIdx=-1,pickedSheet=null;
+      const _scan=(sheetRows,strict)=>{
+        for(let r=0;r<Math.min(8,sheetRows.length);r++){
+          const row=(sheetRows[r]||[]).map(v=>String(v||'').trim().toLowerCase());
+          const d=strict
+            ?row.findIndex(c=>wantDate.some(w=>c===w||c.startsWith(w)))
+            :row.findIndex(c=>c.includes('date'));
+          const o=strict
+            ?row.findIndex(c=>wantOwner.includes(c))
+            :row.findIndex(c=>c.includes('owner')||c.includes('assigned'));
+          if(d>=0&&o>=0)return{r,d,o};
+        }
+        return null;
+      };
+      for(const sn of wb.SheetNames){
+        const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+        tried.push({sn,headers:(sheetRows[0]||[]).slice(0,8).join(' | ')});
+        const hit=_scan(sheetRows,true);
+        if(hit){rows=sheetRows;hdrRow=hit.r;dateIdx=hit.d;ownerIdx=hit.o;pickedSheet=sn;break;}
+      }
+      if(hdrRow<0){
+        for(const sn of wb.SheetNames){
+          const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+          const hit=_scan(sheetRows,false);
+          if(hit){rows=sheetRows;hdrRow=hit.r;dateIdx=hit.d;ownerIdx=hit.o;pickedSheet=sn;break;}
+        }
+      }
+      if(hdrRow<0){
+        const list=tried.map(t=>'• ['+t.sn+'] '+t.headers).join('\n');
+        alert('Could not find Activity Date + Activity Owner columns in any sheet of the LP export.\n\nSheets scanned:\n'+list+'\n\nExpected headers (any of):\n• Date: '+wantDate.join(', ')+'\n• Owner: '+wantOwner.join(', '));
+        return;
+      }
+      const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const _parseDate=v=>{
+        if(v==null||v==='')return null;
+        if(typeof v==='number'&&v>1000){const d=new Date((v-25569)*86400*1000);return isNaN(d)?null:d;}
+        const s=String(v).trim();
+        const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if(m)return new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]));
+        const m2=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+        if(m2){let y=parseInt(m2[3]);if(y<100)y+=2000;return new Date(y,parseInt(m2[1])-1,parseInt(m2[2]));}
+        const d=new Date(s);return isNaN(d)?null:d;
+      };
+      // Normalize owner names to canonical CSM names so e.g. 'Christina C' and
+      // 'Christina Chumak' fold into the same bucket. Defined in the iframe;
+      // safe-fallback if the map isn't loaded yet (shouldn't happen — both run
+      // in the same iframe scope — but guards against parse-time race).
+      const _norm=name=>{
+        if(!name)return '';
+        const s=String(name).trim();
+        if(!s)return '';
+        const k=s.toLowerCase();
+        if(typeof CSM_NAME_MAP!=='undefined'&&CSM_NAME_MAP[k])return CSM_NAME_MAP[k];
+        return s; // keep raw if not mapped — appears as a separate row
+      };
+      // Dedupe at (owner + date+time) — HubSpot exports one row per attendee
+      // so the same meeting can appear N times. Same logic as the GP audit.
+      const seenMtg=new Set();
+      const byCsm={};let parsed=0,year=null,dupesSkipped=0;
+      const unmapped=new Set();
+      for(let r=hdrRow+1;r<rows.length;r++){
+        const row=rows[r]||[];
+        const dt=_parseDate(row[dateIdx]);
+        if(!dt)continue;
+        const rawOwner=String(row[ownerIdx]||'').trim();
+        if(!rawOwner)continue;
+        const csm=_norm(rawOwner);
+        if(typeof CSM_NAME_MAP!=='undefined'&&!CSM_NAME_MAP[rawOwner.toLowerCase()])unmapped.add(rawOwner);
+        const mtgKey=csm+'|'+dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')+'T'+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+        if(seenMtg.has(mtgKey)){dupesSkipped++;continue;}
+        seenMtg.add(mtgKey);
+        const mo=MO[dt.getMonth()];
+        const yr=dt.getFullYear();
+        if(year===null)year=yr;
+        if(!byCsm[csm])byCsm[csm]={};
+        byCsm[csm][mo]=(byCsm[csm][mo]||0)+1;
+        parsed++;
+      }
+      _cadLPData={
+        importedAt:new Date().toISOString(),
+        fileName:file.name,
+        sheetName:pickedSheet||'',
+        rowsParsed:parsed,
+        byCsm,
+        year:year||new Date().getFullYear()
+      };
+      try{localStorage.setItem(_CAD_LP_KEY,JSON.stringify(_cadLPData));}catch(e){}
+      const csmCount=Object.keys(byCsm).length;
+      const unmappedNote=unmapped.size?'\n\n⚠ '+unmapped.size+' owner name(s) not found in CSM_NAME_MAP — kept as-is:\n• '+[...unmapped].slice(0,10).join('\n• ')+(unmapped.size>10?'\n• … (+'+(unmapped.size-10)+' more)':''):'';
+      alert('Imported '+parsed+' unique LP meetings from sheet "'+pickedSheet+'" of '+file.name+'.\nCSMs with LP meetings: '+csmCount+(dupesSkipped>0?'\nCollapsed '+dupesSkipped+' duplicate row'+(dupesSkipped>1?'s':'')+' (same owner + same start time = same meeting).':'')+unmappedNote);
+      if(aTab==='cadence')rT('cadence');
+    }catch(err){alert('Failed to parse LP file: '+(err.message||err));}
+  };
+  fr.onerror=()=>alert('Failed to read file.');
+  fr.readAsArrayBuffer(file);
+}
+
 function _cadAuditParseFile(file){
   const XLSX=(window.parent&&window.parent.XLSX)||window.XLSX;
   if(!XLSX){alert('Excel library not loaded yet. Try again in a moment.');return;}
@@ -7488,19 +7635,29 @@ function rCadence(){
       </select>
       ${_cadCurMoIsOverride?`<span style="font-size:10px;color:var(--amber);font-weight:700;background:var(--amberG);border:1px solid rgba(245,158,11,.4);padding:3px 8px;border-radius:10px" title="The +N to 50% badges and Export button are pinned to ${_cadCurMo}, not the live month (${_cadLiveMo}).">📌 pinned to ${_cadCurMo}</span>`:''}
       ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="margin-left:auto;background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
-      ${_cadExportUnlocked?`<button onclick="_cadAuditPromptImport()" style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot meeting export (.xlsx) — password protected">⬆ Import HubSpot${_cadAuditData?' ✓':''}</button>`:''}
+      ${_cadExportUnlocked?`<button onclick="_cadAuditPromptImport()" style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot meeting export (.xlsx) — password protected">⬆ Import GP HubSpot${_cadAuditData?' ✓':''}</button>`:''}
+      ${_cadExportUnlocked?`<button onclick="_cadLPImport()" style="background:#7c2d12;color:#fed7aa;border:1px solid #fb923c;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot LP meeting export (.xlsx) — adds an LP column next to each month">⬆ Import LP HubSpot${_cadLPData?' ✓':''}</button>`:''}
       ${_cadExportUnlocked&&_cadAuditData?`<button onclick="_exportCadenceAuditXLSX()" style="background:#5b21b6;color:#ede9fe;border:1px solid #8b5cf6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export audit comparison (.xlsx)">⬇ Export Audit (.xlsx)</button>`:''}
-      ${_cadExportUnlocked&&_cadAuditData?`<button onclick="_cadAuditClear()" style="background:transparent;color:#f87171;border:1px solid #7f1d1d;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Clear imported audit data">✕ Clear</button>`:''}
+      ${_cadExportUnlocked&&_cadAuditData?`<button onclick="_cadAuditClear()" style="background:transparent;color:#f87171;border:1px solid #7f1d1d;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Clear imported GP audit data">✕ Clear GP</button>`:''}
+      ${_cadExportUnlocked&&_cadLPData?`<button onclick="_cadLPClear()" style="background:transparent;color:#fb923c;border:1px solid #7c2d12;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Clear imported LP meeting data">✕ Clear LP</button>`:''}
     </div>
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
-      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts · <span style="color:var(--amber)">+N to 50%</span> shows calls still needed in <strong>${_cadCurMo}</strong> to hit 50% of book.${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
+      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts · <span style="color:var(--amber)">+N to 50%</span> shows calls still needed in <strong>${_cadCurMo}</strong> to hit 50% of book.${_cadLPData?` · <span style="color:#10b981;font-weight:700">GP</span> = engagement tracker · <span style="color:#fb923c;font-weight:700">LP</span> = HubSpot LP meeting export (imported ${new Date(_cadLPData.importedAt).toLocaleDateString()})`:''}${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
       <table style="border-collapse:collapse;width:100%;min-width:500px">
         <thead><tr style="border-bottom:1px solid var(--borderL)">
           <th style="text-align:left;padding:8px 12px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('name')">CSM ${_cadSortArrow('name')}</th>
           <th style="text-align:left;padding:8px 8px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('pool')">Pool ${_cadSortArrow('pool')}</th>
-          ${visCols.map(c=>`<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none" onclick="_cadSortToggle('${c.replace(/'/g,"\\'")}')">${c} ${_cadSortArrow(c)}</th>`).join('')}
-          <th style="text-align:center;padding:8px 10px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('total')">${selCadQ} Total ${_cadSortArrow('total')}</th>
+          ${visCols.map(c=>{
+            // Each month renders as 1 or 2 columns: GP always; LP only when
+            // an LP HubSpot import is loaded. Sort keys: '<Mo>' for GP (kept
+            // back-compat with existing sort state), '<Mo> LP' for LP.
+            const gpHdr=`<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none" onclick="_cadSortToggle('${c.replace(/'/g,"\\'")}')">${c}${_cadLPData?` <span style="font-size:9px;font-weight:700;color:#10b981;background:rgba(16,185,129,.15);padding:1px 5px;border-radius:3px;margin-left:2px">GP</span>`:''} ${_cadSortArrow(c)}</th>`;
+            const lpHdr=_cadLPData?`<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none;border-left:1px dashed var(--border)" onclick="_cadSortToggle('${c.replace(/'/g,"\\'")} LP')">${c} <span style="font-size:9px;font-weight:700;color:#fb923c;background:rgba(251,146,60,.15);padding:1px 5px;border-radius:3px;margin-left:2px">LP</span> ${_cadSortArrow(c+' LP')}</th>`:'';
+            return gpHdr+lpHdr;
+          }).join('')}
+          <th style="text-align:center;padding:8px 10px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('total')">${selCadQ} Total${_cadLPData?' <span style="font-size:9px;font-weight:700;color:#10b981;background:rgba(16,185,129,.15);padding:1px 5px;border-radius:3px;margin-left:2px">GP</span>':''} ${_cadSortArrow('total')}</th>
+          ${_cadLPData?`<th style="text-align:center;padding:8px 10px;font-size:11px;cursor:pointer;user-select:none;border-left:1px dashed var(--border)" onclick="_cadSortToggle('total LP')">${selCadQ} Total <span style="font-size:9px;font-weight:700;color:#fb923c;background:rgba(251,146,60,.15);padding:1px 5px;border-radius:3px;margin-left:2px">LP</span> ${_cadSortArrow('total LP')}</th>`:''}
         </tr></thead>
         <tbody>
           ${(function(){
@@ -7513,7 +7670,10 @@ function rCadence(){
               if(_k==='name')return (c.n||'').toLowerCase();
               if(_k==='pool')return (c.seg||'').toLowerCase();
               if(_k==='total')return visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0),0);
-              // Month column
+              if(_k==='total LP')return visCols.reduce((s,m)=>s+_cadLPCount(c.n,m),0);
+              // LP month column → 'Apr LP', 'May LP', etc.
+              if(_k.endsWith(' LP'))return _cadLPCount(c.n,_k.slice(0,-3));
+              // GP month column
               return cData.months[_k]?.yes||0;
             };
             return _rowsRaw.sort((a,b)=>{const va=_valOf(a),vb=_valOf(b);if(va<vb)return -1*_dir;if(va>vb)return 1*_dir;return 0;});
@@ -7559,15 +7719,22 @@ function rCadence(){
                   const need=Math.max(0,Math.ceil(tot*0.5)-cnt);
                   return need>0?`<div style="font-size:9px;color:var(--amber);font-weight:600">+${need} to 50%</div>`:`<div style="font-size:9px;color:var(--green);font-weight:600">✓ 50%</div>`;
                 })();
-                return`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div>${gapBadge}</td>`;
+                const gpCell=`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div>${gapBadge}</td>`;
+                // LP cell — separate column from GP, only when LP HubSpot data
+                // has been imported. No %-of-book or gap-to-50% (LP meetings
+                // aren't gated by an account-book denominator).
+                const lpCnt=_cadLPCount(c.n,m);
+                const lpCell=_cadLPData?`<td style="text-align:center;padding:7px 10px;border-left:1px dashed var(--border)"><span style="font-weight:700;font-size:15px;font-family:var(--mono);color:${lpCnt>0?'#fb923c':'var(--dim)'}">${lpCnt}</span></td>`:'';
+                return gpCell+lpCell;
               }).join('')}
               <td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}${qTotDiff?`<span style="font-size:9px;font-weight:700;color:${qTotDiff>0?'var(--green)':'var(--red)'};display:block">${qTotDiff>0?'▲':'▼'}${Math.abs(qTotDiff)}</span>`:''}</td>
+              ${_cadLPData?(()=>{const lpQTot=visCols.reduce((s,m)=>s+_cadLPCount(c.n,m),0);return`<td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:#fb923c;border-left:1px dashed var(--border)">${lpQTot}</td>`;})():''}
             </tr>
             <tr id="${rid}" style="display:none">
-              <td colspan="${visCols.length+3}" style="padding:0;background:rgba(0,0,0,.2)"><div id="${rid}_body"></div></td>
+              <td colspan="${visCols.length*(_cadLPData?2:1)+3+(_cadLPData?1:0)}" style="padding:0;background:rgba(0,0,0,.2)"><div id="${rid}_body"></div></td>
             </tr>
             <tr id="${rid}_chip" style="display:none">
-              <td colspan="${visCols.length+3}" style="padding:0"><div id="${rid}_chip_body"></div></td>
+              <td colspan="${visCols.length*(_cadLPData?2:1)+3+(_cadLPData?1:0)}" style="padding:0"><div id="${rid}_chip_body"></div></td>
             </tr>`;
           }).join('')}
           ${(function(){
@@ -7581,8 +7748,8 @@ function rCadence(){
               {label:'SPs',poolText:'SP',filter:c=>c.t==='SP'}
             ];
             return groups.map((g,gi)=>{
-              let tAccts=0,tQ=0,tQSnap=0,tCsms=0;
-              const monthTot={};visCols.forEach(m=>monthTot[m]={cur:0,snap:0});
+              let tAccts=0,tQ=0,tQSnap=0,tCsms=0,tQLP=0;
+              const monthTot={};visCols.forEach(m=>monthTot[m]={cur:0,snap:0,lp:0});
               CSM.filter(g.filter).forEach(c=>{
                 tCsms++;
                 const cData=cd.csm[c.n]||{total:0,months:{}};
@@ -7593,6 +7760,9 @@ function rCadence(){
                   tQ+=cur;
                   const sn=_rcCad?.[c.n]?(_rcCad[c.n].months||{})[m]||0:null;
                   if(sn!==null){monthTot[m].snap+=sn;tQSnap+=sn;}
+                  const lp=_cadLPCount(c.n,m);
+                  monthTot[m].lp+=lp;
+                  tQLP+=lp;
                 });
               });
               const tRet=tAccts?pct(tQ/tAccts*100):'0%';
@@ -7602,7 +7772,9 @@ function rCadence(){
                 const pv=tAccts?pct(v/tAccts*100):'0%';
                 const dv=_rcCad?v-monthTot[m].snap:0;
                 const diffHTML=dv?`<span style="font-size:9px;font-weight:700;color:${dv>0?'var(--green)':'var(--red)'};display:block">${dv>0?'▲':'▼'}${Math.abs(dv)}</span>`:'';
-                return`<td style="text-align:center;padding:9px 10px;font-weight:700;font-size:15px;font-family:var(--mono);color:${v>0?'var(--green)':'var(--dim)'}">${v}${diffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${pv}</div></td>`;
+                const gpCell=`<td style="text-align:center;padding:9px 10px;font-weight:700;font-size:15px;font-family:var(--mono);color:${v>0?'var(--green)':'var(--dim)'}">${v}${diffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${pv}</div></td>`;
+                const lpCell=_cadLPData?`<td style="text-align:center;padding:9px 10px;font-weight:700;font-size:15px;font-family:var(--mono);color:${monthTot[m].lp>0?'#fb923c':'var(--dim)'};border-left:1px dashed var(--border)">${monthTot[m].lp}</td>`:'';
+                return gpCell+lpCell;
               };
               const qDiffHTML=qDiff?`<span style="font-size:9px;font-weight:700;color:${qDiff>0?'var(--green)':'var(--red)'};display:block">${qDiff>0?'▲':'▼'}${Math.abs(qDiff)}</span>`:'';
               // First subtotal gets the thick accent border to separate from
@@ -7613,6 +7785,7 @@ function rCadence(){
                 <td style="padding:9px 8px"><span style="font-size:10px;color:var(--dim)">${g.poolText}</span></td>
                 ${visCols.map(monthCell).join('')}
                 <td style="text-align:center;padding:9px 10px;font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent)">${tQ}${qDiffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${tRet}</div></td>
+                ${_cadLPData?`<td style="text-align:center;padding:9px 10px;font-size:15px;font-weight:700;font-family:var(--mono);color:#fb923c;border-left:1px dashed var(--border)">${tQLP}</td>`:''}
               </tr>`;
             }).join('');
           })()}
