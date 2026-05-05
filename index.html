@@ -6173,6 +6173,18 @@ function _cadLPParseFile(file){
       // of the browser's timezone.
       const _parseDate=v=>{
         if(v==null||v==='')return null;
+        // XLSX.js may hand us a real JS Date object (when cellDates is set
+        // on the workbook itself, even without us asking for it). Excel stores
+        // dates as UTC midnight, so a "2026-04-01" cell becomes a Date that
+        // reads as 2026-04-01T00:00:00Z. In any negative-UTC timezone (US/CA),
+        // dt.getMonth() then returns the previous month. Re-anchor by reading
+        // the UTC components and rebuilding a local-time Date with the same
+        // calendar values. This was the bug — without this branch, JS Date
+        // values fell through to the string parser path which didn't re-anchor.
+        if(v instanceof Date){
+          if(isNaN(v))return null;
+          return new Date(v.getUTCFullYear(),v.getUTCMonth(),v.getUTCDate());
+        }
         if(typeof v==='number'&&v>1000){
           const d=new Date(Math.round((v-25569)*86400*1000));
           if(isNaN(d))return null;
@@ -6183,9 +6195,10 @@ function _cadLPParseFile(file){
         if(m)return new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]));
         const m2=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
         if(m2){let y=parseInt(m2[3]);if(y<100)y+=2000;return new Date(y,parseInt(m2[1])-1,parseInt(m2[2]));}
-        // Fallback: native Date parser. If the input was an ISO-without-time
-        // ('2026-04-01'), Date treats that as UTC midnight — re-anchor the
-        // same way as the Excel-serial branch.
+        // Fallback: native Date parser. ISO-without-time strings like
+        // '2026-04-01' parse as UTC midnight — re-anchor like the Excel
+        // serial branch. Other formats (with explicit timezone or time)
+        // pass through unchanged.
         const d=new Date(s);
         if(isNaN(d))return null;
         if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
