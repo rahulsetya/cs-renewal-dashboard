@@ -5771,7 +5771,61 @@ let _cadOverrides={};
 try{const _r=localStorage.getItem(_CAD_OVR_KEY);if(_r)_cadOverrides=JSON.parse(_r);}catch(e){}
 function _ovrKey(pid,mo){return String(pid||'').trim()+'|'+new Date().getFullYear()+'-'+mo;}
 function _getOvr(pid,mo){const p=String(pid||'').trim();if(!p)return null;return _cadOverrides[_ovrKey(p,mo)]||null;}
-function _saveOverrides(){try{localStorage.setItem(_CAD_OVR_KEY,JSON.stringify(_cadOverrides));}catch(e){}}
+// Debounce window for override-driven auto-publish. The auditor often
+// resolves a batch of rows in a row (verify 5, note 2, clear 1) — we don't
+// want each click to push to GitHub. Wait 5s of quiet before publishing,
+// and show a small "queued / publishing / published" toast so the user
+// knows their changes are persisted both locally AND being shipped.
+let _cadAutoPubTimer=null;
+function _scheduleOvrAutoPublish(){
+  if(!_cadAutoPublish)return;
+  // Visible queue indicator — replaces itself if already showing.
+  _cadAutoPubToast('queued','📤 Auto-publish queued… ');
+  if(_cadAutoPubTimer)clearTimeout(_cadAutoPubTimer);
+  _cadAutoPubTimer=setTimeout(async()=>{
+    _cadAutoPubTimer=null;
+    _cadAutoPubToast('publishing','📤 Publishing to team…');
+    try{
+      // Reuse the publish flow — silent (no extra success modal). If GP
+      // data isn't loaded yet, silentNoData skips quietly (would otherwise
+      // throw at the user; overrides aren't published without GP context
+      // anyway since the bucket is what makes them resolvable).
+      await _cadPublishToTeam({silent:true,silentNoData:true});
+      _cadAutoPubToast('done','✓ Published to team');
+    }catch(e){
+      // _cadPublishToTeam already toasts on failure; nothing more to do.
+    }
+  },5000);
+}
+// Single rolling toast at bottom-right for the auto-publish flow.
+function _cadAutoPubToast(state,msg){
+  let t=document.getElementById('cad-autopub-toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='cad-autopub-toast';
+    t.style.cssText='position:fixed;bottom:20px;right:20px;z-index:99999;border-radius:8px;padding:8px 12px;font-size:11px;font-family:inherit;font-weight:600;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:opacity .2s';
+    document.body.appendChild(t);
+  }
+  const colors={
+    queued:{bg:'#1e293b',bd:'#64748b',fg:'#cbd5e1'},
+    publishing:{bg:'#1e3a8a',bd:'#3b82f6',fg:'#dbeafe'},
+    done:{bg:'#065f46',bd:'#10b981',fg:'#d1fae5'}
+  };
+  const c=colors[state]||colors.queued;
+  t.style.background=c.bg;t.style.border='1px solid '+c.bd;t.style.color=c.fg;
+  t.textContent=msg;
+  t.style.opacity='1';
+  if(state==='done'){
+    setTimeout(()=>{if(t)t.style.opacity='0';},2500);
+    setTimeout(()=>{const el=document.getElementById('cad-autopub-toast');if(el)el.remove();},2900);
+  }
+}
+function _saveOverrides(){
+  try{localStorage.setItem(_CAD_OVR_KEY,JSON.stringify(_cadOverrides));}catch(e){}
+  // Auto-publish on every override change too (debounced 5s — see above).
+  // Local persistence is unconditional; only the team-push is gated.
+  _scheduleOvrAutoPublish();
+}
 function _cadOvrMarkVerified(pid,mo,acct){
   if(!String(pid||'').trim()){alert('Cannot override — this account has no Platform ID, so we have no key to track the override against.');return;}
   const ex=_getOvr(pid,mo);
