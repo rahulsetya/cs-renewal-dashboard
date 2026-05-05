@@ -6037,6 +6037,90 @@ function _cadLPClear(){
   if(aTab==='cadence')rT('cadence');
 }
 
+// Diagnostic view for the LP import — shows what got parsed, which raw owner
+// names matched a canonical CSM, and which didn't. Use this to figure out why
+// a CSM's row is showing 0 even though the import succeeded.
+function _cadLPDetails(){
+  if(!_cadLPData){alert('No LP data loaded. Click "⬆ Import LP HubSpot" first.');return;}
+  const d=_cadLPData;
+  const _csmList=(typeof CSM!=='undefined'&&Array.isArray(CSM))?CSM.map(c=>c.n).filter(Boolean):[];
+  const diag=d.diag||{};
+  const rawToNorm=diag.rawToNorm||{};
+  const rawCounts=diag.rawCounts||{};
+  const monthsSeen=diag.monthsSeen||{};
+  // Bucket owners by whether their normalized name maps to a known CSM.
+  const matched=[],unmatched=[];
+  Object.keys(rawToNorm).forEach(raw=>{
+    const norm=rawToNorm[raw];
+    const cnt=rawCounts[raw]||0;
+    const entry={raw,norm,cnt,monthsByCsm:d.byCsm[norm]||{}};
+    if(_csmList.includes(norm))matched.push(entry);
+    else unmatched.push(entry);
+  });
+  matched.sort((a,b)=>b.cnt-a.cnt);
+  unmatched.sort((a,b)=>b.cnt-a.cnt);
+  // Build the panel HTML — overlays the page so it's prominent. Click outside
+  // or the close button to dismiss.
+  const fmt=n=>String(n).padStart(3,' ');
+  const moList=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const _row=(e,isOk)=>{
+    const moStr=moList.filter(m=>e.monthsByCsm[m]).map(m=>m+':'+e.monthsByCsm[m]).join(' · ')||'(no months)';
+    return `<tr style="border-top:1px solid var(--border)"><td style="padding:5px 10px;font-family:var(--mono);color:${isOk?'var(--text)':'var(--amber)'};font-size:11px">${e.raw.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</td><td style="padding:5px 10px;font-family:var(--mono);color:${isOk?'#10b981':'var(--red)'};font-size:11px">${e.norm.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}${isOk?'':' <span style="font-size:9px;color:var(--red);font-weight:700">(NO CSM MATCH)</span>'}</td><td style="padding:5px 10px;text-align:right;font-family:var(--mono);font-weight:700;color:${isOk?'var(--text)':'var(--amber)'};font-size:12px">${e.cnt}</td><td style="padding:5px 10px;font-family:var(--mono);color:var(--dim);font-size:10px">${moStr}</td></tr>`;
+  };
+  const html=`
+    <div onclick="_cadLPDetailsClose()" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:40px">
+      <div onclick="event.stopPropagation()" style="background:var(--card);border:1px solid var(--borderL);border-radius:12px;max-width:1100px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--borderL);display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">🔍 LP HubSpot Import — Parse Details</div>
+            <div style="font-size:11px;color:var(--dim);margin-top:3px">${d.fileName} · sheet "${d.sheetName}" · imported ${new Date(d.importedAt).toLocaleString()}</div>
+          </div>
+          <button onclick="_cadLPDetailsClose()" style="background:transparent;border:1px solid var(--borderL);color:var(--text);padding:5px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button>
+        </div>
+        <div style="padding:14px 20px;overflow-y:auto">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:18px">
+            ${[
+              ['Date col detected',(diag.dateColHeader||'?').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),'#10b981'],
+              ['Owner col detected',(diag.ownerColHeader||'?').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])),'#10b981'],
+              ['Total meetings parsed',d.rowsParsed||0,'var(--text)'],
+              ['Distinct owners',Object.keys(rawToNorm).length,'var(--text)'],
+              ['Matched to a CSM',matched.length,'#10b981'],
+              ['Unmapped',unmatched.length,unmatched.length?'var(--red)':'var(--dim)'],
+              ['Skipped (dupe rows)',diag.dupesSkipped||0,'var(--dim)'],
+              ['Skipped (empty owner)',diag.emptyOwner||0,(diag.emptyOwner||0)>0?'var(--amber)':'var(--dim)'],
+              ['Skipped (bad date)',diag.badDate||0,(diag.badDate||0)>0?'var(--amber)':'var(--dim)'],
+              ['Months found',(Object.keys(monthsSeen).length?Object.keys(monthsSeen).map(m=>m+':'+monthsSeen[m]).join(', '):'(none)'),'var(--text)']
+            ].map(([l,v,c])=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px"><div style="font-size:9px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:13px;font-weight:700;color:${c};font-family:var(--mono);margin-top:3px;word-break:break-word">${v}</div></div>`).join('')}
+          </div>
+          ${unmatched.length?`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.4);border-radius:8px;padding:12px 16px;margin-bottom:14px">
+            <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">⚠ ${unmatched.length} owner name(s) didn't match any CSM</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.5">These meetings <strong>aren't showing up in any CSM row</strong> of the cadence table. Either rename in HubSpot to match the canonical CSM name, or tell me which raw name should map to which CSM and I'll add aliases to <code style="background:var(--bg);padding:1px 5px;border-radius:3px">CSM_NAME_MAP</code>.</div>
+          </div>`:''}
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="border-bottom:2px solid var(--borderL);color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.4px">
+              <th style="text-align:left;padding:6px 10px">Raw Owner (HubSpot)</th>
+              <th style="text-align:left;padding:6px 10px">Resolved To</th>
+              <th style="text-align:right;padding:6px 10px">Meetings</th>
+              <th style="text-align:left;padding:6px 10px">Per Month</th>
+            </tr></thead>
+            <tbody>
+              ${unmatched.length?`<tr style="background:rgba(239,68,68,.05)"><td colspan="4" style="padding:8px 10px;font-size:10px;color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Unmatched (${unmatched.length})</td></tr>${unmatched.map(e=>_row(e,false)).join('')}`:''}
+              ${matched.length?`<tr style="background:rgba(16,185,129,.05)"><td colspan="4" style="padding:8px 10px;font-size:10px;color:#10b981;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Matched (${matched.length})</td></tr>${matched.map(e=>_row(e,true)).join('')}`:''}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  const div=document.createElement('div');
+  div.id='cadlp-details-overlay';
+  div.innerHTML=html;
+  document.body.appendChild(div);
+}
+function _cadLPDetailsClose(){
+  const el=document.getElementById('cadlp-details-overlay');
+  if(el)el.remove();
+}
+
 function _cadLPParseFile(file){
   const XLSX=(window.parent&&window.parent.XLSX)||window.XLSX;
   if(!XLSX){alert('Excel library not loaded yet. Try again in a moment.');return;}
@@ -6046,43 +6130,38 @@ function _cadLPParseFile(file){
       const data=new Uint8Array(ev.target.result);
       const wb=XLSX.read(data,{type:'array'});
       if(!wb.SheetNames||!wb.SheetNames.length){alert('Workbook has no sheets.');return;}
-      // LP meeting export — owner-keyed (vs GP audit which is Platform-ID-keyed).
-      // Hunt for a date column + an owner/assignee column on each sheet.
-      const wantDate=['activity date','last activity date','meeting date','date','close date','start date','contact create date'];
-      const wantOwner=['activity assigned to','assigned to','activity owner','meeting owner','hubspot owner','contact owner','owner'];
-      const tried=[];
-      let rows=null,hdrRow=-1,dateIdx=-1,ownerIdx=-1,pickedSheet=null;
-      const _scan=(sheetRows,strict)=>{
-        for(let r=0;r<Math.min(8,sheetRows.length);r++){
-          const row=(sheetRows[r]||[]).map(v=>String(v||'').trim().toLowerCase());
-          const d=strict
-            ?row.findIndex(c=>wantDate.some(w=>c===w||c.startsWith(w)))
-            :row.findIndex(c=>c.includes('date'));
-          const o=strict
-            ?row.findIndex(c=>wantOwner.includes(c))
-            :row.findIndex(c=>c.includes('owner')||c.includes('assigned'));
-          if(d>=0&&o>=0)return{r,d,o};
+      // LP HubSpot export is a pre-aggregated summary on the FIRST sheet:
+      //   Col A — Activity assigned to (CSM name, full canonical form)
+      //   Col B — Activity date - Monthly (YYYY-MM-01)
+      //   Col C — (Count) Activities (the number we want)
+      // We only read the first sheet and don't dedupe — counts are already
+      // aggregated upstream. Header detection is best-effort: matches by
+      // text on the first non-empty row, then falls back to fixed A/B/C
+      // positions if a header doesn't match.
+      const pickedSheet=wb.SheetNames[0];
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[pickedSheet],{header:1,defval:''});
+      if(rows.length<2){alert('First sheet "'+pickedSheet+'" appears empty (need at least a header row + 1 data row).');return;}
+      // Find header row — first row in top 5 that has text in any of the
+      // first 3 cells. Fallback to row 0.
+      let hdrRow=0;
+      for(let r=0;r<Math.min(5,rows.length);r++){
+        const row=rows[r]||[];
+        if((String(row[0]||'').trim()||String(row[1]||'').trim()||String(row[2]||'').trim()).length){hdrRow=r;break;}
+      }
+      const hdr=(rows[hdrRow]||[]).map(h=>String(h||'').toLowerCase().trim());
+      const findCol=(...needles)=>{
+        for(let i=0;i<hdr.length;i++){const h=hdr[i];if(!h)continue;
+          for(const n of needles)if(h.includes(n))return i;
         }
-        return null;
+        return -1;
       };
-      for(const sn of wb.SheetNames){
-        const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
-        tried.push({sn,headers:(sheetRows[0]||[]).slice(0,8).join(' | ')});
-        const hit=_scan(sheetRows,true);
-        if(hit){rows=sheetRows;hdrRow=hit.r;dateIdx=hit.d;ownerIdx=hit.o;pickedSheet=sn;break;}
-      }
-      if(hdrRow<0){
-        for(const sn of wb.SheetNames){
-          const sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
-          const hit=_scan(sheetRows,false);
-          if(hit){rows=sheetRows;hdrRow=hit.r;dateIdx=hit.d;ownerIdx=hit.o;pickedSheet=sn;break;}
-        }
-      }
-      if(hdrRow<0){
-        const list=tried.map(t=>'• ['+t.sn+'] '+t.headers).join('\n');
-        alert('Could not find Activity Date + Activity Owner columns in any sheet of the LP export.\n\nSheets scanned:\n'+list+'\n\nExpected headers (any of):\n• Date: '+wantDate.join(', ')+'\n• Owner: '+wantOwner.join(', '));
-        return;
-      }
+      // Owner / Date / Count columns — auto-detect, fall back to fixed A/B/C.
+      const _oI=findCol('assigned to','activity assigned','owner','assigned');
+      const _dI=findCol('activity date','date - month','date','month');
+      const _cI=findCol('count','activities','meetings','calls','total');
+      const ownerIdx=_oI>=0?_oI:0;
+      const dateIdx =_dI>=0?_dI:1;
+      const countIdx=_cI>=0?_cI:2;
       const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const _parseDate=v=>{
         if(v==null||v==='')return null;
@@ -6094,39 +6173,62 @@ function _cadLPParseFile(file){
         if(m2){let y=parseInt(m2[3]);if(y<100)y+=2000;return new Date(y,parseInt(m2[1])-1,parseInt(m2[2]));}
         const d=new Date(s);return isNaN(d)?null:d;
       };
-      // Normalize owner names to canonical CSM names so e.g. 'Christina C' and
-      // 'Christina Chumak' fold into the same bucket. Defined in the iframe;
-      // safe-fallback if the map isn't loaded yet (shouldn't happen — both run
-      // in the same iframe scope — but guards against parse-time race).
+      // Owner-name normalization. The HubSpot export uses canonical CSM names
+      // (e.g. "Lucy Garber") so the match should usually be direct. We still
+      // run through the existing layered match in case anyone has aliases:
+      //   1. Strip trailing email
+      //   2. Reverse 'Last, First'
+      //   3. CSM_NAME_MAP lookup
+      //   4. Direct match against CSM[].n
+      //   5. Substring match either direction
+      //   6. Unique-first-name match
+      const _csmList=(typeof CSM!=='undefined'&&Array.isArray(CSM))?CSM.map(c=>c.n).filter(Boolean):[];
       const _norm=name=>{
         if(!name)return '';
-        const s=String(name).trim();
+        let s=String(name).trim();
         if(!s)return '';
+        s=s.replace(/\s*[\(<][^\)>]*@[^\)>]*[\)>]\s*$/,'').trim();
+        s=s.replace(/\s+[\w._%+-]+@[\w.-]+\.[\w]+\s*$/,'').trim();
+        const lf=s.match(/^([^,]+),\s*(.+)$/);
+        if(lf)s=lf[2].trim()+' '+lf[1].trim();
         const k=s.toLowerCase();
         if(typeof CSM_NAME_MAP!=='undefined'&&CSM_NAME_MAP[k])return CSM_NAME_MAP[k];
-        return s; // keep raw if not mapped — appears as a separate row
+        const direct=_csmList.find(n=>n.toLowerCase()===k);
+        if(direct)return direct;
+        const contains=_csmList.find(n=>k.includes(n.toLowerCase())||n.toLowerCase().includes(k));
+        if(contains)return contains;
+        const firstTok=k.split(/\s+/)[0];
+        if(firstTok.length>=3){
+          const firstMatches=_csmList.filter(n=>n.toLowerCase().split(/\s+/)[0]===firstTok);
+          if(firstMatches.length===1)return firstMatches[0];
+        }
+        return s;
       };
-      // Dedupe at (owner + date+time) — HubSpot exports one row per attendee
-      // so the same meeting can appear N times. Same logic as the GP audit.
-      const seenMtg=new Set();
-      const byCsm={};let parsed=0,year=null,dupesSkipped=0;
-      const unmapped=new Set();
+      const byCsm={};let parsed=0,year=null,emptyOwner=0,badDate=0,badCount=0,totalActivities=0;
+      const rawToNorm={};   // rawOwner → resolved CSM name
+      const rawCounts={};   // rawOwner → total activities (sum of count col)
+      const monthsSeen={};  // month → total activities (sum across CSMs)
       for(let r=hdrRow+1;r<rows.length;r++){
         const row=rows[r]||[];
-        const dt=_parseDate(row[dateIdx]);
-        if(!dt)continue;
         const rawOwner=String(row[ownerIdx]||'').trim();
-        if(!rawOwner)continue;
+        if(!rawOwner){emptyOwner++;continue;}
+        const dt=_parseDate(row[dateIdx]);
+        if(!dt){badDate++;continue;}
+        // Count column — coerce to number. Blank or non-numeric → skip the row.
+        const rawCnt=row[countIdx];
+        const cnt=typeof rawCnt==='number'?rawCnt:parseFloat(String(rawCnt).replace(/,/g,''));
+        if(isNaN(cnt)||cnt<=0){badCount++;continue;}
         const csm=_norm(rawOwner);
-        if(typeof CSM_NAME_MAP!=='undefined'&&!CSM_NAME_MAP[rawOwner.toLowerCase()])unmapped.add(rawOwner);
-        const mtgKey=csm+'|'+dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')+'T'+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
-        if(seenMtg.has(mtgKey)){dupesSkipped++;continue;}
-        seenMtg.add(mtgKey);
+        rawToNorm[rawOwner]=csm;
         const mo=MO[dt.getMonth()];
         const yr=dt.getFullYear();
         if(year===null)year=yr;
         if(!byCsm[csm])byCsm[csm]={};
-        byCsm[csm][mo]=(byCsm[csm][mo]||0)+1;
+        // Sum in case there are multiple rows for the same (CSM, month).
+        byCsm[csm][mo]=(byCsm[csm][mo]||0)+cnt;
+        rawCounts[rawOwner]=(rawCounts[rawOwner]||0)+cnt;
+        monthsSeen[mo]=(monthsSeen[mo]||0)+cnt;
+        totalActivities+=cnt;
         parsed++;
       }
       _cadLPData={
@@ -6134,13 +6236,33 @@ function _cadLPParseFile(file){
         fileName:file.name,
         sheetName:pickedSheet||'',
         rowsParsed:parsed,
+        totalActivities,
         byCsm,
-        year:year||new Date().getFullYear()
+        year:year||new Date().getFullYear(),
+        diag:{
+          rawToNorm,
+          rawCounts,
+          monthsSeen,
+          dupesSkipped:0,
+          emptyOwner,
+          badDate,
+          badCount,
+          dateColHeader:String(rows[hdrRow]?.[dateIdx]||''),
+          ownerColHeader:String(rows[hdrRow]?.[ownerIdx]||''),
+          countColHeader:String(rows[hdrRow]?.[countIdx]||'')
+        }
       };
       try{localStorage.setItem(_CAD_LP_KEY,JSON.stringify(_cadLPData));}catch(e){}
       const csmCount=Object.keys(byCsm).length;
-      const unmappedNote=unmapped.size?'\n\n⚠ '+unmapped.size+' owner name(s) not found in CSM_NAME_MAP — kept as-is:\n• '+[...unmapped].slice(0,10).join('\n• ')+(unmapped.size>10?'\n• … (+'+(unmapped.size-10)+' more)':''):'';
-      alert('Imported '+parsed+' unique LP meetings from sheet "'+pickedSheet+'" of '+file.name+'.\nCSMs with LP meetings: '+csmCount+(dupesSkipped>0?'\nCollapsed '+dupesSkipped+' duplicate row'+(dupesSkipped>1?'s':'')+' (same owner + same start time = same meeting).':'')+unmappedNote);
+      const _matched=[],_unmatched=[];
+      Object.keys(rawToNorm).forEach(raw=>{
+        const norm=rawToNorm[raw];
+        if(_csmList.includes(norm))_matched.push(raw+' → '+norm+' ('+rawCounts[raw]+')');
+        else _unmatched.push(raw+' → '+norm+' ('+rawCounts[raw]+')');
+      });
+      const _summary=_matched.slice(0,8).map(s=>'  ✓ '+s).join('\n')+(_matched.length>8?`\n  … (+${_matched.length-8} more matched)`:'');
+      const _unmatchedNote=_unmatched.length?`\n\n⚠ ${_unmatched.length} owner name(s) did NOT match any CSM:\n${_unmatched.slice(0,10).map(s=>'  ✗ '+s).join('\n')}${_unmatched.length>10?'\n  … (+'+(_unmatched.length-10)+' more)':''}`:'';
+      alert(`Imported ${parsed} row(s), ${totalActivities} total LP activities from sheet "${pickedSheet}" of ${file.name}.\n\n• Owner col: "${rows[hdrRow]?.[ownerIdx]}" (col ${String.fromCharCode(65+ownerIdx)})\n• Date col: "${rows[hdrRow]?.[dateIdx]}" (col ${String.fromCharCode(65+dateIdx)})\n• Count col: "${rows[hdrRow]?.[countIdx]}" (col ${String.fromCharCode(65+countIdx)})\n• CSMs with activities: ${csmCount}\n• Months covered: ${Object.keys(monthsSeen).map(m=>m+'='+monthsSeen[m]).join(', ')||'(none)'}\n• Skipped: ${emptyOwner} empty-owner, ${badDate} bad-date, ${badCount} non-numeric-count rows\n\nMatched owners (${_matched.length}):\n${_summary||'  (none)'}${_unmatchedNote}`);
       if(aTab==='cadence')rT('cadence');
     }catch(err){alert('Failed to parse LP file: '+(err.message||err));}
   };
@@ -7639,6 +7761,7 @@ function rCadence(){
       ${_cadExportUnlocked?`<button onclick="_cadLPImport()" style="background:#7c2d12;color:#fed7aa;border:1px solid #fb923c;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot LP meeting export (.xlsx) — adds an LP column next to each month">⬆ Import LP HubSpot${_cadLPData?' ✓':''}</button>`:''}
       ${_cadExportUnlocked&&_cadAuditData?`<button onclick="_exportCadenceAuditXLSX()" style="background:#5b21b6;color:#ede9fe;border:1px solid #8b5cf6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export audit comparison (.xlsx)">⬇ Export Audit (.xlsx)</button>`:''}
       ${_cadExportUnlocked&&_cadAuditData?`<button onclick="_cadAuditClear()" style="background:transparent;color:#f87171;border:1px solid #7f1d1d;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Clear imported GP audit data">✕ Clear GP</button>`:''}
+      ${_cadExportUnlocked&&_cadLPData?`<button onclick="_cadLPDetails()" style="background:transparent;color:#fb923c;border:1px solid #fb923c;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Show what was parsed from the LP HubSpot import — useful for diagnosing 0-count cells">🔍 LP details</button>`:''}
       ${_cadExportUnlocked&&_cadLPData?`<button onclick="_cadLPClear()" style="background:transparent;color:#fb923c;border:1px solid #7c2d12;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Clear imported LP meeting data">✕ Clear LP</button>`:''}
     </div>
     <div class="card" style="overflow-x:auto">
