@@ -8016,21 +8016,18 @@ function rCadence(){
     </div>
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
-      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts · <span style="color:var(--amber)">+N to 50%</span> shows calls still needed in <strong>${_cadCurMo}</strong> to hit 50% of book.${_cadLPData?` · <span style="color:#10b981;font-weight:700">GP</span> = engagement tracker · <span style="color:#fb923c;font-weight:700">LP</span> = HubSpot LP meeting export (imported ${new Date(_cadLPData.importedAt).toLocaleDateString()})`:''}${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
+      <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts · <span style="color:var(--amber)">+N to 50%</span> shows calls still needed in <strong>${_cadCurMo}</strong> to hit 50% of book.${_cadLPData?` · Each cell shows <span style="color:#10b981;font-weight:700">GP</span> · <span style="color:#fb923c;font-weight:700">LP</span> (LP via HubSpot, imported ${new Date(_cadLPData.importedAt).toLocaleDateString()})`:''}${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
       <table style="border-collapse:collapse;width:100%;min-width:500px">
         <thead><tr style="border-bottom:1px solid var(--borderL)">
           <th style="text-align:left;padding:8px 12px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('name')">CSM ${_cadSortArrow('name')}</th>
           <th style="text-align:left;padding:8px 8px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('pool')">Pool ${_cadSortArrow('pool')}</th>
           ${visCols.map(c=>{
-            // Each month renders as 1 or 2 columns: GP always; LP only when
-            // an LP HubSpot import is loaded. Sort keys: '<Mo>' for GP (kept
-            // back-compat with existing sort state), '<Mo> LP' for LP.
-            const gpHdr=`<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none" onclick="_cadSortToggle('${c.replace(/'/g,"\\'")}')">${c}${_cadLPData?` <span style="font-size:9px;font-weight:700;color:#10b981;background:rgba(16,185,129,.15);padding:1px 5px;border-radius:3px;margin-left:2px">GP</span>`:''} ${_cadSortArrow(c)}</th>`;
-            const lpHdr=_cadLPData?`<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none;border-left:1px dashed var(--border)" onclick="_cadSortToggle('${c.replace(/'/g,"\\'")} LP')">${c} <span style="font-size:9px;font-weight:700;color:#fb923c;background:rgba(251,146,60,.15);padding:1px 5px;border-radius:3px;margin-left:2px">LP</span> ${_cadSortArrow(c+' LP')}</th>`:'';
-            return gpHdr+lpHdr;
+            // Single column per month — GP and LP fold into the same cell
+            // (separated by a thin divider). Sort key '<Mo>' still keys on
+            // GP count; LP sort isn't exposed here to keep the header clean.
+            return `<th style="text-align:center;padding:8px 10px;font-size:11px;white-space:nowrap;cursor:pointer;user-select:none" onclick="_cadSortToggle('${c.replace(/'/g,"\\'")}')">${c} ${_cadSortArrow(c)}${_cadLPData?'<div style="font-size:9px;font-weight:600;margin-top:2px;letter-spacing:.4px"><span style="color:#10b981">GP</span> <span style="color:var(--dim);opacity:.5">·</span> <span style="color:#fb923c">LP</span></div>':''}</th>`;
           }).join('')}
-          <th style="text-align:center;padding:8px 10px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('total')">${selCadQ} Total${_cadLPData?' <span style="font-size:9px;font-weight:700;color:#10b981;background:rgba(16,185,129,.15);padding:1px 5px;border-radius:3px;margin-left:2px">GP</span>':''} ${_cadSortArrow('total')}</th>
-          ${_cadLPData?`<th style="text-align:center;padding:8px 10px;font-size:11px;cursor:pointer;user-select:none;border-left:1px dashed var(--border)" onclick="_cadSortToggle('total LP')">${selCadQ} Total <span style="font-size:9px;font-weight:700;color:#fb923c;background:rgba(251,146,60,.15);padding:1px 5px;border-radius:3px;margin-left:2px">LP</span> ${_cadSortArrow('total LP')}</th>`:''}
+          <th style="text-align:center;padding:8px 10px;font-size:11px;cursor:pointer;user-select:none" onclick="_cadSortToggle('total')">${selCadQ} Total ${_cadSortArrow('total')}${_cadLPData?'<div style="font-size:9px;font-weight:600;margin-top:2px;letter-spacing:.4px"><span style="color:#10b981">GP</span> <span style="color:var(--dim);opacity:.5">·</span> <span style="color:#fb923c">LP</span></div>':''}</th>
         </tr></thead>
         <tbody>
           ${(function(){
@@ -8042,12 +8039,11 @@ function rCadence(){
               const cData=cd.csm[c.n]||{total:0,months:{}};
               if(_k==='name')return (c.n||'').toLowerCase();
               if(_k==='pool')return (c.seg||'').toLowerCase();
-              if(_k==='total')return visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0),0);
-              if(_k==='total LP')return visCols.reduce((s,m)=>s+_cadLPCount(c.n,m),0);
-              // LP month column → 'Apr LP', 'May LP', etc.
-              if(_k.endsWith(' LP'))return _cadLPCount(c.n,_k.slice(0,-3));
-              // GP month column
-              return cData.months[_k]?.yes||0;
+              // Sort by GP+LP combined when LP is loaded so the headline
+              // numbers in the cell drive the order. Without LP, behaves
+              // exactly like before (GP-only).
+              if(_k==='total')return visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0)+(_cadLPData?_cadLPCount(c.n,m):0),0);
+              return (cData.months[_k]?.yes||0)+(_cadLPData?_cadLPCount(c.n,_k):0);
             };
             return _rowsRaw.sort((a,b)=>{const va=_valOf(a),vb=_valOf(b);if(va<vb)return -1*_dir;if(va>vb)return 1*_dir;return 0;});
           })().map(c=>{
@@ -8092,22 +8088,25 @@ function rCadence(){
                   const need=Math.max(0,Math.ceil(tot*0.5)-cnt);
                   return need>0?`<div style="font-size:9px;color:var(--amber);font-weight:600">+${need} to 50%</div>`:`<div style="font-size:9px;color:var(--green);font-weight:600">✓ 50%</div>`;
                 })();
-                const gpCell=`<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div>${gapBadge}</td>`;
-                // LP cell — separate column from GP, only when LP HubSpot data
-                // has been imported. No %-of-book or gap-to-50% (LP meetings
-                // aren't gated by an account-book denominator).
                 const lpCnt=_cadLPCount(c.n,m);
-                const lpCell=_cadLPData?`<td style="text-align:center;padding:7px 10px;border-left:1px dashed var(--border)"><span style="font-weight:700;font-size:15px;font-family:var(--mono);color:${lpCnt>0?'#fb923c':'var(--dim)'}">${lpCnt}</span></td>`:'';
-                return gpCell+lpCell;
+                // Combined cell — GP (large green) and LP (smaller orange)
+                // on the same line separated by a thin dot. LP only renders
+                // when LP data is loaded; otherwise the cell is GP-only and
+                // looks identical to the pre-LP layout.
+                const lpInline=_cadLPData?` <span style="color:var(--dim);opacity:.4;font-size:11px;font-weight:400;margin:0 2px">·</span> <span style="font-weight:700;font-size:13px;font-family:var(--mono);color:${lpCnt>0?'#fb923c':'var(--dim)'}">${lpCnt}</span>`:'';
+                return `<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${lpInline}${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)">${pv}</div>${gapBadge}</td>`;
               }).join('')}
-              <td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}${qTotDiff?`<span style="font-size:9px;font-weight:700;color:${qTotDiff>0?'var(--green)':'var(--red)'};display:block">${qTotDiff>0?'▲':'▼'}${Math.abs(qTotDiff)}</span>`:''}</td>
-              ${_cadLPData?(()=>{const lpQTot=visCols.reduce((s,m)=>s+_cadLPCount(c.n,m),0);return`<td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:#fb923c;border-left:1px dashed var(--border)">${lpQTot}</td>`;})():''}
+              ${(()=>{
+                const lpQTot=_cadLPData?visCols.reduce((s,m)=>s+_cadLPCount(c.n,m),0):0;
+                const lpInline=_cadLPData?` <span style="color:var(--dim);opacity:.4;font-size:11px;font-weight:400;margin:0 2px">·</span> <span style="font-weight:700;font-size:13px;font-family:var(--mono);color:${lpQTot>0?'#fb923c':'var(--dim)'}">${lpQTot}</span>`:'';
+                return `<td style="text-align:center;padding:7px 10px;font-weight:700;font-family:var(--mono);color:var(--accent)">${qTot}${lpInline}${qTotDiff?`<span style="font-size:9px;font-weight:700;color:${qTotDiff>0?'var(--green)':'var(--red)'};display:block">${qTotDiff>0?'▲':'▼'}${Math.abs(qTotDiff)}</span>`:''}</td>`;
+              })()}
             </tr>
             <tr id="${rid}" style="display:none">
-              <td colspan="${visCols.length*(_cadLPData?2:1)+3+(_cadLPData?1:0)}" style="padding:0;background:rgba(0,0,0,.2)"><div id="${rid}_body"></div></td>
+              <td colspan="${visCols.length+3}" style="padding:0;background:rgba(0,0,0,.2)"><div id="${rid}_body"></div></td>
             </tr>
             <tr id="${rid}_chip" style="display:none">
-              <td colspan="${visCols.length*(_cadLPData?2:1)+3+(_cadLPData?1:0)}" style="padding:0"><div id="${rid}_chip_body"></div></td>
+              <td colspan="${visCols.length+3}" style="padding:0"><div id="${rid}_chip_body"></div></td>
             </tr>`;
           }).join('')}
           ${(function(){
@@ -8145,11 +8144,11 @@ function rCadence(){
                 const pv=tAccts?pct(v/tAccts*100):'0%';
                 const dv=_rcCad?v-monthTot[m].snap:0;
                 const diffHTML=dv?`<span style="font-size:9px;font-weight:700;color:${dv>0?'var(--green)':'var(--red)'};display:block">${dv>0?'▲':'▼'}${Math.abs(dv)}</span>`:'';
-                const gpCell=`<td style="text-align:center;padding:9px 10px;font-weight:700;font-size:15px;font-family:var(--mono);color:${v>0?'var(--green)':'var(--dim)'}">${v}${diffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${pv}</div></td>`;
-                const lpCell=_cadLPData?`<td style="text-align:center;padding:9px 10px;font-weight:700;font-size:15px;font-family:var(--mono);color:${monthTot[m].lp>0?'#fb923c':'var(--dim)'};border-left:1px dashed var(--border)">${monthTot[m].lp}</td>`:'';
-                return gpCell+lpCell;
+                const lpInline=_cadLPData?` <span style="color:var(--dim);opacity:.4;font-size:11px;font-weight:400;margin:0 2px">·</span> <span style="font-weight:700;font-size:13px;font-family:var(--mono);color:${monthTot[m].lp>0?'#fb923c':'var(--dim)'}">${monthTot[m].lp}</span>`:'';
+                return `<td style="text-align:center;padding:9px 10px;font-weight:700;font-size:15px;font-family:var(--mono);color:${v>0?'var(--green)':'var(--dim)'}">${v}${lpInline}${diffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${pv}</div></td>`;
               };
               const qDiffHTML=qDiff?`<span style="font-size:9px;font-weight:700;color:${qDiff>0?'var(--green)':'var(--red)'};display:block">${qDiff>0?'▲':'▼'}${Math.abs(qDiff)}</span>`:'';
+              const tQLPInline=_cadLPData?` <span style="color:var(--dim);opacity:.4;font-size:11px;font-weight:400;margin:0 2px">·</span> <span style="font-weight:700;font-size:13px;font-family:var(--mono);color:${tQLP>0?'#fb923c':'var(--dim)'}">${tQLP}</span>`:'';
               // First subtotal gets the thick accent border to separate from
               // the CSM list; subsequent subtotals get a thin divider.
               const borderStyle=gi===0?'border-top:2px solid var(--accent)':'border-top:1px solid var(--borderL)';
@@ -8157,8 +8156,7 @@ function rCadence(){
                 <td style="padding:9px 12px;font-size:13px;font-weight:700;color:var(--text)">${g.label} <span style="font-size:10px;color:var(--dim);font-weight:500">(${tCsms} CSM${tCsms!==1?'s':''})</span><div style="font-size:10px;color:var(--dim);font-weight:500">${tAccts.toLocaleString()} accts</div></td>
                 <td style="padding:9px 8px"><span style="font-size:10px;color:var(--dim)">${g.poolText}</span></td>
                 ${visCols.map(monthCell).join('')}
-                <td style="text-align:center;padding:9px 10px;font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent)">${tQ}${qDiffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${tRet}</div></td>
-                ${_cadLPData?`<td style="text-align:center;padding:9px 10px;font-size:15px;font-weight:700;font-family:var(--mono);color:#fb923c;border-left:1px dashed var(--border)">${tQLP}</td>`:''}
+                <td style="text-align:center;padding:9px 10px;font-size:15px;font-weight:700;font-family:var(--mono);color:var(--accent)">${tQ}${tQLPInline}${qDiffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${tRet}</div></td>
               </tr>`;
             }).join('');
           })()}
