@@ -906,28 +906,21 @@ function processSPData(raw){
   // priority order. Uses >=0 check instead of ||-chain so a valid index of 0
   // isn't treated as falsy (classic bug — cAcct would silently fall through).
   const pick=(...keys)=>{for(const k of keys){const i=hdrs.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;};
-  // Pinned column indices for the "All SP Rev 25 & 26" sheet layout.
-  // Header-keyword fallbacks remain so the parser still works if columns shift.
-  const cAcct=hdrs.length>2?2:(()=>{const i=pick('account name','company name','renewal name','company','account','name');return i>=0?i:0;})();
-  // "Exclude for attainment" pinned to column D (index 3). Rows are DROPPED
-  // only when this cell is YES/Y/TRUE/1. Blank or "No" keeps the row.
-  const cExcl=hdrs.length>3?3:(()=>{const i=hdrs.findIndex(h=>h.includes('exclude'));return i>=0?i:null;})();
-  // Subscription (Database) End Date pinned to column G (index 6).
-  const cSub=hdrs.length>6?6:(ci('subscription')||ci('final sub end')||ci('sub end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal'));
-  // Sales Owner pinned to column H (index 7).
-  const cOwner=hdrs.length>7?7:(ci('sales owner')!=null?ci('sales owner'):ci('sales rep')!=null?ci('sales rep'):ci('account owner')!=null?ci('account owner'):ci('owner'));
-  // iConnections Notes pinned to column I (index 8).
-  const cNotes=hdrs.length>8?8:pick('iconnections notes','notes','comment');
-  // Stage pinned to column K (index 10). Header-keyword fallback handles reshuffles.
-  const cStage=hdrs.length>10?10:ci('stage');
-  // Offer Price (SP-only display column) pinned to column M (index 12).
-  const cOffer=hdrs.length>12?12:pick('offer price','offer');
-  // 2025 Revenue pinned to column Z (index 25). 2026 Revenue pinned to AA (26).
-  const cR25=hdrs.length>25?25:pick('2025 revenue','2025','revenue','total');
-  const cR26=hdrs.length>26?26:pick('2026 revenue','2026');
+  // Header-text matching is PRIMARY here. Column-letter pins are only a
+  // fallback because SheetJS compacts the array when a leading column has
+  // no data — on "All SP Rev 25 & 26" column A is empty, so every Excel
+  // letter lands one index lower (e.g. Excel C → index 1, not 2). Matching
+  // by header text dodges that off-by-one entirely.
+  const cAcct=(()=>{const i=pick('company name','account name','renewal name');return i>=0?i:1;})();
+  const cExcl=(()=>{const i=pick('exclude for attainment','exclude');return i>=0?i:2;})();
+  const cSub=(()=>{const i=pick('subscription (database) end','subscription end','sub end','final sub end','end date','renewal date','contract end');return i>=0?i:5;})();
+  const cOwner=(()=>{const i=pick('sales owner','account owner','sales rep');return i>=0?i:6;})();
+  const cNotes=(()=>{const i=pick('iconnections notes','iconnections','notes','comment');return i>=0?i:7;})();
+  const cStage=(()=>{const i=pick('stage for','stage');return i>=0?i:9;})();
+  const cOffer=(()=>{const i=pick('offer price','offer');return i>=0?i:11;})();
+  const cR25=(()=>{const i=pick('2025 revenue','2025 rev');return i>=0?i:24;})();
+  const cR26=(()=>{const i=pick('2026 revenue','2026 rev');return i>=0?i:25;})();
   // AE intentionally dropped for SPs — the new sheet has no separate AE column.
-  // Setting null makes downstream `cAE!=null&&cAE>=0` checks resolve to '' so SP
-  // rows get a blank AE in the account list rather than mis-pulling Notes.
   const cAE=null;
   // Flat-string logging so console shows it without needing to expand arrays/objects
   dlog('[SP] total raw rows='+totalRaw+' headerIdx='+hIdx+' → '+(totalRaw-hIdx-1)+' data rows below header');
@@ -976,6 +969,17 @@ function processSPData(raw){
   // without needing localStorage.cs_debug=1. The detailed dlog calls below
   // remain DEBUG-gated for deep diagnostics.
   console.info('[SP] parsed='+data.length+' rows  skipped:'+skippedEmpty+' empty-acct, '+skippedExcluded+' Exclude=YES  withSubDate='+withDate+'  hIdx='+hIdx+'  totalRaw='+totalRaw);
+  console.info('[SP] resolved columns →',{
+    cAcct:cAcct+' ('+(hdrs[cAcct]||'?')+')',
+    cExcl:cExcl+' ('+(hdrs[cExcl]||'?')+')',
+    cSub:cSub+' ('+(hdrs[cSub]||'?')+')',
+    cOwner:cOwner+' ('+(hdrs[cOwner]||'?')+')',
+    cNotes:cNotes+' ('+(hdrs[cNotes]||'?')+')',
+    cStage:cStage+' ('+(hdrs[cStage]||'?')+')',
+    cOffer:cOffer+' ('+(hdrs[cOffer]||'?')+')',
+    cR25:cR25+' ('+(hdrs[cR25]||'?')+')',
+    cR26:cR26+' ('+(hdrs[cR26]||'?')+')'
+  });
   console.info('[SP] distinct stage values:', _stageTally);
   try{window.SP_RAW=data;}catch(e){}
   dlog('[SP] sample Exclude-for-attainment-filtered out:\n  '+skippedExcludedExamples.join('\n  '));
