@@ -168,7 +168,7 @@ const TENANT     = 'iconnections675.onmicrosoft.com';
 const FILE_OWNER  = 'cgoggil_iconnections_io';
 const FILE_ID     = 'cb56a10b-e016-4453-9df6-159035bd5c8c';
 const SHEET       = 'master tracker';
-const SP_SHEET    = 'GA 26 SPs';
+const SP_SHEET    = 'All SP Rev 25 & 26';
 const HEADER_ROW  = 14; // 0-based index; row 15 in Excel
 // CS Engagement Tracker April 2026.xlsx (All_ClientSuccess site)
 const ENG_FILE_ID = 'f8e92e42-426b-4970-aa5d-7a5f8681a2e5';
@@ -925,30 +925,29 @@ function processSPData(raw){
   // priority order. Uses >=0 check instead of ||-chain so a valid index of 0
   // isn't treated as falsy (classic bug — cAcct would silently fall through).
   const pick=(...keys)=>{for(const k of keys){const i=hdrs.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;};
-  // More-specific keys first so "Account Name" wins over "Account ID" (both
-  // of which match plain 'account'). Final fallback: assume col A.
-  let cAcct=pick('account name','company name','renewal name','company','account','name');
-  if(cAcct<0)cAcct=0;
-  // Stage is pinned to column M (index 12) per the GA 26 SPs sheet layout.
-  // Header-keyword fallback handles any future column reshuffle.
-  const cStage=hdrs.length>12?12:ci('stage');
-  // 2025 revenue pinned to column AR (index 43). 2026 revenue pinned to AQ (42).
-  // Offer Price (SP-only display column) pinned to O (14). All three have
-  // header-keyword fallbacks in case the sheet layout shifts.
-  const cR25=hdrs.length>43?43:pick('2025 revenue','2025','revenue','total');
-  const cR26=hdrs.length>42?42:pick('2026 revenue','2026');
-  const cOffer=hdrs.length>14?14:pick('offer price','offer');
-  const cOwner=ci('sales rep')!=null?ci('sales rep'):ci('sales owner')!=null?ci('sales owner'):ci('account owner')!=null?ci('account owner'):ci('owner');
-  // "Exclude for attainment" pinned to column E (index 4). Rows are DROPPED
+  // Pinned column indices for the "All SP Rev 25 & 26" sheet layout.
+  // Header-keyword fallbacks remain so the parser still works if columns shift.
+  const cAcct=hdrs.length>2?2:(()=>{const i=pick('account name','company name','renewal name','company','account','name');return i>=0?i:0;})();
+  // "Exclude for attainment" pinned to column D (index 3). Rows are DROPPED
   // only when this cell is YES/Y/TRUE/1. Blank or "No" keeps the row.
-  const cExcl=hdrs.length>4?4:(()=>{const i=hdrs.findIndex(h=>h.includes('exclude'));return i>=0?i:null;})();
-  // AE (Sales Rep) pinned to column I (index 8). Falls back to header match.
-  const cAE=hdrs.length>8?8:pick('sales rep','account executive','ae','rep');
-  // iConnections Notes pinned to column K (index 10). Falls back to header match.
-  const cNotes=hdrs.length>10?10:pick('iconnections notes','notes','comment');
-  // Try many aliases for the renewal/sub-end date column — GA 26 SPs may use
-  // any of "Final Sub End Date", "Contract End", "Sub End", "Renewal Date", etc.
-  const cSub=ci('final sub end')||ci('sub end')||ci('subscription end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal');
+  const cExcl=hdrs.length>3?3:(()=>{const i=hdrs.findIndex(h=>h.includes('exclude'));return i>=0?i:null;})();
+  // Subscription (Database) End Date pinned to column G (index 6).
+  const cSub=hdrs.length>6?6:(ci('subscription')||ci('final sub end')||ci('sub end')||ci('end date')||ci('renewal date')||ci('contract end')||ci('term end')||ci('expiration')||ci('expiry')||ci('next renewal')||ci('renewal'));
+  // Sales Owner pinned to column H (index 7).
+  const cOwner=hdrs.length>7?7:(ci('sales owner')!=null?ci('sales owner'):ci('sales rep')!=null?ci('sales rep'):ci('account owner')!=null?ci('account owner'):ci('owner'));
+  // iConnections Notes pinned to column I (index 8).
+  const cNotes=hdrs.length>8?8:pick('iconnections notes','notes','comment');
+  // Stage pinned to column K (index 10). Header-keyword fallback handles reshuffles.
+  const cStage=hdrs.length>10?10:ci('stage');
+  // Offer Price (SP-only display column) pinned to column M (index 12).
+  const cOffer=hdrs.length>12?12:pick('offer price','offer');
+  // 2025 Revenue pinned to column Z (index 25). 2026 Revenue pinned to AA (26).
+  const cR25=hdrs.length>25?25:pick('2025 revenue','2025','revenue','total');
+  const cR26=hdrs.length>26?26:pick('2026 revenue','2026');
+  // AE intentionally dropped for SPs — the new sheet has no separate AE column.
+  // Setting null makes downstream `cAE!=null&&cAE>=0` checks resolve to '' so SP
+  // rows get a blank AE in the account list rather than mis-pulling Notes.
+  const cAE=null;
   // Flat-string logging so console shows it without needing to expand arrays/objects
   dlog('[SP] total raw rows='+totalRaw+' headerIdx='+hIdx+' → '+(totalRaw-hIdx-1)+' data rows below header');
   dlog('[SP] headers:\n  '+hdrs.map((h,i)=>i+':'+h).join(' | '));
@@ -994,16 +993,16 @@ function processSPData(raw){
   dlog('[SP] parsed '+data.length+' rows, skipped '+skippedEmpty+' empty-acct, '+skippedExcluded+' Exclude-for-attainment=YES. '+withDate+' have sub date.');
   if(skippedExcludedExamples.length)dlog('[SP] sample Exclude-for-attainment-filtered out:\n  '+skippedExcludedExamples.join('\n  '));
   if(skippedEmptyExamples.length)dlog('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
-  // Distinct stage values (column M) — surfaces so the Pipeline stage mapper
+  // Distinct stage values (column K) — surfaces so the Pipeline stage mapper
   // can be widened if a new free-text stage string appears on the sheet
   const _stageTally={};data.forEach(r=>{const s=r.s||'(blank)';_stageTally[s]=(_stageTally[s]||0)+1;});
-  dlog('[SP] distinct stage values (col M):',_stageTally);
+  dlog('[SP] distinct stage values (col K):',_stageTally);
   dlog('[SP] sample parsed:',sample);
   return data;
 }
 
 // ── SP → Renewal Pipeline bridge ──────────────────────────────────────────────
-// Convert SP_RAW rows (from GA 26 SPs tab) into D-shape rows owned by "Emilie
+// Convert SP_RAW rows (from "All SP Rev 25 & 26" tab) into D-shape rows owned by "Emilie
 // Welch" so SPs surface in the top-right owner dropdown and the 2025 REVENUE
 // (BASE) KPI rolls them in. Stage strings on the SP sheet are free-text; we
 // classify by keyword to line up with the Renewal Pipeline's fixed stage list.
@@ -1023,12 +1022,12 @@ function _mergeSPsIntoD(){
     const se=r.sub||'';
     const dy=daysDiff(se);
     // Revenue mapping for SPs — STRICT column pinning, no cross-fallbacks:
-    //   r25 ← col AR (2025 revenue) ONLY. Blank AR → 0 (don't substitute 2026/offer).
-    //   o   ← col AQ (2026 revenue) ONLY. Blank AQ → 0 (don't substitute 2025/offer).
-    //   spOffer ← col O (SP-only "Offer Price") — surfaced in its own column.
+    //   r25 ← col Z (2025 revenue) ONLY. Blank → 0 (don't substitute 2026/offer).
+    //   o   ← col AA (2026 revenue) ONLY. Blank → 0 (don't substitute 2025/offer).
+    //   spOffer ← col M (SP-only "Offer Price") — surfaced in its own column.
     // Earlier fallback chain (r25||r26||offer) was inflating the 2025 KPI with
-    // values from other columns when AR was blank — user validated against raw
-    // col AR and caught the mismatch.
+    // values from other columns when 2025 was blank — user validated against
+    // raw values and caught the mismatch.
     const r25v=r.r25||0;
     const r26v=r.r26||0;
     const offerv=r.offer||0;
@@ -2774,8 +2773,8 @@ function _buildLiveForecastData(pods){
   // ── SP sub-end-date override from Renewal Master ────────────────────────
   // The Renewal Master now carries SP subscription end dates in a column
   // labelled "Subscription End Date" (typically column AI). When present, we
-  // use that for quarter assignment instead of the legacy GA 26 SPs sheet
-  // date, which was unreliable. Build a lookup keyed by normalized account
+  // use that for quarter assignment instead of the SP sheet's own date column,
+  // which has historically been unreliable. Build a lookup keyed by normalized account
   // name so SP_RAW rows can opt into the master date when matched.
   function _nkSp(s){
     if(!s)return'';
@@ -2831,7 +2830,7 @@ function _buildLiveForecastData(pods){
     return r?r.sub:'';
   };
 
-  // ── SP live from SP_RAW (GA 26 SPs tab of renewal master) ────────────────
+  // ── SP live from SP_RAW (All SP Rev 25 & 26 tab of renewal master) ──────
   // processSPData gives each row {n,s,r,o,sub}.  Stage is free-text, so we
   // classify by keywords to mirror the GP WON/CHR buckets.
   // All SPs are grouped under the synthetic pod 'SP'. Include full SP_RAW
@@ -3097,9 +3096,9 @@ function _render(){
   const lost=f.filter(d=>d.s==='11. Churned');
   const pipe=f.filter(d=>d.s==='5. Proposal Made'||d.s==='6. Signature Requested');
   const unc=f.filter(d=>d.s==='1. Uncontacted');
-  // For SP rows, roll up Offer Price (col O on GA 26 SPs) rather than 2026
-  // revenue (col AQ) — the latter is often placeholder, Offer Price is the
-  // real renewal ask. GP rows continue to contribute d.o (2026 offer).
+  // For SP rows, roll up Offer Price (col M on All SP Rev 25 & 26) rather than
+  // 2026 revenue (col AA) — the latter is often placeholder, Offer Price is
+  // the real renewal ask. GP rows continue to contribute d.o (2026 offer).
   const r25T=f.reduce((a,d)=>a+d.r25,0),offT=f.reduce((a,d)=>a+(d.__sp?(d.spOffer||0):d.o),0);
   const wonO=won.reduce((a,d)=>a+d.o,0),lostR=lost.reduce((a,d)=>a+d.r25,0);
   const pipeO=pipe.reduce((a,d)=>a+d.o,0),pipeR=pipe.reduce((a,d)=>a+d.r25,0);
@@ -3366,7 +3365,7 @@ function _render(){
       const drillHasFilters=Object.keys(df).some(k=>k==='flags'?dfFlags.length>0:df[k]);
 
       if(da.length||stageAccts.length){
-        // Show SP-only "Offer Price" (col O on GA 26 SPs) when viewing Emilie's SPs
+        // Show SP-only "Offer Price" (col M on All SP Rev 25 & 26) when viewing Emilie's SPs
         const showSPOffer=_isSoleOwnerPick('Emilie Welch');
         const colSpan=(S.showAE?8:7)+(showSPOffer?1:0);
         h+=`<div class="dr2">
@@ -4893,7 +4892,7 @@ rGP=function(){
       src=src.replace(/const GPQ\s*=\s*\{[\s\S]*?\};/,`const GPQ=${JSON.stringify(live.gpq)};`);
       src=src.replace(/const GP\s*=\s*\{[^}]*\};/,`const GP=${JSON.stringify(live.gp)};`);
       src=src.replace(/const GPQR\s*=\s*\{[\s\S]*?\};/,`const GPQR=${JSON.stringify(live.gpqr)};`);
-      // Live SP — from SP_RAW (GA 26 SPs sheet). Falls back to hardcoded if SP_RAW empty.
+      // Live SP — from SP_RAW (All SP Rev 25 & 26 sheet). Falls back to hardcoded if SP_RAW empty.
       if(live.spq){
         src=src.replace(/const SPQ\s*=\s*\{[^}]*\};/,`const SPQ=${JSON.stringify(live.spq)};`);
         // Inner template's `const SP={T:...}` alias (matches only the T:.. form, not the outer Goals SP)
