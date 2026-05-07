@@ -895,30 +895,11 @@ async function fetchSPSheet(token){
 function processSPData(raw){
   if(!raw||!raw.values||raw.values.length<2)return[];
   const totalRaw=raw.values.length;
-  // Auto-detect header row — score each of the first 20 rows on how many
-  // header-like keywords it contains AND how many non-empty cells it has.
-  // Single matches (e.g. a banner row with "account & communication ownership")
-  // no longer win — we need a row that looks like a real column-header row.
-  const HDR_KWS=[/\baccount\b/i,/\bcompany\b/i,/\bstage\b/i,/\bowner\b/i,/sales\s*rep/i,/\brev\b|revenue/i,/\bdate\b/i,/\bsub\b/i,/renewal/i,/contract/i,/invoice/i,/\bstatus\b/i,/classification/i];
-  const scoreRow=row=>{
-    const cells=(row||[]).map(c=>String(c||'').trim());
-    const nonEmpty=cells.filter(c=>c!=='').length;
-    let kwHits=0;const seen=new Set();
-    cells.forEach(c=>{HDR_KWS.forEach((re,idx)=>{if(!seen.has(idx)&&re.test(c)){seen.add(idx);kwHits++;}});});
-    return {nonEmpty,kwHits};
-  };
-  let hIdx=0,bestScore=-1,scanLog=[];
-  const scanUpTo=Math.min(20,raw.values.length);
-  for(let r=0;r<scanUpTo;r++){
-    const {nonEmpty,kwHits}=scoreRow(raw.values[r]);
-    scanLog.push('r'+r+':kw='+kwHits+',ne='+nonEmpty);
-    // Must have at least 3 distinct header keywords AND at least 5 non-empty cells
-    if(kwHits>=3&&nonEmpty>=5){
-      const score=kwHits*100+nonEmpty;
-      if(score>bestScore){bestScore=score;hIdx=r;}
-    }
-  }
-  dlog('[SP] header-row scan: '+scanLog.join(' | ')+' → picked hIdx='+hIdx+(bestScore<0?' (no row scored ≥3 keywords; defaulting to row 0)':' (best score='+bestScore+')'));
+  // Header row pinned to row 3 (0-indexed: 2) per the "All SP Rev 25 & 26"
+  // sheet layout. Auto-detection was landing on banner rows above the real
+  // header on the new sheet, mismapping all columns.
+  const hIdx=2;
+  dlog('[SP] header pinned to hIdx='+hIdx+' (row '+(hIdx+1)+' in Excel)');
   const hdrs=raw.values[hIdx].map(h=>String(h||'').trim().toLowerCase());
   const ci=k=>{const i=hdrs.findIndex(h=>h.includes(k));return i>=0?i:null;};
   // pick(): return the first header-index that matches any of the keywords, in
@@ -990,13 +971,15 @@ function processSPData(raw){
   // Diagnostic: show date-parse success rate + skip reasons
   const sample=data.slice(0,5).map(r=>({n:r.n,sub:r.sub}));
   const withDate=data.filter(r=>r.sub&&r.sub.length>0).length;
-  dlog('[SP] parsed '+data.length+' rows, skipped '+skippedEmpty+' empty-acct, '+skippedExcluded+' Exclude-for-attainment=YES. '+withDate+' have sub date.');
-  if(skippedExcludedExamples.length)dlog('[SP] sample Exclude-for-attainment-filtered out:\n  '+skippedExcludedExamples.join('\n  '));
-  if(skippedEmptyExamples.length)dlog('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
-  // Distinct stage values (column K) — surfaces so the Pipeline stage mapper
-  // can be widened if a new free-text stage string appears on the sheet
   const _stageTally={};data.forEach(r=>{const s=r.s||'(blank)';_stageTally[s]=(_stageTally[s]||0)+1;});
-  dlog('[SP] distinct stage values (col K):',_stageTally);
+  // Always-visible parse summary so SP coverage issues are obvious on prod
+  // without needing localStorage.cs_debug=1. The detailed dlog calls below
+  // remain DEBUG-gated for deep diagnostics.
+  console.info('[SP] parsed='+data.length+' rows  skipped:'+skippedEmpty+' empty-acct, '+skippedExcluded+' Exclude=YES  withSubDate='+withDate+'  hIdx='+hIdx+'  totalRaw='+totalRaw);
+  console.info('[SP] distinct stage values:', _stageTally);
+  try{window.SP_RAW=data;}catch(e){}
+  dlog('[SP] sample Exclude-for-attainment-filtered out:\n  '+skippedExcludedExamples.join('\n  '));
+  dlog('[SP] examples of skipped-but-not-empty rows:\n  '+skippedEmptyExamples.join('\n  '));
   dlog('[SP] sample parsed:',sample);
   return data;
 }
