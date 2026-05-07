@@ -8094,8 +8094,9 @@ function rCadence(){
                 // Gap-to-50% badge — only rendered for the current real-world
                 // month (other months are either already settled or still in
                 // the future, so the nag isn't useful). Target = ceil(50% of
-                // the CSM's total accounts). Suppressed for SP/Scale rosters.
-                const gapBadge=(isSP||c.seg==='Scale'||m!==_cadCurMo)?'':(()=>{
+                // the CSM's total accounts). Suppressed for Scale roster only;
+                // SPs (Emilie) get the same gap badge as other CSMs.
+                const gapBadge=(c.seg==='Scale'||m!==_cadCurMo)?'':(()=>{
                   const need=Math.max(0,Math.ceil(tot*0.5)-effCnt);
                   return need>0?`<div style="font-size:9px;color:var(--amber);font-weight:600">+${need} to 50%</div>`:`<div style="font-size:9px;color:var(--green);font-weight:600">✓ 50%</div>`;
                 })();
