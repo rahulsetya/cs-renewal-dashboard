@@ -325,6 +325,11 @@ function _itemMatches(item,row){
     }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
       return row&&row.pod==='Scale'&&_scaleSubPod(row)===pod;
+    // SP pod is authoritative from "All SP Rev 25 & 26" (the __sp flag is set
+    // by _mergeSPsIntoD). Don't trust pod='SP' from the engagement tracker
+    // alone — that field has been seen mis-tagged on GP accounts.
+    if(pod==='SP')
+      return row&&row.__sp===true;
     return row&&row.pod===pod;
   }
   return row&&ownerMatches(row.ro,item);
