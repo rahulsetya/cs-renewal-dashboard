@@ -1034,7 +1034,19 @@ function _mergeSPsIntoD(){
     return row;
   });
   D=D.concat(spRows);
-  dlog(`[SP→D] merged ${spRows.length} SP rows under owner "Emilie Welch"${unmatched?' ('+unmatched+' stage strings did not resolve → defaulted to 1. Uncontacted)':''}`);
+  // SP-sheet authoritative pod tagging: any account whose name appears on
+  // "All SP Rev 25 & 26" (in our pulled set) is an SP, period — override
+  // d.pod regardless of what the engagement tracker said. Catches master-
+  // tracker rows that share a name with an SP_RAW account so they show up
+  // consistently as Pod=SP wherever pod is grouped/displayed.
+  const _spNames=new Set(SP_RAW.map(r=>String(r.n||'').trim().toLowerCase()).filter(Boolean));
+  let _podOverrides=0;
+  D.forEach(d=>{
+    if(d.__sp)return; // SP_RAW rows already tagged in spRows construction
+    const n=String(d.c||'').trim().toLowerCase();
+    if(_spNames.has(n)&&d.pod!=='SP'){d.pod='SP';_podOverrides++;}
+  });
+  if(_podOverrides)dlog(`[SP→D] pod override: tagged ${_podOverrides} master-tracker rows as Pod=SP based on SP-sheet membership`);
 }
 
 // ── ENGAGEMENT FETCH ──────────────────────────────────────────────────────────
