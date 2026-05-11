@@ -8177,7 +8177,7 @@ function rCadence(){
       return `<div class="card" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0">Cadence Achievement Calculator</h3>
-          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'} · <span style="color:${_calcIncludeLP?'#fb923c':'var(--dim)'};font-weight:600">${_calcIncludeLP?'GP + LP':'GP only'}</span></div>
+          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}${_calcIncludeLP?' · <span style="color:#fb923c;font-weight:600">+ LP</span>':''}</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">${_cardsHTML}</div>
         <div style="font-size:10px;color:var(--dim);margin-top:10px;line-height:1.5">
