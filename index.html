@@ -2659,7 +2659,10 @@ function _buildLiveGoalsData(){
   // SP data from SP_RAW if available
   let spAgg=null;let spOwn=[];let spRisk=[];let spAccts=[];let spOq=null;
   if(SP_RAW&&SP_RAW.length){
-    const spWonS=new Set(['signed','invoice sent','paid','won','renewed']);
+    // Strict won match — stages 9 (Invoice Sent) + 10 (Paid) only, mirroring
+    // the GP/Pipeline definition. "7. Signed" deliberately not counted: a
+    // signed deal isn't booked revenue until it's invoiced.
+    const spWonS=new Set(['invoice sent','paid','won','renewed']);
     const spLostS=new Set(['closed lost','churned','lost','cancelled','canceled']);
     const spAggD={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};
     const ownerMap={};
@@ -2687,7 +2690,7 @@ function _buildLiveGoalsData(){
     const _spGetQ=sub=>{const m=_spGetMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
     SP_RAW.forEach(r=>{
       const sl=(r.s||'').toLowerCase();
-      const isWon=spWonS.has(sl)||['invoice','paid','signed'].some(x=>sl.includes(x));
+      const isWon=spWonS.has(sl)||['invoice','paid'].some(x=>sl.includes(x));
       const isLost=spLostS.has(sl)||['closed','churn','lost','cancel'].some(x=>sl.includes(x));
       const status=isWon?'won':isLost?'churned':'open';
       const rev=r.r||0;
@@ -2842,7 +2845,9 @@ function _buildLiveForecastData(pods){
   const _spAll=_spInc?(SP_RAW||[]):[];
   let spq=null,spq_q=null,sp_rev=null;
   if(_spAll&&_spAll.length){
-    const spIsWon=s=>{const l=(s||'').toLowerCase();return l.includes('invoice')||l.includes('paid')||l.includes('signed')||l.includes('won')||l.includes('renewed');};
+    // Strict won match — invoice/paid only. Excludes "7. Signed" so SP totals
+    // match GP/Pipeline (signed deals aren't booked until invoiced).
+    const spIsWon=s=>{const l=(s||'').toLowerCase();return l.includes('invoice')||l.includes('paid')||l.includes('won')||l.includes('renewed');};
     const spIsChurn=s=>{const l=(s||'').toLowerCase();return l.includes('churn')||l.includes('closed lost')||l.includes('lost')||l.includes('cancel');};
     // Robust month extraction — handles YYYY-MM-DD (excelDateToJS serial path),
     // MM/DD/YYYY strings (direct text cells), ISO variants, and raw Excel serials.
