@@ -8114,14 +8114,14 @@ function rCadence(){
       if(_dEl<1)_dEl=1;if(_dEl>_dIn)_dEl=_dIn;
       const _pctThru=_dEl/_dIn;
       const _pools=[
-        // Floor targets per pool (Q-Total = calls ÷ accounts × 100):
-        //   ENT + Strategic = 50% of accounts engaged each month → 150% / Q
-        //                     (matches the monthly +N-to-50% gap badge logic)
-        //   SCALE           = 2 calls per account per quarter   → 200% / Q
-        //   SPs             = 1 call per account per quarter    → 100% / Q
+        // Floor targets per pool — each is 50% of the "full cadence" goal:
+        //   ENT + Strategic full = engage every account every month (100%/mo);
+        //                    floor = 50% monthly → 150% Q-Total
+        //   SCALE full = 2 calls/account/Q (200%); floor = 1 call → 100% Q-Total
+        //   SPs   full = 1 call/account/Q  (100%); floor = 0.5    → 50%  Q-Total
         {label:'ENT + STRATEGIC',target:150,filter:c=>c.t!=='SP'&&(c.seg==='Enterprise'||c.seg==='Strategic'),accent:'var(--accent)'},
-        {label:'SCALE',target:200,filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4'},
-        {label:'SPs',target:100,filter:c=>c.t==='SP',accent:'#f43f5e'}
+        {label:'SCALE',target:100,filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4'},
+        {label:'SPs',target:50,filter:c=>c.t==='SP',accent:'#f43f5e'}
       ];
       const _csmList=typeof CSM!=='undefined'?CSM:[];
       const _cardsHTML=_pools.map(p=>{
@@ -8175,7 +8175,7 @@ function rCadence(){
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">${_cardsHTML}</div>
         <div style="font-size:10px;color:var(--dim);margin-top:10px;line-height:1.5">
-          <strong style="color:var(--muted)">Floor targets:</strong> Enterprise + Strategic = 50% of accounts engaged per month (150% Q-Total) · Scale = 2 calls per account per quarter (200% Q-Total) · SPs = 1 call per account per quarter (100% Q-Total)
+          <strong style="color:var(--muted)">Floor targets (50% of full cadence):</strong> Enterprise + Strategic = 50% of accounts engaged per month (150% Q-Total) · Scale = 1 call per account per quarter (100% Q-Total) · SPs = 0.5 calls per account per quarter (50% Q-Total)
         </div>
       </div>`;
     })()}
