@@ -8114,10 +8114,13 @@ function rCadence(){
       if(_dEl<1)_dEl=1;if(_dEl>_dIn)_dEl=_dIn;
       const _pctThru=_dEl/_dIn;
       const _pools=[
-        // ENT + Strategic = 50% of accounts engaged each month → 150% Q-Total
-        // (matches the existing monthly +N-to-50% gap badge logic)
+        // Floor targets per pool (Q-Total = calls ÷ accounts × 100):
+        //   ENT + Strategic = 50% of accounts engaged each month → 150% / Q
+        //                     (matches the monthly +N-to-50% gap badge logic)
+        //   SCALE           = 2 calls per account per quarter   → 200% / Q
+        //   SPs             = 1 call per account per quarter    → 100% / Q
         {label:'ENT + STRATEGIC',target:150,filter:c=>c.t!=='SP'&&(c.seg==='Enterprise'||c.seg==='Strategic'),accent:'var(--accent)'},
-        {label:'SCALE',target:150,filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4'},
+        {label:'SCALE',target:200,filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4'},
         {label:'SPs',target:100,filter:c=>c.t==='SP',accent:'#f43f5e'}
       ];
       const _csmList=typeof CSM!=='undefined'?CSM:[];
@@ -8172,7 +8175,7 @@ function rCadence(){
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">${_cardsHTML}</div>
         <div style="font-size:10px;color:var(--dim);margin-top:10px;line-height:1.5">
-          <strong style="color:var(--muted)">Targets:</strong> Enterprise + Strategic = 50% of accounts engaged per month (~150% Q-Total) · Scale = bi-monthly cadence (~150% Q-Total) · SPs = once per quarter (100% Q-Total)
+          <strong style="color:var(--muted)">Floor targets:</strong> Enterprise + Strategic = 50% of accounts engaged per month (150% Q-Total) · Scale = 2 calls per account per quarter (200% Q-Total) · SPs = 1 call per account per quarter (100% Q-Total)
         </div>
       </div>`;
     })()}
