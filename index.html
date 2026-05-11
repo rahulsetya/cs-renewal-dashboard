@@ -8158,26 +8158,45 @@ function rCadence(){
             statusColor='var(--red)';statusLabel='⚠ Behind pace · projected to miss';
           }
         }
+        // Achievement-of-target framing: how close are we to the goal, on a
+        // 0→100% scale where 100% = floor target hit. Avoids the confusing
+        // 22% (sounds fine) vs 150% target (oh no) interpretation problem.
+        const curPctT=p.target!=null&&p.target>0?(cur/p.target)*100:null;
+        const projPctT=p.target!=null&&p.target>0?(proj/p.target)*100:null;
+        const expPctT=_pctThru*100; // expected % of target equals % through Q
+        const _barFill=curPctT!=null?Math.min(100,Math.max(0,curPctT)):0;
+        const _barExp=Math.min(100,Math.max(0,expPctT));
+        const _barProj=projPctT!=null?Math.min(100,Math.max(0,projPctT)):0;
+        const _barColor=projPctT==null?'var(--dim)':projPctT>=100?'var(--green)':projPctT>=80?'var(--amber)':'var(--red)';
         return `<div style="flex:1;min-width:240px;background:var(--bg);border:1px solid var(--border);border-left:3px solid ${p.accent};border-radius:8px;padding:12px 14px">
           <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px">${p.label}</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Target: ${p.target==null?'—':p.target+'% / quarter'} ${p.target!=null?`<span style="color:var(--dim)">(${tgtCalls.toLocaleString()} calls across ${tA.toLocaleString()} accts)</span>`:''}</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
-            <div style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--mono)">${pct(cur)}</div>
-            <div style="font-size:10px;color:var(--dim)">${tC.toLocaleString()} / ${tA.toLocaleString()} calls</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Target: ${p.target==null?'—':p.target+'% Q-Total'} ${p.target!=null?`<span style="color:var(--dim)">(${tgtCalls.toLocaleString()} calls across ${tA.toLocaleString()} accts)</span>`:''}</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
+            <div style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--mono)">${curPctT!=null?pct(curPctT):pct(cur)}</div>
+            <div style="font-size:10px;color:var(--dim)">${curPctT!=null?'of target':''} · ${tC.toLocaleString()} / ${tgtCalls!=null?tgtCalls.toLocaleString():tA.toLocaleString()} calls</div>
           </div>
+          ${curPctT!=null?`<div style="font-size:9px;color:var(--dim);margin-bottom:8px">(${pct(cur)} Q-Total)</div>`:'<div style="margin-bottom:6px"></div>'}
+          ${p.target!=null?`<div style="margin-bottom:8px">
+            <div style="position:relative;height:6px;background:var(--border);border-radius:3px">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${_barFill}%;background:${_barColor};border-radius:3px;transition:width .3s"></div>
+              ${!_isPast?`<div style="position:absolute;left:${_barExp}%;top:-3px;width:2px;height:12px;background:var(--muted);opacity:.8" title="Expected by today: ${pct(expPctT)} of target"></div>`:''}
+              ${!_isPast?`<div style="position:absolute;left:${_barProj}%;top:-3px;width:2px;height:12px;background:var(--amber);opacity:.9" title="Projection end-of-Q: ${pct(projPctT)} of target"></div>`:''}
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:3px"><span>0%</span><span>${p.target}% (target)</span></div>
+          </div>`:''}
           <div style="font-size:11px;color:${statusColor};font-weight:600;margin-bottom:6px">${statusLabel}</div>
           ${p.target!=null&&!_isPast?`<div style="font-size:10px;color:var(--dim);line-height:1.6">
-            Expected by today: <strong style="color:var(--text)">${pct(exp)}</strong> (${expCalls.toLocaleString()} calls)<br>
-            Run-rate projection: <strong style="color:${proj>=p.target?'var(--green)':'var(--amber)'}">${pct(proj)}</strong><br>
-            ${gap>0?`Behind by <strong style="color:var(--amber)">${gap.toLocaleString()} calls</strong> to be on pace today`:`<span style="color:var(--green)">✓ ${Math.abs(gap).toLocaleString()} calls ahead of pace</span>`}
+            Expected by today: <strong style="color:var(--text)">${pct(expPctT)}</strong> of target (${expCalls.toLocaleString()} calls)<br>
+            Run-rate projection: <strong style="color:${projPctT>=100?'var(--green)':projPctT>=80?'var(--amber)':'var(--red)'}">${pct(projPctT)}</strong> of target <span style="color:var(--dim)">(${pct(proj)} Q-Total)</span><br>
+            ${gap>0?`Behind by <strong style="color:var(--amber)">${gap.toLocaleString()} calls</strong> to be on pace today · ${(tgtCalls-tC).toLocaleString()} short of full goal`:`<span style="color:var(--green)">✓ ${Math.abs(gap).toLocaleString()} calls ahead of pace</span>`}
           </div>`:''}
-          ${p.target!=null&&_isPast?`<div style="font-size:10px;color:var(--dim)">Final: ${pct(cur)} vs target ${p.target}% · gap ${tC>=tgtCalls?'+':''}${(tC-tgtCalls).toLocaleString()} calls</div>`:''}
+          ${p.target!=null&&_isPast?`<div style="font-size:10px;color:var(--dim)">Final: ${pct(curPctT)} of target (${pct(cur)} Q-Total) · gap ${tC>=tgtCalls?'+':''}${(tC-tgtCalls).toLocaleString()} calls</div>`:''}
         </div>`;
       }).join('');
       return `<div class="card" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0">Cadence Achievement Calculator</h3>
-          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}${_calcIncludeLP?' · <span style="color:#fb923c;font-weight:600">+ LP</span>':''}</div>
+          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}${_calcIncludeLP?' · <span style="color:#fb923c;font-weight:600">+ LP</span>':''} · <span style="color:var(--dim);font-style:italic">% shown is achievement of target (0→100% scale)</span></div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">${_cardsHTML}</div>
         <div style="font-size:10px;color:var(--dim);margin-top:10px;line-height:1.5">
