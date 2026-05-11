@@ -8124,12 +8124,18 @@ function rCadence(){
         {label:'SPs',target:50,filter:c=>c.t==='SP',accent:'#f43f5e'}
       ];
       const _csmList=typeof CSM!=='undefined'?CSM:[];
+      // Calculator respects the "Include LP in % & gap" toggle so its math
+      // stays consistent with the per-CSM cell % and the +N-to-50% badge.
+      const _calcIncludeLP=!!(_cadIncludeLP&&_cadLPData);
       const _cardsHTML=_pools.map(p=>{
         let tA=0,tC=0;
         _csmList.filter(p.filter).forEach(c=>{
           const cData=cd.csm[c.n]||{total:0,months:{}};
           tA+=cData.total||c.a||0;
-          visCols.forEach(m=>{tC+=(cData.months[m]?.yes||0);});
+          visCols.forEach(m=>{
+            tC+=(cData.months[m]?.yes||0);
+            if(_calcIncludeLP)tC+=_cadLPCount(c.n,m);
+          });
         });
         const cur=tA>0?(tC/tA)*100:0;
         const exp=p.target!=null?p.target*_pctThru:null;
@@ -8171,7 +8177,7 @@ function rCadence(){
       return `<div class="card" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0">Cadence Achievement Calculator</h3>
-          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}</div>
+          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'} · <span style="color:${_calcIncludeLP?'#fb923c':'var(--dim)'};font-weight:600">${_calcIncludeLP?'GP + LP':'GP only'}</span></div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">${_cardsHTML}</div>
         <div style="font-size:10px;color:var(--dim);margin-top:10px;line-height:1.5">
