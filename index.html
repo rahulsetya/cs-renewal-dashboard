@@ -8090,6 +8090,90 @@ function rCadence(){
       ${_cadExportUnlocked&&_cadLPData?`<button onclick="_cadLPDetails()" style="background:transparent;color:#fb923c;border:1px solid #fb923c;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Show what was parsed from the LP HubSpot import — useful for diagnosing 0-count cells">🔍 LP details</button>`:''}
       ${_cadExportUnlocked&&_cadLPData?`<button onclick="_cadLPClear()" style="background:transparent;color:#fb923c;border:1px solid #7c2d12;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit" title="Clear imported LP meeting data">✕ Clear LP</button>`:''}
     </div>
+    ${(()=>{
+      // ── Cadence Achievement Calculator ─────────────────────────────────
+      // Targets per pool (Q-Total = quarter calls ÷ accounts × 100):
+      //   ENT + STRATEGIC = 50%/quarter (50% of accounts engaged per Q)
+      //   SCALE = 150%/quarter (bi-monthly cadence = ~1.5 calls/account/Q)
+      //   SPs = no target set (display only)
+      // Pacing math: linear pro-rata. Expected = target × (days elapsed /
+      // days in quarter). Projection = current ÷ (days elapsed / days in Q).
+      // Past quarters: shows final achievement; future quarters: hidden.
+      const _qIdxMap={Q1:0,Q2:3,Q3:6,Q4:9};
+      const _qIdx=_qIdxMap[selCadQ];
+      if(_qIdx==null)return'';
+      const _now=new Date();
+      const _yr=_now.getFullYear();
+      const _qS=new Date(_yr,_qIdx,1);
+      const _qE=new Date(_yr,_qIdx+3,0);
+      const _msDay=86400000;
+      const _dIn=Math.floor((_qE-_qS)/_msDay)+1;
+      let _dEl=Math.floor((_now-_qS)/_msDay)+1;
+      const _isPast=_now>_qE,_isFuture=_now<_qS;
+      if(_isFuture)return `<div class="card" style="margin-bottom:12px"><h3>Cadence Achievement Calculator</h3><div class="sh">${selCadQ} ${_yr} hasn't started yet.</div></div>`;
+      if(_dEl<1)_dEl=1;if(_dEl>_dIn)_dEl=_dIn;
+      const _pctThru=_dEl/_dIn;
+      const _pools=[
+        {label:'ENT + STRATEGIC',target:50,filter:c=>c.t!=='SP'&&(c.seg==='Enterprise'||c.seg==='Strategic'),accent:'var(--accent)'},
+        {label:'SCALE',target:150,filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4'},
+        {label:'SPs',target:null,filter:c=>c.t==='SP',accent:'#f43f5e'}
+      ];
+      const _csmList=typeof CSM!=='undefined'?CSM:[];
+      const _cardsHTML=_pools.map(p=>{
+        let tA=0,tC=0;
+        _csmList.filter(p.filter).forEach(c=>{
+          const cData=cd.csm[c.n]||{total:0,months:{}};
+          tA+=cData.total||c.a||0;
+          visCols.forEach(m=>{tC+=(cData.months[m]?.yes||0);});
+        });
+        const cur=tA>0?(tC/tA)*100:0;
+        const exp=p.target!=null?p.target*_pctThru:null;
+        const proj=_pctThru>0?cur/_pctThru:0;
+        const expCalls=p.target!=null?Math.ceil((p.target/100)*tA*_pctThru):null;
+        const tgtCalls=p.target!=null?Math.ceil((p.target/100)*tA):null;
+        const gap=expCalls!=null?(expCalls-tC):null;
+        const onPace=exp!=null?cur>=exp*0.95:false;
+        let statusColor='var(--dim)',statusLabel='No target set';
+        if(p.target!=null){
+          if(_isPast){
+            const hit=cur>=p.target;
+            statusColor=hit?'var(--green)':'var(--red)';
+            statusLabel=hit?`✓ Quarter complete · target hit`:`✕ Quarter complete · missed target`;
+          } else if(onPace){
+            statusColor='var(--green)';statusLabel='✓ On pace';
+          } else if(proj>=p.target){
+            statusColor='var(--amber)';statusLabel='⚠ Behind pace · projection still on target';
+          } else {
+            statusColor='var(--red)';statusLabel='⚠ Behind pace · projected to miss';
+          }
+        }
+        return `<div style="flex:1;min-width:240px;background:var(--bg);border:1px solid var(--border);border-left:3px solid ${p.accent};border-radius:8px;padding:12px 14px">
+          <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px">${p.label}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Target: ${p.target==null?'—':p.target+'% / quarter'} ${p.target!=null?`<span style="color:var(--dim)">(${tgtCalls.toLocaleString()} calls across ${tA.toLocaleString()} accts)</span>`:''}</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+            <div style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--mono)">${pct(cur)}</div>
+            <div style="font-size:10px;color:var(--dim)">${tC.toLocaleString()} / ${tA.toLocaleString()} calls</div>
+          </div>
+          <div style="font-size:11px;color:${statusColor};font-weight:600;margin-bottom:6px">${statusLabel}</div>
+          ${p.target!=null&&!_isPast?`<div style="font-size:10px;color:var(--dim);line-height:1.6">
+            Expected by today: <strong style="color:var(--text)">${pct(exp)}</strong> (${expCalls.toLocaleString()} calls)<br>
+            Run-rate projection: <strong style="color:${proj>=p.target?'var(--green)':'var(--amber)'}">${pct(proj)}</strong><br>
+            ${gap>0?`Behind by <strong style="color:var(--amber)">${gap.toLocaleString()} calls</strong> to be on pace today`:`<span style="color:var(--green)">✓ ${Math.abs(gap).toLocaleString()} calls ahead of pace</span>`}
+          </div>`:''}
+          ${p.target!=null&&_isPast?`<div style="font-size:10px;color:var(--dim)">Final: ${pct(cur)} vs target ${p.target}% · gap ${tC>=tgtCalls?'+':''}${(tC-tgtCalls).toLocaleString()} calls</div>`:''}
+        </div>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="margin:0">Cadence Achievement Calculator</h3>
+          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">${_cardsHTML}</div>
+        <div style="font-size:10px;color:var(--dim);margin-top:10px;line-height:1.5">
+          <strong style="color:var(--muted)">Targets:</strong> Enterprise + Strategic = 50% of accounts engaged per quarter · Scale = bi-monthly cadence (~150% Q-Total avg) · SPs = no target set
+        </div>
+      </div>`;
+    })()}
     <div class="card" style="overflow-x:auto">
       <h3>Meeting Cadence by CSM</h3>
       <div class="sh">Call activity from engagement tracker (columns T–AC) for <strong>${selCadQ}</strong>. Click a <span style="color:var(--accent)">CSM name</span> to see all accounts · click a <span style="color:var(--green)">count</span> to see that month's accounts · <span style="color:var(--amber)">+N to 50%</span> shows calls still needed in <strong>${_cadCurMo}</strong> to hit 50% of book.${_cadLPData?` · Each cell shows <span style="color:#10b981;font-weight:700">GP</span> · <span style="color:#fb923c;font-weight:700">LP</span> (LP via HubSpot, imported ${new Date(_cadLPData.importedAt).toLocaleDateString()})`:''}${_rcTs?` · <span style="color:var(--dim);font-size:10px">📸 compared to ${_rcTs}</span>`:''}</div>
