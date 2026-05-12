@@ -7405,9 +7405,74 @@ function _acctTableHTML(rid,q,pool){
   // can hide/show it via DOM patch without re-rendering the whole table.
   const _aeDisp=_acctShowAE?'':'none';
   const _colspan=(_allPools?8:7)+(_acctShowAE?1:0); // note row colspan tracks AE col visibility
-  return `<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th class="acr-ae" style="display:${_aeDisp};text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sales Rep</th>${_allPools?`<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','','pool')">Pool ${sa('pool')}</th>`:''}<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td class="acr-ae" style="display:${_aeDisp};padding:3px 8px;color:var(--dim)">${a.ae||'—'}</td>${_allPools?`<td style="padding:3px 8px;color:var(--dim);white-space:nowrap">${_poolDot(a.pool)}${a.pool||'—'}</td>`:''}<td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${_colspan}" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
+  // Slack-export button — copies the current filtered/sorted view as a
+  // monospace code block to the clipboard, ready to paste in Slack.
+  const _slackBar=`<div style="display:flex;justify-content:flex-end;padding:6px 8px 4px 0"><button id="slack-btn-${rid}" onclick="_exportAcctTableSlack('${rid}','${q}','${pool||''}')" title="Copy this table to clipboard as a Slack-ready monospace block" style="background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,.4);padding:3px 10px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,color .12s">📋 Copy for Slack</button></div>`;
+  return _slackBar+`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th class="acr-ae" style="display:${_aeDisp};text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sales Rep</th>${_allPools?`<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','','pool')">Pool ${sa('pool')}</th>`:''}<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td class="acr-ae" style="display:${_aeDisp};padding:3px 8px;color:var(--dim)">${a.ae||'—'}</td>${_allPools?`<td style="padding:3px 8px;color:var(--dim);white-space:nowrap">${_poolDot(a.pool)}${a.pool||'—'}</td>`:''}<td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${_colspan}" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
+// Export current drilldown table as a Slack-friendly monospace code block.
+// Mirrors the filter/sort logic of _acctTableHTML so what gets copied matches
+// what's on screen (including the stage filter and Sales Rep toggle state).
+function _exportAcctTableSlack(rid,q,pool){
+  const WS=['9. Invoice Sent','10. Paid'],CS=['11. Churned'],DS=['4a. Attempting again Q2'];
+  const _allPools=!pool;
+  let rows=(ACCTS||[]).filter(a=>a.qRM===q&&(_allPools||a.pool===pool)&&a.inRen&&_gpMatchesOwnerFilter(a)&&(!selGPMonth.length||selGPMonth.includes((a.seRM||'').substring(5,7))));
+  const filtArr=_acctFiltArr(q);
+  if(filtArr.length){
+    rows=rows.filter(a=>filtArr.some(f=>{
+      if(f==='_won')return WS.includes(a.stage);
+      if(f==='_ch')return CS.includes(a.stage);
+      if(f==='_dc')return DS.includes(a.stage);
+      if(f==='_op')return !WS.includes(a.stage)&&!CS.includes(a.stage);
+      return a.stage===f;
+    }));
+  }
+  rows=[...rows].sort((a,b)=>(b.rev||0)-(a.rev||0));
+  const C_ACCT=28,C_CSM=14,C_AE=14,C_POOL=10,C_STAGE=24,C_REV=8,C_SE=12;
+  const pad=(s,n)=>{s=String(s==null?'':s);return s.length>=n?s.slice(0,n):s+' '.repeat(n-s.length);};
+  const padR=(s,n)=>{s=String(s==null?'':s);return s.length>=n?s.slice(0,n):' '.repeat(n-s.length)+s;};
+  const fmtR=v=>v?(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+v):'—';
+  const fmtD=v=>{if(!v)return'—';const d=new Date(v);if(isNaN(d))return String(v);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});};
+  const showAE=_acctShowAE;
+  const title=(_allPools?'TOTAL':pool)+' · '+q+' '+new Date().getFullYear()+' ('+rows.length+' account'+(rows.length===1?'':'s')+')';
+  const filtNote=filtArr.length?' · filter: '+filtArr.map(f=>f==='_won'?'Won':f==='_ch'?'Churned':f==='_dc'?'Declined Early':f==='_op'?'Open':f).join(', '):'';
+  const cols=[
+    {l:'Account',w:C_ACCT,r:false,key:a=>a.n+(a.rsk?' ⚠':'')},
+    {l:'CSM',w:C_CSM,r:false,key:a=>a.csRep||'—'},
+    showAE?{l:'Sales Rep',w:C_AE,r:false,key:a=>a.ae||'—'}:null,
+    _allPools?{l:'Pool',w:C_POOL,r:false,key:a=>a.pool||'—'}:null,
+    {l:'Stage',w:C_STAGE,r:false,key:a=>(a.stage||'—').replace(/^\d+a?\.\s*/,'')},
+    {l:'Revenue',w:C_REV,r:true,key:a=>fmtR(a.rev)},
+    {l:'Sub End',w:C_SE,r:false,key:a=>fmtD(a.seRM)}
+  ].filter(Boolean);
+  const header=cols.map(c=>c.r?padR(c.l,c.w):pad(c.l,c.w)).join('  ');
+  const body=rows.map(a=>cols.map(c=>c.r?padR(c.key(a),c.w):pad(c.key(a),c.w)).join('  ')).join('\n');
+  const tRev=rows.reduce((s,a)=>s+(a.rev||0),0);
+  const tW=rows.filter(a=>WS.includes(a.stage)).length;
+  const tC=rows.filter(a=>CS.includes(a.stage)).length;
+  const tD=rows.filter(a=>DS.includes(a.stage)).length;
+  const tO=rows.length-tW-tC;
+  const sep='─'.repeat(Math.max(header.length,title.length+filtNote.length,40));
+  const summary='TOTAL: '+fmtR(tRev)+' · '+tW+' won · '+tC+' churned · '+tD+' declined early · '+tO+' open';
+  const out='```\n'+title+filtNote+'\n'+sep+'\n'+header+'\n'+body+(body?'\n':'')+sep+'\n'+summary+'\n```';
+  const btn=document.getElementById('slack-btn-'+rid);
+  const flash=ok=>{
+    if(!btn)return;
+    const orig=btn.textContent;
+    btn.textContent=ok?'✓ Copied for Slack':'⚠ Copy failed';
+    btn.style.background=ok?'var(--green)':'var(--red)';
+    btn.style.color='#fff';
+    setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},1800);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(out).then(()=>flash(true)).catch(()=>flash(false));
+  }else{
+    // Fallback for non-clipboard environments
+    const ta=document.createElement('textarea');ta.value=out;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');flash(true);}catch(e){flash(false);}finally{document.body.removeChild(ta);}
+  }
+}
 function _sortAcct(rid,q,pool,col){const cur=_acctSort[q]||{col:'rev',dir:-1};_acctSort[q]={col,dir:cur.col===col?-cur.dir:1};_rAcctTablesForQ(q);}
 // Legacy single-token setter — wraps the value into the new array shape so
 // any caller that still hands us a string keeps working.
