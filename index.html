@@ -7446,16 +7446,23 @@ function _exportAcctTableSlack(rid,q,pool){
     {l:'Revenue',w:C_REV,r:true,key:a=>fmtR(a.rev)},
     {l:'Sub End',w:C_SE,r:false,key:a=>fmtD(a.seRM)}
   ].filter(Boolean);
-  const header=cols.map(c=>c.r?padR(c.l,c.w):pad(c.l,c.w)).join('  ');
-  const body=rows.map(a=>cols.map(c=>c.r?padR(c.key(a),c.w):pad(c.key(a),c.w)).join('  ')).join('\n');
+  // Box-drawing grid so the pasted table has actual lines in Slack's
+  // monospace code block. Top / header-divider / bottom rows use ┌┬┐ ├┼┤
+  // └┴┘ and each cell is wrapped in │ separators.
+  const fmtRow=vals=>'│ '+vals.join(' │ ')+' │';
+  const ws=cols.map(c=>c.w);
+  const top   ='┌─'+ws.map(w=>'─'.repeat(w)).join('─┬─')+'─┐';
+  const midR  ='├─'+ws.map(w=>'─'.repeat(w)).join('─┼─')+'─┤';
+  const bot   ='└─'+ws.map(w=>'─'.repeat(w)).join('─┴─')+'─┘';
+  const header=fmtRow(cols.map(c=>c.r?padR(c.l,c.w):pad(c.l,c.w)));
+  const body  =rows.map(a=>fmtRow(cols.map(c=>c.r?padR(c.key(a),c.w):pad(c.key(a),c.w)))).join('\n');
   const tRev=rows.reduce((s,a)=>s+(a.rev||0),0);
   const tW=rows.filter(a=>WS.includes(a.stage)).length;
   const tC=rows.filter(a=>CS.includes(a.stage)).length;
   const tD=rows.filter(a=>DS.includes(a.stage)).length;
   const tO=rows.length-tW-tC;
-  const sep='─'.repeat(Math.max(header.length,title.length+filtNote.length,40));
   const summary='TOTAL: '+fmtR(tRev)+' · '+tW+' won · '+tC+' churned · '+tD+' declined early · '+tO+' open';
-  const out='```\n'+title+filtNote+'\n'+sep+'\n'+header+'\n'+body+(body?'\n':'')+sep+'\n'+summary+'\n```';
+  const out='```\n'+title+filtNote+'\n'+top+'\n'+header+'\n'+midR+'\n'+(body?body+'\n':'')+bot+'\n'+summary+'\n```';
   const btn=document.getElementById('slack-btn-'+rid);
   const flash=ok=>{
     if(!btn)return;
