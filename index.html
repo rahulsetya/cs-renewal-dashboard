@@ -7407,7 +7407,7 @@ function _acctTableHTML(rid,q,pool){
   const _colspan=(_allPools?8:7)+(_acctShowAE?1:0); // note row colspan tracks AE col visibility
   // Slack-export button — copies the current filtered/sorted view as a
   // monospace code block to the clipboard, ready to paste in Slack.
-  const _slackBar=`<div style="display:flex;justify-content:flex-end;padding:6px 8px 4px 0"><button id="slack-btn-${rid}" onclick="_exportAcctTableSlack('${rid}','${q}','${pool||''}')" title="Copy this table to clipboard as a monospace block (ready to paste into Slack)" style="background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,.4);padding:3px 10px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,color .12s">📋 Copy</button></div>`;
+  const _slackBar=`<div style="display:flex;justify-content:flex-end;padding:6px 8px 4px 0"><button id="slack-btn-${rid}" onclick="_exportAcctTableSlack('${rid}','${q}','${pool||''}')" title="Copy as a table with notes — pastes as a native table in Slack (rich-text editor) or Sheets/Excel" style="background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,.4);padding:3px 10px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,color .12s">📋 Copy</button></div>`;
   return _slackBar+`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th class="acr-ae" style="display:${_aeDisp};text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sales Rep</th>${_allPools?`<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','','pool')">Pool ${sa('pool')}</th>`:''}<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td class="acr-ae" style="display:${_aeDisp};padding:3px 8px;color:var(--dim)">${a.ae||'—'}</td>${_allPools?`<td style="padding:3px 8px;color:var(--dim);white-space:nowrap">${_poolDot(a.pool)}${a.pool||'—'}</td>`:''}<td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${_colspan}" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
@@ -7428,41 +7428,39 @@ function _exportAcctTableSlack(rid,q,pool){
       return a.stage===f;
     }));
   }
-  rows=[...rows].sort((a,b)=>(b.rev||0)-(a.rev||0));
-  const C_ACCT=28,C_CSM=14,C_AE=14,C_POOL=10,C_STAGE=24,C_REV=8,C_SE=12;
-  const pad=(s,n)=>{s=String(s==null?'':s);return s.length>=n?s.slice(0,n):s+' '.repeat(n-s.length);};
-  const padR=(s,n)=>{s=String(s==null?'':s);return s.length>=n?s.slice(0,n):' '.repeat(n-s.length)+s;};
+  // Mirror the live table's active sort so the clipboard matches what's on screen.
+  const {col,dir}=_acctSort[q]||{col:'rev',dir:-1};
+  const _poolOrder={Enterprise:0,Strategic:1,Scale:2};
+  rows=[...rows].sort((a,b)=>{
+    if(col==='rev')return dir*((b.rev||0)-(a.rev||0));
+    if(col==='se')return dir*((a.se||'').localeCompare(b.se||''));
+    if(col==='seRM')return dir*((a.seRM||'').localeCompare(b.seRM||''));
+    if(col==='stage')return dir*((a.stage||'').localeCompare(b.stage||''));
+    if(col==='pool')return dir*(((_poolOrder[a.pool]??99)-(_poolOrder[b.pool]??99))||(a.n||'').localeCompare(b.n||''));
+    return 0;
+  });
   const fmtR=v=>v?(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+v):'—';
   const fmtD=v=>{if(!v)return'—';const d=new Date(v);if(isNaN(d))return String(v);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});};
   const showAE=_acctShowAE;
-  const title=(_allPools?'TOTAL':pool)+' · '+q+' '+new Date().getFullYear()+' ('+rows.length+' account'+(rows.length===1?'':'s')+')';
-  const filtNote=filtArr.length?' · filter: '+filtArr.map(f=>f==='_won'?'Won':f==='_ch'?'Churned':f==='_dc'?'Declined Early':f==='_op'?'Open':f).join(', '):'';
+  // Notes is column 2 so the most action-driving context sits right next to
+  // the account name — matches the reference screenshot the user shared.
   const cols=[
-    {l:'Account',w:C_ACCT,r:false,key:a=>a.n+(a.rsk?' ⚠':'')},
-    {l:'CSM',w:C_CSM,r:false,key:a=>a.csRep||'—'},
-    showAE?{l:'Sales Rep',w:C_AE,r:false,key:a=>a.ae||'—'}:null,
-    _allPools?{l:'Pool',w:C_POOL,r:false,key:a=>a.pool||'—'}:null,
-    {l:'Stage',w:C_STAGE,r:false,key:a=>(a.stage||'—').replace(/^\d+a?\.\s*/,'')},
-    {l:'Revenue',w:C_REV,r:true,key:a=>fmtR(a.rev)},
-    {l:'Sub End',w:C_SE,r:false,key:a=>fmtD(a.seRM)}
+    {l:'Account',key:a=>a.n+(a.rsk?' ⚠':'')},
+    {l:'Notes',key:a=>(a.notes||'').replace(/\s+/g,' ').trim()||'—'},
+    {l:'Stage',key:a=>(a.stage||'—').replace(/^\d+a?\.\s*/,'')},
+    {l:'Revenue',key:a=>fmtR(a.rev)},
+    {l:'Sub End',key:a=>fmtD(a.seRM)},
+    {l:'CSM',key:a=>a.csRep||'—'},
+    showAE?{l:'Sales Rep',key:a=>a.ae||'—'}:null,
+    _allPools?{l:'Pool',key:a=>a.pool||'—'}:null
   ].filter(Boolean);
-  // Box-drawing grid so the pasted table has actual lines in Slack's
-  // monospace code block. Top / header-divider / bottom rows use ┌┬┐ ├┼┤
-  // └┴┘ and each cell is wrapped in │ separators.
-  const fmtRow=vals=>'│ '+vals.join(' │ ')+' │';
-  const ws=cols.map(c=>c.w);
-  const top   ='┌─'+ws.map(w=>'─'.repeat(w)).join('─┬─')+'─┐';
-  const midR  ='├─'+ws.map(w=>'─'.repeat(w)).join('─┼─')+'─┤';
-  const bot   ='└─'+ws.map(w=>'─'.repeat(w)).join('─┴─')+'─┘';
-  const header=fmtRow(cols.map(c=>c.r?padR(c.l,c.w):pad(c.l,c.w)));
-  const body  =rows.map(a=>fmtRow(cols.map(c=>c.r?padR(c.key(a),c.w):pad(c.key(a),c.w)))).join('\n');
-  const tRev=rows.reduce((s,a)=>s+(a.rev||0),0);
-  const tW=rows.filter(a=>WS.includes(a.stage)).length;
-  const tC=rows.filter(a=>CS.includes(a.stage)).length;
-  const tD=rows.filter(a=>DS.includes(a.stage)).length;
-  const tO=rows.length-tW-tC;
-  const summary='TOTAL: '+fmtR(tRev)+' · '+tW+' won · '+tC+' churned · '+tD+' declined early · '+tO+' open';
-  const out='```\n'+title+filtNote+'\n'+top+'\n'+header+'\n'+midR+'\n'+(body?body+'\n':'')+bot+'\n'+summary+'\n```';
+  // TSV — Slack's rich-text editor auto-converts tab-separated content into
+  // a native table on paste; also pastes cleanly into Sheets/Excel.
+  const esc=s=>String(s==null?'':s).replace(/\t/g,' ').replace(/\r?\n/g,' ');
+  const tsv=[cols.map(c=>esc(c.l)).join('\t'),...rows.map(a=>cols.map(c=>esc(c.key(a))).join('\t'))].join('\n');
+  // HTML — Slack reads text/html when present and renders a real <table>.
+  const hesc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const html='<table border="1" cellspacing="0" cellpadding="4"><thead><tr>'+cols.map(c=>'<th>'+hesc(c.l)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(a=>'<tr>'+cols.map(c=>'<td>'+hesc(c.key(a))+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
   const btn=document.getElementById('slack-btn-'+rid);
   const flash=ok=>{
     if(!btn)return;
@@ -7472,11 +7470,24 @@ function _exportAcctTableSlack(rid,q,pool){
     btn.style.color='#fff';
     setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},1800);
   };
+  // ClipboardItem with both text/html and text/plain gives Slack the richest
+  // paste path. Falls back to writeText(tsv) when ClipboardItem is unavailable.
+  if(navigator.clipboard&&window.ClipboardItem){
+    try{
+      const item=new ClipboardItem({
+        'text/html':new Blob([html],{type:'text/html'}),
+        'text/plain':new Blob([tsv],{type:'text/plain'})
+      });
+      navigator.clipboard.write([item]).then(()=>flash(true)).catch(()=>{
+        navigator.clipboard.writeText(tsv).then(()=>flash(true)).catch(()=>flash(false));
+      });
+      return;
+    }catch(e){}
+  }
   if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(out).then(()=>flash(true)).catch(()=>flash(false));
+    navigator.clipboard.writeText(tsv).then(()=>flash(true)).catch(()=>flash(false));
   }else{
-    // Fallback for non-clipboard environments
-    const ta=document.createElement('textarea');ta.value=out;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();
+    const ta=document.createElement('textarea');ta.value=tsv;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();
     try{document.execCommand('copy');flash(true);}catch(e){flash(false);}finally{document.body.removeChild(ta);}
   }
 }
