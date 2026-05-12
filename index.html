@@ -7442,36 +7442,16 @@ function _exportAcctTableSlack(rid,q,pool){
   const fmtR=v=>v?(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1000?'$'+Math.round(v/1000)+'K':'$'+v):'—';
   const fmtD=v=>{if(!v)return'—';const d=new Date(v);if(isNaN(d))return String(v);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});};
   const showAE=_acctShowAE;
-  // Word-wrap helper. Returns the note as an array of lines, each ≤ NOTE_WRAP
-  // chars at word boundaries. Existing newlines in the source are preserved
-  // as their own line breaks. Used in HTML to control the Notes column width
-  // (Slack sizes cells to the longest unbroken line in their content).
-  const NOTE_WRAP=15;
-  const wrapNote=s=>{
-    if(!s)return[];
-    return String(s).split(/\r?\n/).flatMap(para=>{
-      const trimmed=para.trim();
-      if(!trimmed)return[];
-      const words=trimmed.split(/\s+/);
-      const lines=[];let cur='';
-      for(const w of words){
-        if(cur&&(cur.length+1+w.length)>NOTE_WRAP){lines.push(cur);cur=w;}
-        else cur=cur?cur+' '+w:w;
-      }
-      if(cur)lines.push(cur);
-      return lines;
-    });
-  };
-  // Notes is column 2 so the most action-driving context sits right next to
-  // the account name — matches the reference screenshot the user shared.
-  // `keyHtml` (optional) overrides `key` for the HTML payload so Notes can
-  // inject <br> for in-cell wrapping. TSV always uses `key` (single line per
-  // cell — embedded newlines would split into extra rows).
+  // HTML escape — defined early because the cell rendering and the note
+  // sub-row builder below both use it.
+  const hesc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Slack messages don't wrap table cells. To keep notes readable without
+  // blowing out the column width, we render the note as a SEPARATE sub-row
+  // immediately below its data row: spans all columns via colspan, uses a
+  // smaller font + indent, and is prefixed with ↳ so the association reads
+  // even when Slack strips the inline styles.
   const cols=[
     {l:'Account',key:a=>a.n+(a.rsk?' ⚠':'')},
-    {l:'Notes',
-      key:a=>wrapNote(a.notes).join(' ')||'—',
-      keyHtml:a=>{const ls=wrapNote(a.notes);return ls.length?ls.map(hesc).join('<br>'):'—';}},
     {l:'Stage',key:a=>(a.stage||'—').replace(/^\d+a?\.\s*/,'')},
     {l:'Revenue',key:a=>fmtR(a.rev)},
     {l:'Sub End',key:a=>fmtD(a.seRM)},
@@ -7479,15 +7459,23 @@ function _exportAcctTableSlack(rid,q,pool){
     showAE?{l:'Sales Rep',key:a=>a.ae||'—'}:null,
     _allPools?{l:'Pool',key:a=>a.pool||'—'}:null
   ].filter(Boolean);
-  // HTML escape used by both cell rendering and the wrap helper above.
-  const hesc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   // TSV — Slack's rich-text editor auto-converts tab-separated content into
-  // a native table on paste; also pastes cleanly into Sheets/Excel.
+  // a native table on paste; also pastes cleanly into Sheets/Excel. TSV has
+  // to keep Notes as a trailing column because TSV is one row per record.
   const esc=s=>String(s==null?'':s).replace(/\t/g,' ').replace(/\r?\n/g,' ');
-  const tsv=[cols.map(c=>esc(c.l)).join('\t'),...rows.map(a=>cols.map(c=>esc(c.key(a))).join('\t'))].join('\n');
+  const tsvCols=[...cols,{l:'Notes',key:a=>(a.notes||'').replace(/\s+/g,' ').trim()||''}];
+  const tsv=[tsvCols.map(c=>esc(c.l)).join('\t'),...rows.map(a=>tsvCols.map(c=>esc(c.key(a))).join('\t'))].join('\n');
   // HTML — Slack reads text/html when present and renders a real <table>.
-  const cellHtml=(c,a)=>c.keyHtml?c.keyHtml(a):hesc(c.key(a));
-  const html='<table border="1" cellspacing="0" cellpadding="4"><thead><tr>'+cols.map(c=>'<th>'+hesc(c.l)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(a=>'<tr>'+cols.map(c=>'<td>'+cellHtml(c,a)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+  const noteOf=a=>(a.notes||'').replace(/\s+/g,' ').trim();
+  const _cspan=cols.length;
+  const _noteStyle='font-size:smaller;color:#888;padding-left:24px;font-style:italic';
+  const rowsHtml=rows.map(a=>{
+    const main='<tr>'+cols.map(c=>'<td>'+hesc(c.key(a))+'</td>').join('')+'</tr>';
+    const n=noteOf(a);
+    if(!n)return main;
+    return main+'<tr><td colspan="'+_cspan+'" style="'+_noteStyle+'">↳ '+hesc(n)+'</td></tr>';
+  }).join('');
+  const html='<table border="1" cellspacing="0" cellpadding="4"><thead><tr>'+cols.map(c=>'<th>'+hesc(c.l)+'</th>').join('')+'</tr></thead><tbody>'+rowsHtml+'</tbody></table>';
   const btn=document.getElementById('slack-btn-'+rid);
   const flash=ok=>{
     if(!btn)return;
