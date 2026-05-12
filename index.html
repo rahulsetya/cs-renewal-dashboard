@@ -7446,7 +7446,7 @@ function _exportAcctTableSlack(rid,q,pool){
   // chars at word boundaries. Existing newlines in the source are preserved
   // as their own line breaks. Used in HTML to control the Notes column width
   // (Slack sizes cells to the longest unbroken line in their content).
-  const NOTE_WRAP=30;
+  const NOTE_WRAP=15;
   const wrapNote=s=>{
     if(!s)return[];
     return String(s).split(/\r?\n/).flatMap(para=>{
