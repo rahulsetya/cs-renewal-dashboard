@@ -252,10 +252,14 @@ function isValidCSOwner(ro){
 // Edit the predicates if rep names change.
 const SCALE_ASIA_REP   = ae => String(ae||'').trim().toLowerCase().startsWith('edwin');
 const SCALE_EUROPE_REP = ae => {
-  // Accept the full "David X…" form OR the "DX" shorthand. Anchor "dx" with
-  // either an exact match or a trailing space so we don't accidentally
-  // catch unrelated names that happen to start with the letters "dx".
-  const a = String(ae||'').trim().toLowerCase();
+  // Match any of:
+  //   • "DX" or "DX …" shorthand
+  //   • "David X" / "David X." (initial form)
+  //   • "David Xuereb" (full name) — covered by the same "david x" prefix
+  // Internal whitespace is collapsed before testing so "David  Xuereb"
+  // (accidental double-space) still resolves. The "dx" form is anchored
+  // so unrelated names starting with the letters "dx" aren't pulled in.
+  const a = String(ae||'').trim().toLowerCase().replace(/\s+/g,' ');
   return a==='dx' || a.startsWith('dx ') || a.startsWith('david x');
 };
 function _scaleSubPod(row){
