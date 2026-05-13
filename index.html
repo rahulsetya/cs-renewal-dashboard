@@ -332,41 +332,53 @@ function _itemMatches(item,row){
       return row&&row.__sp===true;
     return row&&row.pod===pod;
   }
-  return row&&ownerMatches(row.ro,item);
+  // CSREP: prefix — match the Renewal Master "CS Rep" column on the row.
+  if(typeof item==='string'&&item.indexOf('CSREP:')===0){
+    const csm=item.slice(6);
+    return row&&String(row.csRep||'')===csm;
+  }
+  // Bare string = Sales Rep pick. Matches the row's "Sales Rep" / AE field
+  // (a.ae on D rows, r.ae on ENG_RAW rows). The dropdown now keys its top
+  // section off d.ae instead of d.ro — see _matchesOwnerFilter below.
+  return row&&String(row.ae||'')===item;
 }
-// AND/OR combine across the CS Owners and Pods groups in the dropdown.
-// Within a group items still OR together; the toggle controls how the two
-// groups combine. Default OR matches the previous flat-OR behavior.
-let _comboMode='OR';
+// Three-section filter: Sales Reps × CS Reps × Pods. Items within a section
+// OR together (multi-select); sections AND across each other (each non-empty
+// section narrows the result). Empty section = no constraint from that
+// dimension. _comboMode is retained as a no-op for older state shapes.
+let _comboMode='AND';
 function _splitItemsByGroup(items){
-  const csm=[],pod=[];
+  const sr=[],csr=[],pod=[];
   items.forEach(it=>{
     if(typeof it==='string'&&it.indexOf('POD:')===0)pod.push(it);
-    else csm.push(it);
+    else if(typeof it==='string'&&it.indexOf('CSREP:')===0)csr.push(it);
+    else sr.push(it);
   });
-  return{csm,pod};
+  return{sr,csr,pod};
 }
-function _combine(items,row,mode){
-  if(mode==='AND'){
-    const g=_splitItemsByGroup(items);
-    const csmOk=!g.csm.length||g.csm.some(it=>_itemMatches(it,row));
-    const podOk=!g.pod.length||g.pod.some(it=>_itemMatches(it,row));
-    return csmOk&&podOk;
-  }
-  return items.some(s=>_itemMatches(s,row));
+function _combine(items,row){
+  const g=_splitItemsByGroup(items);
+  const srOk=!g.sr.length||g.sr.some(it=>_itemMatches(it,row));
+  const csrOk=!g.csr.length||g.csr.some(it=>_itemMatches(it,row));
+  const podOk=!g.pod.length||g.pod.some(it=>_itemMatches(it,row));
+  return srOk&&csrOk&&podOk;
 }
-// Pipeline-row filter: 'ALL' restricts to CS owners, 'ALL_OWNERS' opens it up.
+// Pipeline-row filter:
+//   'ALL_OWNERS' = no filter (every row, even unassigned).
+//   'ALL'        = any row with a non-empty Sales Rep (d.ae). Replaces the
+//                  prior "CS Owners only" default — see the dropdown rebuild.
+//   'PICK'       = three-section combine (Sales Reps × CS Reps × Pods).
 function _matchesOwnerFilter(d){
   const sel=_ownerSel();
   if(sel.mode==='ALL_OWNERS')return true;
-  if(sel.mode==='ALL')return isValidCSOwner(d.ro);
-  return _combine(sel.items,d,_comboMode);
+  if(sel.mode==='ALL')return !!(d&&String(d.ae||'').trim());
+  return _combine(sel.items,d);
 }
-// ENG_RAW filter: ENG is already CS-scoped upstream so 'ALL' is pass-through.
+// ENG_RAW filter: ENG is already CS-scoped upstream so non-PICK is pass-through.
 function _matchesOwnerFilterEng(r){
   const sel=_ownerSel();
   if(sel.mode!=='PICK')return true;
-  return _combine(sel.items,r,_comboMode);
+  return _combine(sel.items,r);
 }
 function _isOwnerPickActive(v){
   const sel=_ownerSel();
@@ -3214,11 +3226,18 @@ function _render(){
       if(stageIn[d.s]!==undefined)stageIn[d.s]++;
     });
   }
-  // Dropdown options: directly-valid owner names on rows, plus any alias targets
-  // whose aliased owners appear in the data (so Phoebe/Jovin roll up under Support iConnections)
-  const _directOwners=new Set(D.map(d=>d.ro).filter(o=>VALID_OWNERS.has(o)));
-  D.forEach(d=>{const t=RENEWAL_OWNER_ALIAS[(d.ro||'').toLowerCase()];if(t&&VALID_OWNERS.has(t))_directOwners.add(t);});
-  const owners=[..._directOwners].sort();
+  // Dropdown options:
+  //   • Sales Reps — unique non-empty d.ae values, with per-rep account counts
+  //   • CS Reps    — unique non-empty d.csRep values, with per-rep counts
+  // The legacy "CS Owners" list (built from d.ro vs VALID_OWNERS) is gone
+  // — the filter now flows through Sales Rep / CS Rep / Pod.
+  const _salesRepCounts={},_csRepCounts={};
+  D.forEach(d=>{
+    const sr=String(d.ae||'').trim();if(sr)_salesRepCounts[sr]=(_salesRepCounts[sr]||0)+1;
+    const cr=String(d.csRep||'').trim();if(cr)_csRepCounts[cr]=(_csRepCounts[cr]||0)+1;
+  });
+  const salesReps=Object.keys(_salesRepCounts).sort();
+  const csReps=Object.keys(_csRepCounts).sort();
   // Pods from engagement tracker col H — filter value is "POD:<label>" so it doesn't collide with owner names
   const _podCounts={};const _scaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
   // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
@@ -3245,24 +3264,27 @@ function _render(){
     ${(()=>{
       const sel=_ownerSel();
       const _fmtItem=x=>{
-        if(typeof x!=='string'||x.indexOf('POD:')!==0)return x;
-        const v=x.slice(4);
-        return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;
+        if(typeof x!=='string')return x;
+        if(x.indexOf('POD:')===0){
+          const v=x.slice(4);
+          return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;
+        }
+        if(x.indexOf('CSREP:')===0)return x.slice(6)+' · CS Rep';
+        return x;
       };
       let curLbl;
       if(sel.mode==='ALL_OWNERS')curLbl='All Owners';
-      else if(sel.mode==='ALL')curLbl='All CS Owners';
+      else if(sel.mode==='ALL')curLbl='All Sales Reps';
       else if(sel.items.length===1)curLbl=_fmtItem(sel.items[0]);
       else curLbl=sel.items.length+' selected';
       const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
       return `<div class="owner-dd">
-        <button id="ownerDropBtn" class="owner-dd-btn${OWNER_DROP_OPEN?' op':''}" onclick="toggleOwnerDrop(event)" title="Filter by CS Owner or Pod (multi-select)"><span>${curLbl}</span><span class="cr">▾</span></button>
+        <button id="ownerDropBtn" class="owner-dd-btn${OWNER_DROP_OPEN?' op':''}" onclick="toggleOwnerDrop(event)" title="Filter by Sales Rep / CS Rep / Pod (multi-select, AND across sections)"><span>${curLbl}</span><span class="cr">▾</span></button>
         <div id="ownerDropMenu" class="owner-dd-menu" style="display:${OWNER_DROP_OPEN?'block':'none'}" onclick="event.stopPropagation()">
           <div class="owner-dd-item${sel.mode==='ALL_OWNERS'?' sel':''}" onclick="pickOwner('ALL_OWNERS')"><span>All Owners</span></div>
-          <div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickOwner('ALL')"><span>All CS Owners</span></div>
-          <div class="owner-dd-grp">CS Owners</div>
-          ${owners.map(o=>{const on=_isOwnerPickActive(o);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span></div>`;}).join('')}
-          ${(owners.length&&pods.length)?`<div class="combo-toggle"><span class="lbl">Combine CS Owner × Pod</span><span class="seg"><button class="${_comboMode==='OR'?'on':''}" onclick="pickCombo('OR')">OR</button><button class="${_comboMode==='AND'?'on':''}" onclick="pickCombo('AND')">AND</button></span></div>`:''}
+          <div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickOwner('ALL')"><span>All Sales Reps</span></div>
+          ${salesReps.length?`<div class="owner-dd-grp">Sales Reps</div>${salesReps.map(o=>{const on=_isOwnerPickActive(o);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span><span class="ct">${_salesRepCounts[o]} accts</span></div>`;}).join('')}`:''}
+          ${csReps.length?`<div class="owner-dd-grp">CS Reps</div>${csReps.map(c=>{const v='CSREP:'+c;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('CSREP:${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${_csRepCounts[c]} accts</span></div>`;}).join('')}`:''}
           ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
             if(p==='Scale'){
               const on=_isOwnerPickActive('POD:Scale');
@@ -4431,7 +4453,7 @@ function _render(){
       filteredHist.forEach((snap,fi)=>{
         const i=snap._origIdx;
         // filter snap data by owner when not ALL
-        const ownerFilter=d=>{const _s=_ownerSel();if(_s.mode!=='PICK')return true;const a=acctMap[d];return !!a&&_combine(_s.items,a,_comboMode);};
+        const ownerFilter=d=>{const _s=_ownerSel();if(_s.mode!=='PICK')return true;const a=acctMap[d];return !!a&&_combine(_s.items,a);};
         const snapDataFiltered=snap.data?Object.fromEntries(Object.entries(snap.data).filter(([acct])=>ownerFilter(acct))):snap.data;
         const k=deriveKpisFromData(snapDataFiltered,acctMap);
         const compareIdx=S.hsCompare[i]!==undefined?S.hsCompare[i]:(i+1<hist.length?i+1:-1);
