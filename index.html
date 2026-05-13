@@ -386,6 +386,16 @@ function _itemMatches(item,row){
     }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
       return row&&row.pod==='Scale'&&_scaleSubPod(row)===pod;
+    // Scale = any account whose CS Rep (Renewal Master "CS Rep" column)
+    // aliases to "Support iConnections" — i.e. Phoebe / Jovin / Bryan /
+    // Olivia / Mario / Luis / Connor / literal Support iConnections.
+    // d.pod === 'Scale' alone no longer qualifies, per user spec.
+    if(pod==='Scale'){
+      if(!row)return false;
+      const csRep=String(row.csRep||'').trim();
+      const aliased=RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep;
+      return aliased==='Support iConnections';
+    }
     // SP pod is authoritative from "All SP Rev 25 & 26" (the __sp flag is set
     // by _mergeSPsIntoD). Don't trust pod='SP' from the engagement tracker
     // alone — that field has been seen mis-tagged on GP accounts.
@@ -3415,6 +3425,9 @@ function _render(){
   // reps (Phoebe/Jovin/Bryan/etc.) collapse under "Support iConnections".
   const _podCsmCounts={};
   Object.keys(POD_REPS).forEach(p=>{_podCounts[p]=0;_podCsmCounts[p]={};});
+  // Pre-seed Scale (CS-Rep-aliased, not POD_REPS) so the row always
+  // renders in the dropdown even when no accounts currently roll in.
+  _podCounts['Scale']=0;
   const _scaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
   // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
@@ -3434,14 +3447,17 @@ function _render(){
         _podCsmCounts[p][csmKey]=(_podCsmCounts[p][csmKey]||0)+1;
       }
     });
-    if(d.pod&&!POD_REPS[d.pod]){
+    // Scale count is CS-Rep-aliased (any Phoebe / Jovin / Bryan / Olivia
+    // / Mario / Luis / Connor / literal Support iConnections). Tracked
+    // separately from POD_REPS since the predicate is on csRep, not ae.
+    if(_csmAliased==='Support iConnections')_podCounts['Scale']++;
+    if(d.pod&&!POD_REPS[d.pod]&&d.pod!=='Scale'){
       _podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
       // Per-CSM breakdown for non-Pod-1-4 d.pod entries (Asia, Europe, etc.)
       // — same shape as POD_REPS pods so the dropdown can expand them.
-      // Scale has its own USA/Asia/Europe sub-pods and SP is atomic, so
-      // skip CSM aggregation for those. Strategic is excluded from the
-      // dropdown entirely below.
-      if(d.pod!=='Scale'&&d.pod!=='SP'){
+      // SP is atomic so skip its CSM aggregation. Strategic is excluded
+      // from the dropdown entirely below.
+      if(d.pod!=='SP'){
         if(!_podCsmCounts[d.pod])_podCsmCounts[d.pod]={};
         _podCsmCounts[d.pod][csmKey]=(_podCsmCounts[d.pod][csmKey]||0)+1;
       }
@@ -5795,6 +5811,14 @@ function _gpItemMatches(item,a){
     }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
       return a&&a.pool==='Scale'&&_gpScaleSubPod(a)===pod;
+    // Scale = CS Rep aliases to "Support iConnections" (Phoebe / Jovin /
+    // Bryan / Olivia / Mario / Luis / Connor / literal Support iC).
+    // Mirrors the parent dashboard's definition; d.pool==='Scale' no
+    // longer drives membership.
+    if(pod==='Scale'){
+      if(!a)return false;
+      return _gpAliasCsm(a.csRep)==='Support iConnections';
+    }
     // Pod 1-4 and Asia/Europe are predicate-defined via _GP_POD_REPS.
     // Other pod names (Scale, SP) fall back to d.pod equality.
     if(_GP_POD_REPS[pod])return a&&_GP_POD_REPS[pod](a.ae);
@@ -8202,6 +8226,8 @@ function rGP(){
           const _gpPodCounts={};const _gpScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
           const _gpPodCsmCounts={};
           Object.keys(_GP_POD_REPS).forEach(p=>{_gpPodCounts[p]=0;_gpPodCsmCounts[p]={};});
+          // Pre-seed Scale (CS-Rep-aliased) so the row always renders.
+          _gpPodCounts['Scale']=0;
           const _gpOffPodCounts={};
           qAcctsAll.forEach(a=>{
             // Alias so Scale-support CSMs roll into one bucket, then
@@ -8215,9 +8241,11 @@ function rGP(){
                 _gpPodCsmCounts[p][csmKey]=(_gpPodCsmCounts[p][csmKey]||0)+1;
               }
             });
-            if(a.pod&&!_GP_POD_REPS[a.pod]&&a.pod!=='Strategic'){
+            // Scale count is CS-Rep-aliased — independent of a.pod.
+            if(_csmAliased==='Support iConnections')_gpPodCounts['Scale']++;
+            if(a.pod&&!_GP_POD_REPS[a.pod]&&a.pod!=='Strategic'&&a.pod!=='Scale'){
               _gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;
-              if(a.pod!=='Scale'&&a.pod!=='SP'){
+              if(a.pod!=='SP'){
                 if(!_gpPodCsmCounts[a.pod])_gpPodCsmCounts[a.pod]={};
                 _gpPodCsmCounts[a.pod][csmKey]=(_gpPodCsmCounts[a.pod][csmKey]||0)+1;
               }
@@ -9584,9 +9612,9 @@ function rAllAccts(){
             else if(aSel.items.length===1)curLbl=_fmtItem(aSel.items[0]);
             else curLbl=aSel.items.length+' selected';
             // Per-row counts so the dropdown reflects the universe of "all engagement-tracker accounts"
-            const _aaPodCounts={};const _aaScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
+            const _aaPodCounts={Scale:0};const _aaScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
             const _aaOffPodCounts={};
-            all.forEach(a=>{if(a.pod){_aaPodCounts[a.pod]=(_aaPodCounts[a.pod]||0)+1;}const sub=_gpScaleSubPod(a);if(sub)_aaScaleSubCounts[sub]++;if(_gpIsOffPod(a)){const cp=_gpCsmPod(a.csRep);if(cp)_aaOffPodCounts[cp]=(_aaOffPodCounts[cp]||0)+1;}});
+            all.forEach(a=>{if(a.pod&&a.pod!=='Scale'){_aaPodCounts[a.pod]=(_aaPodCounts[a.pod]||0)+1;}if(_gpAliasCsm(a.csRep)==='Support iConnections')_aaPodCounts.Scale++;const sub=_gpScaleSubPod(a);if(sub)_aaScaleSubCounts[sub]++;if(_gpIsOffPod(a)){const cp=_gpSalesRepPod(a);if(cp)_aaOffPodCounts[cp]=(_aaOffPodCounts[cp]||0)+1;}});
             const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
             let menu=`<div class="owner-dd-item${aSel.mode==='ALL'?' sel':''}" onclick="pickAAOwner('ALL')"><span>All CSMs &amp; Pods</span><span class="ct">${all.length} accts</span></div>`;
             if(csmList.length){
