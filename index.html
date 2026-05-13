@@ -1759,17 +1759,6 @@ function resolveStage(rawStage){
 // ── OFFER PRICE COLUMN CANDIDATES ─────────────────────────────────────────────
 // The Excel column uses an en dash (U+2013) or em dash (U+2014) — try both
 const OFFER_COLS=[
-  // PRIMARY: "Annualized 2026 Renewal Revenue" column on the Renewal
-  // Master. Captures only the 2026-attributable revenue (annualized),
-  // unlike Offer Price which reflects total contract value (could
-  // include 2027+ for multi-year deals). Tried first so every 2026
-  // revenue display + NRR calc reflects 2026 only.
-  'Annualized 2026 Renewal Revenue',
-  'Annualized 2026 Revenue',
-  'Annaulized 2026 Renewal Revenue',           // user-typed variant
-  'Annual 2026 Renewal Revenue',
-  // Fallback to Offer Price (total contract value) for accounts whose
-  // RM row doesn't have the Annualized column populated.
   'Offer Price \u2013 Total Contract Value',  // en dash
   'Offer Price \u2014 Total Contract Value',  // em dash
   'Offer Price - Total Contract Value',        // plain hyphen fallback
@@ -1777,6 +1766,25 @@ const OFFER_COLS=[
   'Offer Price\u2014Total Contract Value',
   'Offer Price',                               // bare name
 ];
+// Annualized 2026 Renewal Revenue column on the Renewal Master.
+// Stored per account as d.r26ann and used ONLY for Won (Invoice Sent
+// / Paid) deals \u2014 every other stage continues to use d.o (Offer Price
+// / Total Contract Value). This is the 2026-attributable revenue,
+// not the total contract value (which can include 2027+ for multi-
+// year deals). Helper _rev2026(d) picks the right one based on stage.
+const ANN_2026_COLS=[
+  'Annualized 2026 Renewal Revenue',
+  'Annualized 2026 Revenue',
+  'Annaulized 2026 Renewal Revenue',
+  'Annual 2026 Renewal Revenue',
+];
+const WON_STAGES_2026=new Set(['9. Invoice Sent','10. Paid']);
+function _rev2026(d){
+  if(!d)return 0;
+  if(d.__sp)return d.spOffer||0;
+  if(WON_STAGES_2026.has(d.s))return d.r26ann||d.o||0;
+  return d.o||0;
+}
 
 function computeSignals(row){
   const sg=[],{dy,r25,o,s,mt,rsk}=row;
@@ -1899,6 +1907,12 @@ function processData(range, engMap){
     let offerRaw=undefined;
     for(const col of OFFER_COLS){offerRaw=getCell(v,col);if(offerRaw!==undefined&&offerRaw!=='')break;}
     const offer=parseNum(offerRaw);
+    // Annualized 2026 Renewal Revenue — captured separately so the won
+    // tile / NRR / forecast can swap it in for accounts in Invoice Sent
+    // or Paid (via _rev2026 helper). All other stages keep using offer.
+    let annRaw=undefined;
+    for(const col of ANN_2026_COLS){annRaw=getCell(v,col);if(annRaw!==undefined&&annRaw!=='')break;}
+    const r26ann=parseNum(annRaw);
 
     const subEnd=excelDateToJS(getCell(v,'Final Sub End Date')||'');
     const dy=daysDiff(subEnd);
@@ -1927,7 +1941,7 @@ function processData(range, engMap){
     const ae=String(getCell(v,'Sales Rep')||'').trim();
     const csRep=String(getCell(v,'CS Rep')||v[8]||'').trim();
     const em=subEnd?subEnd.substring(0,7):'';
-    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,ex:0,snt:0,clr,icn,ae,pod:(eng.pod||''),pid:(_rmPid||eng.platformId||''),sg:[],ct:'Manager',wow:'same'};
+    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r26ann,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,ex:0,snt:0,clr,icn,ae,pod:(eng.pod||''),pid:(_rmPid||eng.platformId||''),sg:[],ct:'Manager',wow:'same'};
     row.sg=computeSignals(row);
     data.push(row);
   }
@@ -2665,22 +2679,26 @@ function _buildLiveGoalsData(){
   (rows[hdr]||[]).forEach((h,i)=>{const k=String(h||'').trim();if(k)cm[k.toLowerCase()]=i;});
   function gc(v,...names){for(const n of names){const i=cm[n.toLowerCase()];if(i!==undefined&&v[i]!==undefined&&v[i]!=='')return v[i];}return '';}
   const revColIdx=(()=>{for(const k of Object.keys(cm)){if(k.includes('2025')&&k.includes('revenue'))return cm[k];}for(const k of Object.keys(cm)){if(k.includes('total revenue'))return cm[k];}return 3;})();
-  // 2026 revenue column on the Renewal Master. Single source of truth
-  // for "2026 revenue" everywhere in the Goals iframe — Renewed YTD,
-  // NRR card, All Accounts 2026 Rev, Top 10s 2026 Rev.
-  // Preference order:
-  //   1. "Annualized 2026 Renewal Revenue" (col Y) — 2026-only portion
-  //      of the contract. This is the canonical value going forward.
-  //   2. "Offer Price" / "Offer Price – Total Contract Value" — total
-  //      contract value, used as fallback when the annualized column
-  //      isn't populated.
-  // Header match is case-insensitive (cm keys are lowercased).
+  // Offer Price column on the Renewal Master (Total Contract Value).
+  // Used as the 2026 revenue source for every NON-won account — i.e.
+  // accounts still in flight where the annualized split isn't
+  // meaningful yet. For Won (Invoice Sent / Paid) accounts, the
+  // annualized column below takes precedence (see _rev26ForAccount).
   const offerColIdx=(()=>{
-    for(const k of Object.keys(cm)){if(k.includes('annualized')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
-    for(const k of Object.keys(cm)){if(k.includes('annaulized')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
     for(const k of Object.keys(cm)){if(k.includes('offer')&&k.includes('price'))return cm[k];}
     return null;
   })();
+  // Annualized 2026 Renewal Revenue column. Captures only the 2026
+  // portion of the contract — used for Won accounts so multi-year
+  // deals don't inflate the 2026 revenue total. Case-insensitive
+  // match; supports user-typed "Annaulized" variant defensively.
+  const ann2026ColIdx=(()=>{
+    for(const k of Object.keys(cm)){if(k.includes('annualized')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
+    for(const k of Object.keys(cm)){if(k.includes('annaulized')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
+    for(const k of Object.keys(cm)){if(k.includes('annual')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
+    return null;
+  })();
+  if(typeof dlog==='function')dlog('[goals-build] Renewal Master annualized 2026 col idx:',ann2026ColIdx);
   if(typeof dlog==='function')dlog('[goals-build] Renewal Master offer-price col idx:',offerColIdx);
   // Normalize account names for fuzzy matching between Renewal Master and Engagement Tracker.
   // Handles: case, whitespace, smart quotes, &/and, punctuation, and common legal-entity suffixes.
@@ -2720,6 +2738,9 @@ function _buildLiveGoalsData(){
     // 2026 contracted value pulled from the Renewal Master's Offer Price col
     // (single source of truth — see offerColIdx note above). 0 when missing.
     const offerPrice=offerColIdx!=null?parseNum(v[offerColIdx]||''):0;
+    // Annualized 2026 Renewal Revenue — only used for Won accounts (see
+    // _rev26ForAccount below). 0 when the column / cell is missing.
+    const ann2026Rev=ann2026ColIdx!=null?parseNum(v[ann2026ColIdx]||''):0;
     const platformId=String(gc(v,'Platform ID','Platform Id','Platform Company ID','Platform Company Id','HubSpot ID','HubSpot Record ID','Record ID','HS ID','Company ID')||'').trim();
     const key=_normKey(acct);
     if(!key)continue;
@@ -2735,7 +2756,7 @@ function _buildLiveGoalsData(){
     // the ET row is missing those fields.
     const renewalCsRep=String(gc(v,'CS Rep')||'').trim();
     const renewalSalesRep=String(gc(v,'Sales Rep','ONSITE REP (iConn + Benchies)','Onsite Rep')||'').trim();
-    renewalLookup[key]={stage,rev,offerPrice,se,name:acct,platformId,nameKey:key,owner:renewalOwner,csRep:renewalCsRep,salesRep:renewalSalesRep};
+    renewalLookup[key]={stage,rev,offerPrice,ann2026Rev,se,name:acct,platformId,nameKey:key,owner:renewalOwner,csRep:renewalCsRep,salesRep:renewalSalesRep};
     if(platformId)renewalByPid[platformId]=renewalLookup[key];
   }
   dlog(`=== ACCOUNT RECONCILIATION ===`);
@@ -2823,12 +2844,11 @@ function _buildLiveGoalsData(){
       // quarter (parallel to `q`, which is the ET-preferred quarter) so the
       // GP Retention tab can group by Renewal Master dates exclusively.
       seRM:se||'',seET:_aaSeET||'',qRM:q||'',
-      // Extended fields for the All Accounts tab (April 2026 Combined Master schema)
-      // rev26 sources STRICTLY from the Renewal Master's Offer Price column.
-      // No fallback to ET's "2026 Revenue" — accounts without an RM offer
-      // price contribute 0 so retention math stays honest about what's
-      // actually committed in the renewal master.
-      ae:_aeFinal,seg:r.seg||'',rev26:(renewal&&renewal.offerPrice)||0,rawEnd:r.rawEnd||'',
+      // Extended fields for the All Accounts tab. rev26 sources from the
+      // Renewal Master, splitting by stage: Won (Invoice Sent / Paid)
+      // → Annualized 2026 Renewal Revenue (2026 portion only); every
+      // other stage → Offer Price (total contract value). No ET fallback.
+      ae:_aeFinal,seg:r.seg||'',rev26:(isWon?((renewal&&renewal.ann2026Rev)||(renewal&&renewal.offerPrice)||0):((renewal&&renewal.offerPrice)||0)),rawEnd:r.rawEnd||'',
       pod:r.pod||'',txnDone:r.txnDone||0,out:r.out||0,gm:r.gm||0,
       nextTP:r.nextTP||'',expn:r.expn||0,calls:r.calls||{},
       platformId:_mlPid,
@@ -2841,7 +2861,7 @@ function _buildLiveGoalsData(){
       inRen:renewal?1:0
     });
     if(target){
-      if(isWon){target.won++;target.rw+=rev;target.rw26+=((renewal&&renewal.offerPrice)||0);}
+      if(isWon){target.won++;target.rw+=rev;target.rw26+=((renewal&&renewal.ann2026Rev)||(renewal&&renewal.offerPrice)||0);}
       else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
       else if(isDeclined){target.declined++;target.rd+=rev;}
       else{target.open++;}
@@ -2878,9 +2898,10 @@ function _buildLiveGoalsData(){
       // renders an em-dash for the Engagement Tracker column. qRM mirrors
       // q here since this branch is RM-only.
       seRM:se||'',seET:'',qRM:q||'',
-      // rev26 sources from Renewal Master's Offer Price col — the only
-      // 2026 number we have for RM-only accounts (no ET row to fall back on).
-      ae:_rmSalesRep,seg:'Scale',rev26:renewal.offerPrice||0,rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
+      // rev26 sources from Renewal Master. Won (Invoice Sent / Paid)
+      // uses Annualized 2026 Renewal Revenue; every other stage uses
+      // Offer Price (total contract value). No ET fallback for RM-only.
+      ae:_rmSalesRep,seg:'Scale',rev26:(isWon?(renewal.ann2026Rev||renewal.offerPrice||0):(renewal.offerPrice||0)),rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
       platformId:_rmPid,
       addCredits:_rmMl?_rmMl.addCredits:0,miaBooth:_rmMl?_rmMl.miaBooth:0,
       outdated:_rmMl?_rmMl.outdated:0,gvPromo:_rmMl?_rmMl.gvPromo:0,
@@ -2888,7 +2909,7 @@ function _buildLiveGoalsData(){
       // RM-only accounts are by definition in the renewal master.
       inRen:1
     });
-    if(isWon){target.won++;target.rw+=rev;target.rw26+=(renewal.offerPrice||0);}
+    if(isWon){target.won++;target.rw+=rev;target.rw26+=(renewal.ann2026Rev||renewal.offerPrice||0);}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:renewal.name,csm:'',rev,q,pool:'Scale',renewal:se,notes:'Not in engagement tracker'});}
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
@@ -3052,7 +3073,11 @@ function _buildLiveForecastData(pods){
     const wonRows=rows.filter(x=>WON.has(x.s));
     const openRows=rows.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s));
     const declRows=rows.filter(x=>DCL.has(x.s));
-    const wonOff=wonRows.reduce((a,x)=>a+(x.o||0),0);
+    // Won 2026 revenue uses Annualized 2026 Renewal Revenue (col Y on RM)
+    // when available — the 2026-only portion, not full contract value.
+    // openWOff below stays on x.o (Offer Price) since open accounts
+    // haven't closed yet and the annualized split isn't meaningful.
+    const wonOff=wonRows.reduce((a,x)=>a+(x.r26ann||x.o||0),0);
     const wonBase=wonRows.reduce((a,x)=>a+(x.r25||0),0); // 2025 price of won rows → needed for live Renewal NRR
     const openWOff=openRows.filter(x=>x.o>0).reduce((a,x)=>a+(x.o||0),0);
     const openBase=openRows.reduce((a,x)=>a+(x.r25||0),0);
@@ -3418,8 +3443,12 @@ function _render(){
   // For SP rows, roll up Offer Price (col M on All SP Rev 25 & 26) rather than
   // 2026 revenue (col AA) — the latter is often placeholder, Offer Price is
   // the real renewal ask. GP rows continue to contribute d.o (2026 offer).
-  const r25T=f.reduce((a,d)=>a+d.r25,0),offT=f.reduce((a,d)=>a+(d.__sp?(d.spOffer||0):d.o),0);
-  const wonO=won.reduce((a,d)=>a+d.o,0),lostR=lost.reduce((a,d)=>a+d.r25,0);
+  // 2026 revenue totals — _rev2026(d) routes Won (Invoice Sent / Paid)
+  // accounts to their Annualized 2026 Renewal Revenue and leaves every
+  // other stage on Offer Price. SP rows still use spOffer (handled
+  // inside _rev2026).
+  const r25T=f.reduce((a,d)=>a+d.r25,0),offT=f.reduce((a,d)=>a+_rev2026(d),0);
+  const wonO=won.reduce((a,d)=>a+_rev2026(d),0),lostR=lost.reduce((a,d)=>a+d.r25,0);
   const pipeO=pipe.reduce((a,d)=>a+d.o,0),pipeR=pipe.reduce((a,d)=>a+d.r25,0);
   const flagged=f.filter(d=>d.sg.length>0),flagRev=flagged.reduce((a,d)=>a+d.r25,0);
   const wbAll=f.filter(d=>d.sg.includes('wb'));
@@ -3806,8 +3835,10 @@ function _render(){
           // For SP rows, compare the real Offer Price (col O) to 2025 base —
           // SPs' 2026 column (AQ) is often a placeholder/expected value rather
           // than the actual renewal price, so YoY-vs-2026 is misleading there.
-          // GP rows continue to use 2026 offer (a.o) since that IS their offer.
-          const _num=a.__sp?(a.spOffer||0):a.o;
+          // _rev2026(a) routes Won (Invoice Sent / Paid) accounts to their
+          // Annualized 2026 Renewal Revenue and leaves other stages on
+          // Offer Price. SP rows still use spOffer (handled inside _rev2026).
+          const _num=_rev2026(a);
           const dl=_num>0&&a.r25>0?(_num-a.r25)/a.r25*100:-999;
           const nOpen=S.noteOpen===a.c;
           const prevStg=PREV_TS?PREV[a.c]:null;
@@ -5012,7 +5043,7 @@ function _render(){
       <th onclick="ssAcctSort('flags')" style="${thStyle};width:160px;overflow:visible"><div style="display:flex;align-items:center;gap:3px">Flags ${sdArr('flags')}${afFlags.length?`<span style="background:#60a5fa;color:#fff;border-radius:8px;padding:0 5px;font-size:9px;font-weight:700">${afFlags.length}</span>`:''}</div>${fChk(uFlags,afFlags)}</th>
     </tr></thead><tbody>`;
     rows.forEach(a=>{
-      const _num=a.__sp?(a.spOffer||0):a.o;
+      const _num=_rev2026(a);
       const dl=_num>0&&a.r25>0?(_num-a.r25)/a.r25*100:-999;
       const nOpen=S.noteOpen===a.c;
       const aPrevStg=PREV_TS?PREV[a.c]:null;
@@ -5025,7 +5056,7 @@ function _render(){
         <td style="color:#94a3b8;font-size:11px">${displayCsRep(a.csRep)||'–'}</td>
         <td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>
         <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
-        <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
+        <td style="text-align:right;color:${_rev2026(a)>0?'#22d3ee':'#334155'}" title="Won (Invoice Sent / Paid) → Annualized 2026 Renewal Revenue; other stages → Offer Price">${_rev2026(a)>0?fm(_rev2026(a)):'–'}</td>
         ${showSPOffer?`<td style="text-align:right;color:${a.spOffer>0?'#a78bfa':'#334155'}">${a.spOffer>0?fm(a.spOffer):'–'}</td>`:''}
         <td style="text-align:right;font-size:11px;font-weight:600;color:${dl===-999?'#334155':dl>=0?'#34d399':'#ef4444'}">${dl===-999?'–':(dl>=0?'+':'')+Math.round(dl)+'%'}</td>
         <td style="color:${a.dy>0&&a.dy<=90?'#ef4444':a.dy>0&&a.dy<=180?'#fbbf24':'#94a3b8'};font-size:11px">${a.se||'–'}</td>
