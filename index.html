@@ -372,18 +372,20 @@ function _itemMatches(item,row){
       return row&&POD_REPS[pod](row.ae);
     return row&&row.pod===pod;
   }
-  // PODCSM:<pod>:<csm> — atomic intersection of a Pod 1-4 predicate AND
-  // a specific CS Rep (CS Rep compared against the row's d.csRep field,
-  // aliased through RENEWAL_OWNER_ALIAS so Scale-support reps like
-  // Phoebe/Jovin roll up under Support iConnections).
+  // PODCSM:<pod>:<csm> — atomic intersection of a pod membership AND a
+  // specific CS Rep. Pod membership resolves via POD_REPS predicate for
+  // Pod 1-4, otherwise via d.pod equality for ET-defined pods (Asia /
+  // Europe / etc.). CS Rep compared against d.csRep, aliased through
+  // RENEWAL_OWNER_ALIAS so Scale-support reps collapse under Support
+  // iConnections.
   if(typeof item==='string'&&item.indexOf('PODCSM:')===0){
     const rest=item.slice(7);
     const sep=rest.indexOf(':');
-    if(sep<0)return false;
+    if(sep<0||!row)return false;
     const podName=rest.slice(0,sep);
     const csmName=rest.slice(sep+1);
-    if(!POD_REPS[podName]||!row)return false;
-    if(!POD_REPS[podName](row.ae))return false;
+    const inPod=POD_REPS[podName]?POD_REPS[podName](row.ae):(row.pod===podName);
+    if(!inPod)return false;
     const csRep=String(row.csRep||'').trim();
     const aliased=RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep;
     return aliased===csmName;
@@ -664,16 +666,27 @@ function pickOwner(v){
     return;
   }
   // Owner / pod picks toggle membership in the multi-select array. Empty
-  // array falls back to 'ALL'. Dropdown stays open so the user can stack
-  // more picks; ss() rerenders the DOM, so reopen on the next frame.
+  // array falls back to 'ALL_OWNERS' (every row, incl. SPs) — the global
+  // default — so clearing all picks lands the user back where they started.
+  // Dropdown stays open so the user can stack more picks; ss() rerenders
+  // the DOM, so reopen on the next frame.
   let cur=Array.isArray(S.owner)?S.owner.slice():(S.owner==='ALL'||S.owner==='ALL_OWNERS'||!S.owner)?[]:[S.owner];
   const idx=cur.indexOf(v);
   if(idx>=0)cur.splice(idx,1);else cur.push(v);
-  S.owner=cur.length===0?'ALL':cur;
+  S.owner=cur.length===0?'ALL_OWNERS':cur;
+  // Capture the dropdown's scroll position so it's not lost when ss()
+  // re-renders the menu DOM (especially relevant for clicks near the
+  // bottom of a long list).
+  const _menu=document.getElementById('ownerDropMenu');
+  const _savedScroll=_menu?_menu.scrollTop:0;
   // Render reads OWNER_DROP_OPEN to set initial display, so picks stay open
   // seamlessly without a reopen-flicker.
   OWNER_DROP_OPEN=true;
   ss('owner',S.owner);
+  requestAnimationFrame(()=>{
+    const m=document.getElementById('ownerDropMenu');
+    if(m)m.scrollTop=_savedScroll;
+  });
 }
 // AND/OR toggle handler — controls combine logic across CS Owners × Pods groups.
 // Keeps the dropdown open and triggers a re-render via ss().
@@ -3348,13 +3361,26 @@ function _render(){
         _podCsmCounts[p][csmAliased]=(_podCsmCounts[p][csmAliased]||0)+1;
       }
     });
-    if(d.pod&&!POD_REPS[d.pod])_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
+    if(d.pod&&!POD_REPS[d.pod]){
+      _podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
+      // Per-CSM breakdown for non-Pod-1-4 d.pod entries (Asia, Europe, etc.)
+      // — same shape as POD_REPS pods so the dropdown can expand them.
+      // Scale has its own USA/Asia/Europe sub-pods and SP is atomic, so
+      // skip CSM aggregation for those. Strategic is excluded from the
+      // dropdown entirely below.
+      if(d.pod!=='Scale'&&d.pod!=='SP'){
+        if(!_podCsmCounts[d.pod])_podCsmCounts[d.pod]={};
+        _podCsmCounts[d.pod][csmAliased]=(_podCsmCounts[d.pod][csmAliased]||0)+1;
+      }
+    }
     const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;
     // Off-pod count goes against the Sales-Rep-derived pod, not the
     // CSM-derived pod (the latter no longer drives membership).
     if(_isOffPod(d)){const cp=_salesRepPod(d);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}
   });
-  const pods=Object.keys(_podCounts).sort((a,b)=>{
+  // Strategic is hidden from the dropdown per user request — the data is
+  // still in the underlying rows, just not surfaced as a pickable pod.
+  const pods=Object.keys(_podCounts).filter(p=>p!=='Strategic').sort((a,b)=>{
     // Sort "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
     const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
     if(na&&nb)return +na[1]-+nb[1];
@@ -3439,11 +3465,14 @@ function _render(){
             const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} ${p} account${off===1?'':'s'} whose CS Rep isn't on ${p}'s canonical CSM list (Sales Rep ${POD_CSMS[p]&&POD_CSMS[p].length?'in pod, CS Rep elsewhere':'mismatch'})">⚠ ${off} off-pod</span>`:'';
             let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
             // Per-pod CSM sub-rows: every CSM whose accounts roll into this
-            // pod (via the Sales Rep predicate), sorted by count desc. Picking
-            // a sub-row narrows to that Pod's reps × that CSM. Only render for
-            // POD_REPS-defined pods so non-Pod-1-4 entries (Strategic, Asia,
-            // Europe, etc.) keep their current shape.
-            if(POD_REPS[p]){
+            // pod, sorted by count desc. Picking a sub-row narrows to that
+            // Pod × CSM. Expanded for:
+            //   • Pod 1-4 (POD_REPS predicates)
+            //   • Non-special ET pods (Asia, Europe, …)
+            // Skipped for Scale (has its own USA/Asia/Europe sub-pods below)
+            // and SP (atomic flag, no CSM breakdown useful).
+            const _expandCsms=POD_REPS[p]||(p!=='Scale'&&p!=='SP');
+            if(_expandCsms){
               const csms=_podCsmCounts[p]||{};
               const csmNames=Object.keys(csms).sort((a,b)=>csms[b]-csms[a]);
               csmNames.forEach(csm=>{
