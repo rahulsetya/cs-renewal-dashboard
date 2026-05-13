@@ -338,6 +338,21 @@ function _itemMatches(item,row){
       return row&&POD_REPS[pod](row.ae);
     return row&&row.pod===pod;
   }
+  // PODCSM:<pod>:<csm> — atomic intersection of a Pod 1-4 predicate AND
+  // a specific CSM (CSM compared against the aliased Renewal Owner so
+  // Scale-support reps like Phoebe/Jovin roll up under Support iConnections).
+  if(typeof item==='string'&&item.indexOf('PODCSM:')===0){
+    const rest=item.slice(7);
+    const sep=rest.indexOf(':');
+    if(sep<0)return false;
+    const podName=rest.slice(0,sep);
+    const csmName=rest.slice(sep+1);
+    if(!POD_REPS[podName]||!row)return false;
+    if(!POD_REPS[podName](row.ae))return false;
+    const ro=String(row.ro||'').trim();
+    const aliased=RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro;
+    return aliased===csmName;
+  }
   // CSREP: prefix — match the Renewal Master "CS Rep" column on the row.
   if(typeof item==='string'&&item.indexOf('CSREP:')===0){
     const csm=item.slice(6);
@@ -356,7 +371,7 @@ let _comboMode='AND';
 function _splitItemsByGroup(items){
   const sr=[],csr=[],pod=[];
   items.forEach(it=>{
-    if(typeof it==='string'&&it.indexOf('POD:')===0)pod.push(it);
+    if(typeof it==='string'&&(it.indexOf('POD:')===0||it.indexOf('PODCSM:')===0))pod.push(it);
     else if(typeof it==='string'&&it.indexOf('CSREP:')===0)csr.push(it);
     else sr.push(it);
   });
@@ -3252,13 +3267,24 @@ function _render(){
   //     that collides with a POD_REPS key (those are owned by the rep
   //     predicates, not the ET pod field).
   const _podCounts={};
-  Object.keys(POD_REPS).forEach(p=>{_podCounts[p]=0;});
+  // Per-pod CSM breakdown: { 'Pod 1': { 'Lucy Garber': 12, ... }, ... }.
+  // CSM names are aliased through RENEWAL_OWNER_ALIAS so Scale-support
+  // reps (Phoebe/Jovin/Bryan/etc.) collapse under "Support iConnections".
+  const _podCsmCounts={};
+  Object.keys(POD_REPS).forEach(p=>{_podCounts[p]=0;_podCsmCounts[p]={};});
   const _scaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
   // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
   const _offPodCounts={};
   D.forEach(d=>{
-    Object.keys(POD_REPS).forEach(p=>{if(POD_REPS[p](d.ae))_podCounts[p]++;});
+    const ro=String(d.ro||'').trim();
+    const csmAliased=(RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro)||'(no CSM)';
+    Object.keys(POD_REPS).forEach(p=>{
+      if(POD_REPS[p](d.ae)){
+        _podCounts[p]++;
+        _podCsmCounts[p][csmAliased]=(_podCsmCounts[p][csmAliased]||0)+1;
+      }
+    });
     if(d.pod&&!POD_REPS[d.pod])_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
     const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;
     if(_isOffPod(d)){const cp=_csmPod(d.ro);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}
@@ -3284,6 +3310,11 @@ function _render(){
       const sel=_ownerSel();
       const _fmtItem=x=>{
         if(typeof x!=='string')return x;
+        if(x.indexOf('PODCSM:')===0){
+          const rest=x.slice(7);
+          const sep=rest.indexOf(':');
+          return sep>=0?rest.slice(0,sep)+' · '+rest.slice(sep+1):rest;
+        }
         if(x.indexOf('POD:')===0){
           const v=x.slice(4);
           return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;
@@ -3320,7 +3351,24 @@ function _render(){
             const offOn=_isOwnerPickActive('POD:'+p+':OFF');
             // Stop propagation on the off-pod chip so clicking it doesn't also toggle the parent pod row.
             const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} off-pod account${off===1?'':'s'} (Sales Rep not in ${p})">⚠ ${off} off-pod</span>`:'';
-            return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
+            let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
+            // Per-pod CSM sub-rows: every CSM whose accounts roll into this
+            // pod (via the Sales Rep predicate), sorted by count desc. Picking
+            // a sub-row narrows to that Pod's reps × that CSM. Only render for
+            // POD_REPS-defined pods so non-Pod-1-4 entries (Strategic, Asia,
+            // Europe, etc.) keep their current shape.
+            if(POD_REPS[p]){
+              const csms=_podCsmCounts[p]||{};
+              const csmNames=Object.keys(csms).sort((a,b)=>csms[b]-csms[a]);
+              csmNames.forEach(csm=>{
+                const v='PODCSM:'+p+':'+csm;
+                const csmOn=_isOwnerPickActive(v);
+                const ct=csms[csm];
+                const _esc=s=>s.replace(/'/g,"\\'");
+                podHtml+=`<div class="owner-dd-item owner-dd-sub${csmOn?' sel':''}" onclick="pickOwner('PODCSM:${_esc(p)}:${_esc(csm)}')"><span>${cb(csmOn)}↳ ${csm}</span><span class="ct">${ct} accts</span></div>`;
+              });
+            }
+            return podHtml;
           }).join('')}`:''}
         </div>
       </div>`;})()}
