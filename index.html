@@ -1759,6 +1759,17 @@ function resolveStage(rawStage){
 // ── OFFER PRICE COLUMN CANDIDATES ─────────────────────────────────────────────
 // The Excel column uses an en dash (U+2013) or em dash (U+2014) — try both
 const OFFER_COLS=[
+  // PRIMARY: "Annualized 2026 Renewal Revenue" column on the Renewal
+  // Master. Captures only the 2026-attributable revenue (annualized),
+  // unlike Offer Price which reflects total contract value (could
+  // include 2027+ for multi-year deals). Tried first so every 2026
+  // revenue display + NRR calc reflects 2026 only.
+  'Annualized 2026 Renewal Revenue',
+  'Annualized 2026 Revenue',
+  'Annaulized 2026 Renewal Revenue',           // user-typed variant
+  'Annual 2026 Renewal Revenue',
+  // Fallback to Offer Price (total contract value) for accounts whose
+  // RM row doesn't have the Annualized column populated.
   'Offer Price \u2013 Total Contract Value',  // en dash
   'Offer Price \u2014 Total Contract Value',  // em dash
   'Offer Price - Total Contract Value',        // plain hyphen fallback
@@ -2654,13 +2665,19 @@ function _buildLiveGoalsData(){
   (rows[hdr]||[]).forEach((h,i)=>{const k=String(h||'').trim();if(k)cm[k.toLowerCase()]=i;});
   function gc(v,...names){for(const n of names){const i=cm[n.toLowerCase()];if(i!==undefined&&v[i]!==undefined&&v[i]!=='')return v[i];}return '';}
   const revColIdx=(()=>{for(const k of Object.keys(cm)){if(k.includes('2025')&&k.includes('revenue'))return cm[k];}for(const k of Object.keys(cm)){if(k.includes('total revenue'))return cm[k];}return 3;})();
-  // Offer Price column on the Renewal Master (Total Contract Value for 2026).
-  // Single source of truth for "2026 revenue" everywhere in the Goals iframe —
-  // replaces ET's "2026 Revenue" column for the Renewed YTD tile, All Accounts
-  // 2026 Rev column, and Top 10s 2026 Rev column. Hunts for any header
-  // containing 'offer' AND 'price' (covers en/em dash variants); falls back to
-  // the bare 'Offer Price' header. Returns null when no column matches.
+  // 2026 revenue column on the Renewal Master. Single source of truth
+  // for "2026 revenue" everywhere in the Goals iframe — Renewed YTD,
+  // NRR card, All Accounts 2026 Rev, Top 10s 2026 Rev.
+  // Preference order:
+  //   1. "Annualized 2026 Renewal Revenue" (col Y) — 2026-only portion
+  //      of the contract. This is the canonical value going forward.
+  //   2. "Offer Price" / "Offer Price – Total Contract Value" — total
+  //      contract value, used as fallback when the annualized column
+  //      isn't populated.
+  // Header match is case-insensitive (cm keys are lowercased).
   const offerColIdx=(()=>{
+    for(const k of Object.keys(cm)){if(k.includes('annualized')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
+    for(const k of Object.keys(cm)){if(k.includes('annaulized')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
     for(const k of Object.keys(cm)){if(k.includes('offer')&&k.includes('price'))return cm[k];}
     return null;
   })();
