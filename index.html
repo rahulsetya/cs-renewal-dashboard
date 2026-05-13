@@ -318,6 +318,19 @@ function _csmPod(ro){
   for(const p in POD_CSMS){if(POD_CSMS[p].indexOf(ro)>=0)return p;}
   return null;
 }
+// Display-friendly CS Rep name. Routes the row's csRep through
+// RENEWAL_OWNER_ALIAS (collapses Phoebe / Jovin / Bryan / Olivia /
+// Mario / Luis / Connor under one bucket), then renames that bucket
+// to "Scale" for display. Internal off-pod logic and other places
+// that need the canonical "Support iConnections" alias keep using
+// RENEWAL_OWNER_ALIAS directly — this helper is for UI only.
+function displayCsRep(csRep){
+  if(!csRep)return '';
+  const s=String(csRep).trim();
+  if(!s)return '';
+  const aliased=RENEWAL_OWNER_ALIAS[s.toLowerCase()]||s;
+  return aliased==='Support iConnections'?'Scale':aliased;
+}
 // Which pod the account belongs to BY SALES REP (the new, canonical pod
 // definition). Returns null if the Sales Rep doesn't match any pod.
 function _salesRepPod(d){
@@ -406,10 +419,12 @@ function _itemMatches(item,row){
     const key=aliased==='Support iConnections'?'Scale':aliased;
     return key===csmName;
   }
-  // CSREP: prefix — match the Renewal Master "CS Rep" column on the row.
+  // CSREP: prefix — match against the display-name version of the row's
+  // CS Rep so the rolled-up "Scale" bucket (Phoebe / Jovin / Bryan /
+  // Olivia / Mario / Luis / Connor) returns those accounts when picked.
   if(typeof item==='string'&&item.indexOf('CSREP:')===0){
     const csm=item.slice(6);
-    return row&&String(row.csRep||'')===csm;
+    return row&&displayCsRep(row.csRep)===csm;
   }
   // Bare string = Sales Rep pick. Matches the row's "Sales Rep" / AE field
   // (a.ae on D rows, r.ae on ENG_RAW rows). The dropdown now keys its top
@@ -3257,7 +3272,7 @@ function roDisp(ro,ae,d){
   if(S.showAE&&ae)h+=`<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">Sales Rep: ${ae}</span>`;
   // Off-pod tag: account's CSM is on a tracked pod (Pods 1–4) but its Sales Rep isn't.
   // Tooltip names the offending pod so the user can act on it.
-  if(d&&_isOffPod(d)){const cp=_salesRepPod(d);h+=` <span class="off-pod-chip" title="Off-pod: CS Rep '${(d.csRep||'?').replace(/"/g,'')}' isn't on ${cp}'s canonical CSM list">⚠ off-pod</span>`;}
+  if(d&&_isOffPod(d)){const cp=_salesRepPod(d);h+=` <span class="off-pod-chip" title="Off-pod: CS Rep '${(displayCsRep(d.csRep)||'?').replace(/"/g,'')}' isn't on ${cp}'s canonical CSM list">⚠ off-pod</span>`;}
   return h;
 }
 async function init(){
@@ -3382,7 +3397,7 @@ function _render(){
   const _salesRepCounts={},_csRepCounts={};
   D.forEach(d=>{
     const sr=String(d.ae||'').trim();if(sr)_salesRepCounts[sr]=(_salesRepCounts[sr]||0)+1;
-    const cr=String(d.csRep||'').trim();if(cr)_csRepCounts[cr]=(_csRepCounts[cr]||0)+1;
+    const cr=displayCsRep(d.csRep);if(cr)_csRepCounts[cr]=(_csRepCounts[cr]||0)+1;
   });
   const salesReps=Object.keys(_salesRepCounts).sort();
   const csReps=Object.keys(_csRepCounts).sort();
@@ -4869,7 +4884,7 @@ function _render(){
     const uStages=[...new Set(f.map(a=>a.s))].sort((a,b)=>ST.indexOf(a)-ST.indexOf(b));
     const uOnsite=[...new Set(f.map(a=>a.or||'').filter(Boolean))].sort();
     const uOwners=[...new Set(f.map(a=>a.ro))].sort();
-    const uCsOwners=[...new Set(f.map(a=>a.csRep||'').filter(Boolean))].sort();
+    const uCsOwners=[...new Set(f.map(a=>displayCsRep(a.csRep)).filter(Boolean))].sort();
     const uFlags=[...new Set(f.flatMap(a=>a.sg.map(s=>SIG_L[s])).filter(Boolean))].sort();
     const uAE=[...new Set(f.map(a=>a.ae||'').filter(Boolean))].sort();
     const seToMonth=se=>{if(!se)return'';const m=se.match(/^(\d{4})-(\d{2})/);if(!m)return'';return`${MON[parseInt(m[2])-1]} ${m[1]}`;}
@@ -4892,7 +4907,7 @@ function _render(){
       account:(a,b)=>a.c.localeCompare(b.c),
       stage:(a,b)=>ST.indexOf(a.s)-ST.indexOf(b.s),
       owner:(a,b)=>a.ro.localeCompare(b.ro),
-      csOwner:(a,b)=>(a.csRep||'').localeCompare(b.csRep||''),
+      csOwner:(a,b)=>displayCsRep(a.csRep).localeCompare(displayCsRep(b.csRep)),
       ae:(a,b)=>(a.ae||'').localeCompare(b.ae||''),
       r25:(a,b)=>a.r25-b.r25,
       offer:(a,b)=>a.o-b.o,
@@ -4912,7 +4927,7 @@ function _render(){
     else if(af.stage)rows=rows.filter(a=>a.s===af.stage);
     if(af.stageNotIn)rows=rows.filter(a=>!af.stageNotIn.includes(a.s));
     if(af.owner)rows=rows.filter(a=>a.ro===af.owner);
-    if(af.csOwner)rows=rows.filter(a=>(a.csRep||'')===af.csOwner);
+    if(af.csOwner)rows=rows.filter(a=>displayCsRep(a.csRep)===af.csOwner);
     if(af.ae)rows=rows.filter(a=>(a.ae||'')===af.ae);
     if(af.r25min)rows=rows.filter(a=>a.r25>=(parseFloat(af.r25min)||0)*1000);
     if(af.r25max)rows=rows.filter(a=>a.r25<=(parseFloat(af.r25max)||Infinity)*1000);
@@ -4961,7 +4976,7 @@ function _render(){
       h+=`<tr class="dr ck" style="${aStgUp?'background:rgba(52,211,153,0.07)':aStgDown?'background:rgba(239,68,68,0.07)':''}" onclick="ss('noteOpen','${nOpen?'':a.c.replace(/'/g,"\\'")}')">
         <td style="color:#e2e8f0;font-weight:500">${a.c}${a.icn?`<span style="font-size:10px;color:#475569;margin-left:6px;white-space:nowrap">${nOpen?'▾':'▸'} notes</span>`:''}</td>
         <td><span style="color:${CL[a.s]};font-weight:600;font-size:11px">${SH[a.s]}</span></td>
-        <td style="color:#94a3b8;font-size:11px">${a.csRep||'–'}</td>
+        <td style="color:#94a3b8;font-size:11px">${displayCsRep(a.csRep)||'–'}</td>
         <td style="color:#60a5fa;font-size:11px">${a.ae||'–'}</td>
         <td style="text-align:right;color:#fbbf24">${a.r25?fm(a.r25):'–'}</td>
         <td style="text-align:right;color:${a.o>0?'#22d3ee':'#334155'}">${a.o>0?fm(a.o):'–'}</td>
@@ -5712,6 +5727,14 @@ const _GP_OWNER_ALIAS = {
 function _gpAliasCsm(csm){
   const t=_GP_OWNER_ALIAS[String(csm||'').toLowerCase()];
   return t||csm||'';
+}
+// Display-friendly variant: same alias rollup as _gpAliasCsm, but the
+// "Support iConnections" bucket is shown as "Scale" in the UI. Internal
+// off-pod / matching paths that need the canonical alias keep using
+// _gpAliasCsm directly.
+function _gpDisplayCsRep(csm){
+  const aliased=_gpAliasCsm(csm);
+  return aliased==='Support iConnections'?'Scale':aliased;
 }
 
 // ── Iframe pod composition (mirrors parent POD_REPS / POD_CSMS) ────────────
@@ -7900,7 +7923,7 @@ function _acctTableHTML(rid,q,pool){
   // Slack-export button — copies the current filtered/sorted view as a
   // monospace code block to the clipboard, ready to paste in Slack.
   const _slackBar=`<div style="display:flex;justify-content:flex-end;padding:6px 8px 4px 0"><button id="slack-btn-${rid}" onclick="_exportAcctTableSlack('${rid}','${q}','${pool||''}')" title="Copy as a table with notes — pastes as a native table in Slack (rich-text editor) or Sheets/Excel" style="background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,.4);padding:3px 10px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,color .12s">📋 Copy</button></div>`;
-  return _slackBar+`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th class="acr-ae" style="display:${_aeDisp};text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sales Rep</th>${_allPools?`<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','','pool')">Pool ${sa('pool')}</th>`:''}<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td class="acr-ae" style="display:${_aeDisp};padding:3px 8px;color:var(--dim)">${a.ae||'—'}</td>${_allPools?`<td style="padding:3px 8px;color:var(--dim);white-space:nowrap">${_poolDot(a.pool)}${a.pool||'—'}</td>`:''}<td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${_colspan}" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
+  return _slackBar+`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:left;padding:5px 8px 5px 32px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th class="acr-ae" style="display:${_aeDisp};text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sales Rep</th>${_allPools?`<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','','pool')">Pool ${sa('pool')}</th>`:''}<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">Revenue ${sa('rev')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 8px 3px 32px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${_gpDisplayCsRep(a.csRep)||'—'}</td><td class="acr-ae" style="display:${_aeDisp};padding:3px 8px;color:var(--dim)">${a.ae||'—'}</td>${_allPools?`<td style="padding:3px 8px;color:var(--dim);white-space:nowrap">${_poolDot(a.pool)}${a.pool||'—'}</td>`:''}<td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${_colspan}" style="padding:3px 8px 8px 32px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
 // Export current drilldown table as a Slack-friendly monospace code block.
@@ -7947,7 +7970,7 @@ function _exportAcctTableSlack(rid,q,pool){
     {l:'Stage',key:a=>(a.stage||'—').replace(/^\d+a?\.\s*/,'')},
     {l:'Revenue',key:a=>fmtR(a.rev)},
     {l:'Sub End',key:a=>fmtD(a.seRM)},
-    {l:'CSM',key:a=>a.csRep||'—'},
+    {l:'CSM',key:a=>_gpDisplayCsRep(a.csRep)||'—'},
     showAE?{l:'Sales Rep',key:a=>a.ae||'—'}:null,
     _allPools?{l:'Pool',key:a=>a.pool||'—'}:null
   ].filter(Boolean);
@@ -10188,7 +10211,7 @@ function rRCHistory(){
               }else{
                 const acctRow=function(a,color){
                   const fmt=function(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+Math.round(n);};
-                  return'<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 10px 3px 0;color:'+color+';font-weight:500">'+a.n+'</td><td style="padding:3px 10px;color:var(--dim)">'+( a.csRep||'—')+'</td><td style="padding:3px 10px;text-align:right;color:var(--dim)">'+( a.rev?fmt(a.rev):'—')+'</td></tr>';
+                  return'<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 10px 3px 0;color:'+color+';font-weight:500">'+a.n+'</td><td style="padding:3px 10px;color:var(--dim)">'+(_gpDisplayCsRep(a.csRep)||'—')+'</td><td style="padding:3px 10px;text-align:right;color:var(--dim)">'+( a.rev?fmt(a.rev):'—')+'</td></tr>';
                 };
                 h+='<table style="border-collapse:collapse;font-size:11px;width:100%"><thead><tr><th style="text-align:left;padding:3px 10px 3px 0;color:var(--dim)">Account</th><th style="text-align:left;padding:3px 10px;color:var(--dim)">CSM</th><th style="text-align:right;padding:3px 10px;color:var(--dim)">Rev</th></tr></thead><tbody>';
                 if(gained.length){
