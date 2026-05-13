@@ -5679,7 +5679,9 @@ let selGPOwner='ALL';
 let GP_OWNER_DROP_OPEN=false;
 const _GP_SCALE_ASIA_REP   = ae => String(ae||'').trim().toLowerCase().startsWith('edwin');
 const _GP_SCALE_EUROPE_REP = ae => {
-  const a = String(ae||'').trim().toLowerCase();
+  // Match David X / David Xuereb / DX / DX … forms. Internal whitespace
+  // normalized so "David  Xuereb" still resolves.
+  const a = String(ae||'').trim().toLowerCase().replace(/\s+/g,' ');
   return a==='dx' || a.startsWith('dx ') || a.startsWith('david x');
 };
 function _gpScaleSubPod(a){
@@ -5713,7 +5715,11 @@ const _GP_POD_REPS = {
   'Pod 1': ae => /^juliet\b/i.test(String(ae||'').trim()),
   'Pod 2': ae => /^(earl|sebastian)\b/i.test(String(ae||'').trim()),
   'Pod 3': ae => {const a=String(ae||'').trim().toLowerCase();return a.startsWith('david johnson')||a.startsWith('jake delaney');},
-  'Pod 4': ae => /^(james|marc)\b/i.test(String(ae||'').trim())
+  'Pod 4': ae => /^(james|marc)\b/i.test(String(ae||'').trim()),
+  // Regional pods — defined by Sales Rep so Scale accounts owned by
+  // Edwin / David X roll up here too (same shape as Pod 1-4).
+  'Asia':  ae => _GP_SCALE_ASIA_REP(ae),
+  'Europe':ae => _GP_SCALE_EUROPE_REP(ae)
 };
 const _GP_POD_CSMS = {
   'Pod 1': ['Lucy Garber','Christina Chumak'],
@@ -5726,12 +5732,26 @@ function _gpCsmPod(csm){
   for(const p in _GP_POD_CSMS){if(_GP_POD_CSMS[p].indexOf(csm)>=0)return p;}
   return null;
 }
+function _gpSalesRepPod(a){
+  if(!a||!a.ae)return null;
+  for(const k in _GP_POD_REPS){if(_GP_POD_REPS[k](a.ae))return k;}
+  return null;
+}
+// Off-pod = the row's Sales Rep places it in Pod N, BUT its CS Rep
+// isn't on Pod N's canonical CSM list. Mirrors the parent dashboard's
+// _isOffPod logic, including the Support iConnections short-circuit
+// and the skip for pods without a canonical CSM list (Asia / Europe).
 function _gpIsOffPod(a){
   if(!a)return false;
-  const p=_gpCsmPod(a.csRep);
+  const p=_gpSalesRepPod(a);
   if(!p)return false;
-  if(!a.ae)return false;
-  return !_GP_POD_REPS[p](a.ae);
+  const csms=_GP_POD_CSMS[p];
+  if(!csms||!csms.length)return false;
+  const csRep=String(a.csRep||'').trim();
+  if(!csRep)return false;
+  const aliased=_gpAliasCsm(csRep);
+  if(aliased==='Support iConnections')return false;
+  return csms.indexOf(aliased)<0;
 }
 function _gpOwnerSel(){
   const v=selGPOwner;
@@ -5745,45 +5765,71 @@ function _gpItemMatches(item,a){
     const pod=item.slice(4);
     if(pod.endsWith(':OFF')){
       const basePod=pod.slice(0,-4);
-      return a&&_gpCsmPod(a.csRep)===basePod&&_gpIsOffPod(a);
+      return _gpSalesRepPod(a)===basePod&&_gpIsOffPod(a);
     }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
       return a&&a.pool==='Scale'&&_gpScaleSubPod(a)===pod;
+    // Pod 1-4 and Asia/Europe are predicate-defined via _GP_POD_REPS.
+    // Other pod names (Scale, SP) fall back to d.pod equality.
+    if(_GP_POD_REPS[pod])return a&&_GP_POD_REPS[pod](a.ae);
     return a&&a.pod===pod;
+  }
+  // PODCSM:<pod>:<csm> — pod membership AND a specific CS Rep. Pod
+  // resolves via predicate when present, else via d.pod equality.
+  if(typeof item==='string'&&item.indexOf('PODCSM:')===0){
+    const rest=item.slice(7);
+    const sep=rest.indexOf(':');
+    if(sep<0||!a)return false;
+    const podName=rest.slice(0,sep);
+    const csmName=rest.slice(sep+1);
+    const inPod=_GP_POD_REPS[podName]?_GP_POD_REPS[podName](a.ae):(a.pod===podName);
+    if(!inPod)return false;
+    return _gpAliasCsm(a.csRep)===csmName;
   }
   // Compare against the aliased CSM so picking "Support iConnections" pulls in
   // all the Scale support staff (Phoebe/Jovin/Bryan/…) along with rows whose
   // csRep is literally "Support iConnections".
   return a&&_gpAliasCsm(a.csRep)===item;
 }
-// How CSM picks combine with Pod picks. Within each group it's always OR
-// (picking Lucy + Christina = "either Lucy or Christina"). Across groups:
-//   OR  → Pod 2 ∨ Juwan = all Pod 2 accts plus all Juwan accts
-//   AND → Pod 2 ∧ Juwan = only Juwan's accts that are in Pod 2
-// Off-pod tokens (POD:<pod>:OFF) count as Pod-group items too.
-let _gpComboMode='OR';
-let _aaComboMode='OR';
+// Within each group items OR together; sections AND across each other.
+// PODCSM:<pod>:<csm> routes into the pod group. When POD:X and any
+// PODCSM:X:* coexist, POD:X is dropped — sub-row picks are deliberate
+// narrowing intent. _gpComboMode / _aaComboMode are kept as no-ops so
+// any older state shapes still parse.
+let _gpComboMode='AND';
+let _aaComboMode='AND';
 function _gpSplitItemsByGroup(items){
   const csm=[],pod=[];
   items.forEach(it=>{
-    if(typeof it==='string'&&it.indexOf('POD:')===0)pod.push(it);
+    if(typeof it==='string'&&(it.indexOf('POD:')===0||it.indexOf('PODCSM:')===0))pod.push(it);
     else csm.push(it);
   });
   return{csm,pod};
 }
-function _gpCombine(items,a,mode){
-  if(mode==='AND'){
-    const g=_gpSplitItemsByGroup(items);
-    const csmOk=!g.csm.length||g.csm.some(it=>_gpItemMatches(it,a));
-    const podOk=!g.pod.length||g.pod.some(it=>_gpItemMatches(it,a));
-    return csmOk&&podOk;
-  }
-  return items.some(it=>_gpItemMatches(it,a));
+function _gpCombine(items,a){
+  const g=_gpSplitItemsByGroup(items);
+  const _suppressed=new Set();
+  g.pod.forEach(it=>{
+    if(it.indexOf('PODCSM:')===0){
+      const rest=it.slice(7);
+      const sep=rest.indexOf(':');
+      if(sep>=0)_suppressed.add(rest.slice(0,sep));
+    }
+  });
+  const podItems=g.pod.filter(it=>{
+    if(it.indexOf('POD:')===0&&it.indexOf(':OFF',it.length-4)<0){
+      return !_suppressed.has(it.slice(4));
+    }
+    return true;
+  });
+  const csmOk=!g.csm.length||g.csm.some(it=>_gpItemMatches(it,a));
+  const podOk=!podItems.length||podItems.some(it=>_gpItemMatches(it,a));
+  return csmOk&&podOk;
 }
 function _gpMatchesOwnerFilter(a){
   const sel=_gpOwnerSel();
   if(sel.mode==='ALL')return true;
-  return _gpCombine(sel.items,a,_gpComboMode);
+  return _gpCombine(sel.items,a);
 }
 function _gpIsOwnerPickActive(v){
   const sel=_gpOwnerSel();
@@ -5791,6 +5837,11 @@ function _gpIsOwnerPickActive(v){
 }
 function pickGPCombo(m){_gpComboMode=m==='AND'?'AND':'OR';GP_OWNER_DROP_OPEN=true;rT('gp_grr');}
 function pickAACombo(m){_aaComboMode=m==='AND'?'AND':'OR';_AA_OWNER_DROP_OPEN=true;rAllAccts();}
+// Goals iframe equivalent of the parent dashboard's clearAllFilters.
+// Resets the CSM/Pod selection and the month picks back to the default
+// view. Quarter / view state stays — those are navigation, not filters.
+function clearAllGPFilters(){selGPOwner='ALL';selGPMonth=[];GP_OWNER_DROP_OPEN=false;rT('gp_grr');}
+function _gpAnyFilterActive(){return selGPOwner!=='ALL'||(selGPMonth&&selGPMonth.length>0);}
 function pickGPOwner(v){
   if(v==='ALL'){
     selGPOwner='ALL';
@@ -8014,10 +8065,18 @@ function rGP(){
   // Drop any selected items that no longer exist in the quarter (data refresh edge case)
   if(Array.isArray(selGPOwner)){
     const valid=new Set(csmList.concat(podList.map(p=>'POD:'+p)).concat(['POD:Scale USA','POD:Scale Asia','POD:Scale Europe']));
-    // Off-pod tokens (POD:<pod>:OFF) reference the authoritative POD definitions, not
-    // engagement-tracker pods, so they're always valid as long as the underlying pod exists.
+    // POD_REPS-defined pods (Pod 1-4 / Asia / Europe) are valid regardless of
+    // whether they appear in a.pod, since they're predicate-based.
+    Object.keys(_GP_POD_REPS).forEach(p=>valid.add('POD:'+p));
+    // Off-pod tokens (POD:<pod>:OFF) reference the authoritative POD definitions.
     Object.keys(_GP_POD_CSMS).forEach(p=>valid.add('POD:'+p+':OFF'));
-    const filtered=selGPOwner.filter(it=>valid.has(it));
+    const filtered=selGPOwner.filter(it=>{
+      // PODCSM:<pod>:<csm> intersections are always considered valid —
+      // the user picked the combo deliberately, even if today's data
+      // doesn't have any rows matching it (which would zero the count).
+      if(typeof it==='string'&&it.indexOf('PODCSM:')===0)return true;
+      return valid.has(it);
+    });
     if(filtered.length!==selGPOwner.length)selGPOwner=filtered.length?filtered:'ALL';
   }
   // Pod/CSM/Sub-pod filtered (for month button counts and re-aggregation)
@@ -8071,7 +8130,15 @@ function rGP(){
   // multi-pick shows "N selected", ALL shows nothing.
   const _gpOwnerLbl=(()=>{
     const sel=_gpOwnerSel();
-    const _fmt=x=>{if(typeof x!=='string'||x.indexOf('POD:')!==0)return x;const v=x.slice(4);return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;};
+    const _fmt=x=>{
+      if(typeof x!=='string')return x;
+      if(x.indexOf('PODCSM:')===0){
+        const rest=x.slice(7);const sep=rest.indexOf(':');
+        return sep>=0?rest.slice(0,sep)+' · '+rest.slice(sep+1):rest;
+      }
+      if(x.indexOf('POD:')===0){const v=x.slice(4);return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;}
+      return x;
+    };
     if(sel.mode==='ALL')return'';
     if(sel.items.length===1)return ' · '+_fmt(sel.items[0]);
     return ' · '+sel.items.length+' selected';
@@ -8089,32 +8156,61 @@ function rGP(){
         <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM / Pod:</label>
         ${(()=>{
           const sel=_gpOwnerSel();
-          const _fmtItem=x=>{if(typeof x!=='string'||x.indexOf('POD:')!==0)return x;const v=x.slice(4);return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;};
+          const _fmtItem=x=>{
+            if(typeof x!=='string')return x;
+            if(x.indexOf('PODCSM:')===0){const rest=x.slice(7);const sep=rest.indexOf(':');return sep>=0?rest.slice(0,sep)+' · '+rest.slice(sep+1):rest;}
+            if(x.indexOf('POD:')===0){const v=x.slice(4);return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;}
+            return x;
+          };
           let curLbl;
           if(sel.mode==='ALL')curLbl=`All CSMs & Pods (${qAcctsAll.length})`;
           else if(sel.items.length===1)curLbl=_fmtItem(sel.items[0]);
           else curLbl=sel.items.length+' selected';
-          // Per-quarter, per-row counts (so the dropdown reflects the current quarter view)
+          // Per-quarter counts. Pod 1-4 and Asia/Europe are predicate-defined
+          // via _GP_POD_REPS — pre-seeded to 0 so empty pods still render.
+          // Scale and SP come from a.pod; Strategic is excluded.
           const _gpPodCounts={};const _gpScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
-          // Off-pod = CSM in Pods 1–4 but Sales Rep not in that pod's rep list. Count by CSM's pod.
+          const _gpPodCsmCounts={};
+          Object.keys(_GP_POD_REPS).forEach(p=>{_gpPodCounts[p]=0;_gpPodCsmCounts[p]={};});
           const _gpOffPodCounts={};
-          qAcctsAll.forEach(a=>{if(a.pod){_gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;}const sub=_gpScaleSubPod(a);if(sub)_gpScaleSubCounts[sub]++;if(_gpIsOffPod(a)){const cp=_gpCsmPod(a.csRep);if(cp)_gpOffPodCounts[cp]=(_gpOffPodCounts[cp]||0)+1;}});
+          qAcctsAll.forEach(a=>{
+            const csmAliased=_gpAliasCsm(a.csRep)||'(no CS Rep)';
+            Object.keys(_GP_POD_REPS).forEach(p=>{
+              if(_GP_POD_REPS[p](a.ae)){
+                _gpPodCounts[p]++;
+                _gpPodCsmCounts[p][csmAliased]=(_gpPodCsmCounts[p][csmAliased]||0)+1;
+              }
+            });
+            if(a.pod&&!_GP_POD_REPS[a.pod]&&a.pod!=='Strategic'){
+              _gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;
+              if(a.pod!=='Scale'&&a.pod!=='SP'){
+                if(!_gpPodCsmCounts[a.pod])_gpPodCsmCounts[a.pod]={};
+                _gpPodCsmCounts[a.pod][csmAliased]=(_gpPodCsmCounts[a.pod][csmAliased]||0)+1;
+              }
+            }
+            const sub=_gpScaleSubPod(a);if(sub)_gpScaleSubCounts[sub]++;
+            if(_gpIsOffPod(a)){const cp=_gpSalesRepPod(a);if(cp)_gpOffPodCounts[cp]=(_gpOffPodCounts[cp]||0)+1;}
+          });
+          // Pods to render: every key in _gpPodCounts except Strategic.
+          const podsToShow=Object.keys(_gpPodCounts).filter(p=>p!=='Strategic').sort((a,b)=>{
+            const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
+            if(na&&nb)return +na[1]-+nb[1];
+            if(na)return -1;if(nb)return 1;
+            return a.localeCompare(b);
+          });
           const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
           let menu=`<div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickGPOwner('ALL')"><span>All CSMs &amp; Pods</span><span class="ct">${qAcctsAll.length} accts</span></div>`;
           if(csmList.length){
-            menu+=`<div class="owner-dd-grp">CSMs</div>`;
+            menu+=`<div class="owner-dd-grp">CS Reps</div>`;
             menu+=csmList.map(c=>{
               const on=_gpIsOwnerPickActive(c);
               const ct=qAcctsAll.filter(a=>_gpAliasCsm(a.csRep)===c).length;
               return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${ct} accts</span></div>`;
             }).join('');
           }
-          if(csmList.length&&podList.length){
-            menu+=`<div class="combo-toggle"><span class="lbl">Combine CSM × Pod</span><span class="seg"><button class="${_gpComboMode==='OR'?'on':''}" onclick="pickGPCombo('OR')">OR</button><button class="${_gpComboMode==='AND'?'on':''}" onclick="pickGPCombo('AND')">AND</button></span></div>`;
-          }
-          if(podList.length){
-            menu+=`<div class="owner-dd-grp">Pods · Engagement Tracker</div>`;
-            menu+=podList.map(p=>{
+          if(podsToShow.length){
+            menu+=`<div class="owner-dd-grp">Pods</div>`;
+            menu+=podsToShow.map(p=>{
               if(p==='Scale'){
                 const on=_gpIsOwnerPickActive('POD:Scale');
                 let h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_gpPodCounts.Scale||0} accts</span></div>`;
@@ -8128,16 +8224,31 @@ function rGP(){
               const on=_gpIsOwnerPickActive('POD:'+p);
               const off=_gpOffPodCounts[p]||0;
               const offOn=_gpIsOwnerPickActive('POD:'+p+':OFF');
-              const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickGPOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} off-pod account${off===1?'':'s'} (Sales Rep not in ${p})">⚠ ${off} off-pod</span>`:'';
-              return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
+              const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickGPOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} ${p} account${off===1?'':'s'} whose CS Rep isn't on ${p}'s canonical CSM list">⚠ ${off} off-pod</span>`:'';
+              let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
+              // CSM sub-rows for any pod that has a breakdown — Pod 1-4 and
+              // Asia/Europe (predicate-defined) plus any other ET pod that
+              // isn't Scale (sub-pods) or SP (atomic).
+              if(p!=='Scale'&&p!=='SP'){
+                const csms=_gpPodCsmCounts[p]||{};
+                const csmNames=Object.keys(csms).sort((a,b)=>csms[b]-csms[a]);
+                const _esc=s=>s.replace(/'/g,"\\'");
+                csmNames.forEach(csm=>{
+                  const v='PODCSM:'+p+':'+csm;
+                  const csmOn=_gpIsOwnerPickActive(v);
+                  const ct=csms[csm];
+                  podHtml+=`<div class="owner-dd-item owner-dd-sub${csmOn?' sel':''}" onclick="pickGPOwner('PODCSM:${_esc(p)}:${_esc(csm)}')"><span>${cb(csmOn)}↳ ${csm}</span><span class="ct">${ct} accts</span></div>`;
+                });
+              }
+              return podHtml;
             }).join('');
           }
           return `<div class="owner-dd">
-            <button id="gpOwnerDropBtn" class="owner-dd-btn${GP_OWNER_DROP_OPEN?' op':''}" onclick="toggleGPOwnerDrop(event)" title="Filter by CSM or Pod (multi-select)"><span>${curLbl}</span><span class="cr">▾</span></button>
+            <button id="gpOwnerDropBtn" class="owner-dd-btn${GP_OWNER_DROP_OPEN?' op':''}" onclick="toggleGPOwnerDrop(event)" title="Filter by CS Rep or Pod (multi-select, AND across sections)"><span>${curLbl}</span><span class="cr">▾</span></button>
             <div id="gpOwnerDropMenu" class="owner-dd-menu" style="display:${GP_OWNER_DROP_OPEN?'block':'none'}" onclick="event.stopPropagation()">${menu}</div>
           </div>`;
         })()}
-        ${selGPOwner!=='ALL'?`<button onclick="selGPOwner='ALL';GP_OWNER_DROP_OPEN=false;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
+        ${(()=>{const on=_gpAnyFilterActive();return `<button onclick="clearAllGPFilters()" title="Reset every filter (CS Rep / Pod / month) back to All CSMs & Pods." style="background:${on?'#dc2626':'transparent'};border:1px solid ${on?'#ef4444':'var(--border)'};color:${on?'#fff':'var(--dim)'};border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap">✕ Clear All Filters</button>`;})()}
       </div>
     </div>
     <div class="cards">${(()=>{const tot={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};pools.forEach(p=>{const d=grrQ[p]||{};for(const k in tot)tot[k]+=(d[k]||0);});return poolCard('Total',tot,tgt,q==="Q1");})()}${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}</div>
