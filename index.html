@@ -308,16 +308,24 @@ function _csmPod(ro){
   for(const p in POD_CSMS){if(POD_CSMS[p].indexOf(ro)>=0)return p;}
   return null;
 }
-// Off-pod = CSM on a tracked pod (Pods 1–4) AND Sales Rep is NOT in that pod's rep list.
-// Accepts pipeline rows (.ro/.ae) and iframe accounts (.csRep/.ae).
+// Which pod the account belongs to BY SALES REP (the new, canonical pod
+// definition). Returns null if the Sales Rep doesn't match any pod.
+function _salesRepPod(d){
+  if(!d||!d.ae)return null;
+  for(const k in POD_REPS){if(POD_REPS[k](d.ae))return k;}
+  return null;
+}
+// Off-pod = the account's Sales Rep places it in Pod N, BUT its CS Rep
+// isn't on Pod N's canonical CSM list. Signals a mismatch between sales
+// coverage and CS coverage worth surfacing in the dropdown.
 function _isOffPod(d){
   if(!d)return false;
-  const csm=d.ro||d.csRep||'';
-  const ae=d.ae||'';
-  const p=_csmPod(csm);
-  if(!p)return false;          // not on a tracked pod (e.g. Scale, or unknown CSM)
-  if(!ae)return false;         // no rep assigned → don't flag
-  return !POD_REPS[p](ae);
+  const p=_salesRepPod(d);
+  if(!p)return false;          // Sales Rep not on a tracked pod
+  const csRep=String(d.csRep||'').trim();
+  if(!csRep)return false;       // No CS Rep → don't flag
+  const aliased=RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep;
+  return (POD_CSMS[p]||[]).indexOf(aliased)<0;
 }
 
 // ── Owner / pod selection (multi-select) ────────────────────────────────────
@@ -339,10 +347,11 @@ function _ownerSel(){
 function _itemMatches(item,row){
   if(typeof item==='string'&&item.indexOf('POD:')===0){
     const pod=item.slice(4);
-    // Off-pod drill: "POD:Pod N:OFF" → CSM in Pod N AND row is off-pod.
+    // Off-pod drill: "POD:Pod N:OFF" → Sales Rep is in Pod N AND the
+    // CS Rep isn't on Pod N's canonical CSM list.
     if(pod.endsWith(':OFF')){
       const basePod=pod.slice(0,-4);
-      return row&&_csmPod(row.ro)===basePod&&_isOffPod(row);
+      return _salesRepPod(row)===basePod&&_isOffPod(row);
     }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
       return row&&row.pod==='Scale'&&_scaleSubPod(row)===pod;
@@ -360,8 +369,9 @@ function _itemMatches(item,row){
     return row&&row.pod===pod;
   }
   // PODCSM:<pod>:<csm> — atomic intersection of a Pod 1-4 predicate AND
-  // a specific CSM (CSM compared against the aliased Renewal Owner so
-  // Scale-support reps like Phoebe/Jovin roll up under Support iConnections).
+  // a specific CS Rep (CS Rep compared against the row's d.csRep field,
+  // aliased through RENEWAL_OWNER_ALIAS so Scale-support reps like
+  // Phoebe/Jovin roll up under Support iConnections).
   if(typeof item==='string'&&item.indexOf('PODCSM:')===0){
     const rest=item.slice(7);
     const sep=rest.indexOf(':');
@@ -370,8 +380,8 @@ function _itemMatches(item,row){
     const csmName=rest.slice(sep+1);
     if(!POD_REPS[podName]||!row)return false;
     if(!POD_REPS[podName](row.ae))return false;
-    const ro=String(row.ro||'').trim();
-    const aliased=RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro;
+    const csRep=String(row.csRep||'').trim();
+    const aliased=RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep;
     return aliased===csmName;
   }
   // CSREP: prefix — match the Renewal Master "CS Rep" column on the row.
@@ -3157,7 +3167,7 @@ function roDisp(ro,ae,d){
   if(S.showAE&&ae)h+=`<span style="font-size:10px;color:#60a5fa;margin-left:5px;background:#1e3a5f;padding:1px 5px;border-radius:3px">Sales Rep: ${ae}</span>`;
   // Off-pod tag: account's CSM is on a tracked pod (Pods 1–4) but its Sales Rep isn't.
   // Tooltip names the offending pod so the user can act on it.
-  if(d&&_isOffPod(d)){const cp=_csmPod(d.ro||ro);h+=` <span class="off-pod-chip" title="Off-pod: Sales Rep '${(d.ae||ae||'?').replace(/"/g,'')}' is not in ${cp}">⚠ off-pod</span>`;}
+  if(d&&_isOffPod(d)){const cp=_salesRepPod(d);h+=` <span class="off-pod-chip" title="Off-pod: CS Rep '${(d.csRep||'?').replace(/"/g,'')}' isn't on ${cp}'s canonical CSM list">⚠ off-pod</span>`;}
   return h;
 }
 async function init(){
@@ -3304,8 +3314,11 @@ function _render(){
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
   const _offPodCounts={};
   D.forEach(d=>{
-    const ro=String(d.ro||'').trim();
-    const csmAliased=(RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro)||'(no CSM)';
+    // Aggregate per-pod by CS Rep (the Renewal Master "CS Rep" column).
+    // Previously this used d.ro (Renewal Owner) which often holds the
+    // Sales Rep name in this dataset and produced confusing sub-rows.
+    const csRep=String(d.csRep||'').trim();
+    const csmAliased=(RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep)||'(no CS Rep)';
     Object.keys(POD_REPS).forEach(p=>{
       if(POD_REPS[p](d.ae)){
         _podCounts[p]++;
@@ -3314,7 +3327,9 @@ function _render(){
     });
     if(d.pod&&!POD_REPS[d.pod])_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
     const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;
-    if(_isOffPod(d)){const cp=_csmPod(d.ro);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}
+    // Off-pod count goes against the Sales-Rep-derived pod, not the
+    // CSM-derived pod (the latter no longer drives membership).
+    if(_isOffPod(d)){const cp=_salesRepPod(d);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}
   });
   const pods=Object.keys(_podCounts).sort((a,b)=>{
     // Sort "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
@@ -3398,7 +3413,7 @@ function _render(){
             const off=_offPodCounts[p]||0;
             const offOn=_isOwnerPickActive('POD:'+p+':OFF');
             // Stop propagation on the off-pod chip so clicking it doesn't also toggle the parent pod row.
-            const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} off-pod account${off===1?'':'s'} (Sales Rep not in ${p})">⚠ ${off} off-pod</span>`:'';
+            const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} ${p} account${off===1?'':'s'} whose CS Rep isn't on ${p}'s canonical CSM list (Sales Rep ${POD_CSMS[p]&&POD_CSMS[p].length?'in pod, CS Rep elsewhere':'mismatch'})">⚠ ${off} off-pod</span>`:'';
             let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
             // Per-pod CSM sub-rows: every CSM whose accounts roll into this
             // pod (via the Sales Rep predicate), sorted by count desc. Picking
