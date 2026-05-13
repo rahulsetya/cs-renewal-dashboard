@@ -420,9 +420,28 @@ function _splitItemsByGroup(items){
 }
 function _combine(items,row){
   const g=_splitItemsByGroup(items);
+  // When the user picks PODCSM:Pod N:<csm> alongside its parent POD:Pod N,
+  // the OR-within-group would let POD:Pod N's broader match swallow the
+  // narrower sub-row, so the sub-pick never bites. Drop POD:Pod N from
+  // the effective pod set when any PODCSM:Pod N:* is also picked — the
+  // sub-row was a deliberate narrowing intent.
+  const _suppressed=new Set();
+  g.pod.forEach(it=>{
+    if(it.indexOf('PODCSM:')===0){
+      const rest=it.slice(7);
+      const sep=rest.indexOf(':');
+      if(sep>=0)_suppressed.add(rest.slice(0,sep));
+    }
+  });
+  const podItems=g.pod.filter(it=>{
+    if(it.indexOf('POD:')===0&&it.indexOf(':OFF',it.length-4)<0){
+      return !_suppressed.has(it.slice(4));
+    }
+    return true;
+  });
   const srOk=!g.sr.length||g.sr.some(it=>_itemMatches(it,row));
   const csrOk=!g.csr.length||g.csr.some(it=>_itemMatches(it,row));
-  const podOk=!g.pod.length||g.pod.some(it=>_itemMatches(it,row));
+  const podOk=!podItems.length||podItems.some(it=>_itemMatches(it,row));
   return srOk&&csrOk&&podOk;
 }
 // Pipeline-row filter:
