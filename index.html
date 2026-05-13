@@ -3425,9 +3425,6 @@ function _render(){
   // reps (Phoebe/Jovin/Bryan/etc.) collapse under "Support iConnections".
   const _podCsmCounts={};
   Object.keys(POD_REPS).forEach(p=>{_podCounts[p]=0;_podCsmCounts[p]={};});
-  // Pre-seed Scale (CS-Rep-aliased, not POD_REPS) so the row always
-  // renders in the dropdown even when no accounts currently roll in.
-  _podCounts['Scale']=0;
   const _scaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
   // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
@@ -3447,10 +3444,8 @@ function _render(){
         _podCsmCounts[p][csmKey]=(_podCsmCounts[p][csmKey]||0)+1;
       }
     });
-    // Scale count is CS-Rep-aliased (any Phoebe / Jovin / Bryan / Olivia
-    // / Mario / Luis / Connor / literal Support iConnections). Tracked
-    // separately from POD_REPS since the predicate is on csRep, not ae.
-    if(_csmAliased==='Support iConnections')_podCounts['Scale']++;
+    // Scale lives in the CS Reps section now (via displayCsRep's rollup
+    // to "Scale"), so no separate pod-section count is built here.
     if(d.pod&&!POD_REPS[d.pod]&&d.pod!=='Scale'){
       _podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
       // Per-CSM breakdown for non-Pod-1-4 d.pod entries (Asia, Europe, etc.)
@@ -5848,10 +5843,11 @@ function _gpItemMatches(item,a){
     const key=aliased==='Support iConnections'?'Scale':aliased;
     return key===csmName;
   }
-  // Compare against the aliased CSM so picking "Support iConnections" pulls in
-  // all the Scale support staff (Phoebe/Jovin/Bryan/…) along with rows whose
-  // csRep is literally "Support iConnections".
-  return a&&_gpAliasCsm(a.csRep)===item;
+  // Compare against the display name so picking "Scale" pulls in every
+  // Scale-support CSM (Phoebe/Jovin/Bryan/Olivia/Mario/Luis/Connor) plus
+  // literal Support iConnections rows. Picking an individual CSM name
+  // (Lucy Garber, etc.) matches that name directly.
+  return a&&_gpDisplayCsRep(a.csRep)===item;
 }
 // Within each group items OR together; sections AND across each other.
 // PODCSM:<pod>:<csm> routes into the pod group. When POD:X and any
@@ -8123,7 +8119,10 @@ function rGP(){
   // iConnections", then drop "Support iConnections" itself from the CSM list —
   // users select the Scale pod (with its USA/Asia/Europe sub-pods) to get
   // the same set of accounts, so showing it here is redundant.
-  const csmList=[...new Set(qAcctsAll.map(a=>_gpAliasCsm(a.csRep)).filter(Boolean))].sort().filter(c=>c!=='Support iConnections');
+  // CS Reps list uses _gpDisplayCsRep so the Scale-support CSMs
+  // (Phoebe / Jovin / Bryan / Olivia / Mario / Luis / Connor) collapse
+  // into one "Scale" row alongside individual CSMs.
+  const csmList=[...new Set(qAcctsAll.map(a=>_gpDisplayCsRep(a.csRep)).filter(Boolean))].sort();
   // Drop any selected items that no longer exist in the quarter (data refresh edge case)
   if(Array.isArray(selGPOwner)){
     const valid=new Set(csmList.concat(podList.map(p=>'POD:'+p)).concat(['POD:Scale USA','POD:Scale Asia','POD:Scale Europe']));
@@ -8255,8 +8254,6 @@ function rGP(){
           const _gpPodCounts={};const _gpScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
           const _gpPodCsmCounts={};
           Object.keys(_GP_POD_REPS).forEach(p=>{_gpPodCounts[p]=0;_gpPodCsmCounts[p]={};});
-          // Pre-seed Scale (CS-Rep-aliased) so the row always renders.
-          _gpPodCounts['Scale']=0;
           const _gpOffPodCounts={};
           qAcctsAll.forEach(a=>{
             // Alias so Scale-support CSMs roll into one bucket, then
@@ -8270,8 +8267,7 @@ function rGP(){
                 _gpPodCsmCounts[p][csmKey]=(_gpPodCsmCounts[p][csmKey]||0)+1;
               }
             });
-            // Scale count is CS-Rep-aliased — independent of a.pod.
-            if(_csmAliased==='Support iConnections')_gpPodCounts['Scale']++;
+            // Scale moved into the CS Reps section — no pod-section count.
             if(a.pod&&!_GP_POD_REPS[a.pod]&&a.pod!=='Strategic'&&a.pod!=='Scale'){
               _gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;
               if(a.pod!=='SP'){
@@ -8295,7 +8291,7 @@ function rGP(){
             menu+=`<div class="owner-dd-grp">CS Reps</div>`;
             menu+=csmList.map(c=>{
               const on=_gpIsOwnerPickActive(c);
-              const ct=qAcctsAll.filter(a=>_gpAliasCsm(a.csRep)===c).length;
+              const ct=qAcctsAll.filter(a=>_gpDisplayCsRep(a.csRep)===c).length;
               return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${ct} accts</span></div>`;
             }).join('');
           }
@@ -9537,7 +9533,7 @@ function rAllAccts(){
   // "Support iConnections" via _gpAliasCsm, and we drop it from the CSM list
   // because the Scale pod (and its USA/Asia/Europe sub-pods) covers the same
   // accounts.
-  const csmList=[...new Set(all.map(a=>_gpAliasCsm(a.csRep)).filter(Boolean))].sort().filter(c=>c!=='Support iConnections');
+  const csmList=[...new Set(all.map(a=>_gpDisplayCsRep(a.csRep)).filter(Boolean))].sort();
   const segs=[...new Set(all.map(a=>a.seg).filter(Boolean))].sort();
   // Pod list — engagement-tracker pods, sorted Pod 1, Pod 2, …, then alphabetic
   const podSet={};all.forEach(a=>{if(a.pod)podSet[a.pod]=(podSet[a.pod]||0)+1;});
@@ -9641,16 +9637,18 @@ function rAllAccts(){
             else if(aSel.items.length===1)curLbl=_fmtItem(aSel.items[0]);
             else curLbl=aSel.items.length+' selected';
             // Per-row counts so the dropdown reflects the universe of "all engagement-tracker accounts"
-            const _aaPodCounts={Scale:0};const _aaScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
+            const _aaPodCounts={};const _aaScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
             const _aaOffPodCounts={};
-            all.forEach(a=>{if(a.pod&&a.pod!=='Scale'){_aaPodCounts[a.pod]=(_aaPodCounts[a.pod]||0)+1;}if(_gpAliasCsm(a.csRep)==='Support iConnections')_aaPodCounts.Scale++;const sub=_gpScaleSubPod(a);if(sub)_aaScaleSubCounts[sub]++;if(_gpIsOffPod(a)){const cp=_gpSalesRepPod(a);if(cp)_aaOffPodCounts[cp]=(_aaOffPodCounts[cp]||0)+1;}});
+            // Scale is in the CS Reps section now, not Pods. Don't tally
+            // a separate Scale pod count.
+            all.forEach(a=>{if(a.pod&&a.pod!=='Scale'){_aaPodCounts[a.pod]=(_aaPodCounts[a.pod]||0)+1;}const sub=_gpScaleSubPod(a);if(sub)_aaScaleSubCounts[sub]++;if(_gpIsOffPod(a)){const cp=_gpSalesRepPod(a);if(cp)_aaOffPodCounts[cp]=(_aaOffPodCounts[cp]||0)+1;}});
             const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
             let menu=`<div class="owner-dd-item${aSel.mode==='ALL'?' sel':''}" onclick="pickAAOwner('ALL')"><span>All CSMs &amp; Pods</span><span class="ct">${all.length} accts</span></div>`;
             if(csmList.length){
               menu+=`<div class="owner-dd-grp">CSMs</div>`;
               menu+=csmList.map(c=>{
                 const on=_aaIsOwnerPickActive(c);
-                const ct=all.filter(a=>_gpAliasCsm(a.csRep)===c).length;
+                const ct=all.filter(a=>_gpDisplayCsRep(a.csRep)===c).length;
                 return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${ct} accts</span></div>`;
               }).join('');
             }
