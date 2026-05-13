@@ -276,6 +276,27 @@ const POD_REPS = {
   'Pod 3': ae => {const a=String(ae||'').trim().toLowerCase();return a.startsWith('david johnson')||a.startsWith('jake delaney');},
   'Pod 4': ae => /^(james|marc)\b/i.test(String(ae||'').trim())
 };
+// Pool derivation — CSM → Enterprise / Strategic / Scale. Mirrors the Goals
+// iframe's POOL_MAP so the main pipeline can offer a pool filter alongside
+// Sales Rep / CS Rep / Pod. SP rows (Emilie Welch's book) get tagged 'SP'
+// explicitly so they don't accidentally count as Scale when the user picks
+// the Scale pool filter — the Hide SPs toggle handles those separately.
+const POOL_MAP = {
+  'Christina Chumak':'Enterprise','Lucy Garber':'Enterprise',
+  'Courtney Krieg':'Enterprise','Juwan Pryce':'Enterprise',
+  'Alex Cherecwich':'Enterprise','Helen Ramsay':'Enterprise',
+  'Andreas Santikos':'Enterprise','Kristan Hester':'Enterprise',
+  'Sunny Unger':'Enterprise',
+  'Joe Romanoff':'Strategic',
+  'Support iConnections':'Scale'
+};
+function _rowPool(d){
+  if(!d)return null;
+  if(d.__sp)return 'SP';
+  const ro=String(d.ro||'').trim();
+  const aliased=RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro;
+  return POOL_MAP[aliased]||null;
+}
 const POD_CSMS = {
   'Pod 1': ['Lucy Garber','Christina Chumak'],
   'Pod 2': ['Courtney Krieg','Juwan Pryce'],
@@ -353,6 +374,10 @@ function _itemMatches(item,row){
     const aliased=RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro;
     return aliased===csmName;
   }
+  // POOL:<pool> — Enterprise / Strategic / Scale match via _rowPool().
+  if(typeof item==='string'&&item.indexOf('POOL:')===0){
+    return _rowPool(row)===item.slice(5);
+  }
   // CSREP: prefix — match the Renewal Master "CS Rep" column on the row.
   if(typeof item==='string'&&item.indexOf('CSREP:')===0){
     const csm=item.slice(6);
@@ -369,20 +394,22 @@ function _itemMatches(item,row){
 // dimension. _comboMode is retained as a no-op for older state shapes.
 let _comboMode='AND';
 function _splitItemsByGroup(items){
-  const sr=[],csr=[],pod=[];
+  const sr=[],csr=[],pod=[],pool=[];
   items.forEach(it=>{
-    if(typeof it==='string'&&(it.indexOf('POD:')===0||it.indexOf('PODCSM:')===0))pod.push(it);
+    if(typeof it==='string'&&it.indexOf('POOL:')===0)pool.push(it);
+    else if(typeof it==='string'&&(it.indexOf('POD:')===0||it.indexOf('PODCSM:')===0))pod.push(it);
     else if(typeof it==='string'&&it.indexOf('CSREP:')===0)csr.push(it);
     else sr.push(it);
   });
-  return{sr,csr,pod};
+  return{sr,csr,pod,pool};
 }
 function _combine(items,row){
   const g=_splitItemsByGroup(items);
   const srOk=!g.sr.length||g.sr.some(it=>_itemMatches(it,row));
   const csrOk=!g.csr.length||g.csr.some(it=>_itemMatches(it,row));
   const podOk=!g.pod.length||g.pod.some(it=>_itemMatches(it,row));
-  return srOk&&csrOk&&podOk;
+  const poolOk=!g.pool.length||g.pool.some(it=>_itemMatches(it,row));
+  return srOk&&csrOk&&podOk&&poolOk;
 }
 // Pipeline-row filter:
 //   'ALL_OWNERS' = no filter (every row, even unassigned).
@@ -3276,6 +3303,8 @@ function _render(){
   // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
   const _offPodCounts={};
+  // Per-pool counts for the new Pools section (Enterprise / Strategic / Scale).
+  const _poolCounts={Enterprise:0,Strategic:0,Scale:0};
   D.forEach(d=>{
     const ro=String(d.ro||'').trim();
     const csmAliased=(RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro)||'(no CSM)';
@@ -3288,6 +3317,8 @@ function _render(){
     if(d.pod&&!POD_REPS[d.pod])_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
     const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;
     if(_isOffPod(d)){const cp=_csmPod(d.ro);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}
+    const pool=_rowPool(d);
+    if(pool&&_poolCounts[pool]!==undefined)_poolCounts[pool]++;
   });
   const pods=Object.keys(_podCounts).sort((a,b)=>{
     // Sort "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
@@ -3320,6 +3351,7 @@ function _render(){
           return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;
         }
         if(x.indexOf('CSREP:')===0)return x.slice(6)+' · CS Rep';
+        if(x.indexOf('POOL:')===0)return x.slice(5)+' · pool';
         return x;
       };
       let curLbl;
@@ -3335,6 +3367,7 @@ function _render(){
           <div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickOwner('ALL')"><span>All Sales Reps</span></div>
           ${salesReps.length?`<div class="owner-dd-grp">Sales Reps</div>${salesReps.map(o=>{const on=_isOwnerPickActive(o);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span><span class="ct">${_salesRepCounts[o]} accts</span></div>`;}).join('')}`:''}
           ${csReps.length?`<div class="owner-dd-grp">CS Reps</div>${csReps.map(c=>{const v='CSREP:'+c;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('CSREP:${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${_csRepCounts[c]} accts</span></div>`;}).join('')}`:''}
+          ${(_poolCounts.Enterprise+_poolCounts.Strategic+_poolCounts.Scale)>0?`<div class="owner-dd-grp">Pools</div>${['Enterprise','Strategic','Scale'].map(pl=>{const v='POOL:'+pl;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POOL:${pl}')"><span>${cb(on)}${pl}</span><span class="ct">${_poolCounts[pl]} accts</span></div>`;}).join('')}`:''}
           ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
             if(p==='Scale'){
               const on=_isOwnerPickActive('POD:Scale');
