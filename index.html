@@ -274,7 +274,13 @@ const POD_REPS = {
   'Pod 1': ae => /^juliet\b/i.test(String(ae||'').trim()),
   'Pod 2': ae => /^(earl|sebastian)\b/i.test(String(ae||'').trim()),
   'Pod 3': ae => {const a=String(ae||'').trim().toLowerCase();return a.startsWith('david johnson')||a.startsWith('jake delaney');},
-  'Pod 4': ae => /^(james|marc)\b/i.test(String(ae||'').trim())
+  'Pod 4': ae => /^(james|marc)\b/i.test(String(ae||'').trim()),
+  // Regional pods — defined by Sales Rep so Scale accounts owned by
+  // Edwin / David X roll up here too (matching the Pod 1-4 pattern).
+  // Reuses the existing SCALE_ASIA_REP / SCALE_EUROPE_REP predicates
+  // so the regional logic stays in one place.
+  'Asia':  ae => SCALE_ASIA_REP(ae),
+  'Europe':ae => SCALE_EUROPE_REP(ae)
 };
 // Pool derivation — CSM → Enterprise / Strategic / Scale. Mirrors the Goals
 // iframe's POOL_MAP so the main pipeline can offer a pool filter alongside
@@ -322,6 +328,10 @@ function _isOffPod(d){
   if(!d)return false;
   const p=_salesRepPod(d);
   if(!p)return false;          // Sales Rep not on a tracked pod
+  // Pods without a canonical CSM list (Asia / Europe — defined by
+  // Sales Rep only) have no off-pod concept. Skip them.
+  const csms=POD_CSMS[p];
+  if(!csms||!csms.length)return false;
   const csRep=String(d.csRep||'').trim();
   if(!csRep)return false;       // No CS Rep → don't flag
   const aliased=RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep;
@@ -329,7 +339,7 @@ function _isOffPod(d){
   // never flag a Support iConnections-owned account as off-pod — it's
   // always "on" by design.
   if(aliased==='Support iConnections')return false;
-  return (POD_CSMS[p]||[]).indexOf(aliased)<0;
+  return csms.indexOf(aliased)<0;
 }
 
 // ── Owner / pod selection (multi-select) ────────────────────────────────────
