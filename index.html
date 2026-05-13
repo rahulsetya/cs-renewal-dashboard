@@ -3523,14 +3523,10 @@ function _render(){
           })()}
           ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
             if(p==='Scale'){
+              // Scale renders as a single row now — the regional breakdowns
+              // (Asia / Europe) live as their own top-level Sales-Rep pods.
               const on=_isOwnerPickActive('POD:Scale');
-              let h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_podCounts.Scale||0} accts</span></div>`;
-              [['Scale USA',''],['Scale Asia','Edwin'],['Scale Europe','David X']].forEach(([sub,rep])=>{
-                const son=_isOwnerPickActive('POD:'+sub);
-                const ct=_scaleSubCounts[sub]||0;
-                h+=`<div class="owner-dd-item owner-dd-sub${son?' sel':''}" onclick="pickOwner('POD:${sub}')"><span>${cb(son)}↳ ${sub}${rep?` <span style="color:#64748b;font-size:10px">· ${rep}</span>`:''}</span><span class="ct">${ct} accts</span></div>`;
-              });
-              return h;
+              return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_podCounts.Scale||0} accts</span></div>`;
             }
             const on=_isOwnerPickActive('POD:'+p);
             const off=_offPodCounts[p]||0;
@@ -8250,14 +8246,10 @@ function rGP(){
             menu+=`<div class="owner-dd-grp">Pods</div>`;
             menu+=podsToShow.map(p=>{
               if(p==='Scale'){
+                // Scale renders as a single row now — the regional Asia /
+                // Europe breakdowns live as their own top-level Sales-Rep pods.
                 const on=_gpIsOwnerPickActive('POD:Scale');
-                let h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_gpPodCounts.Scale||0} accts</span></div>`;
-                [['Scale USA',''],['Scale Asia','Edwin'],['Scale Europe','David X']].forEach(([sub,rep])=>{
-                  const son=_gpIsOwnerPickActive('POD:'+sub);
-                  const ct=_gpScaleSubCounts[sub]||0;
-                  h+=`<div class="owner-dd-item owner-dd-sub${son?' sel':''}" onclick="pickGPOwner('POD:${sub}')"><span>${cb(son)}↳ ${sub}${rep?` <span style="color:var(--dim);font-size:10px">· ${rep}</span>`:''}</span><span class="ct">${ct} accts</span></div>`;
-                });
-                return h;
+                return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_gpPodCounts.Scale||0} accts</span></div>`;
               }
               const on=_gpIsOwnerPickActive('POD:'+p);
               const off=_gpOffPodCounts[p]||0;
@@ -9612,14 +9604,10 @@ function rAllAccts(){
               menu+=`<div class="owner-dd-grp">Pods · Engagement Tracker</div>`;
               menu+=podList.map(p=>{
                 if(p==='Scale'){
+                  // Scale renders as a single row now — regional breakdowns
+                  // (Asia / Europe) live as their own top-level Sales-Rep pods.
                   const on=_aaIsOwnerPickActive('POD:Scale');
-                  let h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_aaPodCounts.Scale||0} accts</span></div>`;
-                  [['Scale USA',''],['Scale Asia','Edwin'],['Scale Europe','David X']].forEach(([sub,rep])=>{
-                    const son=_aaIsOwnerPickActive('POD:'+sub);
-                    const ct=_aaScaleSubCounts[sub]||0;
-                    h+=`<div class="owner-dd-item owner-dd-sub${son?' sel':''}" onclick="pickAAOwner('POD:${sub}')"><span>${cb(son)}↳ ${sub}${rep?` <span style="color:var(--dim);font-size:10px">· ${rep}</span>`:''}</span><span class="ct">${ct} accts</span></div>`;
-                  });
-                  return h;
+                  return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_aaPodCounts.Scale||0} accts</span></div>`;
                 }
                 const on=_aaIsOwnerPickActive('POD:'+p);
                 const off=_aaOffPodCounts[p]||0;
