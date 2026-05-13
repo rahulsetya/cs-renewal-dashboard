@@ -2436,9 +2436,10 @@ function _buildLiveGoalsData(){
   const grr={};
   // rw  = 2025 base revenue of won accounts (used for GRR / Logo Retention denominators by design)
   // rw26 = 2026 CONTRACTED revenue of those same won accounts (used for the Renewed YTD tile so it
-  //        reflects the actual 2026 ARR brought in, not the prior year's base). Sourced from the
-  //        Engagement Tracker's offer-price column (r.rev26) — the same field that feeds the NRR
-  //        tile's $X 2026 numerator. Falls back to 0 for RM-only rows that have no ET match.
+  //        reflects the actual 2026 ARR brought in, not the prior year's base). Sourced STRICTLY
+  //        from the Renewal Master's Offer Price column — no fallback to ET's 2026 Revenue. Rows
+  //        without an RM offer price contribute 0, so the NRR/ACV math reflects only what's been
+  //        committed in the renewal master.
   ['Q1','Q2','Q3','Q4'].forEach(q=>{grr[q]={};['Enterprise','Strategic','Scale'].forEach(p=>{grr[q][p]={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rw26:0,rl:0,rd:0};});});
   const grrNone={'Enterprise':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rw26:0,rl:0,rd:0},'Strategic':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rw26:0,rl:0,rd:0},'Scale':{logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rw26:0,rl:0,rd:0}};
   const churned=[];
@@ -2580,10 +2581,11 @@ function _buildLiveGoalsData(){
       // GP Retention tab can group by Renewal Master dates exclusively.
       seRM:se||'',seET:_aaSeET||'',qRM:q||'',
       // Extended fields for the All Accounts tab (April 2026 Combined Master schema)
-      // rev26 sources from the Renewal Master's Offer Price column (single
-      // source of truth) — falls back to ET's "2026 Revenue" only if the RM
-      // has no offer price for this account.
-      ae:r.ae||'',seg:r.seg||'',rev26:(renewal&&renewal.offerPrice)||r.rev26||0,rawEnd:r.rawEnd||'',
+      // rev26 sources STRICTLY from the Renewal Master's Offer Price column.
+      // No fallback to ET's "2026 Revenue" — accounts without an RM offer
+      // price contribute 0 so retention math stays honest about what's
+      // actually committed in the renewal master.
+      ae:r.ae||'',seg:r.seg||'',rev26:(renewal&&renewal.offerPrice)||0,rawEnd:r.rawEnd||'',
       pod:r.pod||'',txnDone:r.txnDone||0,out:r.out||0,gm:r.gm||0,
       nextTP:r.nextTP||'',expn:r.expn||0,calls:r.calls||{},
       platformId:_mlPid,
@@ -2596,7 +2598,7 @@ function _buildLiveGoalsData(){
       inRen:renewal?1:0
     });
     if(target){
-      if(isWon){target.won++;target.rw+=rev;target.rw26+=((renewal&&renewal.offerPrice)||r.rev26||0);}
+      if(isWon){target.won++;target.rw+=rev;target.rw26+=((renewal&&renewal.offerPrice)||0);}
       else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
       else if(isDeclined){target.declined++;target.rd+=rev;}
       else{target.open++;}
