@@ -3478,8 +3478,12 @@ function _render(){
   const pipeO=pipe.reduce((a,d)=>a+d.o,0),pipeR=pipe.reduce((a,d)=>a+d.r25,0);
   const flagged=f.filter(d=>d.sg.length>0),flagRev=flagged.reduce((a,d)=>a+d.r25,0);
   const wbAll=f.filter(d=>d.sg.includes('wb'));
+  // Per-stage 2026 revenue totals route through _rev2026(d) — Won stages
+  // (Invoice Sent / Paid) sum the Annualized 2026 Renewal Revenue,
+  // every other stage sums Offer Price. Keeps the Pipeline tab's stage
+  // funnel totals in sync with the Won KPI.
   const sc={};ST.forEach(s=>sc[s]={n:0,r25:0,off:0});
-  f.forEach(d=>{if(sc[d.s]){sc[d.s].n++;sc[d.s].r25+=d.r25;sc[d.s].off+=d.o;}});
+  f.forEach(d=>{if(sc[d.s]){sc[d.s].n++;sc[d.s].r25+=d.r25;sc[d.s].off+=_rev2026(d);}});
   const maxN=Math.max(...ST.map(s=>sc[s].n),1);
   // snapshot stage counts + per-stage inflow/outflow badges
   const prevSc={};ST.forEach(s=>prevSc[s]=0);
@@ -3730,7 +3734,7 @@ function _render(){
         return true;
       });
       psc={};ST.forEach(s=>psc[s]={n:0,r25:0,off:0});
-      pf.forEach(d=>{if(psc[d.s]){psc[d.s].n++;psc[d.s].r25+=d.r25;psc[d.s].off+=d.o;}});
+      pf.forEach(d=>{if(psc[d.s]){psc[d.s].n++;psc[d.s].r25+=d.r25;psc[d.s].off+=_rev2026(d);}});
       psMaxN=Math.max(...ST.map(s=>psc[s].n),1);
       pPrevSc={};ST.forEach(s=>pPrevSc[s]=0);
       pStageIn={};pStageOut={};ST.forEach(s=>{pStageIn[s]=0;pStageOut[s]=0;});
