@@ -7514,6 +7514,20 @@ function _exportAcctTableSlack(rid,q,pool){
     try{document.execCommand('copy');flash(true);}catch(e){flash(false);}finally{document.body.removeChild(ta);}
   }
 }
+// Copy the Slack-ready NRR/ACV summary that rGP() stashes on window each
+// render. Kept global so the button's inline onclick can reach it.
+function _copyNRRSlack(){
+  const txt=window._lastNRRSlack||'';
+  if(!txt)return;
+  const btn=document.getElementById('nrr-slack-btn');
+  const flash=ok=>{if(!btn)return;const o=btn.textContent;btn.textContent=ok?'✓ Copied':'⚠ Failed';btn.style.background=ok?'var(--green)':'var(--red)';btn.style.color='#fff';setTimeout(()=>{btn.textContent=o;btn.style.background='';btn.style.color='';},1800);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>flash(true)).catch(()=>flash(false));
+  }else{
+    const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');flash(true);}catch(e){flash(false);}finally{document.body.removeChild(ta);}
+  }
+}
 function _sortAcct(rid,q,pool,col){const cur=_acctSort[q]||{col:'rev',dir:-1};_acctSort[q]={col,dir:cur.col===col?-cur.dir:1};_rAcctTablesForQ(q);}
 // Legacy single-token setter — wraps the value into the new array shape so
 // any caller that still hands us a string keeps working.
@@ -7640,6 +7654,90 @@ function rGP(){
     return ' · '+sel.items.length+' selected';
   })();
 
+  // ── Revenue Retention card (NRR & Renewed ACV) ──────────────────────
+  // Runtime aggregation across all four quarters from ACCTS so the card
+  // can show Q1 closed + Q2TD side-by-side. Respects the active owner /
+  // month filters so users can drill the NRR view the same way they drill
+  // logo retention. Also stashes a Slack-ready text block on window for
+  // the "Copy for Slack" button.
+  const _nrr=(()=>{
+    const WSn=['9. Invoice Sent','10. Paid'],CSn=['11. Churned'],DSn=['4a. Attempting again Q2'];
+    const _sum=(arr,k)=>arr.reduce((s,a)=>s+(a[k]||0),0);
+    // Projection value for an in-flight account: prefer the 2026 offer
+    // if one has been entered, otherwise assume a flat renewal at the
+    // 2025 baseline (a conservative best-case for "if they all close").
+    const _sumProj=(arr)=>arr.reduce((s,a)=>s+(a.rev26||a.rev||0),0);
+    const monthFilt=a=>!selGPMonth.length||selGPMonth.includes((a.seRM||'').substring(5,7));
+    const out={};
+    ['Q1','Q2','Q3','Q4'].forEach(qq=>{
+      const cohort=(ACCTS||[]).filter(a=>a.qRM===qq&&a.inRen&&_gpMatchesOwnerFilter(a)&&monthFilt(a));
+      const won=cohort.filter(a=>WSn.includes(a.stage));
+      const lost=cohort.filter(a=>CSn.includes(a.stage));
+      const dec=cohort.filter(a=>DSn.includes(a.stage));
+      const open=cohort.filter(a=>!WSn.includes(a.stage)&&!CSn.includes(a.stage)&&!DSn.includes(a.stage));
+      out[qq]={
+        cohort:cohort.length,cohortRev:_sum(cohort,'rev'),
+        wonN:won.length,wonRev:_sum(won,'rev'),wonACV:_sum(won,'rev26'),
+        lostN:lost.length,lostRev:_sum(lost,'rev'),
+        decN:dec.length,decRev:_sum(dec,'rev'),decProj:_sumProj(dec),
+        openN:open.length,openProj:_sumProj(open)
+      };
+    });
+    return out;
+  })();
+  const _nrrToday=d=>d.cohortRev>0?d.wonACV/d.cohortRev*100:0;
+  // NRR projection = won 2026 ACV + (open + declined-early) projected at offer ÷ cohort 2025 ARR.
+  // Per user spec: churn stays out of the numerator (loss), declined-early counts (still in play).
+  const _nrrProj=d=>d.cohortRev>0?(d.wonACV+d.openProj+d.decProj)/d.cohortRev*100:0;
+  const _upliftD=d=>d.wonACV-d.wonRev;
+  const _upliftP=d=>d.wonRev>0?(d.wonACV/d.wonRev-1)*100:0;
+  const _nrrColor=v=>v>=80?'var(--green)':v>=50?'var(--amber)':'var(--red)';
+  // Build a Slack-paste text block and stash on window — read back by the
+  // _copyNRRSlack() click handler (defined globally).
+  window._lastNRRSlack=(()=>{
+    const lns=[];
+    lns.push('Revenue Retention — NRR & Renewed ACV');
+    lns.push('NRR = 2026 ACV / 2025 cohort ARR · Churn = loss · Declined-early = still in play');
+    if(selGPOwner!=='ALL')lns.push('Filter: '+(Array.isArray(selGPOwner)?selGPOwner.length+' selected':selGPOwner));
+    if(selGPMonth.length)lns.push('Months: '+selGPMonth.join(', '));
+    lns.push('');
+    ['Q1','Q2','Q3','Q4'].forEach(qq=>{
+      const d=_nrr[qq];
+      const tag=qq==='Q1'?' (Closed)':qq==='Q2'?' (To-Date)':'';
+      lns.push(`${qq} 2026${tag}:`);
+      lns.push(`  • Cohort: ${d.cohort} accounts · ${fmt(d.cohortRev)} starting ARR`);
+      lns.push(`  • Renewed: ${d.wonN} accounts · ${fmt(d.wonACV)} ACV (vs ${fmt(d.wonRev)} 2025 baseline)`);
+      if(d.wonRev>0){const u$=_upliftD(d);const uP=_upliftP(d);lns.push(`  • ACV uplift on renewed: ${u$>=0?'+':''}${fmt(u$)} (${uP>=0?'+':''}${uP.toFixed(0)}%)`);}
+      lns.push(`  • NRR today: ${_nrrToday(d).toFixed(0)}%`);
+      if(qq!=='Q1')lns.push(`  • NRR projection (open + declined-early close at offer): ${_nrrProj(d).toFixed(0)}%`);
+      lns.push(`  • Lost: ${d.lostN} accounts · ${fmt(d.lostRev)} ARR`);
+      lns.push('');
+    });
+    return lns.join('\n').trim();
+  })();
+  const _nrrQs=['Q1','Q2','Q3','Q4'];
+  const _nrrCard=`<div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+      <div>
+        <h3 style="margin:0 0 4px 0">Revenue Retention · NRR &amp; Renewed ACV${_gpOwnerLbl}</h3>
+        <div class="sh">NRR = 2026 ACV / 2025 cohort ARR · Churn = loss · Declined-early = still in play · All 4 quarters</div>
+      </div>
+      <button id="nrr-slack-btn" onclick="_copyNRRSlack()" title="Copy a Slack-ready summary of all four quarters" style="background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,.4);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📋 Copy for Slack</button>
+    </div>
+    <table style="margin-top:6px">
+      <thead><tr><th style="text-align:left">Metric</th>${_nrrQs.map(qq=>`<th style="text-align:right${qq===q?';color:var(--accent)':''}">${qq}${qq==='Q1'?' · Closed':qq==='Q2'?' · TD':''}${qq===q?' ★':''}</th>`).join('')}</tr></thead>
+      <tbody>
+        <tr><td style="font-weight:500">Cohort <span style="color:var(--dim);font-size:10px">(accts · 2025 ARR)</span></td>${_nrrQs.map(qq=>{const d=_nrr[qq];return `<td class="mono" style="text-align:right">${d.cohort} · ${fmt(d.cohortRev)}</td>`;}).join('')}</tr>
+        <tr><td style="font-weight:500">Renewed <span style="color:var(--dim);font-size:10px">(accts · 2026 ACV)</span></td>${_nrrQs.map(qq=>{const d=_nrr[qq];return `<td class="mono" style="text-align:right;color:var(--green)">${d.wonN} · ${fmt(d.wonACV)}</td>`;}).join('')}</tr>
+        <tr><td style="font-weight:500;color:var(--dim);font-size:11px;padding-left:18px">↳ Renewed 2025 baseline</td>${_nrrQs.map(qq=>{const d=_nrr[qq];return `<td class="mono" style="text-align:right;color:var(--dim)">${fmt(d.wonRev)}</td>`;}).join('')}</tr>
+        <tr><td style="font-weight:500">ACV uplift <span style="color:var(--dim);font-size:10px">(on renewed)</span></td>${_nrrQs.map(qq=>{const d=_nrr[qq];if(d.wonRev<=0)return '<td class="mono" style="text-align:right;color:var(--dim)">—</td>';const u$=_upliftD(d);const uP=_upliftP(d);return `<td class="mono" style="text-align:right;color:${u$>=0?'var(--green)':'var(--red)'}">${u$>=0?'+':''}${fmt(u$)} <span style="color:var(--dim);font-size:10px">(${uP>=0?'+':''}${uP.toFixed(0)}%)</span></td>`;}).join('')}</tr>
+        <tr><td style="font-weight:600">NRR today</td>${_nrrQs.map(qq=>{const v=_nrrToday(_nrr[qq]);return `<td class="mono" style="text-align:right;font-weight:700;color:${_nrrColor(v)}">${v.toFixed(0)}%</td>`;}).join('')}</tr>
+        <tr><td style="font-weight:500">NRR projection <span style="color:var(--dim);font-size:10px">(open + decl. close at offer)</span></td>${_nrrQs.map(qq=>{if(qq==='Q1')return '<td class="mono" style="text-align:right;color:var(--dim)">—</td>';const v=_nrrProj(_nrr[qq]);return `<td class="mono" style="text-align:right;color:${_nrrColor(v)}">${v.toFixed(0)}%</td>`;}).join('')}</tr>
+        <tr><td style="font-weight:500">Lost <span style="color:var(--dim);font-size:10px">(churned)</span></td>${_nrrQs.map(qq=>{const d=_nrr[qq];return `<td class="mono" style="text-align:right;color:${d.lostN>0?'var(--red)':'var(--dim)'}">${d.lostN>0?`${d.lostN} · ${fmt(d.lostRev)}`:'—'}</td>`;}).join('')}</tr>
+      </tbody>
+    </table>
+  </div>`;
+
   el.innerHTML=`
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="_setSelQ('${qq}');selGPMonth=[];rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
@@ -7703,6 +7801,7 @@ function rGP(){
         ${selGPOwner!=='ALL'?`<button onclick="selGPOwner='ALL';GP_OWNER_DROP_OPEN=false;rT('gp_grr')" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
       </div>
     </div>
+    ${_nrrCard}
     <div class="cards">${(()=>{const tot={logos:0,won:0,lost:0,declined:0,open:0,rev:0,rw:0,rl:0,rd:0};pools.forEach(p=>{const d=grrQ[p]||{};for(const k in tot)tot[k]+=(d[k]||0);});return poolCard('Total',tot,tgt,q==="Q1");})()}${pools.map(p=>poolCard(p,grrQ[p],tgt,q==="Q1")).join('')}</div>
     ${q!=="Q1"?`<div class="card"><h3>What Needs to Happen — ${q}${_gpOwnerLbl}</h3><div class="sh">Wins needed from ${totalTrulyOpen} open + ${totalWinback} Win-back accounts to hit targets</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
