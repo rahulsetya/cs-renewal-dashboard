@@ -2802,7 +2802,10 @@ function _buildLiveForecastData(pods){
   const WON=new Set(['9. Invoice Sent','10. Paid']);
   const CHR=new Set(['11. Churned']);
   const DCL=new Set([]);
-  const getQ=se=>{if(!se)return null;const m=parseInt((se.substring(5,7)||'0'));return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
+  // GP quarter helper — month-based bucketing with a 2026-year guard so
+  // 2025/2027 sub-ends don't get mis-bucketed into 2026 quarters.
+  // Mirrors the same guard in _buildLiveGoalsData's getQ().
+  const getQ=se=>{if(!se)return null;if(String(se).substring(0,4)!=='2026')return null;const m=parseInt((se.substring(5,7)||'0'));return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
   // Normalize pod arg
   const _podArr=Array.isArray(pods)?pods.filter(Boolean):(pods?[String(pods)]:[]);
   const _active=_podArr.length?new Set(_podArr):null;
@@ -2927,7 +2930,27 @@ function _buildLiveForecastData(pods){
       if(!isNaN(d))return d.getMonth()+1;
       return 0;
     };
-    const getSpQ=sub=>{const m=getMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
+    // Year extractor — same format coverage as getMo above (Excel serial,
+    // ISO YYYY-MM-DD, US MM/DD/YY[YY]). Returns 0 when unparseable.
+    const getYr=sub=>{
+      if(sub===null||sub===undefined||sub==='')return 0;
+      const s=String(sub).trim();if(!s)return 0;
+      const n=parseFloat(s);
+      if(!isNaN(n)&&n>=1000&&!s.includes('-')&&!s.includes('/')){
+        const d=new Date((n-25569)*86400*1000);
+        if(!isNaN(d))return d.getUTCFullYear();
+      }
+      const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(iso)return parseInt(iso[1],10);
+      const us=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+      if(us){const y=parseInt(us[3],10);return y<100?(y+2000):y;}
+      const d=new Date(s);
+      if(!isNaN(d))return d.getFullYear();
+      return 0;
+    };
+    // 2026-year guard so 2025/2027 SP sub-ends don't roll into 2026
+    // quarters. Mirrors the same guard in _buildLiveGoalsData's _spGetQ().
+    const getSpQ=sub=>{if(getYr(sub)!==2026)return null;const m=getMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
 
     // Always compute live aggregates from the filtered SP source (top-bar count
     // already reflects the Exclude-for-attainment filter; _spAll additionally
