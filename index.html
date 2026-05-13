@@ -374,10 +374,6 @@ function _itemMatches(item,row){
     const aliased=RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro;
     return aliased===csmName;
   }
-  // POOL:<pool> — Enterprise / Strategic / Scale match via _rowPool().
-  if(typeof item==='string'&&item.indexOf('POOL:')===0){
-    return _rowPool(row)===item.slice(5);
-  }
   // CSREP: prefix — match the Renewal Master "CS Rep" column on the row.
   if(typeof item==='string'&&item.indexOf('CSREP:')===0){
     const csm=item.slice(6);
@@ -400,22 +396,20 @@ let _comboMode='AND';
 let _ownerDDExpand={salesReps:false,csReps:false};
 function toggleOwnerDDSec(s){_ownerDDExpand[s]=!_ownerDDExpand[s];render();}
 function _splitItemsByGroup(items){
-  const sr=[],csr=[],pod=[],pool=[];
+  const sr=[],csr=[],pod=[];
   items.forEach(it=>{
-    if(typeof it==='string'&&it.indexOf('POOL:')===0)pool.push(it);
-    else if(typeof it==='string'&&(it.indexOf('POD:')===0||it.indexOf('PODCSM:')===0))pod.push(it);
+    if(typeof it==='string'&&(it.indexOf('POD:')===0||it.indexOf('PODCSM:')===0))pod.push(it);
     else if(typeof it==='string'&&it.indexOf('CSREP:')===0)csr.push(it);
     else sr.push(it);
   });
-  return{sr,csr,pod,pool};
+  return{sr,csr,pod};
 }
 function _combine(items,row){
   const g=_splitItemsByGroup(items);
   const srOk=!g.sr.length||g.sr.some(it=>_itemMatches(it,row));
   const csrOk=!g.csr.length||g.csr.some(it=>_itemMatches(it,row));
   const podOk=!g.pod.length||g.pod.some(it=>_itemMatches(it,row));
-  const poolOk=!g.pool.length||g.pool.some(it=>_itemMatches(it,row));
-  return srOk&&csrOk&&podOk&&poolOk;
+  return srOk&&csrOk&&podOk;
 }
 // Pipeline-row filter:
 //   'ALL_OWNERS' = no filter (every row, even unassigned).
@@ -3309,8 +3303,6 @@ function _render(){
   // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
   const _offPodCounts={};
-  // Per-pool counts for the new Pools section (Enterprise / Strategic / Scale).
-  const _poolCounts={Enterprise:0,Strategic:0,Scale:0};
   D.forEach(d=>{
     const ro=String(d.ro||'').trim();
     const csmAliased=(RENEWAL_OWNER_ALIAS[ro.toLowerCase()]||ro)||'(no CSM)';
@@ -3323,8 +3315,6 @@ function _render(){
     if(d.pod&&!POD_REPS[d.pod])_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
     const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;
     if(_isOffPod(d)){const cp=_csmPod(d.ro);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}
-    const pool=_rowPool(d);
-    if(pool&&_poolCounts[pool]!==undefined)_poolCounts[pool]++;
   });
   const pods=Object.keys(_podCounts).sort((a,b)=>{
     // Sort "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
@@ -3357,7 +3347,6 @@ function _render(){
           return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;
         }
         if(x.indexOf('CSREP:')===0)return x.slice(6)+' · CS Rep';
-        if(x.indexOf('POOL:')===0)return x.slice(5)+' · pool';
         return x;
       };
       let curLbl;
@@ -3376,7 +3365,7 @@ function _render(){
             // Auto-expand when this section has any active pick so the user
             // sees what's filtered. Picked sales reps are bare strings (no
             // POD/PODCSM/CSREP/POOL prefix).
-            const srPicks=sel.items.filter(it=>typeof it==='string'&&!it.startsWith('POD:')&&!it.startsWith('PODCSM:')&&!it.startsWith('CSREP:')&&!it.startsWith('POOL:')).length;
+            const srPicks=sel.items.filter(it=>typeof it==='string'&&!it.startsWith('POD:')&&!it.startsWith('PODCSM:')&&!it.startsWith('CSREP:')).length;
             const open=_ownerDDExpand.salesReps||srPicks>0;
             const chev=open?'▾':'▸';
             const pickBadge=srPicks>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">${srPicks} picked</span>`:'';
@@ -3394,7 +3383,6 @@ function _render(){
             if(!open)return hdr;
             return hdr+csReps.map(c=>{const v='CSREP:'+c;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('CSREP:${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${_csRepCounts[c]} accts</span></div>`;}).join('');
           })()}
-          ${(_poolCounts.Enterprise+_poolCounts.Strategic+_poolCounts.Scale)>0?`<div class="owner-dd-grp">Pools</div>${['Enterprise','Strategic','Scale'].map(pl=>{const v='POOL:'+pl;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POOL:${pl}')"><span>${cb(on)}${pl}</span><span class="ct">${_poolCounts[pl]} accts</span></div>`;}).join('')}`:''}
           ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
             if(p==='Scale'){
               const on=_isOwnerPickActive('POD:Scale');
