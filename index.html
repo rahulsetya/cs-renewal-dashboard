@@ -1863,6 +1863,15 @@ function processData(range, engMap){
   dlog('Contact col idx:', colIdx('Contact'));
   const offerHit=OFFER_COLS.find(c=>colIdx(c)!==undefined);
   dlog('Offer price col matched:', offerHit, '@ idx', offerHit?colIdx(offerHit):'–');
+  // Diagnostic: where the Annualized 2026 Renewal Revenue column landed.
+  // Falls back to col Y (idx 24) if no header matches.
+  const _annHit=ANN_2026_COLS.find(c=>colIdx(c)!==undefined);
+  let _annIdx=_annHit?colIdx(_annHit):undefined;
+  if(_annIdx===undefined){
+    for(const k of Object.keys(COL)){const lc=k.toLowerCase();if((lc.includes('annualized')||lc.includes('annaulized'))&&lc.includes('2026')&&lc.includes('rev')){_annIdx=COL[k];break;}}
+  }
+  if(_annIdx===undefined)_annIdx=24;
+  dlog('Annualized 2026 col matched:', _annHit||'(header scan / col Y)', '@ idx', _annIdx);
 
   const data=[];
   let stageUnmatched=[];
@@ -1910,8 +1919,23 @@ function processData(range, engMap){
     // Annualized 2026 Renewal Revenue — captured separately so the won
     // tile / NRR / forecast can swap it in for accounts in Invoice Sent
     // or Paid (via _rev2026 helper). All other stages keep using offer.
+    // Detection cascade: explicit ANN_2026_COLS names → any header
+    // matching "annualized"+"2026"+"rev" (case-insensitive) → finally
+    // column Y (index 24) per the user's spec for the RM layout.
     let annRaw=undefined;
     for(const col of ANN_2026_COLS){annRaw=getCell(v,col);if(annRaw!==undefined&&annRaw!=='')break;}
+    if(annRaw===undefined||annRaw===''){
+      for(const k of Object.keys(COL)){
+        const lc=k.toLowerCase();
+        if((lc.includes('annualized')||lc.includes('annaulized'))&&lc.includes('2026')&&lc.includes('rev')){
+          annRaw=v[COL[k]];
+          if(annRaw!==undefined&&annRaw!=='')break;
+        }
+      }
+    }
+    if((annRaw===undefined||annRaw==='')&&v[24]!==undefined&&v[24]!==''){
+      annRaw=v[24];
+    }
     const r26ann=parseNum(annRaw);
 
     const subEnd=excelDateToJS(getCell(v,'Final Sub End Date')||'');
@@ -2691,12 +2715,14 @@ function _buildLiveGoalsData(){
   // Annualized 2026 Renewal Revenue column. Captures only the 2026
   // portion of the contract — used for Won accounts so multi-year
   // deals don't inflate the 2026 revenue total. Case-insensitive
-  // match; supports user-typed "Annaulized" variant defensively.
+  // match; supports user-typed "Annaulized" variant defensively. If
+  // no header matches, falls back to column Y (index 24) per the
+  // user's spec for the Renewal Master layout.
   const ann2026ColIdx=(()=>{
-    for(const k of Object.keys(cm)){if(k.includes('annualized')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
-    for(const k of Object.keys(cm)){if(k.includes('annaulized')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
-    for(const k of Object.keys(cm)){if(k.includes('annual')&&k.includes('2026')&&k.includes('revenue'))return cm[k];}
-    return null;
+    for(const k of Object.keys(cm)){if(k.includes('annualized')&&k.includes('2026')&&(k.includes('revenue')||k.includes('rev')))return cm[k];}
+    for(const k of Object.keys(cm)){if(k.includes('annaulized')&&k.includes('2026')&&(k.includes('revenue')||k.includes('rev')))return cm[k];}
+    for(const k of Object.keys(cm)){if(k.includes('annual')&&k.includes('2026')&&(k.includes('revenue')||k.includes('rev')))return cm[k];}
+    return 24;
   })();
   if(typeof dlog==='function')dlog('[goals-build] Renewal Master annualized 2026 col idx:',ann2026ColIdx);
   if(typeof dlog==='function')dlog('[goals-build] Renewal Master offer-price col idx:',offerColIdx);
