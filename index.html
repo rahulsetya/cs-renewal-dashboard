@@ -325,6 +325,10 @@ function _isOffPod(d){
   const csRep=String(d.csRep||'').trim();
   if(!csRep)return false;       // No CS Rep → don't flag
   const aliased=RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep;
+  // Support iConnections (the Scale CS pool) covers across all pods, so
+  // never flag a Support iConnections-owned account as off-pod — it's
+  // always "on" by design.
+  if(aliased==='Support iConnections')return false;
   return (POD_CSMS[p]||[]).indexOf(aliased)<0;
 }
 
