@@ -388,10 +388,11 @@ function _itemMatches(item,row){
   }
   // PODCSM:<pod>:<csm> — atomic intersection of a pod membership AND a
   // specific CS Rep. Pod membership resolves via POD_REPS predicate for
-  // Pod 1-4, otherwise via d.pod equality for ET-defined pods (Asia /
-  // Europe / etc.). CS Rep compared against d.csRep, aliased through
-  // RENEWAL_OWNER_ALIAS so Scale-support reps collapse under Support
-  // iConnections.
+  // Pod 1-4 / Asia / Europe, otherwise via d.pod equality. CS Rep is
+  // aliased (Phoebe / Jovin / Bryan / etc. roll up to one bucket), then
+  // that bucket is exposed in the dropdown as "Scale" — so the match
+  // here translates a "Scale" csmName back to "Support iConnections"
+  // before comparing.
   if(typeof item==='string'&&item.indexOf('PODCSM:')===0){
     const rest=item.slice(7);
     const sep=rest.indexOf(':');
@@ -402,7 +403,8 @@ function _itemMatches(item,row){
     if(!inPod)return false;
     const csRep=String(row.csRep||'').trim();
     const aliased=RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep;
-    return aliased===csmName;
+    const key=aliased==='Support iConnections'?'Scale':aliased;
+    return key===csmName;
   }
   // CSREP: prefix — match the Renewal Master "CS Rep" column on the row.
   if(typeof item==='string'&&item.indexOf('CSREP:')===0){
@@ -3402,15 +3404,18 @@ function _render(){
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
   const _offPodCounts={};
   D.forEach(d=>{
-    // Aggregate per-pod by CS Rep (the Renewal Master "CS Rep" column).
-    // Previously this used d.ro (Renewal Owner) which often holds the
-    // Sales Rep name in this dataset and produced confusing sub-rows.
-    const csRep=String(d.csRep||'').trim();
-    const csmAliased=(RENEWAL_OWNER_ALIAS[csRep.toLowerCase()]||csRep)||'(no CS Rep)';
+    // Aggregate per-pod by CS Rep. RENEWAL_OWNER_ALIAS still rolls the
+    // Scale-support CSMs (Phoebe / Jovin / Bryan / etc.) up under one
+    // bucket, but we relabel that bucket "Scale" in the dropdown so the
+    // sub-row reads naturally ("Pod 1 ↳ Scale" vs "Support iConnections").
+    // Internal off-pod logic continues to use "Support iConnections" as
+    // its canonical name — the rename is display-only.
+    const _csmAliased=(RENEWAL_OWNER_ALIAS[String(d.csRep||'').trim().toLowerCase()]||String(d.csRep||'').trim())||'(no CS Rep)';
+    const csmKey=_csmAliased==='Support iConnections'?'Scale':_csmAliased;
     Object.keys(POD_REPS).forEach(p=>{
       if(POD_REPS[p](d.ae)){
         _podCounts[p]++;
-        _podCsmCounts[p][csmAliased]=(_podCsmCounts[p][csmAliased]||0)+1;
+        _podCsmCounts[p][csmKey]=(_podCsmCounts[p][csmKey]||0)+1;
       }
     });
     if(d.pod&&!POD_REPS[d.pod]){
@@ -3422,7 +3427,7 @@ function _render(){
       // dropdown entirely below.
       if(d.pod!=='Scale'&&d.pod!=='SP'){
         if(!_podCsmCounts[d.pod])_podCsmCounts[d.pod]={};
-        _podCsmCounts[d.pod][csmAliased]=(_podCsmCounts[d.pod][csmAliased]||0)+1;
+        _podCsmCounts[d.pod][csmKey]=(_podCsmCounts[d.pod][csmKey]||0)+1;
       }
     }
     const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;
@@ -5775,8 +5780,10 @@ function _gpItemMatches(item,a){
     if(_GP_POD_REPS[pod])return a&&_GP_POD_REPS[pod](a.ae);
     return a&&a.pod===pod;
   }
-  // PODCSM:<pod>:<csm> — pod membership AND a specific CS Rep. Pod
-  // resolves via predicate when present, else via d.pod equality.
+  // PODCSM:<pod>:<csm> — pod membership AND a specific CS Rep. CS Rep
+  // is aliased so Scale-support CSMs roll into one bucket; that bucket
+  // is exposed in the dropdown as "Scale", so the match here also
+  // translates "Scale" back to the underlying "Support iConnections".
   if(typeof item==='string'&&item.indexOf('PODCSM:')===0){
     const rest=item.slice(7);
     const sep=rest.indexOf(':');
@@ -5785,7 +5792,9 @@ function _gpItemMatches(item,a){
     const csmName=rest.slice(sep+1);
     const inPod=_GP_POD_REPS[podName]?_GP_POD_REPS[podName](a.ae):(a.pod===podName);
     if(!inPod)return false;
-    return _gpAliasCsm(a.csRep)===csmName;
+    const aliased=_gpAliasCsm(a.csRep);
+    const key=aliased==='Support iConnections'?'Scale':aliased;
+    return key===csmName;
   }
   // Compare against the aliased CSM so picking "Support iConnections" pulls in
   // all the Scale support staff (Phoebe/Jovin/Bryan/…) along with rows whose
@@ -8175,18 +8184,22 @@ function rGP(){
           Object.keys(_GP_POD_REPS).forEach(p=>{_gpPodCounts[p]=0;_gpPodCsmCounts[p]={};});
           const _gpOffPodCounts={};
           qAcctsAll.forEach(a=>{
-            const csmAliased=_gpAliasCsm(a.csRep)||'(no CS Rep)';
+            // Alias so Scale-support CSMs roll into one bucket, then
+            // relabel that bucket "Scale" in the dropdown — internal
+            // off-pod logic still treats it as "Support iConnections".
+            const _csmAliased=_gpAliasCsm(a.csRep)||'(no CS Rep)';
+            const csmKey=_csmAliased==='Support iConnections'?'Scale':_csmAliased;
             Object.keys(_GP_POD_REPS).forEach(p=>{
               if(_GP_POD_REPS[p](a.ae)){
                 _gpPodCounts[p]++;
-                _gpPodCsmCounts[p][csmAliased]=(_gpPodCsmCounts[p][csmAliased]||0)+1;
+                _gpPodCsmCounts[p][csmKey]=(_gpPodCsmCounts[p][csmKey]||0)+1;
               }
             });
             if(a.pod&&!_GP_POD_REPS[a.pod]&&a.pod!=='Strategic'){
               _gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;
               if(a.pod!=='Scale'&&a.pod!=='SP'){
                 if(!_gpPodCsmCounts[a.pod])_gpPodCsmCounts[a.pod]={};
-                _gpPodCsmCounts[a.pod][csmAliased]=(_gpPodCsmCounts[a.pod][csmAliased]||0)+1;
+                _gpPodCsmCounts[a.pod][csmKey]=(_gpPodCsmCounts[a.pod][csmKey]||0)+1;
               }
             }
             const sub=_gpScaleSubPod(a);if(sub)_gpScaleSubCounts[sub]++;
