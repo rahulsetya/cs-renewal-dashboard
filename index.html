@@ -10321,9 +10321,13 @@ function render(){
         // toggle so the number matches the retention % above it.
         const _qr=m.gpR&&m.gpR[qk]||{};
         const _nrrV=sm==='cum'?(_qr.cNrr||0):(_qr.qNrr||0);
+        // Projected NRR numerator in dollars — qExp (this quarter only)
+        // or cE (cumulative through this quarter). Same scenario inputs
+        // as the percentage so the two move together.
+        const _nrrD=sm==='cum'?(_qr.cE||0):(_qr.qExp||0);
         const _nrrCol=_nrrV>=100?'var(--gn)':_nrrV>=80?'var(--or)':'var(--rd)';
         const _nrrBg=_nrrV>=100?'rgba(46,213,115,.05)':_nrrV>=80?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)';
-        const _nrrTitle=`Projected NRR — 2026 contracted revenue ÷ 2025 cohort base, using current scenario inputs (open ${S.oc}% / declined ${S.dc}% / expansion ${S.exp}%). ${sm==='cum'?'Cumulative through '+qk:qk+' only'}.`;
+        const _nrrTitle=`Projected NRR — 2026 contracted revenue ÷ 2025 cohort base, using current scenario inputs (open ${S.oc}% / declined ${S.dc}% / expansion ${S.exp}%). ${sm==='cum'?'Cumulative through '+qk:qk+' only'}. Dollar value = projected 2026 ACV at these assumptions.`;
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="display:inline-flex;align-items:baseline;gap:6px"><span style="font-size:12px;font-weight:800;color:${c}">${qk}</span><span class="lv" title="Live · won count for ${qk} — Signed / Invoice Sent / Paid from Renewal Master, independent of scenarios">${q.w} won · ${q.t>0?P(q.w/q.t*100):'0.0%'}</span></span>
@@ -10343,7 +10347,7 @@ function render(){
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> closed</div>`;
         }
         h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${_nrrBg}" title="${_nrrTitle}">
-          Proj NRR: <b style="color:${_nrrCol};font-family:var(--M)">${Math.round(_nrrV)}%</b></div>`;
+          Proj NRR: <b style="color:${_nrrCol};font-family:var(--M)">${Math.round(_nrrV)}%</b> <span style="color:var(--mt);font-family:var(--M);font-size:10px">· ${fS(_nrrD)}</span></div>`;
         h+=`</div>`;
       }
       h+=`</div></div>`;
