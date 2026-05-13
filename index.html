@@ -330,6 +330,12 @@ function _itemMatches(item,row){
     // alone — that field has been seen mis-tagged on GP accounts.
     if(pod==='SP')
       return row&&row.__sp===true;
+    // Pod 1-4 are defined by Sales Rep via POD_REPS (Pod 1 = Juliet,
+    // Pod 2 = Earl/Sebastian, Pod 3 = David Johnson/Jake, Pod 4 = Marc/James).
+    // This pulls in those reps' accounts across every pool (incl. Scale),
+    // rather than relying on the engagement-tracker pod column.
+    if(POD_REPS[pod])
+      return row&&POD_REPS[pod](row.ae);
     return row&&row.pod===pod;
   }
   // CSREP: prefix — match the Renewal Master "CS Rep" column on the row.
@@ -3238,12 +3244,25 @@ function _render(){
   });
   const salesReps=Object.keys(_salesRepCounts).sort();
   const csReps=Object.keys(_csRepCounts).sort();
-  // Pods from engagement tracker col H — filter value is "POD:<label>" so it doesn't collide with owner names
-  const _podCounts={};const _scaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
+  // Pod counts:
+  //   • Pod 1-4 — defined by Sales Rep (POD_REPS predicates). Pre-seeded
+  //     to 0 so empty pods still appear in the dropdown.
+  //   • Other pods (Scale / SP / Strategic / Asia / Europe etc.) — from
+  //     the engagement tracker's pod column (d.pod), excluding any name
+  //     that collides with a POD_REPS key (those are owned by the rep
+  //     predicates, not the ET pod field).
+  const _podCounts={};
+  Object.keys(POD_REPS).forEach(p=>{_podCounts[p]=0;});
+  const _scaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
   // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
   const _offPodCounts={};
-  D.forEach(d=>{if(d.pod){_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;}const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;if(_isOffPod(d)){const cp=_csmPod(d.ro);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}});
+  D.forEach(d=>{
+    Object.keys(POD_REPS).forEach(p=>{if(POD_REPS[p](d.ae))_podCounts[p]++;});
+    if(d.pod&&!POD_REPS[d.pod])_podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
+    const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;
+    if(_isOffPod(d)){const cp=_csmPod(d.ro);if(cp)_offPodCounts[cp]=(_offPodCounts[cp]||0)+1;}
+  });
   const pods=Object.keys(_podCounts).sort((a,b)=>{
     // Sort "Pod 1","Pod 2","Pod 3" first (numeric), then others alphabetically
     const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
