@@ -2507,7 +2507,12 @@ function _buildLiveGoalsData(){
     const key=_normKey(acct);
     if(!key)continue;
     if(renewalLookup[key])_renewalDupes.push(`${acct} <-> ${renewalLookup[key].name}`);
-    renewalLookup[key]={stage,rev,offerPrice,se,name:acct,platformId,nameKey:key};
+    // Capture the Renewal Master's Renewal Owner so the GP aggregation can
+    // hold SP accounts (owned by Emilie Welch) out of the GP cohort. SP has
+    // its own retention tab fed by SP_RAW; mixing SPs into GP silently
+    // mis-buckets them as 'Scale' because POOL_MAP has no entry for her.
+    const renewalOwner=String(gc(v,'Renewal Owner','Renewal Owner ')||'').trim();
+    renewalLookup[key]={stage,rev,offerPrice,se,name:acct,platformId,nameKey:key,owner:renewalOwner};
     if(platformId)renewalByPid[platformId]=renewalLookup[key];
   }
   dlog(`=== ACCOUNT RECONCILIATION ===`);
@@ -2541,6 +2546,12 @@ function _buildLiveGoalsData(){
     const rev=renewal?renewal.rev:0;
     const se=renewal?renewal.se:'';
     const csm=r.ro||'';
+    // SP accounts (Emilie Welch's book) are tracked separately in the SP
+    // Retention tab from SP_RAW — skip them on the GP pass so they don't
+    // silently mis-bucket as Scale via the POOL_MAP fallback. Check both
+    // the ET renewal-owner and the RM renewal-owner because either may
+    // identify the row as SP depending on which side has the cleaner data.
+    if(csm==='Emilie Welch'||(renewal&&renewal.owner==='Emilie Welch'))continue;
     const pool=r.seg||POOL_MAP[csm]||'Scale';
     const q=getQ(se);
     const isWon=WON_S.has(stage);
@@ -2607,6 +2618,9 @@ function _buildLiveGoalsData(){
   // Include Renewal Master accounts not found in Engagement Tracker
   for(const [key,renewal] of Object.entries(renewalLookup)){
     if(_matchedRenewal.has(key))continue;
+    // Same SP skip as the ET-matched branch above — keep Emilie Welch's
+    // accounts out of the GP cohort regardless of which branch ingests them.
+    if(renewal.owner==='Emilie Welch')continue;
     const stage=renewal.stage;
     const rev=renewal.rev||0;
     const se=renewal.se||'';
@@ -7724,7 +7738,7 @@ function rGP(){
         <h3 style="margin:0 0 4px 0">Revenue Retention · NRR &amp; Renewed ACV${_gpOwnerLbl}</h3>
         <div class="sh">NRR = 2026 ACV / 2025 cohort ARR · Churn = loss · Declined-early = still in play · All 4 quarters</div>
       </div>
-      <button id="nrr-slack-btn" onclick="_copyNRRSlack()" title="Copy a Slack-ready summary of all four quarters" style="background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,.4);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📋 Copy for Slack</button>
+      <button id="nrr-slack-btn" onclick="_copyNRRSlack()" title="Copy a Slack-ready summary of all four quarters" style="background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,.4);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📋 Copy</button>
     </div>
     <table style="margin-top:6px">
       <thead><tr><th style="text-align:left">Metric</th>${_nrrQs.map(qq=>`<th style="text-align:right${qq===q?';color:var(--accent)':''}">${qq}${qq==='Q1'?' · Closed':qq==='Q2'?' · TD':''}${qq===q?' ★':''}</th>`).join('')}</tr></thead>
