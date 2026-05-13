@@ -689,7 +689,7 @@ document.addEventListener('click',function(e){
   const b=document.getElementById('titleDropBtn');if(b)b.classList.remove('op');
 });
 
-let S={owner:'ALL',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],subMonthsOpen:false,aeDrill:null,tlDrill:null,showAE:true,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',acctSubEndOpen:false,acctSubEndRect:null,engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,goalsOpen:false,forecastPods:[],pipelineSearch:''};
+let S={owner:'ALL_OWNERS',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],subMonthsOpen:false,aeDrill:null,tlDrill:null,showAE:true,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',acctSubEndOpen:false,acctSubEndRect:null,engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,goalsOpen:false,forecastPods:[],pipelineSearch:''};
 // Normalize S.forecastPods: always an array of pod names (use 'SP' for all SPs)
 function _fcNormPods(){if(!Array.isArray(S.forecastPods))S.forecastPods=S.forecastPods?[String(S.forecastPods)]:[];return S.forecastPods;}
 function ssForecastPodToggle(p){
@@ -3361,7 +3361,7 @@ function _render(){
         return x;
       };
       let curLbl;
-      if(sel.mode==='ALL_OWNERS')curLbl='All Owners';
+      if(sel.mode==='ALL_OWNERS')curLbl='All Owners (with SPs)';
       else if(sel.mode==='ALL')curLbl='All Sales Reps';
       else if(sel.items.length===1)curLbl=_fmtItem(sel.items[0]);
       else curLbl=sel.items.length+' selected';
@@ -3369,7 +3369,7 @@ function _render(){
       return `<div class="owner-dd">
         <button id="ownerDropBtn" class="owner-dd-btn${OWNER_DROP_OPEN?' op':''}" onclick="toggleOwnerDrop(event)" title="Filter by Sales Rep / CS Rep / Pod (multi-select, AND across sections)"><span>${curLbl}</span><span class="cr">▾</span></button>
         <div id="ownerDropMenu" class="owner-dd-menu" style="display:${OWNER_DROP_OPEN?'block':'none'}" onclick="event.stopPropagation()">
-          <div class="owner-dd-item${sel.mode==='ALL_OWNERS'?' sel':''}" onclick="pickOwner('ALL_OWNERS')"><span>All Owners</span></div>
+          <div class="owner-dd-item${sel.mode==='ALL_OWNERS'?' sel':''}" onclick="pickOwner('ALL_OWNERS')"><span>All Owners <span style="color:#64748b;font-size:10px;font-weight:400">(with SPs)</span></span></div>
           <div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickOwner('ALL')"><span>All Sales Reps</span></div>
           ${(()=>{
             if(!salesReps.length)return '';
