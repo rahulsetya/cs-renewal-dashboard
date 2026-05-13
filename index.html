@@ -2432,7 +2432,13 @@ function _buildLiveGoalsData(){
   const WON_S=new Set(['9. Invoice Sent','10. Paid']);
   const CHURNED_S=new Set(['11. Churned']);
   const DECLINED_S=new Set(['4a. Attempting again Q2']);
-  function getQ(se){if(!se)return null;const m=parseInt((se.split('-')[1]||'0'));if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return null;}
+  // Returns Q1/Q2/Q3/Q4 only for 2026 sub-end dates. Anything outside
+  // calendar 2026 (2025 stragglers, 2027 forward-dated renewals, etc.)
+  // returns null so the account doesn't get rolled into a 2026 quarterly
+  // bucket. Every quarterly aggregation in the dashboard (GP Retention,
+  // NRR card, etc.) flows through this — so the year guard propagates
+  // automatically.
+  function getQ(se){if(!se)return null;const parts=String(se).split('-');if(parts[0]!=='2026')return null;const m=parseInt(parts[1]||'0');if(m>=1&&m<=3)return'Q1';if(m>=4&&m<=6)return'Q2';if(m>=7&&m<=9)return'Q3';if(m>=10&&m<=12)return'Q4';return null;}
   const grr={};
   // rw  = 2025 base revenue of won accounts (used for GRR / Logo Retention denominators by design)
   // rw26 = 2026 CONTRACTED revenue of those same won accounts (used for the Renewed YTD tile so it
@@ -2713,7 +2719,28 @@ function _buildLiveGoalsData(){
       if(!isNaN(d))return d.getMonth()+1;
       return 0;
     };
-    const _spGetQ=sub=>{const m=_spGetMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
+    // Year extractor — same format coverage as _spGetMo above (ISO,
+    // US slash, Excel serial). Returns 0 when unparseable.
+    const _spGetYr=sub=>{
+      if(sub===null||sub===undefined||sub==='')return 0;
+      const s=String(sub).trim();if(!s)return 0;
+      const n=parseFloat(s);
+      if(!isNaN(n)&&n>=1000&&!s.includes('-')&&!s.includes('/')){
+        const d=new Date((n-25569)*86400*1000);
+        if(!isNaN(d))return d.getUTCFullYear();
+      }
+      const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(iso)return parseInt(iso[1],10);
+      const us=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+      if(us){const y=parseInt(us[3],10);return y<100?(y+2000):y;}
+      const d=new Date(s);
+      if(!isNaN(d))return d.getFullYear();
+      return 0;
+    };
+    // 2026-only year guard, matching the parent getQ() helper. Non-2026
+    // SP sub-ends return null so they don't get rolled into any 2026
+    // quarterly bucket on the SP Retention tab or the NRR card.
+    const _spGetQ=sub=>{if(_spGetYr(sub)!==2026)return null;const m=_spGetMo(sub);return m>=1&&m<=3?'Q1':m>=4&&m<=6?'Q2':m>=7&&m<=9?'Q3':m>=10&&m<=12?'Q4':null;};
     SP_RAW.forEach(r=>{
       const sl=(r.s||'').toLowerCase();
       const isWon=spWonS.has(sl)||['invoice','paid'].some(x=>sl.includes(x));
@@ -7047,17 +7074,24 @@ function rOverview(){
     const _sumProjGP=arr=>arr.reduce((s,a)=>s+(a.rev26||a.rev||0),0);
     const _sumProjSP=arr=>arr.reduce((s,a)=>s+(a.rev26||a.rev25||a.rev||0),0);
     const SP_ALL=(typeof SP_ACCTS!=='undefined'&&SP_ACCTS)?SP_ACCTS:[];
+    // 2026-only year guard. qRM/q are derived from the sub-end month
+    // alone (Jan-Mar → Q1, etc.) so a 2025 or 2027 sub-end would
+    // otherwise be mis-bucketed into the same Q1/Q2/etc. group as 2026.
+    // Use the date prefix on seRM (GP) and se (SP) to keep the cohort
+    // strictly to 2026 renewals — the only year these NRR projections
+    // are meant to describe.
+    const _is26=s=>typeof s==='string'&&s.indexOf('2026')===0;
     const out={};
     ['Q1','Q2','Q3','Q4'].forEach(qq=>{
       // GP side — qRM (Renewal Master Final Sub End Date), inRen=1 only.
-      const gpC=(ACCTS||[]).filter(a=>a.qRM===qq&&a.inRen);
+      const gpC=(ACCTS||[]).filter(a=>a.qRM===qq&&a.inRen&&_is26(a.seRM));
       const gpW=gpC.filter(a=>WSn.includes(a.stage));
       const gpL=gpC.filter(a=>CSn.includes(a.stage));
       const gpD=gpC.filter(a=>DSn.includes(a.stage));
       const gpO=gpC.filter(a=>!WSn.includes(a.stage)&&!CSn.includes(a.stage)&&!DSn.includes(a.stage));
       // SP side — q (derived from SP-tab sub-end date), status field.
       // SP has no declined-early stage — everything is won/churned/open.
-      const spC=SP_ALL.filter(a=>a.q===qq);
+      const spC=SP_ALL.filter(a=>a.q===qq&&_is26(a.se));
       const spW=spC.filter(a=>a.status==='won');
       const spL=spC.filter(a=>a.status==='churned');
       const spO=spC.filter(a=>a.status!=='won'&&a.status!=='churned');
