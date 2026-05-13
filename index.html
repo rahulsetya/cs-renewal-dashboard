@@ -2712,7 +2712,13 @@ function _buildLiveGoalsData(){
     // its own retention tab fed by SP_RAW; mixing SPs into GP silently
     // mis-buckets them as 'Scale' because POOL_MAP has no entry for her.
     const renewalOwner=String(gc(v,'Renewal Owner','Renewal Owner ')||'').trim();
-    renewalLookup[key]={stage,rev,offerPrice,se,name:acct,platformId,nameKey:key,owner:renewalOwner};
+    // Pull the Renewal Master's "CS Rep" and "Sales Rep" columns too —
+    // RM is the source of truth for both. Used to populate csRep / ae
+    // when an account is RM-only (no ET match) and as a fallback when
+    // the ET row is missing those fields.
+    const renewalCsRep=String(gc(v,'CS Rep')||'').trim();
+    const renewalSalesRep=String(gc(v,'Sales Rep','ONSITE REP (iConn + Benchies)','Onsite Rep')||'').trim();
+    renewalLookup[key]={stage,rev,offerPrice,se,name:acct,platformId,nameKey:key,owner:renewalOwner,csRep:renewalCsRep,salesRep:renewalSalesRep};
     if(platformId)renewalByPid[platformId]=renewalLookup[key];
   }
   dlog(`=== ACCOUNT RECONCILIATION ===`);
@@ -2783,8 +2789,16 @@ function _buildLiveGoalsData(){
     const _aaQET=getQ(_aaSeET)||q;
     const _mlPid=etPid||(renewal&&renewal.platformId)||'';
     const _ml=(_mlPid&&MASTER_LIST_BY_PID[_mlPid])||null;
+    // Renewal Master is the source of truth for csRep / Sales Rep —
+    // prefer renewal.csRep / renewal.salesRep over the ET-derived
+    // values when RM has data. Falls back to csm (= ET renewal owner)
+    // and r.ae if RM is blank for this account.
+    const _csRepRm=(renewal&&renewal.csRep)||'';
+    const _salesRepRm=(renewal&&renewal.salesRep)||'';
+    const _csRepFinal=_csRepRm||csm||'';
+    const _aeFinal=_salesRepRm||r.ae||'';
     allAccts.push({
-      n:acct,pool,q:_aaQET||'none',stage,se:_aaSeET,rev,csRep:csm,rsk:r.rsk||0,notes:r.notes||'',
+      n:acct,pool,q:_aaQET||'none',stage,se:_aaSeET,rev,csRep:_csRepFinal,rsk:r.rsk||0,notes:r.notes||'',
       // Capture both date sources separately so the GP Retention drilldown can
       // render them side-by-side. seRM = Renewal Master "Final Sub End Date";
       // seET = Engagement Tracker "Contract End". `se` (above) keeps the
@@ -2797,7 +2811,7 @@ function _buildLiveGoalsData(){
       // No fallback to ET's "2026 Revenue" — accounts without an RM offer
       // price contribute 0 so retention math stays honest about what's
       // actually committed in the renewal master.
-      ae:r.ae||'',seg:r.seg||'',rev26:(renewal&&renewal.offerPrice)||0,rawEnd:r.rawEnd||'',
+      ae:_aeFinal,seg:r.seg||'',rev26:(renewal&&renewal.offerPrice)||0,rawEnd:r.rawEnd||'',
       pod:r.pod||'',txnDone:r.txnDone||0,out:r.out||0,gm:r.gm||0,
       nextTP:r.nextTP||'',expn:r.expn||0,calls:r.calls||{},
       platformId:_mlPid,
@@ -2834,15 +2848,22 @@ function _buildLiveGoalsData(){
     target.logos++;target.rev+=rev;
     const _rmPid=String(renewal.platformId||'').trim();
     const _rmMl=(_rmPid&&MASTER_LIST_BY_PID[_rmPid])||null;
+    // RM-only csRep / Sales Rep come straight from the Renewal Master
+    // ("CS Rep" / "Sales Rep" cols, captured into renewalLookup above).
+    // Falls back to the RM "Renewal Owner" for csRep when CS Rep is
+    // blank in the source so the drilldown never shows '—' when RM
+    // actually has data.
+    const _rmCsRep=renewal.csRep||renewal.owner||'';
+    const _rmSalesRep=renewal.salesRep||'';
     allAccts.push({
-      n:renewal.name,pool:'Scale',q:q||'none',stage,se,rev,csRep:'',rsk:0,notes:'Not in engagement tracker',
+      n:renewal.name,pool:'Scale',q:q||'none',stage,se,rev,csRep:_rmCsRep,rsk:0,notes:'Not in engagement tracker',
       // RM-only account (no ET row) → seET stays empty so the drilldown
       // renders an em-dash for the Engagement Tracker column. qRM mirrors
       // q here since this branch is RM-only.
       seRM:se||'',seET:'',qRM:q||'',
       // rev26 sources from Renewal Master's Offer Price col — the only
       // 2026 number we have for RM-only accounts (no ET row to fall back on).
-      ae:'',seg:'Scale',rev26:renewal.offerPrice||0,rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
+      ae:_rmSalesRep,seg:'Scale',rev26:renewal.offerPrice||0,rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
       platformId:_rmPid,
       addCredits:_rmMl?_rmMl.addCredits:0,miaBooth:_rmMl?_rmMl.miaBooth:0,
       outdated:_rmMl?_rmMl.outdated:0,gvPromo:_rmMl?_rmMl.gvPromo:0,
