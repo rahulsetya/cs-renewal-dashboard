@@ -7065,21 +7065,12 @@ function rOverview(){
   // side. Stashes a Slack-ready text block on window for the global
   // _copyNRRSlack() handler.
   const _nrr=(()=>{
-    const WSn=['9. Invoice Sent','10. Paid'],CSn=['11. Churned'],DSn=['4a. Attempting again Q2'];
+    const WSn=['9. Invoice Sent','10. Paid'],CSn=['11. Churned'];
     const _sum=(arr,k)=>arr.reduce((s,a)=>s+(a[k]||0),0);
-    // Projection value for an in-flight account: prefer the entered
-    // 2026 number (GP: RM Offer Price, SP: SP tab 2026 rev), otherwise
-    // assume a flat renewal at the 2025 baseline. Conservative
-    // best-case for "if everything still in flight closes".
-    const _sumProjGP=arr=>arr.reduce((s,a)=>s+(a.rev26||a.rev||0),0);
-    const _sumProjSP=arr=>arr.reduce((s,a)=>s+(a.rev26||a.rev25||a.rev||0),0);
     const SP_ALL=(typeof SP_ACCTS!=='undefined'&&SP_ACCTS)?SP_ACCTS:[];
-    // 2026-only year guard. qRM/q are derived from the sub-end month
-    // alone (Jan-Mar → Q1, etc.) so a 2025 or 2027 sub-end would
-    // otherwise be mis-bucketed into the same Q1/Q2/etc. group as 2026.
-    // Use the date prefix on seRM (GP) and se (SP) to keep the cohort
-    // strictly to 2026 renewals — the only year these NRR projections
-    // are meant to describe.
+    // Defensive 2026-only guard. The parent's getQ()/_spGetQ() already
+    // refuse non-2026 dates at ingestion; reinforce here so the cohort
+    // can't silently absorb prior- or future-year stragglers.
     const _is26=s=>typeof s==='string'&&s.indexOf('2026')===0;
     const out={};
     ['Q1','Q2','Q3','Q4'].forEach(qq=>{
@@ -7087,14 +7078,10 @@ function rOverview(){
       const gpC=(ACCTS||[]).filter(a=>a.qRM===qq&&a.inRen&&_is26(a.seRM));
       const gpW=gpC.filter(a=>WSn.includes(a.stage));
       const gpL=gpC.filter(a=>CSn.includes(a.stage));
-      const gpD=gpC.filter(a=>DSn.includes(a.stage));
-      const gpO=gpC.filter(a=>!WSn.includes(a.stage)&&!CSn.includes(a.stage)&&!DSn.includes(a.stage));
       // SP side — q (derived from SP-tab sub-end date), status field.
-      // SP has no declined-early stage — everything is won/churned/open.
       const spC=SP_ALL.filter(a=>a.q===qq&&_is26(a.se));
       const spW=spC.filter(a=>a.status==='won');
       const spL=spC.filter(a=>a.status==='churned');
-      const spO=spC.filter(a=>a.status!=='won'&&a.status!=='churned');
       out[qq]={
         cohort:gpC.length+spC.length,
         cohortRev:_sum(gpC,'rev')+_sum(spC,'rev25'),
@@ -7103,10 +7090,6 @@ function rOverview(){
         wonACV:_sum(gpW,'rev26')+_sum(spW,'rev26'),
         lostN:gpL.length+spL.length,
         lostRev:_sum(gpL,'rev')+_sum(spL,'rev25'),
-        decN:gpD.length,decRev:_sum(gpD,'rev'),
-        decProj:_sumProjGP(gpD),
-        openN:gpO.length+spO.length,
-        openProj:_sumProjGP(gpO)+_sumProjSP(spO),
         // Sub-buckets so the Slack export can break GP / SP apart.
         gp:{n:gpC.length,won:gpW.length,wonACV:_sum(gpW,'rev26'),wonRev:_sum(gpW,'rev')},
         sp:{n:spC.length,won:spW.length,wonACV:_sum(spW,'rev26'),wonRev:_sum(spW,'rev25')}
@@ -7115,17 +7098,13 @@ function rOverview(){
     return out;
   })();
   const _nrrToday=d=>d.cohortRev>0?d.wonACV/d.cohortRev*100:0;
-  // NRR projection numerator = won 2026 ACV + (open + declined-early)
-  // projected at their entered 2026 number. Churn stays out (it's lost
-  // revenue); declined-early counts (still in play).
-  const _nrrProj=d=>d.cohortRev>0?(d.wonACV+d.openProj+d.decProj)/d.cohortRev*100:0;
   const _upliftD=d=>d.wonACV-d.wonRev;
   const _upliftP=d=>d.wonRev>0?(d.wonACV/d.wonRev-1)*100:0;
   const _nrrColor=v=>v>=80?'var(--green)':v>=50?'var(--amber)':'var(--red)';
   window._lastNRRSlack=(()=>{
     const lns=[];
     lns.push('Revenue Retention — NRR & Renewed ACV (GP + SP)');
-    lns.push('NRR = 2026 ACV / 2025 cohort ARR · Churn = loss · Declined-early = still in play');
+    lns.push('NRR = 2026 ACV / 2025 cohort ARR · Churn = loss');
     lns.push('');
     ['Q1','Q2','Q3','Q4'].forEach(qq=>{
       const d=_nrr[qq];
@@ -7135,7 +7114,6 @@ function rOverview(){
       lns.push(`  • Renewed: ${d.wonN} accounts · ${fmt(d.wonACV)} ACV (vs ${fmt(d.wonRev)} 2025 baseline)  (GP ${d.gp.won} · ${fmt(d.gp.wonACV)} / SP ${d.sp.won} · ${fmt(d.sp.wonACV)})`);
       if(d.wonRev>0){const u$=_upliftD(d);const uP=_upliftP(d);lns.push(`  • ACV uplift on renewed: ${u$>=0?'+':''}${fmt(u$)} (${uP>=0?'+':''}${uP.toFixed(0)}%)`);}
       lns.push(`  • NRR today: ${_nrrToday(d).toFixed(0)}%`);
-      if(qq!=='Q1')lns.push(`  • NRR projection (open + declined-early close at offer): ${_nrrProj(d).toFixed(0)}%`);
       lns.push(`  • Lost: ${d.lostN} accounts · ${fmt(d.lostRev)} ARR`);
       lns.push('');
     });
@@ -10314,6 +10292,16 @@ function render(){
       for(const qk of['Q1','Q2','Q3','Q4']){
         const q=m.gpL[qk],th=GP_TH[qk]||[0,0,0],c=qCl[q.st],fl=th[0],fu=th[1],ac=th[2];
         const ret=sm==='cum'?q.cR:q.qR,wN=sm==='cum'?q.cW:q.qW,tN=sm==='cum'?q.cT:q.t,pY=sm==='cum'?q.pay:q.qPay;
+        // Projected NRR for this quarter — driven by the same scenario
+        // inputs (open conversion / declined-early conversion / expansion)
+        // that feed the comp model. cNrr is cumulative through this
+        // quarter; qNrr is the quarter on its own. Mirrors the QTR/CUML
+        // toggle so the number matches the retention % above it.
+        const _qr=m.gpR&&m.gpR[qk]||{};
+        const _nrrV=sm==='cum'?(_qr.cNrr||0):(_qr.qNrr||0);
+        const _nrrCol=_nrrV>=100?'var(--gn)':_nrrV>=80?'var(--or)':'var(--rd)';
+        const _nrrBg=_nrrV>=100?'rgba(46,213,115,.05)':_nrrV>=80?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)';
+        const _nrrTitle=`Projected NRR — 2026 contracted revenue ÷ 2025 cohort base, using current scenario inputs (open ${S.oc}% / declined ${S.dc}% / expansion ${S.exp}%). ${sm==='cum'?'Cumulative through '+qk:qk+' only'}.`;
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="display:inline-flex;align-items:baseline;gap:6px"><span style="font-size:12px;font-weight:800;color:${c}">${qk}</span><span class="lv" title="Live · won count for ${qk} — Signed / Invoice Sent / Paid from Renewal Master, independent of scenarios">${q.w} won · ${q.t>0?P(q.w/q.t*100):'0.0%'}</span></span>
@@ -10332,6 +10320,8 @@ function render(){
         } else {
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> closed</div>`;
         }
+        h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${_nrrBg}" title="${_nrrTitle}">
+          Proj NRR: <b style="color:${_nrrCol};font-family:var(--M)">${Math.round(_nrrV)}%</b></div>`;
         h+=`</div>`;
       }
       h+=`</div></div>`;
