@@ -393,6 +393,12 @@ function _itemMatches(item,row){
 // section narrows the result). Empty section = no constraint from that
 // dimension. _comboMode is retained as a no-op for older state shapes.
 let _comboMode='AND';
+// Sales Reps / CS Reps sections in the owner dropdown collapse by default
+// to avoid scrolling past long lists. User can click the section header
+// to expand. Auto-expanded when the section has at least one active pick
+// so it's obvious where the filter lives.
+let _ownerDDExpand={salesReps:false,csReps:false};
+function toggleOwnerDDSec(s){_ownerDDExpand[s]=!_ownerDDExpand[s];render();}
 function _splitItemsByGroup(items){
   const sr=[],csr=[],pod=[],pool=[];
   items.forEach(it=>{
@@ -3365,8 +3371,29 @@ function _render(){
         <div id="ownerDropMenu" class="owner-dd-menu" style="display:${OWNER_DROP_OPEN?'block':'none'}" onclick="event.stopPropagation()">
           <div class="owner-dd-item${sel.mode==='ALL_OWNERS'?' sel':''}" onclick="pickOwner('ALL_OWNERS')"><span>All Owners</span></div>
           <div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickOwner('ALL')"><span>All Sales Reps</span></div>
-          ${salesReps.length?`<div class="owner-dd-grp">Sales Reps</div>${salesReps.map(o=>{const on=_isOwnerPickActive(o);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span><span class="ct">${_salesRepCounts[o]} accts</span></div>`;}).join('')}`:''}
-          ${csReps.length?`<div class="owner-dd-grp">CS Reps</div>${csReps.map(c=>{const v='CSREP:'+c;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('CSREP:${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${_csRepCounts[c]} accts</span></div>`;}).join('')}`:''}
+          ${(()=>{
+            if(!salesReps.length)return '';
+            // Auto-expand when this section has any active pick so the user
+            // sees what's filtered. Picked sales reps are bare strings (no
+            // POD/PODCSM/CSREP/POOL prefix).
+            const srPicks=sel.items.filter(it=>typeof it==='string'&&!it.startsWith('POD:')&&!it.startsWith('PODCSM:')&&!it.startsWith('CSREP:')&&!it.startsWith('POOL:')).length;
+            const open=_ownerDDExpand.salesReps||srPicks>0;
+            const chev=open?'▾':'▸';
+            const pickBadge=srPicks>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">${srPicks} picked</span>`:'';
+            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('salesReps')"><span>Sales Reps <span style="color:#64748b;font-weight:400">(${salesReps.length})</span>${pickBadge}</span><span style="color:#64748b;font-size:11px">${chev}</span></div>`;
+            if(!open)return hdr;
+            return hdr+salesReps.map(o=>{const on=_isOwnerPickActive(o);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span><span class="ct">${_salesRepCounts[o]} accts</span></div>`;}).join('');
+          })()}
+          ${(()=>{
+            if(!csReps.length)return '';
+            const csrPicks=sel.items.filter(it=>typeof it==='string'&&it.startsWith('CSREP:')).length;
+            const open=_ownerDDExpand.csReps||csrPicks>0;
+            const chev=open?'▾':'▸';
+            const pickBadge=csrPicks>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">${csrPicks} picked</span>`:'';
+            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('csReps')"><span>CS Reps <span style="color:#64748b;font-weight:400">(${csReps.length})</span>${pickBadge}</span><span style="color:#64748b;font-size:11px">${chev}</span></div>`;
+            if(!open)return hdr;
+            return hdr+csReps.map(c=>{const v='CSREP:'+c;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('CSREP:${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${_csRepCounts[c]} accts</span></div>`;}).join('');
+          })()}
           ${(_poolCounts.Enterprise+_poolCounts.Strategic+_poolCounts.Scale)>0?`<div class="owner-dd-grp">Pools</div>${['Enterprise','Strategic','Scale'].map(pl=>{const v='POOL:'+pl;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POOL:${pl}')"><span>${cb(on)}${pl}</span><span class="ct">${_poolCounts[pl]} accts</span></div>`;}).join('')}`:''}
           ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
             if(p==='Scale'){
