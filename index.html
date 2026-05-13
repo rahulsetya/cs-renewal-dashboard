@@ -5703,6 +5703,14 @@ function _toggleGPMonth(mn){
   rT('gp_grr');
 }
 function _clearGPMonth(){selGPMonth=[];rT('gp_grr');}
+// Per-quarter month codes, used by the GP Retention month dropdown's
+// "All / None" controls. Mirrors the QML constant inside rGP() so the
+// onclick handlers don't have to reach into closure-local data.
+const _GP_Q_MONTHS={Q1:['01','02','03'],Q2:['04','05','06'],Q3:['07','08','09'],Q4:['10','11','12']};
+function _setAllGPMonths(on){
+  selGPMonth=on?(_GP_Q_MONTHS[_liveSelQ()]||[]).slice():[];
+  rT('gp_grr');
+}
 // ── GP Retention multi-select owner state ───────────────────────────
 // `selGPOwner` is polymorphic — same shape as parent dashboard's S.owner:
 //   'ALL'                        → all CSMs/pods (default)
@@ -8203,8 +8211,29 @@ function rGP(){
       <div>${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===q?'active':''}" onclick="_setSelQ('${qq}');selGPMonth=[];rT('gp_grr')">${qq}${qq==="Q1"?" (Closed)":""}</button>`).join('')}</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--dim);white-space:nowrap">Month:</span>
-        ${QML[q].map(([mn,ml])=>{const cnt=csmFiltered.filter(a=>(a.seRM||'').substring(5,7)===mn).length;const on=selGPMonth.includes(mn);return`<button class="qbtn ${on?'active':''}" style="padding:4px 10px;font-size:11px" onclick="_toggleGPMonth('${mn}')" title="${on?'Click to remove '+ml+' from filter':'Click to add '+ml+' to filter (multi-select)'}">${ml}<span style="font-size:10px;opacity:.7;margin-left:3px">${cnt}</span></button>`;}).join('')}
-        ${selGPMonth.length>1?`<button class="qbtn" style="padding:4px 10px;font-size:11px;color:#fca5a5;border-color:#7f1d1d" onclick="_clearGPMonth()" title="Clear all month selections">✕ Clear (${selGPMonth.length})</button>`:''}
+        ${(()=>{
+          // Multi-select month dropdown — same UX shape as the parent
+          // pipeline's Sub End: Months picker. Uses <details> so the
+          // open/close state lives in the DOM (no separate state var).
+          const months=QML[q];
+          const sc=selGPMonth.length;
+          const totalCnt=months.length;
+          const isOn=sc>0;
+          const lbl=sc===0?'Months':sc===totalCnt?'All months':sc===1?(months.find(m=>m[0]===selGPMonth[0])||['',''])[1]:`${sc} months`;
+          return `<details style="position:relative;display:inline-block">
+            <summary style="background:${isOn?'#0369a1':'#1e293b'};border:1px solid ${isOn?'#0284c7':'#334155'};color:${isOn?'#fff':'var(--dim)'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;list-style:none;user-select:none">${isOn?'✓ ':''}${lbl} ▾</summary>
+            <div style="position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:170px;box-shadow:0 4px 14px rgba(0,0,0,0.5)">
+              <div style="display:flex;gap:6px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid #334155">
+                <button class="sb${sc===totalCnt?' a':''}" style="font-size:10px;padding:3px 10px" onclick="_setAllGPMonths(true)">All</button>
+                <button class="sb${sc===0?' a':''}" style="font-size:10px;padding:3px 10px" onclick="_setAllGPMonths(false)">None</button>
+              </div>
+              ${months.map(([mn,ml])=>{
+                const cnt=csmFiltered.filter(a=>(a.seRM||'').substring(5,7)===mn).length;
+                return `<label style="display:flex;align-items:center;justify-content:space-between;gap:7px;font-size:11px;color:#e2e8f0;cursor:pointer;user-select:none;padding:3px 2px"><span style="display:flex;align-items:center;gap:7px"><input type="checkbox" ${selGPMonth.includes(mn)?'checked':''} onchange="_toggleGPMonth('${mn}')" style="cursor:pointer">${ml}</span><span style="color:var(--dim);font-size:10px">${cnt}</span></label>`;
+              }).join('')}
+            </div>
+          </details>`;
+        })()}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <label style="font-size:12px;color:var(--dim);white-space:nowrap">CSM / Pod:</label>
