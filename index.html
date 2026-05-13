@@ -712,16 +712,17 @@ function _anyFilterActive(){
   if(S.drill||S.aeDrill||S.tlDrill)return true;
   return false;
 }
-// Hide-SPs toggle. Turning it ON also flips the top-right owner filter
-// from "All Owners (with SPs)" → "All Sales Reps" so the dropdown label
+// Hide-SPs toggle. Turning it ON flips the top-right owner filter from
+// "All Owners (with SPs)" → "All Sales Reps" so the dropdown label
 // matches the user's intent to exclude SP accounts. Turning it OFF
-// leaves the owner filter alone — the user may have set a specific pick.
+// flips the inverse (All Sales Reps → All Owners with SPs) so the
+// label stays in sync with the toggle state. Specific picks are left
+// alone in both directions.
 function toggleHideSPs(){
   const turningOn=!S.hideSPs;
   S.hideSPs=turningOn;
-  if(turningOn&&(S.owner==='ALL_OWNERS'||!S.owner)){
-    S.owner='ALL';
-  }
+  if(turningOn&&(S.owner==='ALL_OWNERS'||!S.owner))S.owner='ALL';
+  else if(!turningOn&&S.owner==='ALL')S.owner='ALL_OWNERS';
   render();
 }
 function pickOwner(v){
