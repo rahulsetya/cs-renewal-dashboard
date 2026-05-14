@@ -1201,7 +1201,11 @@ function _mergeSPsIntoD(){
   //   exact same normalization as GP rows — notably "8. Closed Lost" maps to
   //   "4a. Attempting again Q2" (pipeline's re-engageable bucket).
   let unmatched=0;
-  const spRows=SP_RAW.map(r=>{
+  // Scope SPs to 2026 sub-end only — this is the 2026 renewal pipeline, so
+  // SPs that don't renew in 2026 are dropped before they enter D (keeps the
+  // top-line account count, KPIs, and every tab consistent with that scope).
+  const _sp2026=SP_RAW.filter(r=>String(r.sub||'').substring(0,4)==='2026');
+  const spRows=_sp2026.map(r=>{
     const stage=resolveStage(r.s)||'1. Uncontacted';
     if(!resolveStage(r.s))unmatched++;
     const se=r.sub||'';
