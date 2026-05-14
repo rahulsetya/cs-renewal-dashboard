@@ -10816,7 +10816,7 @@ function calc(oc,dc,sc,exp){
   }
 
   // GP Revenue
-  const gpR={};let gcB=0,gcE=0,gcRt=0;
+  const gpR={};let gcB=0,gcE=0,gcRt=0,gcWr=0;
   for(const qk of['Q1','Q2','Q3','Q4']){
     const qr=GPQR[qk];
     const wonRev=qr.wonOff;
@@ -10826,10 +10826,17 @@ function calc(oc,dc,sc,exp){
     const declRev=qr.declBase*dcR*ef;
     const qExp=wonRev+openOffRev+openNoOffRev+declRev;
     const qRet=(wonRev/(RNRR.gp/100))+(qr.openBase*ocR)+(qr.declBase*dcR); // GRR: at 2025 price
-    gcB+=qr.base;gcE+=qExp;gcRt+=qRet;
+    gcB+=qr.base;gcE+=qExp;gcRt+=qRet;gcWr+=wonRev;
+    // qNrrAct / cNrrAct = realized NRR (Won 2026 revenue ÷ 2025 base), no
+    // scenario inputs. Used for past quarters (final) and active quarter
+    // (QTD) — distinct from qNrr/cNrr which fold in scenario projections.
+    // gcWr (cumulative won revenue) named with `r` suffix to avoid clashing
+    // with `gcW` in the gpL (logos) block above.
     gpR[qk]={base:qr.base,wonRev,openOffRev,openNoOffRev,declRev,qExp,qRet,
       qGrr:qr.base>0?qRet/qr.base*100:0,qNrr:qr.base>0?qExp/qr.base*100:0,
-      cB:gcB,cE:gcE,cRt:gcRt,cGrr:gcB>0?gcRt/gcB*100:0,cNrr:gcB>0?gcE/gcB*100:0};
+      qNrrAct:qr.base>0?wonRev/qr.base*100:0,
+      cB:gcB,cE:gcE,cRt:gcRt,cW:gcWr,cGrr:gcB>0?gcRt/gcB*100:0,cNrr:gcB>0?gcE/gcB*100:0,
+      cNrrAct:gcB>0?gcWr/gcB*100:0};
   }
 
   // SP Revenue
@@ -10949,6 +10956,18 @@ function render(){
         const _nrrCol=_nrrV>=100?'var(--gn)':_nrrV>=80?'var(--or)':'var(--rd)';
         const _nrrBg=_nrrV>=100?'rgba(46,213,115,.05)':_nrrV>=80?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)';
         const _nrrTitle=`Projected NRR — 2026 contracted revenue ÷ 2025 cohort base, using current scenario inputs (open ${S.oc}% / declined ${S.dc}% / expansion ${S.exp}%). ${sm==='cum'?'Cumulative through '+qk:qk+' only'}. Dollar value = projected 2026 ACV at these assumptions.`;
+        // Realized NRR (won-only, no scenarios). Shown as "NRR" on closed
+        // quarters (final number) and "QTD NRR" on the active quarter
+        // (so far). Hidden on upcoming/future where there's nothing
+        // realized to show yet — "Proj NRR" alone is meaningful there.
+        const _actV=sm==='cum'?(_qr.cNrrAct||0):(_qr.qNrrAct||0);
+        const _actD=sm==='cum'?(_qr.cW||0):(_qr.wonRev||0);
+        const _actCol=_actV>=100?'var(--gn)':_actV>=80?'var(--or)':'var(--rd)';
+        const _actBg=_actV>=100?'rgba(46,213,115,.05)':_actV>=80?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)';
+        const _isClosed=q.st==='closed',_isActive=q.st==='active';
+        const _actTitle=_isClosed
+          ?`Realized NRR for ${qk} — Won (Invoice Sent / Paid) Annualized 2026 revenue ÷ 2025 cohort base. Final figure; every deal is closed.${sm==='cum'?' Cumulative through '+qk+'.':''}`
+          :`QTD NRR for ${qk} — Won (Invoice Sent / Paid) Annualized 2026 revenue (banked so far) ÷ 2025 cohort base. Updates live as deals close; no scenario inputs.${sm==='cum'?' Cumulative through '+qk+'.':''}`;
         h+=`<div class="qc" style="border:1px solid ${c}22">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <span style="display:inline-flex;align-items:baseline;gap:6px"><span style="font-size:12px;font-weight:800;color:${c}">${qk}</span><span class="lv" title="Live · won count + 2026 won revenue for ${qk} — Signed / Invoice Sent / Paid from Renewal Master. Revenue uses Annualized 2026 Renewal Revenue (blank → $0, no Offer Price fallback).">${q.w} won · ${fS((GPQR[qk]&&GPQR[qk].wonOff)||0)} · ${q.t>0?P(q.w/q.t*100):'0.0%'}</span></span>
@@ -10967,8 +10986,18 @@ function render(){
         } else {
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> closed</div>`;
         }
-        h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${_nrrBg}" title="${_nrrTitle}">
-          Proj NRR: <b style="color:${_nrrCol};font-family:var(--M)">${Math.round(_nrrV)}%</b> <span style="color:var(--mt);font-family:var(--M);font-size:10px">· ${fS(_nrrD)}</span></div>`;
+        if(_isClosed||_isActive){
+          const _lbl=_isClosed?'NRR':'QTD NRR';
+          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${_actBg}" title="${_actTitle}">
+            ${_lbl}: <b style="color:${_actCol};font-family:var(--M)">${Math.round(_actV)}%</b> <span style="color:var(--mt);font-family:var(--M);font-size:10px">· ${fS(_actD)}</span></div>`;
+        }
+        // For closed quarters Proj NRR equals realized NRR by definition
+        // (no open/decl rows left to project), so we hide it to avoid
+        // showing the same number twice on the card.
+        if(!_isClosed){
+          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${_nrrBg}" title="${_nrrTitle}">
+            Proj NRR: <b style="color:${_nrrCol};font-family:var(--M)">${Math.round(_nrrV)}%</b> <span style="color:var(--mt);font-family:var(--M);font-size:10px">· ${fS(_nrrD)}</span></div>`;
+        }
         h+=`</div>`;
       }
       h+=`</div></div>`;
