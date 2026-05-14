@@ -399,8 +399,10 @@ function _itemMatches(item,row){
     // SP pod is authoritative from "All SP Rev 25 & 26" (the __sp flag is set
     // by _mergeSPsIntoD). Don't trust pod='SP' from the engagement tracker
     // alone — that field has been seen mis-tagged on GP accounts.
+    // Scoped to 2026 sub-end only — this is the 2026 renewal pipeline, so
+    // SPs that don't renew in 2026 aren't surfaced under the SP filter.
     if(pod==='SP')
-      return row&&row.__sp===true;
+      return row&&row.__sp===true&&String(row.se||'').substring(0,4)==='2026';
     // "No Pod" = Sales Rep is blank OR doesn't match any POD_REPS predicate.
     // _salesRepPod already returns null for blank ae, so one check covers both.
     // SP rows are excluded — they belong exclusively to the SP filter, not here.
@@ -3575,8 +3577,9 @@ function _render(){
     // to "Scale"), so no separate pod-section count is built here.
     // SP is special-cased — the count must match the filter, which keys off
     // d.__sp (set by _mergeSPsIntoD on the SP sheet), not the ET pod column
-    // (which has been seen mis-tagged on GP accounts).
-    if(d.__sp===true){
+    // (which has been seen mis-tagged on GP accounts). Scoped to 2026 sub-end
+    // so non-2026 SPs don't inflate the count.
+    if(d.__sp===true&&String(d.se||'').substring(0,4)==='2026'){
       _podCounts['SP']=(_podCounts['SP']||0)+1;
     }
     if(d.pod&&!POD_REPS[d.pod]&&d.pod!=='Scale'&&d.pod!=='SP'){
