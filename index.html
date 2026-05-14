@@ -403,8 +403,9 @@ function _itemMatches(item,row){
       return row&&row.__sp===true;
     // "No Pod" = Sales Rep is blank OR doesn't match any POD_REPS predicate.
     // _salesRepPod already returns null for blank ae, so one check covers both.
+    // SP rows are excluded — they belong exclusively to the SP filter, not here.
     if(pod==='No Pod')
-      return row&&_salesRepPod(row)===null;
+      return row&&!row.__sp&&_salesRepPod(row)===null;
     // Pod 1-4 are defined by Sales Rep via POD_REPS (Pod 1 = Juliet,
     // Pod 2 = Earl/Sebastian, Pod 3 = David Johnson/Jake, Pod 4 = Marc/James).
     // This pulls in those reps' accounts across every pool (incl. Scale),
@@ -3563,7 +3564,9 @@ function _render(){
         _matchedAnyPod=true;
       }
     });
-    if(!_matchedAnyPod){
+    // SP rows are excluded from "No Pod" — they belong exclusively to the SP
+    // filter (which keys off d.__sp, set by _mergeSPsIntoD on the SP sheet).
+    if(!_matchedAnyPod&&!d.__sp){
       _noPodCount++;
       const _sn=_aeShortName(d.ae);
       if(_sn)_noPodShortNames[_sn]=1;
