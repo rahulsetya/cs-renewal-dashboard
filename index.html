@@ -5729,14 +5729,42 @@ rGP=function(){
             // Excel column letter helper (0-indexed). 0–25 → A–Z, 26+ → AA–ZZ.
             const _colLet=i=>i<26?String.fromCharCode(65+i):String.fromCharCode(65+Math.floor(i/26)-1)+String.fromCharCode(65+(i%26));
             const _hdrLbls=_MT_COLS.map(i=>{const h=String(_hdrRow[i]||'').trim();return h||`col ${_colLet(i)}`;});
-            // Currency-like cells get $ formatting; everything else renders as
-            // plain text. Detect by header label substring (revenue / price).
+            // Currency-like cells get $ formatting; date-like cells normalize
+            // to YYYY-MM-DD (handles Excel serial numbers, ISO, and US
+            // MM/DD/YYYY strings); everything else renders as plain text.
             const _isMoneyHdr=h=>/\b(revenue|price|rev|arr|acv|amount)\b/i.test(h);
             const _isDateHdr=h=>/\b(date|end|sub)\b/i.test(h);
+            // Normalize whatever date shape Excel hands us to YYYY-MM-DD.
+            // Falls back to the original string if no parser matches.
+            const _fmtDate=val=>{
+              if(val===null||val===undefined||val==='')return '';
+              const s=String(val).trim();if(!s)return '';
+              // Already ISO YYYY-MM-DD / YYYY-MM-DDTHH:MM:SS
+              const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+              if(iso)return `${iso[1]}-${iso[2]}-${iso[3]}`;
+              // US MM/DD/YYYY or M/D/YY
+              const us=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+              if(us){let y=parseInt(us[3],10);if(y<100)y+=2000;return `${y}-${us[1].padStart(2,'0')}-${us[2].padStart(2,'0')}`;}
+              // Excel serial date number (e.g. 46387) — bare digits only,
+              // not embedded in a longer string.
+              const n=parseFloat(s);
+              if(!isNaN(n)&&n>=1000&&n<80000&&!s.includes('-')&&!s.includes('/')){
+                const d=new Date((n-25569)*86400*1000);
+                if(!isNaN(d)){
+                  const y=d.getUTCFullYear(),m=String(d.getUTCMonth()+1).padStart(2,'0'),dd=String(d.getUTCDate()).padStart(2,'0');
+                  return `${y}-${m}-${dd}`;
+                }
+              }
+              return s;
+            };
             const _fmtCell=(val,hdr)=>{
               if(val===null||val===undefined||val==='')return '<span style="color:#475569">—</span>';
               const s=String(val).trim();
               if(!s)return '<span style="color:#475569">—</span>';
+              if(_isDateHdr(hdr)){
+                const fd=_fmtDate(val);
+                return fd?`<span style="font-family:ui-monospace,monospace;color:#cbd5e1">${_esc(fd)}</span>`:'<span style="color:#475569">—</span>';
+              }
               const n=parseFloat(s.replace(/[,$\s]/g,''));
               if(_isMoneyHdr(hdr)&&!isNaN(n)&&isFinite(n))return _fmtNum(n);
               return _esc(s);
