@@ -3144,7 +3144,10 @@ function _buildLiveForecastData(pods){
     const openWOff=openRows.filter(x=>x.o>0).reduce((a,x)=>a+(x.o||0),0);
     const openBase=openRows.reduce((a,x)=>a+(x.r25||0),0);
     const declBase=declRows.reduce((a,x)=>a+(x.r25||0),0);
-    gpqr[qk]={base,wonOff,wonBase,openWOff,openBase,declBase};
+    // 2025 base of churned rows — surfaces per-quarter "Confirmed Churn"
+    // revenue on the forecast top-tile quarterly view.
+    const churnRev=rows.filter(x=>CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0);
+    gpqr[qk]={base,wonOff,wonBase,openWOff,openBase,declBase,churnRev};
   }
 
   // ── SP sub-end-date override from Renewal Master ────────────────────────
@@ -10757,7 +10760,7 @@ const SCEN={
   best:{l:"Best",c:"#2ed573",oc:65,dc:25,sc:55,exp:140},
 };
 
-const _SDEF={tab:'quarterly',seg:'total',oc:50,dc:15,sc:40,exp:130,stairMode:'qtr'};
+const _SDEF={tab:'quarterly',seg:'total',oc:50,dc:15,sc:40,exp:130,stairMode:'qtr',fcQtr:'all'};
 var S=(function(){try{const j=JSON.parse(localStorage.getItem('forecast_S')||'{}');return Object.assign({},_SDEF,j);}catch(e){return Object.assign({},_SDEF);}})();
 function _saveS(){try{localStorage.setItem('forecast_S',JSON.stringify(S));}catch(e){}}
 
@@ -10876,23 +10879,78 @@ function calc(oc,dc,sc,exp){
 function render(){
   const m=calc(S.oc,S.dc,S.sc,S.exp);
   const seg=S.seg; // 'total','gp','sp'
-  // Pick metrics for current segment
-  const sBase=seg==='gp'?m.gpBase:seg==='sp'?m.spRev.base:m.allBase;
-  const sExp=seg==='gp'?m.gpExp:seg==='sp'?m.spRev.totExp:m.allExp;
-  const sGrr=seg==='gp'?m.gpGrr:seg==='sp'?m.spRev.grr:m.allGrr;
-  const sNrr=seg==='gp'?m.gpNrr:seg==='sp'?m.spRev.nrr:m.allNrr;
-  // Renewal NRR — GP is computed live when raw pipeline data is present
-  // (m.gpRnrrLive !== null), else falls back to static plan benchmark.
-  // SP stays hardcoded because SP_RAW has no 2025-vs-2026 offer pairing.
-  const gpRNRRsrc=(m.gpRnrrLive!=null)?m.gpRnrrLive:RNRR.gp;
-  const sRNRR=seg==='sp'?RNRR.sp:gpRNRRsrc;
-  const sRNRRlive=seg!=='sp'&&m.gpRnrrLive!=null;
-  const sWon=seg==='gp'?GP.W:seg==='sp'?SP.W:GP.W+SP.W;
-  const sTotal=seg==='gp'?GP.T:seg==='sp'?SP.T:GP.T+SP.T;
-  const sProjWon=seg==='gp'?m.gpL.Q4.cW:seg==='sp'?m.spTW:m.allLogos.projWon;
-  const sProjRet=sTotal>0?sProjWon/sTotal*100:0;
-  const sChurnRev=seg==='gp'?GP.churnRev:seg==='sp'?SP_REV.churnRev:GP.churnRev+SP_REV.churnRev;
-  const sChurnN=seg==='gp'?GP.C:seg==='sp'?SP.C:GP.C+SP.C;
+  // Quarter scope for the top tiles. 'all' = full year (default).
+  // Otherwise per-quarter slice — every tile re-derives from per-Q data.
+  const _qSel=S.fcQtr||'all',_isAll=_qSel==='all';
+  // Per-quarter availability for SP: live spq_q has rev/rw/rl per Q;
+  // static SPQ_Q fallback doesn't. We just use whatever's present.
+  let sBase,sExp,sGrr,sNrr,sRNRR,sRNRRlive,sWon,sTotal,sProjWon,sProjRet,sChurnRev,sChurnN;
+  if(_isAll){
+    // Full-year (legacy) values.
+    sBase=seg==='gp'?m.gpBase:seg==='sp'?m.spRev.base:m.allBase;
+    sExp=seg==='gp'?m.gpExp:seg==='sp'?m.spRev.totExp:m.allExp;
+    sGrr=seg==='gp'?m.gpGrr:seg==='sp'?m.spRev.grr:m.allGrr;
+    sNrr=seg==='gp'?m.gpNrr:seg==='sp'?m.spRev.nrr:m.allNrr;
+    // Renewal NRR — GP is computed live when raw pipeline data is present
+    // (m.gpRnrrLive !== null), else falls back to static plan benchmark.
+    // SP stays hardcoded because SP_RAW has no 2025-vs-2026 offer pairing.
+    const gpRNRRsrc=(m.gpRnrrLive!=null)?m.gpRnrrLive:RNRR.gp;
+    sRNRR=seg==='sp'?RNRR.sp:gpRNRRsrc;
+    sRNRRlive=seg!=='sp'&&m.gpRnrrLive!=null;
+    sWon=seg==='gp'?GP.W:seg==='sp'?SP.W:GP.W+SP.W;
+    sTotal=seg==='gp'?GP.T:seg==='sp'?SP.T:GP.T+SP.T;
+    sProjWon=seg==='gp'?m.gpL.Q4.cW:seg==='sp'?m.spTW:m.allLogos.projWon;
+    sProjRet=sTotal>0?sProjWon/sTotal*100:0;
+    sChurnRev=seg==='gp'?GP.churnRev:seg==='sp'?SP_REV.churnRev:GP.churnRev+SP_REV.churnRev;
+    sChurnN=seg==='gp'?GP.C:seg==='sp'?SP.C:GP.C+SP.C;
+  }else{
+    // Per-quarter slice. GP draws from gpR/gpL/GPQ/GPQR; SP from SPQ_Q
+    // (which has live rev/rw/rl when live data is injected).
+    const qk=_qSel;
+    const _gR=(m.gpR&&m.gpR[qk])||{};
+    const _gL=(m.gpL&&m.gpL[qk])||{};
+    const _gQ=GPQ[qk]||{};
+    const _gqr=GPQR[qk]||{};
+    const _sQ=SPQ_Q[qk]||{};
+    // GP per-quarter
+    const _gBase=_gR.base||0,_gExp=_gR.qExp||0,_gGrr=_gR.qGrr||0,_gNrr=_gR.qNrr||0;
+    const _gWon=_gQ.w||0,_gTot=_gQ.t||0,_gProjW=_gL.qW||0,_gProjR=_gL.qR||0;
+    const _gChN=_gQ.c||0,_gChR=_gqr.churnRev||0;
+    const _gWonBase=_gqr.wonBase||0,_gWonOff=_gqr.wonOff||0;
+    const _gRNRR=_gWonBase>0?(_gWonOff/_gWonBase*100):0;
+    // SP per-quarter — rev/rl/w/t come straight from spq_q. Projections
+    // (NRR/GRR/Exp/ProjRet) split the full-year SP totals proportionally
+    // by this quarter's share of the SP base — rough estimate, since the
+    // SP-side pipeline math is full-year only. The segment toggle to GP
+    // gives precise per-quarter numbers; SP per-Q values are guidance.
+    const _sBase=_sQ.rev||0,_sChR=_sQ.rl||0,_sWon=_sQ.w||0,_sTot=_sQ.t||0,_sChN=_sQ.c||0;
+    const _spShare=(m.spRev.base>0&&_sBase>0)?(_sBase/m.spRev.base):0;
+    const _sExp=(m.spRev.totExp||0)*_spShare;
+    const _sNrr=_sBase>0?(_sExp/_sBase*100):0;
+    const _sGrr=_sNrr*0.85;
+    const _sProjW=_sWon+Math.round((_sQ.o||0)*(S.oc/100));
+    // Segment-aware composition for tile values
+    sBase=seg==='gp'?_gBase:seg==='sp'?_sBase:(_gBase+_sBase);
+    sExp=seg==='gp'?_gExp:seg==='sp'?_sExp:(_gExp+_sExp);
+    sChurnRev=seg==='gp'?_gChR:seg==='sp'?_sChR:(_gChR+_sChR);
+    sWon=seg==='gp'?_gWon:seg==='sp'?_sWon:(_gWon+_sWon);
+    sTotal=seg==='gp'?_gTot:seg==='sp'?_sTot:(_gTot+_sTot);
+    sProjWon=seg==='gp'?_gProjW:seg==='sp'?_sProjW:(_gProjW+_sProjW);
+    sProjRet=sTotal>0?(sProjWon/sTotal*100):0;
+    sChurnN=seg==='gp'?_gChN:seg==='sp'?_sChN:(_gChN+_sChN);
+    sNrr=seg==='gp'?_gNrr:seg==='sp'?_sNrr:(sBase>0?(sExp/sBase*100):0);
+    if(seg==='gp')sGrr=_gGrr;
+    else if(seg==='sp')sGrr=_sGrr;
+    else{
+      // Combined GRR — (gpRet$ + spRet$) / (gpBase + spBase). gpRet$ comes
+      // from m.gpR[qk].qRet; sp rough = _sBase * _sGrr / 100.
+      const gpRet=_gR.qRet||0;
+      const spRet=_sBase>0?(_sBase*_sGrr/100):0;
+      sGrr=(_gBase+_sBase)>0?((gpRet+spRet)/(_gBase+_sBase)*100):0;
+    }
+    sRNRR=seg==='sp'?RNRR.sp:_gRNRR;
+    sRNRRlive=seg!=='sp'&&_gWonBase>0;
+  }
   const eoyPay=seg==='sp'?m.spPay.Q4||0:m.gpL.Q4.pay;
 
   let h='';
@@ -10905,20 +10963,32 @@ function render(){
   h+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px">
     <div><div style="font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--pu),var(--pk),var(--sa));-webkit-background-clip:text;-webkit-text-fill-color:transparent">iConnections — Retention & Revenue Forecast</div>
     <div style="font-size:12px;color:var(--mt);margin-top:2px">${_hdrD.getFullYear()} · ${GP.T.toLocaleString()} GP + ${SP.T} SP · ${fS(_hdrTot)} · Baseline: <span title="2025 actual GP logo retention rate — the starting point against which 2026 quarterly thresholds (floor / full / accel) are set" style="border-bottom:1px dotted currentColor;cursor:help">50.05%</span> · ${_hdrDate}</div></div>
-    <div style="display:flex;gap:3px">
-      ${[['total','Total'],['gp','GP'],['sp','SP']].map(([k,l])=>`<button class="pl ${seg===k?'a':''}" onclick="setSeg('${k}')">${l}</button>`).join('')}
+    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+      <div style="display:flex;gap:3px">
+        ${[['total','Total'],['gp','GP'],['sp','SP']].map(([k,l])=>`<button class="pl ${seg===k?'a':''}" onclick="setSeg('${k}')">${l}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:3px" title="Slice the top tiles by quarter. Full Year = legacy view (default).">
+        <button class="pl ${_qSel==='all'?'a':''}" onclick="setFcQtr('all')">Full Year</button>
+        ${['Q1','Q2','Q3','Q4'].map(q=>`<button class="pl ${_qSel===q?'a':''}" onclick="setFcQtr('${q}')">${q}</button>`).join('')}
+      </div>
     </div></div>`;
 
   // ── TOP TILES ──
   const _esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // When sliced by quarter, append the quarter label to the tile sub-text
+  // so it's obvious at a glance which slice these figures represent.
+  const _qSfx=_isAll?'':` · ${_qSel}`;
+  // SP per-Q projections are proportional approximations — flag the affected
+  // tiles in their tooltip so the difference is visible on hover.
+  const _spApprox=(!_isAll&&seg==='sp')?' [SP per-Q approximation: full-year SP projection × this quarter\'s share of SP base]':'';
   const tiles=[
-    {l:"Won Today",v:`${sWon}/${sTotal}`,c:'var(--tx)',s:P(sWon/sTotal*100)+' current',t:`Count of logos already at a won stage (Signed / Invoice Sent / Paid) ÷ total logos in scope. Snapshot only — no pipeline projection.`},
-    {l:"Proj Logo Ret",v:P(sProjRet),c:cl(sProjRet,seg==='sp'?SP_TH.Q4[1]:GP_TH.Q4[1]),s:`${sProjWon}/${sTotal} logos`,t:`(Won + Open × Open-Conv% + Declined × Re-eng%) ÷ total logos. Closed quarters count actuals only; sliders move future quarters.`},
-    {l:"Renewal NRR",v:P(sRNRR),c:sRNRR>=100?'var(--gn)':'var(--rd)',s:sRNRRlive?'live · won deals':'SP benchmark',t:sRNRRlive?`Live: sum of 2026 offer across all won GP rows ÷ sum of 2025 base on same rows × 100. Recomputes as renewals close. Drifts from the 137.2% plan benchmark as the won mix changes.`:`Static plan benchmark (SP 83.0%) — SP_RAW has revenue per account but no 2026 offer field, so a live per-account NRR can't be computed. GP switches to live when pipeline data loads.`},
-    {l:"Projected NRR",v:P(sNrr),c:cl(sNrr,90),s:'full book w/ pipeline',t:`(Won ARR at offered expansion + Open × Open-Conv% × Expansion + Declined × Re-eng% × Expansion) ÷ 2025 base. 100%+ means the book grows net of churn.`},
-    {l:"Projected GRR",v:P(sGrr),c:cl(sGrr,70),s:'rev at 2025 price',t:`Retention revenue held flat at 2025 price (strips offered expansion): (Won ÷ 1.37 + Open × Open-Conv% + Declined × Re-eng%) ÷ 2025 base.`},
-    {l:"Expected Rev",v:$2(sExp),c:'var(--pk)',s:`of ${$(sBase)} base`,t:`Dollar amount of Projected NRR: Won ARR with expansion + pipeline × conv × expansion. The $ view of the percentage shown in Projected NRR.`},
-    {l:"Confirmed Churn",v:`${sChurnN} accts`,c:'var(--rd)',s:fS(sChurnRev),t:`Count of accounts at stage '11. Churned' and their 2025 ARR. Realized loss — no projection or slider effect.`},
+    {l:"Won Today",v:`${sWon}/${sTotal}`,c:'var(--tx)',s:(sTotal>0?P(sWon/sTotal*100):'0.0%')+' current'+_qSfx,t:`Count of logos already at a won stage (Signed / Invoice Sent / Paid) ÷ total logos in scope. Snapshot only — no pipeline projection.${_isAll?'':' Scope: '+_qSel+' only.'}`},
+    {l:"Proj Logo Ret",v:P(sProjRet),c:cl(sProjRet,seg==='sp'?SP_TH.Q4[1]:GP_TH.Q4[1]),s:`${sProjWon}/${sTotal} logos${_qSfx}`,t:`(Won + Open × Open-Conv% + Declined × Re-eng%) ÷ total logos. Closed quarters count actuals only; sliders move future quarters.${_isAll?'':' Scope: '+_qSel+' only.'}`},
+    {l:"Renewal NRR",v:P(sRNRR),c:sRNRR>=100?'var(--gn)':'var(--rd)',s:(sRNRRlive?'live · won deals':'SP benchmark')+_qSfx,t:sRNRRlive?`Live: sum of 2026 Annualized across all won GP rows ÷ sum of 2025 base on same rows × 100. Recomputes as renewals close.${_isAll?'':' Scope: '+_qSel+' only.'}`:`Static plan benchmark (SP 83.0%) — SP_RAW has revenue per account but no 2026 offer field, so a live per-account NRR can't be computed. GP switches to live when pipeline data loads.${_spApprox}`},
+    {l:"Projected NRR",v:P(sNrr),c:cl(sNrr,90),s:'full book w/ pipeline'+_qSfx,t:`(Won ARR at offered expansion + Open × Open-Conv% × Expansion + Declined × Re-eng% × Expansion) ÷ 2025 base. 100%+ means the book grows net of churn.${_isAll?'':' Scope: '+_qSel+' only.'}${_spApprox}`},
+    {l:"Projected GRR",v:P(sGrr),c:cl(sGrr,70),s:'rev at 2025 price'+_qSfx,t:`Retention revenue held flat at 2025 price (strips offered expansion): (Won ÷ 1.37 + Open × Open-Conv% + Declined × Re-eng%) ÷ 2025 base.${_isAll?'':' Scope: '+_qSel+' only.'}${_spApprox}`},
+    {l:"Expected Rev",v:$2(sExp),c:'var(--pk)',s:`of ${$(sBase)} base${_qSfx}`,t:`Dollar amount of Projected NRR: Won ARR with expansion + pipeline × conv × expansion. The $ view of the percentage shown in Projected NRR.${_isAll?'':' Scope: '+_qSel+' only.'}${_spApprox}`},
+    {l:"Confirmed Churn",v:`${sChurnN} accts`,c:'var(--rd)',s:fS(sChurnRev)+_qSfx,t:`Count of accounts at stage '11. Churned' and their 2025 ARR. Realized loss — no projection or slider effect.${_isAll?'':' Scope: '+_qSel+' only.'}`},
   ];
   h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:4px;margin-bottom:8px">${tiles.map(t=>
     `<div class="kt" data-tt="${_esc(t.t||'')}" style="background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:4px 3px;text-align:center">
@@ -11215,6 +11285,7 @@ function sidebar(m,seg){
 function setTab(t){S.tab=t;_saveS();render()}
 function setSeg(v){S.seg=v;_saveS();render()}
 function setStair(m){S.stairMode=m;_saveS();render()}
+function setFcQtr(q){S.fcQtr=q;_saveS();render()}
 function setS(k,v){S[k]=v;_saveS();render()}
 function bumpS(k,d){const mx=k==='exp'?180:100,mn=k==='exp'?80:0;S[k]=Math.max(mn,Math.min(mx,(S[k]||0)+d));_saveS();render()}
 function applySc(k){const s=SCEN[k];S.oc=s.oc;S.dc=s.dc;S.sc=s.sc;S.exp=s.exp;_saveS();render()}
