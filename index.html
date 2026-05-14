@@ -401,6 +401,10 @@ function _itemMatches(item,row){
     // alone — that field has been seen mis-tagged on GP accounts.
     if(pod==='SP')
       return row&&row.__sp===true;
+    // "No Pod" = Sales Rep is blank OR doesn't match any POD_REPS predicate.
+    // _salesRepPod already returns null for blank ae, so one check covers both.
+    if(pod==='No Pod')
+      return row&&_salesRepPod(row)===null;
     // Pod 1-4 are defined by Sales Rep via POD_REPS (Pod 1 = Juliet,
     // Pod 2 = Earl/Sebastian, Pod 3 = David Johnson/Jake, Pod 4 = Marc/James).
     // This pulls in those reps' accounts across every pool (incl. Scale),
@@ -3526,6 +3530,20 @@ function _render(){
   // Off-pod = CSM is on a tracked pod (Pods 1–4) but Sales Rep isn't in that pod's rep list.
   // Counted by the CSM's pod (where the friction is), not the engagement-tracker pod.
   const _offPodCounts={};
+  // Per-pod unique "First L." rep names (for dropdown tooltips) and a count of
+  // accounts whose Sales Rep matches no POD_REPS predicate (the "No Pod" bucket
+  // — includes blank AE rows since _salesRepPod returns null for blank).
+  const _aeShortName=ae=>{
+    const s=String(ae||'').trim();
+    if(!s)return '';
+    const parts=s.split(/\s+/);
+    if(parts.length===1)return parts[0];
+    return parts[0]+' '+parts[parts.length-1].charAt(0).toUpperCase()+'.';
+  };
+  const _podShortNames={};
+  Object.keys(POD_REPS).forEach(p=>{_podShortNames[p]={};});
+  let _noPodCount=0;
+  const _noPodShortNames={};
   D.forEach(d=>{
     // Aggregate per-pod by CS Rep. RENEWAL_OWNER_ALIAS still rolls the
     // Scale-support CSMs (Phoebe / Jovin / Bryan / etc.) up under one
@@ -3535,12 +3553,21 @@ function _render(){
     // its canonical name — the rename is display-only.
     const _csmAliased=(RENEWAL_OWNER_ALIAS[String(d.csRep||'').trim().toLowerCase()]||String(d.csRep||'').trim())||'(no CS Rep)';
     const csmKey=_csmAliased==='Support iConnections'?'Scale':_csmAliased;
+    let _matchedAnyPod=false;
     Object.keys(POD_REPS).forEach(p=>{
       if(POD_REPS[p](d.ae)){
         _podCounts[p]++;
         _podCsmCounts[p][csmKey]=(_podCsmCounts[p][csmKey]||0)+1;
+        const _sn=_aeShortName(d.ae);
+        if(_sn)_podShortNames[p][_sn]=1;
+        _matchedAnyPod=true;
       }
     });
+    if(!_matchedAnyPod){
+      _noPodCount++;
+      const _sn=_aeShortName(d.ae);
+      if(_sn)_noPodShortNames[_sn]=1;
+    }
     // Scale lives in the CS Reps section now (via displayCsRep's rollup
     // to "Scale"), so no separate pod-section count is built here.
     if(d.pod&&!POD_REPS[d.pod]&&d.pod!=='Scale'){
@@ -3641,7 +3668,9 @@ function _render(){
             const offOn=_isOwnerPickActive('POD:'+p+':OFF');
             // Stop propagation on the off-pod chip so clicking it doesn't also toggle the parent pod row.
             const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} ${p} account${off===1?'':'s'} whose CS Rep isn't on ${p}'s canonical CSM list (Sales Rep ${POD_CSMS[p]&&POD_CSMS[p].length?'in pod, CS Rep elsewhere':'mismatch'})">⚠ ${off} off-pod</span>`:'';
-            let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
+            const _podAeNames=Object.keys(_podShortNames[p]||{}).sort();
+            const _podAeTitle=_podAeNames.length?` title="Accounts with AE = &quot;${_podAeNames.join(', ').replace(/"/g,'&quot;')}&quot;"`:'';
+            let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"${_podAeTitle}><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
             // Per-pod CSM sub-rows: every CSM whose accounts roll into this
             // pod, sorted by count desc. Picking a sub-row narrows to that
             // Pod × CSM. Expanded for:
@@ -3662,7 +3691,15 @@ function _render(){
               });
             }
             return podHtml;
-          }).join('')}`:''}
+          }).join('')}${(()=>{
+            // "No Pod" — accounts whose Sales Rep is blank or doesn't match
+            // any POD_REPS predicate. Rendered after the predicate-driven pod
+            // rows so it visually anchors the bottom of the Pods section.
+            const _npOn=_isOwnerPickActive('POD:No Pod');
+            const _npNames=Object.keys(_noPodShortNames).sort();
+            const _npTitle=_npNames.length?` title="Accounts with AE = &quot;${_npNames.join(', ').replace(/"/g,'&quot;')}&quot;"`:'';
+            return `<div class="owner-dd-item${_npOn?' sel':''}" onclick="pickOwner('POD:No Pod')"${_npTitle}><span>${cb(_npOn)}No Pod</span><span class="ct">${_noPodCount} accts</span></div>`;
+          })()}`:''}
         </div>
       </div>`;})()}
   </div></div>`;
