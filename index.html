@@ -2679,7 +2679,18 @@ let _revBaseClicks=0,_revBaseTimer=null;
 function _revBaseClick(){_revBaseClicks++;if(_revBaseTimer)clearTimeout(_revBaseTimer);_revBaseTimer=setTimeout(()=>{_revBaseClicks=0;},3000);if(_revBaseClicks>=7){_revBaseClicks=0;S.dexOpen=!S.dexOpen;render();}}
 function _closeDex(){S.dexOpen=false;render();}
 function _setDexSrc(v){S.dexSrc=v;render();}
-function _setDexStage(v){S.dexStage=v;render();}
+// Generic multi-select helpers for the explorer overlay. Each filter is
+// keyed off an S[key] array (S.dexStages / S.dexAEs / S.dexCsReps).
+// `open` state lives at S[key+'Open'] so the dropdown stays visible
+// across the render that fires when an option is toggled.
+function _toggleDexFilter(key,val){
+  if(!Array.isArray(S[key]))S[key]=[];
+  const arr=S[key];const i=arr.indexOf(val);
+  if(i>=0)arr.splice(i,1);else arr.push(val);
+  render();
+}
+function _clearDexFilter(key){S[key]=[];render();}
+function _toggleDexMenu(key,ev){if(ev){ev.preventDefault();ev.stopPropagation();}S[key+'Open']=!S[key+'Open'];render();}
 function _setDexYear(v){S.dexYear=v;render();}
 function _setDexSearch(v){S.dexSearch=v;const f=document.getElementById('_dex_search');render();const f2=document.getElementById('_dex_search');if(f2){f2.focus();f2.setSelectionRange(v.length,v.length);}}
 function _setDexSort(col){const cur=S.dexSort||{col:'acct',dir:'asc'};if(cur.col===col)S.dexSort={col,dir:cur.dir==='asc'?'desc':'asc'};else S.dexSort={col,dir:'asc'};render();}
@@ -5542,18 +5553,37 @@ rGP=function(){
         raw:r,_origStage:r.s||''};
     });
     const _allRows=_gpRows.concat(_spRows);
-    // Active filters.
-    const _src=S.dexSrc||'all',_stg=S.dexStage||'',_yr=S.dexYear||'all',_q=String(S.dexSearch||'').trim().toLowerCase();
+    // Active filters. Default source to 'GP' so the user sees the requested
+    // 11 Master Tracker columns the moment the overlay opens — they can flip
+    // to 'all' or 'SP' anytime via the source pills.
+    const _src=S.dexSrc||'GP';
+    const _stgs=Array.isArray(S.dexStages)?S.dexStages:[];
+    const _aes=Array.isArray(S.dexAEs)?S.dexAEs:[];
+    const _csReps=Array.isArray(S.dexCsReps)?S.dexCsReps:[];
+    const _yr=S.dexYear||'all',_q=String(S.dexSearch||'').trim().toLowerCase();
     const _sort=S.dexSort||{col:'acct',dir:'asc'};
     const _filtered=_allRows.filter(r=>{
       if(_src!=='all'&&r.src!==_src)return false;
-      if(_stg&&r.stage!==_stg)return false;
+      if(_stgs.length>0&&!_stgs.includes(r.stage))return false;
+      if(_aes.length>0&&!_aes.includes(r.ae||'(blank)'))return false;
+      if(_csReps.length>0&&!_csReps.includes(r.csRep||'(blank)'))return false;
       if(_yr!=='all'){
-        const y=String(r.subEnd||'').substring(0,4);
+        const se=String(r.subEnd||'');
+        const y=se.substring(0,4);
         if(_yr==='blank'){if(y)return false;}
+        else if(_yr.indexOf('-Q')===4){
+          // "2026-Q2" form: year+quarter combined filter
+          if(y!==_yr.substring(0,4))return false;
+          const m=parseInt(se.substring(5,7),10)||0;
+          const q=_yr.charAt(_yr.length-1);
+          if(q==='1'&&!(m>=1&&m<=3))return false;
+          if(q==='2'&&!(m>=4&&m<=6))return false;
+          if(q==='3'&&!(m>=7&&m<=9))return false;
+          if(q==='4'&&!(m>=10&&m<=12))return false;
+        }
         else if(y!==_yr)return false;
       }
-      if(_q&&!String(r.acct).toLowerCase().includes(_q)&&!String(r.owner).toLowerCase().includes(_q)&&!String(r.ae).toLowerCase().includes(_q))return false;
+      if(_q&&!String(r.acct).toLowerCase().includes(_q)&&!String(r.owner).toLowerCase().includes(_q)&&!String(r.ae).toLowerCase().includes(_q)&&!String(r.csRep||'').toLowerCase().includes(_q))return false;
       return true;
     });
     // Sort.
@@ -5584,11 +5614,28 @@ rGP=function(){
     };
     // Unfiltered totals — so the user can see "filtered N of M".
     const _cAll={total:_allRows.length,gp:_gpRows.length,sp:_spRows.length};
-    // Stage option list — sorted, with counts in the unfiltered set.
+    // Stage / AE / CS Rep / year+quarter option lists with counts on the
+    // unfiltered set so the user sees the universe before filters apply.
     const _stgCounts={};_allRows.forEach(r=>{const s=r.stage||'(blank)';_stgCounts[s]=(_stgCounts[s]||0)+1;});
     const _stgOpts=Object.keys(_stgCounts).sort();
+    const _aeCounts={};_allRows.forEach(r=>{const a=r.ae||'(blank)';_aeCounts[a]=(_aeCounts[a]||0)+1;});
+    const _aeOpts=Object.keys(_aeCounts).sort((a,b)=>{if(a==='(blank)')return 1;if(b==='(blank)')return -1;return a.localeCompare(b);});
+    const _csCounts={};_allRows.forEach(r=>{const c=r.csRep||'(blank)';_csCounts[c]=(_csCounts[c]||0)+1;});
+    const _csOpts=Object.keys(_csCounts).sort((a,b)=>{if(a==='(blank)')return 1;if(b==='(blank)')return -1;return a.localeCompare(b);});
     const _yrCounts={};_allRows.forEach(r=>{const y=String(r.subEnd||'').substring(0,4)||'(blank)';_yrCounts[y]=(_yrCounts[y]||0)+1;});
     const _yrs=Object.keys(_yrCounts).filter(y=>y!=='(blank)').sort();
+    // 2026 quarter buckets — counts per Q so the dropdown shows the split
+    // beneath the 2026 year option.
+    const _qCounts={'2026-Q1':0,'2026-Q2':0,'2026-Q3':0,'2026-Q4':0};
+    _allRows.forEach(r=>{
+      const se=String(r.subEnd||'');
+      if(se.substring(0,4)!=='2026')return;
+      const m=parseInt(se.substring(5,7),10)||0;
+      if(m>=1&&m<=3)_qCounts['2026-Q1']++;
+      else if(m>=4&&m<=6)_qCounts['2026-Q2']++;
+      else if(m>=7&&m<=9)_qCounts['2026-Q3']++;
+      else if(m>=10&&m<=12)_qCounts['2026-Q4']++;
+    });
     const _esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const _ar=col=>_sort.col===col?(_sort.dir==='asc'?' ▲':' ▼'):'';
     const _th=(col,lbl,align)=>`<th onclick="_setDexSort('${col}')" style="position:sticky;top:0;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:${align||'left'};cursor:pointer;user-select:none;border-bottom:1px solid #334155;white-space:nowrap">${lbl}${_ar(col)}</th>`;
@@ -5596,8 +5643,44 @@ rGP=function(){
     const _MAX=500;
     const _shown=_filtered.slice(0,_MAX);
     const _btn=(active,onclick,label)=>`<button onclick="${onclick}" style="background:${active?'#2563eb':'#1e293b'};border:1px solid ${active?'#1d4ed8':'#334155'};color:${active?'#fff':'#94a3b8'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${label}</button>`;
-    const _stgSel=`<select onchange="_setDexStage(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;min-width:160px"><option value="">All stages (${_cAll.total})</option>${_stgOpts.map(s=>`<option value="${_esc(s)}"${_stg===s?' selected':''}>${_esc(s)} (${_stgCounts[s]})</option>`).join('')}</select>`;
-    const _yrSel=`<select onchange="_setDexYear(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;min-width:120px"><option value="all">All sub-end yrs</option>${_yrs.map(y=>`<option value="${y}"${_yr===y?' selected':''}>${y} (${_yrCounts[y]})</option>`).join('')}<option value="blank"${_yr==='blank'?' selected':''}>(blank) (${_yrCounts['(blank)']||0})</option></select>`;
+    // Generic checkbox-dropdown for multi-select filters (stages / AEs / CS reps).
+    // `key` is the state field on S — toggling an option flips that array,
+    // re-renders, and reopens the menu (open state is tracked via S[key+'Open']).
+    const _mkMs=(label,opts,counts,key)=>{
+      const sel=Array.isArray(S[key])?S[key]:[];
+      const open=!!S[key+'Open'];
+      const lbl=sel.length===0?'All '+label+'s':sel.length===1?_esc(sel[0]):sel.length+' '+label+'s';
+      return `<details ${open?'open':''} style="position:relative;display:inline-block">
+        <summary onclick="_toggleDexMenu('${key}',event)" style="background:${sel.length?'#0369a1':'#1e293b'};border:1px solid ${sel.length?'#0284c7':'#334155'};color:${sel.length?'#fff':'#cbd5e1'};padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;list-style:none;user-select:none;white-space:nowrap">${sel.length?'✓ ':''}${lbl} ▾</summary>
+        <div style="position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px;max-height:340px;overflow:auto;min-width:240px;box-shadow:0 4px 14px rgba(0,0,0,0.5)">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:0 2px 6px;margin-bottom:4px;border-bottom:1px solid #334155">
+            <span style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px">${label} · ${opts.length}</span>
+            ${sel.length?`<button onclick="_clearDexFilter('${key}')" style="font-size:10px;padding:2px 8px;background:transparent;color:#ef4444;border:1px solid rgba(239,68,68,.4);border-radius:4px;cursor:pointer;font-family:inherit">Clear (${sel.length})</button>`:''}
+          </div>
+          ${opts.map(o=>`<label style="display:flex;align-items:center;gap:7px;font-size:11px;color:#e2e8f0;cursor:pointer;user-select:none;padding:3px 2px"><input type="checkbox" ${sel.includes(o)?'checked':''} onchange="_toggleDexFilter('${key}',this.value)" value="${_esc(o)}" style="cursor:pointer"><span style="flex:1">${_esc(o)}</span><span style="color:#64748b;font-size:10px">${counts[o]||0}</span></label>`).join('')}
+        </div>
+      </details>`;
+    };
+    const _stgSel=_mkMs('stage',_stgOpts,_stgCounts,'dexStages');
+    const _aeSel=_mkMs('Sales Rep',_aeOpts,_aeCounts,'dexAEs');
+    const _csRepSel=_mkMs('CS Rep',_csOpts,_csCounts,'dexCsReps');
+    // Year + quarter dropdown — single <select>. 2026 quarter sub-options are
+    // listed beneath the 2026 year row so the user can scope to a quarter
+    // without an extra control.
+    const _yrSel=`<select onchange="_setDexYear(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;min-width:140px">
+      <option value="all">All sub-end yrs</option>
+      ${_yrs.map(y=>{
+        let s=`<option value="${y}"${_yr===y?' selected':''}>${y} (${_yrCounts[y]})</option>`;
+        if(y==='2026'){
+          s+=['Q1','Q2','Q3','Q4'].map(q=>{
+            const v='2026-'+q;
+            return `<option value="${v}"${_yr===v?' selected':''}>  ↳ 2026 ${q} (${_qCounts[v]})</option>`;
+          }).join('');
+        }
+        return s;
+      }).join('')}
+      <option value="blank"${_yr==='blank'?' selected':''}>(blank) (${_yrCounts['(blank)']||0})</option>
+    </select>`;
     const _fmtNum=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1e3?'$'+(v/1e3).toFixed(0)+'K':'$'+Math.round(v);
     dexOverlay.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#020617;border-bottom:1px solid #1e293b;gap:12px;flex-shrink:0">
@@ -5614,9 +5697,11 @@ rGP=function(){
           ${_btn(_src==='SP','_setDexSrc(\'SP\')','SP — All SP Rev ('+_cAll.sp+')')}
         </div>
         ${_stgSel}
+        ${_aeSel}
+        ${_csRepSel}
         ${_yrSel}
-        <input id="_dex_search" type="text" placeholder="Search account / owner / AE…" value="${_esc(S.dexSearch||'')}" oninput="_setDexSearch(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:5px 10px;border-radius:6px;font-size:11px;font-family:inherit;flex:1;min-width:200px;max-width:340px">
-        ${(_src!=='all'||_stg||_yr!=='all'||_q)?`<button onclick="S.dexSrc='all';S.dexStage='';S.dexYear='all';S.dexSearch='';render()" style="background:transparent;border:1px solid #ef4444;color:#ef4444;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Clear filters</button>`:''}
+        <input id="_dex_search" type="text" placeholder="Search account / owner / AE / CS…" value="${_esc(S.dexSearch||'')}" oninput="_setDexSearch(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:5px 10px;border-radius:6px;font-size:11px;font-family:inherit;flex:1;min-width:200px;max-width:320px">
+        ${(_src!=='GP'||_stgs.length||_aes.length||_csReps.length||_yr!=='all'||_q)?`<button onclick="S.dexSrc='GP';S.dexStages=[];S.dexAEs=[];S.dexCsReps=[];S.dexYear='all';S.dexSearch='';render()" style="background:transparent;border:1px solid #ef4444;color:#ef4444;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Clear filters</button>`:''}
       </div>
       <div style="padding:10px 18px;background:#0a0f1e;border-bottom:1px solid #1e293b;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#94a3b8;flex-shrink:0">
         <span><b style="color:#e2e8f0">${_c.total.toLocaleString()}</b> of ${_cAll.total.toLocaleString()} rows</span>
@@ -5641,7 +5726,9 @@ rGP=function(){
           if(_src==='GP'){
             const _MT_COLS=[4,6,7,8,12,15,24,52,53,54,66];
             const _hdrRow=(GP_RAW_ROWS&&GP_RAW_ROWS[GP_RAW_HDR])||[];
-            const _hdrLbls=_MT_COLS.map(i=>{const h=String(_hdrRow[i]||'').trim();return h||`col ${String.fromCharCode(65+Math.floor(i/26)-1)+String.fromCharCode(65+(i%26))}`;});
+            // Excel column letter helper (0-indexed). 0–25 → A–Z, 26+ → AA–ZZ.
+            const _colLet=i=>i<26?String.fromCharCode(65+i):String.fromCharCode(65+Math.floor(i/26)-1)+String.fromCharCode(65+(i%26));
+            const _hdrLbls=_MT_COLS.map(i=>{const h=String(_hdrRow[i]||'').trim();return h||`col ${_colLet(i)}`;});
             // Currency-like cells get $ formatting; everything else renders as
             // plain text. Detect by header label substring (revenue / price).
             const _isMoneyHdr=h=>/\b(revenue|price|rev|arr|acv|amount)\b/i.test(h);
