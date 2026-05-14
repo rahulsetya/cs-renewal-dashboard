@@ -6137,7 +6137,15 @@ const SP_TIER = [{t:"Contributing",c:43},{t:"Silver",c:14},{t:"Gold",c:10},{t:"P
 const PC = {Enterprise:"#3b82f6",Strategic:"#8b5cf6",Scale:"#06b6d4","Service Provider":"#f43f5e",Total:"#10b981"};
 
 // ── HELPERS ─────────────────────────────────────────
-const fmt = n => n>=1e6?`$${(n/1e6).toFixed(1)}M`:n>=1e3?`$${(n/1e3).toFixed(0)}K`:`$${Math.round(n)}`;
+const fmt = n => {
+  // Split sign from magnitude so the K/M decision works for negatives too —
+  // otherwise -529465 falls through to "$-529465" instead of "-$529K".
+  if(n==null||!isFinite(n))return '$0';
+  const a=Math.abs(n),sign=n<0?'-':'';
+  if(a>=1e6)return `${sign}$${(a/1e6).toFixed(1)}M`;
+  if(a>=1e3)return `${sign}$${(a/1e3).toFixed(0)}K`;
+  return `${sign}$${Math.round(a)}`;
+};
 const fmtSE = s => {if(!s)return'—';const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1];};
 function _rcSaveSnap(){
   const snap={gpRetention:{},cadence:{}};
