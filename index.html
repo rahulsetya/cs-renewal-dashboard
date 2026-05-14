@@ -3573,16 +3573,19 @@ function _render(){
     }
     // Scale lives in the CS Reps section now (via displayCsRep's rollup
     // to "Scale"), so no separate pod-section count is built here.
-    if(d.pod&&!POD_REPS[d.pod]&&d.pod!=='Scale'){
+    // SP is special-cased — the count must match the filter, which keys off
+    // d.__sp (set by _mergeSPsIntoD on the SP sheet), not the ET pod column
+    // (which has been seen mis-tagged on GP accounts).
+    if(d.__sp===true){
+      _podCounts['SP']=(_podCounts['SP']||0)+1;
+    }
+    if(d.pod&&!POD_REPS[d.pod]&&d.pod!=='Scale'&&d.pod!=='SP'){
       _podCounts[d.pod]=(_podCounts[d.pod]||0)+1;
       // Per-CSM breakdown for non-Pod-1-4 d.pod entries (Asia, Europe, etc.)
       // — same shape as POD_REPS pods so the dropdown can expand them.
-      // SP is atomic so skip its CSM aggregation. Strategic is excluded
-      // from the dropdown entirely below.
-      if(d.pod!=='SP'){
-        if(!_podCsmCounts[d.pod])_podCsmCounts[d.pod]={};
-        _podCsmCounts[d.pod][csmKey]=(_podCsmCounts[d.pod][csmKey]||0)+1;
-      }
+      // Strategic is excluded from the dropdown entirely below.
+      if(!_podCsmCounts[d.pod])_podCsmCounts[d.pod]={};
+      _podCsmCounts[d.pod][csmKey]=(_podCsmCounts[d.pod][csmKey]||0)+1;
     }
     const sub=_scaleSubPod(d);if(sub)_scaleSubCounts[sub]++;
     // Off-pod count goes against the Sales-Rep-derived pod, not the
