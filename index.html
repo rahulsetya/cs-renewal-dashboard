@@ -2873,7 +2873,14 @@ function _buildLiveGoalsData(){
     // either renewal-owner names Emilie Welch, OR the account appears on
     // the "All SP Rev 25 & 26" tab (the authoritative SP list). Any one
     // is sufficient.
-    if(csm==='Emilie Welch'||(renewal&&renewal.owner==='Emilie Welch')||_isSPName(acct))continue;
+    // Source-based GP cohort: Master Tracker rows are GP, period. Removed the
+    // _isSPName(acct) name-match reclassification — overlap accounts (in both
+    // Master Tracker and All SP Rev 25 & 26) now stay in the GP cohort here
+    // and the SP cohort is built separately from SP_RAW. This is what makes
+    // Goals' GP-won count line up with the main Pipeline's "Hide SPs" GP-won.
+    // Emilie Welch checks kept defensively — she's the SP CSM and shouldn't
+    // appear in Master Tracker, but the guard protects against bad data.
+    if(csm==='Emilie Welch'||(renewal&&renewal.owner==='Emilie Welch'))continue;
     const pool=r.seg||POOL_MAP[csm]||'Scale';
     const q=getQ(se);
     const isWon=WON_S.has(stage);
@@ -2953,7 +2960,9 @@ function _buildLiveGoalsData(){
     // Same SP skip as the ET-matched branch above — keep SP accounts out
     // of the GP cohort regardless of which branch ingests them. Checks
     // both the RM renewal-owner and the SP_RAW name set.
-    if(renewal.owner==='Emilie Welch'||_isSPName(renewal.name))continue;
+    // Source-based: Master Tracker rows are GP regardless of name overlap
+    // with the SP sheet (see comment on the ET pass above).
+    if(renewal.owner==='Emilie Welch')continue;
     const stage=renewal.stage;
     const rev=renewal.rev||0;
     const se=renewal.se||'';
@@ -3293,8 +3302,12 @@ function _buildLiveForecastData(pods){
     // Always compute live aggregates from the filtered SP source (top-bar count
     // already reflects the Exclude-for-attainment filter; _spAll additionally
     // reflects the active pod filter when present).
+    // 2026 scope: skip any SP row whose sub-end isn't in 2026. Mirrors the
+    // per-quarter filter below so totals reconcile with the quarter sums and
+    // with the main Pipeline's 2026-scoped SP filter.
     let T=0,W=0,C=0,Dc=0,base=0,wonBase=0,openBase=0,churnRev=0;
     _spAll.forEach(r=>{
+      if(getSpQ(_spSub(r))===null)return;
       T++;base+=r.r||0;
       if(spIsWon(r.s)){W++;wonBase+=r.r||0;}
       else if(spIsChurn(r.s)){C++;churnRev+=r.r||0;}
