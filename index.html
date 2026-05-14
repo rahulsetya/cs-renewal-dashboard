@@ -2669,6 +2669,18 @@ function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_sp
 let _acctTabClicks=0,_acctTabTimer=null;
 function _acctTabClick(){_acctTabClicks++;if(_acctTabTimer)clearTimeout(_acctTabTimer);_acctTabTimer=setTimeout(()=>{_acctTabClicks=0;},3000);if(_acctTabClicks>=5){_acctTabClicks=0;S.forecastOpen=!S.forecastOpen;_syncHash();render();}}
 function _closeForecast(){S.forecastOpen=false;_syncHash();render();}
+// Renewal Master data explorer — opens an overlay showing every row from
+// the Master Tracker (GP) sheet and the All SP Rev 25 & 26 (SP) sheet,
+// tagged by source. 7 clicks on the "2025 Revenue (Base)" KPI within 3s
+// toggles it. Lets you verify the underlying cohort and filter counts.
+let _revBaseClicks=0,_revBaseTimer=null;
+function _revBaseClick(){_revBaseClicks++;if(_revBaseTimer)clearTimeout(_revBaseTimer);_revBaseTimer=setTimeout(()=>{_revBaseClicks=0;},3000);if(_revBaseClicks>=7){_revBaseClicks=0;S.dexOpen=!S.dexOpen;render();}}
+function _closeDex(){S.dexOpen=false;render();}
+function _setDexSrc(v){S.dexSrc=v;render();}
+function _setDexStage(v){S.dexStage=v;render();}
+function _setDexYear(v){S.dexYear=v;render();}
+function _setDexSearch(v){S.dexSearch=v;const f=document.getElementById('_dex_search');render();const f2=document.getElementById('_dex_search');if(f2){f2.focus();f2.setSelectionRange(v.length,v.length);}}
+function _setDexSort(col){const cur=S.dexSort||{col:'acct',dir:'asc'};if(cur.col===col)S.dexSort={col,dir:cur.dir==='asc'?'desc':'asc'};else S.dexSort={col,dir:'asc'};render();}
 function _closeGoals(){S.goalsOpen=false;_syncHash();render();}
 // Reflect overlay state in the URL hash so it's shareable / bookmarkable.
 // history.replaceState avoids polluting the back-button history.
@@ -3745,7 +3757,7 @@ function _render(){
       </div>`;})()}
   </div></div>`;
   h+=`<div class="rv" style="grid-template-columns:1fr 1fr">
-    <div class="rc" style="border-left:3px solid #fbbf24"><h4>2025 Revenue (Base)</h4><div style="display:flex;align-items:baseline;gap:16px"><div class="rb" style="color:#fbbf24">${fm(r25T)}</div><div style="font-size:28px;font-weight:700;color:#94a3b8">${tot}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px">accounts</span></div></div></div>
+    <div class="rc" style="border-left:3px solid #fbbf24" onclick="_revBaseClick()"><h4 style="cursor:default;user-select:none">2025 Revenue (Base)</h4><div style="display:flex;align-items:baseline;gap:16px"><div class="rb" style="color:#fbbf24;cursor:default;user-select:none">${fm(r25T)}</div><div style="font-size:28px;font-weight:700;color:#94a3b8">${tot}<span style="font-size:13px;font-weight:500;color:#64748b;margin-left:4px">accounts</span></div></div></div>
     <div class="rc" style="border-left:3px solid #22d3ee"><h4><span onclick="_wbKpiClick()" style="cursor:default;user-select:none">2026</span> Offer Price</h4><div class="rb" style="color:#22d3ee">${fm(offT)}</div><div class="rd">Gap: <span style="color:#ef4444;font-weight:600">${fm(gap)}</span> (${pct(gap,r25T)}% uncovered)</div></div>
   </div>`;
   h+=`<div class="g g6">`;
@@ -5506,6 +5518,154 @@ rGP=function(){
     requestAnimationFrame(()=>{const fr=document.getElementById('_forecast_iframe');if(fr&&fr.contentDocument){fr.contentDocument.open();fr.contentDocument.write(src);fr.contentDocument.close();}});
   }else{
     if(forecastOverlay)forecastOverlay.style.display='none';
+  }
+  // Renewal-master data explorer — unified view of Master Tracker (GP)
+  // and All SP Rev 25 & 26 (SP) rows, both sourced from the renewal master.
+  let dexOverlay=document.getElementById('_dex_overlay');
+  if(S.dexOpen){
+    if(!dexOverlay){dexOverlay=document.createElement('div');dexOverlay.id='_dex_overlay';dexOverlay.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(5,10,20,.95);display:flex;flex-direction:column;font-family:inherit';document.body.appendChild(dexOverlay);}
+    dexOverlay.style.display='flex';
+    // Build unified row set.
+    //   GP rows = D rows from Master Tracker (where __sp !== true).
+    //   SP rows = SP_RAW (already Exclude-for-attainment-filtered at parse).
+    const _gpRows=(D||[]).filter(d=>!d.__sp).map(d=>({
+      src:'GP',acct:d.c||'',stage:d.s||'',owner:d.ro||'',ae:d.ae||'',
+      subEnd:d.se||'',r25:d.r25||0,r26:_rev2026(d)||0,pod:d.pod||'',csRep:d.csRep||'',
+      raw:d
+    }));
+    const _spRows=(SP_RAW||[]).map(r=>{
+      const stage=resolveStage(r.s)||r.s||'';
+      return{src:'SP',acct:r.n||'',stage,owner:r.o||'Emilie Welch',ae:r.ae||'',
+        subEnd:r.sub||'',r25:r.r25||0,r26:r.r26||0,pod:'SP',csRep:'Emilie Welch',
+        raw:r,_origStage:r.s||''};
+    });
+    const _allRows=_gpRows.concat(_spRows);
+    // Active filters.
+    const _src=S.dexSrc||'all',_stg=S.dexStage||'',_yr=S.dexYear||'all',_q=String(S.dexSearch||'').trim().toLowerCase();
+    const _sort=S.dexSort||{col:'acct',dir:'asc'};
+    const _filtered=_allRows.filter(r=>{
+      if(_src!=='all'&&r.src!==_src)return false;
+      if(_stg&&r.stage!==_stg)return false;
+      if(_yr!=='all'){
+        const y=String(r.subEnd||'').substring(0,4);
+        if(_yr==='blank'){if(y)return false;}
+        else if(y!==_yr)return false;
+      }
+      if(_q&&!String(r.acct).toLowerCase().includes(_q)&&!String(r.owner).toLowerCase().includes(_q)&&!String(r.ae).toLowerCase().includes(_q))return false;
+      return true;
+    });
+    // Sort.
+    const _dir=_sort.dir==='asc'?1:-1;
+    _filtered.sort((a,b)=>{
+      const av=a[_sort.col],bv=b[_sort.col];
+      if(typeof av==='number'&&typeof bv==='number')return (av-bv)*_dir;
+      return String(av||'').localeCompare(String(bv||''))*_dir;
+    });
+    // Won / churn classification (per user spec): Won = Invoice Sent / Paid;
+    // Churned = "11. Churned". Mirrors WON_STAGES_2026 + CHURNED_S.
+    const _WON=new Set(['9. Invoice Sent','10. Paid']);
+    const _CHR=new Set(['11. Churned']);
+    const _isW=r=>_WON.has(r.stage);
+    const _isC=r=>_CHR.has(r.stage);
+    // Counts on the filtered set so the user sees how filters move the totals.
+    const _c={
+      total:_filtered.length,
+      gp:_filtered.filter(r=>r.src==='GP').length,
+      sp:_filtered.filter(r=>r.src==='SP').length,
+      won:_filtered.filter(_isW).length,
+      gpWon:_filtered.filter(r=>r.src==='GP'&&_isW(r)).length,
+      spWon:_filtered.filter(r=>r.src==='SP'&&_isW(r)).length,
+      chr:_filtered.filter(_isC).length,
+      r25Sum:_filtered.reduce((a,r)=>a+(r.r25||0),0),
+      r26Sum:_filtered.reduce((a,r)=>a+(r.r26||0),0),
+      wonR26:_filtered.filter(_isW).reduce((a,r)=>a+(r.r26||0),0),
+    };
+    // Unfiltered totals — so the user can see "filtered N of M".
+    const _cAll={total:_allRows.length,gp:_gpRows.length,sp:_spRows.length};
+    // Stage option list — sorted, with counts in the unfiltered set.
+    const _stgCounts={};_allRows.forEach(r=>{const s=r.stage||'(blank)';_stgCounts[s]=(_stgCounts[s]||0)+1;});
+    const _stgOpts=Object.keys(_stgCounts).sort();
+    const _yrCounts={};_allRows.forEach(r=>{const y=String(r.subEnd||'').substring(0,4)||'(blank)';_yrCounts[y]=(_yrCounts[y]||0)+1;});
+    const _yrs=Object.keys(_yrCounts).filter(y=>y!=='(blank)').sort();
+    const _esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const _ar=col=>_sort.col===col?(_sort.dir==='asc'?' ▲':' ▼'):'';
+    const _th=(col,lbl,align)=>`<th onclick="_setDexSort('${col}')" style="position:sticky;top:0;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:${align||'left'};cursor:pointer;user-select:none;border-bottom:1px solid #334155;white-space:nowrap">${lbl}${_ar(col)}</th>`;
+    // Limit rendered rows so giant filtered sets stay snappy.
+    const _MAX=500;
+    const _shown=_filtered.slice(0,_MAX);
+    const _btn=(active,onclick,label)=>`<button onclick="${onclick}" style="background:${active?'#2563eb':'#1e293b'};border:1px solid ${active?'#1d4ed8':'#334155'};color:${active?'#fff':'#94a3b8'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${label}</button>`;
+    const _stgSel=`<select onchange="_setDexStage(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;min-width:160px"><option value="">All stages (${_cAll.total})</option>${_stgOpts.map(s=>`<option value="${_esc(s)}"${_stg===s?' selected':''}>${_esc(s)} (${_stgCounts[s]})</option>`).join('')}</select>`;
+    const _yrSel=`<select onchange="_setDexYear(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:5px 8px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;min-width:120px"><option value="all">All sub-end yrs</option>${_yrs.map(y=>`<option value="${y}"${_yr===y?' selected':''}>${y} (${_yrCounts[y]})</option>`).join('')}<option value="blank"${_yr==='blank'?' selected':''}>(blank) (${_yrCounts['(blank)']||0})</option></select>`;
+    const _fmtNum=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1e3?'$'+(v/1e3).toFixed(0)+'K':'$'+Math.round(v);
+    dexOverlay.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:#020617;border-bottom:1px solid #1e293b;gap:12px;flex-shrink:0">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#e2e8f0">Renewal Master Explorer</div>
+          <div style="font-size:11px;color:#64748b;margin-top:2px">Master Tracker (GP) + All SP Rev 25 &amp; 26 (SP) — unified from the renewal master</div>
+        </div>
+        <button onclick="_closeDex()" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button>
+      </div>
+      <div style="padding:10px 18px;background:#0a0f1e;border-bottom:1px solid #1e293b;display:flex;gap:10px;flex-wrap:wrap;align-items:center;flex-shrink:0">
+        <div style="display:flex;gap:4px">
+          ${_btn(_src==='all','_setDexSrc(\'all\')','All ('+_cAll.total+')')}
+          ${_btn(_src==='GP','_setDexSrc(\'GP\')','GP — Master Tracker ('+_cAll.gp+')')}
+          ${_btn(_src==='SP','_setDexSrc(\'SP\')','SP — All SP Rev ('+_cAll.sp+')')}
+        </div>
+        ${_stgSel}
+        ${_yrSel}
+        <input id="_dex_search" type="text" placeholder="Search account / owner / AE…" value="${_esc(S.dexSearch||'')}" oninput="_setDexSearch(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:5px 10px;border-radius:6px;font-size:11px;font-family:inherit;flex:1;min-width:200px;max-width:340px">
+        ${(_src!=='all'||_stg||_yr!=='all'||_q)?`<button onclick="S.dexSrc='all';S.dexStage='';S.dexYear='all';S.dexSearch='';render()" style="background:transparent;border:1px solid #ef4444;color:#ef4444;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Clear filters</button>`:''}
+      </div>
+      <div style="padding:10px 18px;background:#0a0f1e;border-bottom:1px solid #1e293b;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#94a3b8;flex-shrink:0">
+        <span><b style="color:#e2e8f0">${_c.total.toLocaleString()}</b> of ${_cAll.total.toLocaleString()} rows</span>
+        <span style="color:#475569">·</span>
+        <span><span style="color:#10b981;font-weight:700">GP ${_c.gp}</span> · <span style="color:#f43f5e;font-weight:700">SP ${_c.sp}</span></span>
+        <span style="color:#475569">·</span>
+        <span style="color:#34d399">Won: <b>${_c.won}</b> <span style="color:#64748b">(GP ${_c.gpWon} · SP ${_c.spWon})</span></span>
+        <span style="color:#475569">·</span>
+        <span style="color:#ef4444">Churned: <b>${_c.chr}</b></span>
+        <span style="color:#475569">·</span>
+        <span style="color:#fbbf24">2025 Rev: <b>${_fmtNum(_c.r25Sum)}</b></span>
+        <span style="color:#475569">·</span>
+        <span style="color:#22d3ee">Won 2026 Rev: <b>${_fmtNum(_c.wonR26)}</b></span>
+        ${_filtered.length>_MAX?`<span style="color:#fb923c;margin-left:auto">⚠ showing first ${_MAX} of ${_filtered.length} rows — narrow filters to see more</span>`:''}
+      </div>
+      <div style="flex:1;overflow:auto;padding:0">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;color:#e2e8f0">
+          <thead><tr>
+            ${_th('src','Src','left')}
+            ${_th('acct','Account','left')}
+            ${_th('stage','Stage','left')}
+            ${_th('owner','Renewal Owner','left')}
+            ${_th('ae','Sales Rep','left')}
+            ${_th('subEnd','Sub End','left')}
+            ${_th('r25','2025 Rev','right')}
+            ${_th('r26','2026 Rev','right')}
+          </tr></thead>
+          <tbody>
+            ${_shown.map(r=>{
+              const _wonRow=_isW(r),_chrRow=_isC(r);
+              const _srcChip=r.src==='GP'
+                ?'<span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">GP</span>'
+                :'<span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">SP</span>';
+              const _stCol=_wonRow?'#34d399':_chrRow?'#ef4444':'#94a3b8';
+              return `<tr style="border-bottom:1px solid #1e293b">
+                <td style="padding:6px 10px">${_srcChip}</td>
+                <td style="padding:6px 10px;color:#e2e8f0">${_esc(r.acct)}</td>
+                <td style="padding:6px 10px;color:${_stCol}">${_esc(r.stage||'—')}</td>
+                <td style="padding:6px 10px;color:#94a3b8">${_esc(r.owner||'—')}</td>
+                <td style="padding:6px 10px;color:#94a3b8">${_esc(r.ae||'—')}</td>
+                <td style="padding:6px 10px;color:#94a3b8;font-family:ui-monospace,monospace;font-size:11px">${_esc(r.subEnd||'—')}</td>
+                <td style="padding:6px 10px;text-align:right;color:#fbbf24;font-family:ui-monospace,monospace">${r.r25>0?_fmtNum(r.r25):'—'}</td>
+                <td style="padding:6px 10px;text-align:right;color:#22d3ee;font-family:ui-monospace,monospace">${r.r26>0?_fmtNum(r.r26):'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        ${_filtered.length===0?`<div style="padding:40px;text-align:center;color:#64748b;font-size:13px">No rows match the current filters.</div>`:''}
+      </div>`;
+  }else{
+    if(dexOverlay)dexOverlay.style.display='none';
   }
 } // end _render
 // Route on browser back/forward/manual hash edits without reloading the page.
