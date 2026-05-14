@@ -1783,6 +1783,11 @@ const OFFER_COLS=[
 // / Total Contract Value). This is the 2026-attributable revenue,
 // not the total contract value (which can include 2027+ for multi-
 // year deals). Helper _rev2026(d) picks the right one based on stage.
+// Won + blank Annualized: returns 0. The logo is still counted as
+// renewed (the row is still in the Won bucket) but its revenue
+// contribution is 0 \u2014 we do NOT fall back to Offer Price, since the
+// total contract value can include multi-year revenue that doesn't
+// belong in a 2026 renewal figure.
 const ANN_2026_COLS=[
   'Annualized 2026 Renewal Revenue',
   'Annualized 2026 Revenue',
@@ -1793,7 +1798,7 @@ const WON_STAGES_2026=new Set(['9. Invoice Sent','10. Paid']);
 function _rev2026(d){
   if(!d)return 0;
   if(d.__sp)return d.spOffer||0;
-  if(WON_STAGES_2026.has(d.s))return d.r26ann||d.o||0;
+  if(WON_STAGES_2026.has(d.s))return d.r26ann||0;
   return d.o||0;
 }
 
@@ -2898,7 +2903,7 @@ function _buildLiveGoalsData(){
       // Renewal Master, splitting by stage: Won (Invoice Sent / Paid)
       // → Annualized 2026 Renewal Revenue (2026 portion only); every
       // other stage → Offer Price (total contract value). No ET fallback.
-      ae:_aeFinal,seg:r.seg||'',rev26:(isWon?((renewal&&renewal.ann2026Rev)||(renewal&&renewal.offerPrice)||0):((renewal&&renewal.offerPrice)||0)),rawEnd:r.rawEnd||'',
+      ae:_aeFinal,seg:r.seg||'',rev26:(isWon?((renewal&&renewal.ann2026Rev)||0):((renewal&&renewal.offerPrice)||0)),rawEnd:r.rawEnd||'',
       pod:r.pod||'',txnDone:r.txnDone||0,out:r.out||0,gm:r.gm||0,
       nextTP:r.nextTP||'',expn:r.expn||0,calls:r.calls||{},
       platformId:_mlPid,
@@ -2912,7 +2917,7 @@ function _buildLiveGoalsData(){
       inRen:(renewal&&_isFirstRenewalMatch)?1:0
     });
     if(target){
-      if(isWon){target.won++;target.rw+=rev;target.rw26+=((renewal&&renewal.ann2026Rev)||(renewal&&renewal.offerPrice)||0);}
+      if(isWon){target.won++;target.rw+=rev;target.rw26+=((renewal&&renewal.ann2026Rev)||0);}
       else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:acct,csm:csm,rev,q,pool,renewal:se,notes:''});}
       else if(isDeclined){target.declined++;target.rd+=rev;}
       else{target.open++;}
@@ -2952,7 +2957,7 @@ function _buildLiveGoalsData(){
       // rev26 sources from Renewal Master. Won (Invoice Sent / Paid)
       // uses Annualized 2026 Renewal Revenue; every other stage uses
       // Offer Price (total contract value). No ET fallback for RM-only.
-      ae:_rmSalesRep,seg:'Scale',rev26:(isWon?(renewal.ann2026Rev||renewal.offerPrice||0):(renewal.offerPrice||0)),rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
+      ae:_rmSalesRep,seg:'Scale',rev26:(isWon?(renewal.ann2026Rev||0):(renewal.offerPrice||0)),rawEnd:se,pod:'',txnDone:0,out:0,gm:0,nextTP:'',expn:0,calls:{},
       platformId:_rmPid,
       addCredits:_rmMl?_rmMl.addCredits:0,miaBooth:_rmMl?_rmMl.miaBooth:0,
       outdated:_rmMl?_rmMl.outdated:0,gvPromo:_rmMl?_rmMl.gvPromo:0,
@@ -2960,7 +2965,7 @@ function _buildLiveGoalsData(){
       // RM-only accounts are by definition in the renewal master.
       inRen:1
     });
-    if(isWon){target.won++;target.rw+=rev;target.rw26+=(renewal.ann2026Rev||renewal.offerPrice||0);}
+    if(isWon){target.won++;target.rw+=rev;target.rw26+=(renewal.ann2026Rev||0);}
     else if(isLost){target.lost++;target.rl+=rev;if(q)churned.push({n:renewal.name,csm:'',rev,q,pool:'Scale',renewal:se,notes:'Not in engagement tracker'});}
     else if(isDeclined){target.declined++;target.rd+=rev;}
     else{target.open++;}
@@ -3128,11 +3133,13 @@ function _buildLiveForecastData(pods){
     const wonRows=rows.filter(x=>WON.has(x.s));
     const openRows=rows.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s));
     const declRows=rows.filter(x=>DCL.has(x.s));
-    // Won 2026 revenue uses Annualized 2026 Renewal Revenue (col Y on RM)
-    // when available — the 2026-only portion, not full contract value.
+    // Won 2026 revenue uses Annualized 2026 Renewal Revenue (col Y on RM).
+    // Blank Annualized → 0 contribution (logo still counts as renewed via
+    // the wonRows.length / w above). No fallback to Offer Price — TCV can
+    // include multi-year revenue that doesn't belong in a 2026 figure.
     // openWOff below stays on x.o (Offer Price) since open accounts
     // haven't closed yet and the annualized split isn't meaningful.
-    const wonOff=wonRows.reduce((a,x)=>a+(x.r26ann||x.o||0),0);
+    const wonOff=wonRows.reduce((a,x)=>a+(x.r26ann||0),0);
     const wonBase=wonRows.reduce((a,x)=>a+(x.r25||0),0); // 2025 price of won rows → needed for live Renewal NRR
     const openWOff=openRows.filter(x=>x.o>0).reduce((a,x)=>a+(x.o||0),0);
     const openBase=openRows.reduce((a,x)=>a+(x.r25||0),0);
