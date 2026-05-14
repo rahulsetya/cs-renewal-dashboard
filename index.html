@@ -1981,7 +1981,9 @@ function processData(range, engMap){
     const ae=String(getCell(v,'Sales Rep')||'').trim();
     const csRep=String(getCell(v,'CS Rep')||v[8]||'').trim();
     const em=subEnd?subEnd.substring(0,7):'';
-    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r26ann,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,ex:0,snt:0,clr,icn,ae,pod:(eng.pod||''),pid:(_rmPid||eng.platformId||''),sg:[],ct:'Manager',wow:'same'};
+    // _raw = original Excel row array, captured so the Renewal Master Explorer
+    // overlay can render arbitrary columns by index (e.g. E/G/H/I/M/P/Y/BA-BO).
+    const row={c:company,s:stage,ro,csRep,or:or_,o:offer,r26ann,r25,r24,se:subEnd,dy,em,mt,rsk,out,gm,gms,ap,ex:0,snt:0,clr,icn,ae,pod:(eng.pod||''),pid:(_rmPid||eng.platformId||''),sg:[],ct:'Manager',wow:'same',_raw:v};
     row.sg=computeSignals(row);
     data.push(row);
   }
@@ -5531,7 +5533,7 @@ rGP=function(){
     const _gpRows=(D||[]).filter(d=>!d.__sp).map(d=>({
       src:'GP',acct:d.c||'',stage:d.s||'',owner:d.ro||'',ae:d.ae||'',
       subEnd:d.se||'',r25:d.r25||0,r26:_rev2026(d)||0,pod:d.pod||'',csRep:d.csRep||'',
-      raw:d
+      raw:d,_raw:d._raw||null
     }));
     const _spRows=(SP_RAW||[]).map(r=>{
       const stage=resolveStage(r.s)||r.s||'';
@@ -5631,37 +5633,78 @@ rGP=function(){
         ${_filtered.length>_MAX?`<span style="color:#fb923c;margin-left:auto">⚠ showing first ${_MAX} of ${_filtered.length} rows — narrow filters to see more</span>`:''}
       </div>
       <div style="flex:1;overflow:auto;padding:0">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;color:#e2e8f0">
-          <thead><tr>
-            ${_th('src','Src','left')}
-            ${_th('acct','Account','left')}
-            ${_th('stage','Stage','left')}
-            ${_th('owner','Renewal Owner','left')}
-            ${_th('ae','Sales Rep','left')}
-            ${_th('subEnd','Sub End','left')}
-            ${_th('r25','2025 Rev','right')}
-            ${_th('r26','2026 Rev','right')}
-          </tr></thead>
-          <tbody>
-            ${_shown.map(r=>{
-              const _wonRow=_isW(r),_chrRow=_isC(r);
-              const _srcChip=r.src==='GP'
-                ?'<span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">GP</span>'
-                :'<span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">SP</span>';
-              const _stCol=_wonRow?'#34d399':_chrRow?'#ef4444':'#94a3b8';
-              return `<tr style="border-bottom:1px solid #1e293b">
-                <td style="padding:6px 10px">${_srcChip}</td>
-                <td style="padding:6px 10px;color:#e2e8f0">${_esc(r.acct)}</td>
-                <td style="padding:6px 10px;color:${_stCol}">${_esc(r.stage||'—')}</td>
-                <td style="padding:6px 10px;color:#94a3b8">${_esc(r.owner||'—')}</td>
-                <td style="padding:6px 10px;color:#94a3b8">${_esc(r.ae||'—')}</td>
-                <td style="padding:6px 10px;color:#94a3b8;font-family:ui-monospace,monospace;font-size:11px">${_esc(r.subEnd||'—')}</td>
-                <td style="padding:6px 10px;text-align:right;color:#fbbf24;font-family:ui-monospace,monospace">${r.r25>0?_fmtNum(r.r25):'—'}</td>
-                <td style="padding:6px 10px;text-align:right;color:#22d3ee;font-family:ui-monospace,monospace">${r.r26>0?_fmtNum(r.r26):'—'}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
+        ${(()=>{
+          // GP view: render the user-specified Master Tracker columns
+          //   E(4) G(6) H(7) I(8) M(12) P(15) Y(24) BA(52) BB(53) BC(54) BO(66)
+          // Headers come straight from the sheet's header row so labels track
+          // the actual columns. SP source uses its own compact column set below.
+          if(_src==='GP'){
+            const _MT_COLS=[4,6,7,8,12,15,24,52,53,54,66];
+            const _hdrRow=(GP_RAW_ROWS&&GP_RAW_ROWS[GP_RAW_HDR])||[];
+            const _hdrLbls=_MT_COLS.map(i=>{const h=String(_hdrRow[i]||'').trim();return h||`col ${String.fromCharCode(65+Math.floor(i/26)-1)+String.fromCharCode(65+(i%26))}`;});
+            // Currency-like cells get $ formatting; everything else renders as
+            // plain text. Detect by header label substring (revenue / price).
+            const _isMoneyHdr=h=>/\b(revenue|price|rev|arr|acv|amount)\b/i.test(h);
+            const _isDateHdr=h=>/\b(date|end|sub)\b/i.test(h);
+            const _fmtCell=(val,hdr)=>{
+              if(val===null||val===undefined||val==='')return '<span style="color:#475569">—</span>';
+              const s=String(val).trim();
+              if(!s)return '<span style="color:#475569">—</span>';
+              const n=parseFloat(s.replace(/[,$\s]/g,''));
+              if(_isMoneyHdr(hdr)&&!isNaN(n)&&isFinite(n))return _fmtNum(n);
+              return _esc(s);
+            };
+            return `<table style="width:100%;border-collapse:collapse;font-size:12px;color:#e2e8f0">
+              <thead><tr>
+                <th style="position:sticky;top:0;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid #334155;white-space:nowrap">Src</th>
+                ${_MT_COLS.map((ci,k)=>`<th style="position:sticky;top:0;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid #334155;white-space:nowrap" title="Excel col ${ci<26?String.fromCharCode(65+ci):String.fromCharCode(65+Math.floor(ci/26)-1)+String.fromCharCode(65+(ci%26))} (idx ${ci})">${_esc(_hdrLbls[k])}</th>`).join('')}
+              </tr></thead>
+              <tbody>
+                ${_shown.map(r=>{
+                  const _wonRow=_isW(r),_chrRow=_isC(r);
+                  const _rowBg=_wonRow?'rgba(52,211,153,.04)':_chrRow?'rgba(239,68,68,.04)':'transparent';
+                  const _raw=r._raw||[];
+                  return `<tr style="border-bottom:1px solid #1e293b;background:${_rowBg}">
+                    <td style="padding:6px 10px"><span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">GP</span></td>
+                    ${_MT_COLS.map((ci,k)=>`<td style="padding:6px 10px;color:#cbd5e1;font-family:${_isMoneyHdr(_hdrLbls[k])?'ui-monospace,monospace':'inherit'};${_isMoneyHdr(_hdrLbls[k])?'text-align:right;color:#22d3ee':''}">${_fmtCell(_raw[ci],_hdrLbls[k])}</td>`).join('')}
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>`;
+          }
+          // SP and All views: keep the compact common-column layout.
+          return `<table style="width:100%;border-collapse:collapse;font-size:12px;color:#e2e8f0">
+            <thead><tr>
+              ${_th('src','Src','left')}
+              ${_th('acct','Account','left')}
+              ${_th('stage','Stage','left')}
+              ${_th('owner','Renewal Owner','left')}
+              ${_th('ae','Sales Rep','left')}
+              ${_th('subEnd','Sub End','left')}
+              ${_th('r25','2025 Rev','right')}
+              ${_th('r26','2026 Rev','right')}
+            </tr></thead>
+            <tbody>
+              ${_shown.map(r=>{
+                const _wonRow=_isW(r),_chrRow=_isC(r);
+                const _srcChip=r.src==='GP'
+                  ?'<span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">GP</span>'
+                  :'<span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">SP</span>';
+                const _stCol=_wonRow?'#34d399':_chrRow?'#ef4444':'#94a3b8';
+                return `<tr style="border-bottom:1px solid #1e293b">
+                  <td style="padding:6px 10px">${_srcChip}</td>
+                  <td style="padding:6px 10px;color:#e2e8f0">${_esc(r.acct)}</td>
+                  <td style="padding:6px 10px;color:${_stCol}">${_esc(r.stage||'—')}</td>
+                  <td style="padding:6px 10px;color:#94a3b8">${_esc(r.owner||'—')}</td>
+                  <td style="padding:6px 10px;color:#94a3b8">${_esc(r.ae||'—')}</td>
+                  <td style="padding:6px 10px;color:#94a3b8;font-family:ui-monospace,monospace;font-size:11px">${_esc(r.subEnd||'—')}</td>
+                  <td style="padding:6px 10px;text-align:right;color:#fbbf24;font-family:ui-monospace,monospace">${r.r25>0?_fmtNum(r.r25):'—'}</td>
+                  <td style="padding:6px 10px;text-align:right;color:#22d3ee;font-family:ui-monospace,monospace">${r.r26>0?_fmtNum(r.r26):'—'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>`;
+        })()}
         ${_filtered.length===0?`<div style="padding:40px;text-align:center;color:#64748b;font-size:13px">No rows match the current filters.</div>`:''}
       </div>`;
   }else{
