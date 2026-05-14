@@ -2805,7 +2805,7 @@ function _buildLiveGoalsData(){
   // Drive account list from Engagement Tracker (Platform ID is the authoritative match key;
   // fall back to normalized name if either side is missing a Platform ID).
   const _matchedRenewal=new Set();
-  const _matchByPid=[],_matchByName=[],_matchNone=[];
+  const _matchByPid=[],_matchByName=[],_matchNone=[],_etDupRenewals=[];
   for(const r of (ENG_RAW||[])){
     const acct=r.acct;
     if(!acct)continue;
@@ -2816,10 +2816,21 @@ function _buildLiveGoalsData(){
       const nk=_normKey(acct);
       if(nk&&renewalLookup[nk]){renewal=renewalLookup[nk];matchType='name';}
     }
+    // RM-driven dedup: the first ET row to match a given Renewal Master entry
+    // is the canonical renewal row (gets inRen:1 and contributes to GRR pool
+    // counts). Subsequent ET rows pointing at the same renewal are kept in
+    // allAccts (so the All Accounts tab still shows them) but treated as
+    // ET-only for counting — they don't inflate qAcctsAll or pool totals.
+    let _isFirstRenewalMatch=true;
     if(renewal){
+      _isFirstRenewalMatch=!_matchedRenewal.has(renewal.nameKey);
       _matchedRenewal.add(renewal.nameKey);
-      if(matchType==='pid')_matchByPid.push({et:acct,etPid,renewal:renewal.name,renewalPid:renewal.platformId});
-      else _matchByName.push({et:acct,etPid:etPid||'(none)',renewal:renewal.name,renewalPid:renewal.platformId||'(none)'});
+      if(_isFirstRenewalMatch){
+        if(matchType==='pid')_matchByPid.push({et:acct,etPid,renewal:renewal.name,renewalPid:renewal.platformId});
+        else _matchByName.push({et:acct,etPid:etPid||'(none)',renewal:renewal.name,renewalPid:renewal.platformId||'(none)'});
+      }else{
+        _etDupRenewals.push({et:acct,etPid:etPid||'(none)',renewal:renewal.name,renewalPid:renewal.platformId||'(none)'});
+      }
     }else{
       _matchNone.push({et:acct,etPid:etPid||'(none)'});
     }
@@ -2843,7 +2854,9 @@ function _buildLiveGoalsData(){
     // exist in the Renewal Master. ET-only rows (no RM match) still get pushed
     // to allAccts with inRen:0 so the All Accounts tab can show them, but they
     // are filtered out everywhere the GP Retention tab consumes ACCTS.
-    const target=renewal?(q?grr[q][pool]:grrNone[pool]):null;
+    // Also gated on _isFirstRenewalMatch — duplicate ET rows pointing at the
+    // same RM entry don't double-count logos/rev (one renewal = one count).
+    const target=(renewal&&_isFirstRenewalMatch)?(q?grr[q][pool]:grrNone[pool]):null;
     if(target){target.logos++;target.rev+=rev;}
     // For the All Accounts row, prefer the Engagement Tracker's "Contract End"
     // (col L) over the Renewal Master's "Final Sub End Date" so the displayed
@@ -2892,10 +2905,11 @@ function _buildLiveGoalsData(){
       addCredits:_ml?_ml.addCredits:0,miaBooth:_ml?_ml.miaBooth:0,
       outdated:_ml?_ml.outdated:0,gvPromo:_ml?_ml.gvPromo:0,
       inEng:1,
-      // inRen=1 only when this ET row matched a Renewal Master entry. The GP
-      // Retention tab filters on this so ET-only accounts (stage 'Not in
-      // renewal master') never appear in pool drilldowns or quarter totals.
-      inRen:renewal?1:0
+      // inRen=1 only when this ET row is the FIRST to match a Renewal Master
+      // entry. The GP Retention tab filters on this so ET-only accounts AND
+      // duplicate ET rows (two ET rows pointing at the same RM entry) never
+      // appear in pool drilldowns or quarter totals — one renewal = one count.
+      inRen:(renewal&&_isFirstRenewalMatch)?1:0
     });
     if(target){
       if(isWon){target.won++;target.rw+=rev;target.rw26+=((renewal&&renewal.ann2026Rev)||(renewal&&renewal.offerPrice)||0);}
@@ -2953,10 +2967,14 @@ function _buildLiveGoalsData(){
   }
   const _renewalNotInEngDetail=Object.keys(renewalLookup).filter(k=>!_matchedRenewal.has(k)).map(k=>({name:renewalLookup[k].name,platformId:renewalLookup[k].platformId||''}));
   const _renewalNotInEng=_renewalNotInEngDetail.map(x=>x.name);
-  dlog(`Match breakdown — by Platform ID: ${_matchByPid.length}, by name fallback: ${_matchByName.length}, unmatched ET rows: ${_matchNone.length}`);
+  dlog(`Match breakdown — by Platform ID: ${_matchByPid.length}, by name fallback: ${_matchByName.length}, unmatched ET rows: ${_matchNone.length}, ET duplicates (same RM entry hit twice): ${_etDupRenewals.length}`);
   if(_matchByName.length){
     dinfo(`Matched by NAME (no Platform ID on one side):`);
     dtable(_matchByName);
+  }
+  if(_etDupRenewals.length){
+    console.warn(`ET rows that collided on an already-matched Renewal Master entry (${_etDupRenewals.length}) — these are NOT counted as renewals:`,_etDupRenewals);
+    console.table(_etDupRenewals);
   }
   if(_renewalNotInEngDetail.length){
     console.warn(`Renewal Master accounts NOT in Engagement Tracker (${_renewalNotInEngDetail.length}):`,_renewalNotInEngDetail);
@@ -2966,7 +2984,7 @@ function _buildLiveGoalsData(){
   dlog(`Total accounts in dashboard: ${allAccts.length}`);
   const _engNotInRenewalDetail=_matchNone.map(x=>({name:x.et,platformId:x.etPid==='(none)'?'':x.etPid}));
   const _engNotInRenewal=_engNotInRenewalDetail.map(x=>x.name);
-  window._acctMismatches={engNotInRenewal:_engNotInRenewal,engNotInRenewalDetail:_engNotInRenewalDetail,renewalNotInEng:_renewalNotInEng,renewalNotInEngDetail:_renewalNotInEngDetail,matchByPid:_matchByPid,matchByName:_matchByName,matchNone:_matchNone};
+  window._acctMismatches={engNotInRenewal:_engNotInRenewal,engNotInRenewalDetail:_engNotInRenewalDetail,renewalNotInEng:_renewalNotInEng,renewalNotInEngDetail:_renewalNotInEngDetail,matchByPid:_matchByPid,matchByName:_matchByName,matchNone:_matchNone,etDupRenewals:_etDupRenewals};
   churned.sort((a,b)=>b.rev-a.rev);
   const totalNone=Object.values(grrNone).reduce((a,v)=>a+v.logos,0);
 
