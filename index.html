@@ -3346,7 +3346,12 @@ function _buildLiveForecastData(pods){
         const qRev=rows.reduce((a,r)=>a+(r.r||0),0);
         const qRw=rows.filter(r=>spIsWon(r.s)).reduce((a,r)=>a+(r.r||0),0);
         const qRl=rows.filter(r=>spIsChurn(r.s)).reduce((a,r)=>a+(r.r||0),0);
-        spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk),rev:qRev,rw:qRw,rl:qRl,rd:0};
+        // Strict per-Q fields for the SP staircase's QTD NRR line: 2025 base
+        // sums r.r25 (col Z); 2026 ACV sums r.offer (col M, "Offer Price")
+        // on won rows only — matching the Retention card's SP convention.
+        const qBase25=rows.reduce((a,r)=>a+(r.r25||0),0);
+        const qWonOffer=rows.filter(r=>spIsWon(r.s)).reduce((a,r)=>a+(r.offer||0),0);
+        spq_q[qk]={t:qt,w:qw,o:qt-qw-qc-qd,d:qd,c:qc,mo:qMo[qk],st:qStat(qk),rev:qRev,rw:qRw,rl:qRl,rd:0,qBase25,qWonOffer};
       }
     }else{
       // No sub-end dates in source → keep the hardcoded proportional shape
@@ -3362,11 +3367,15 @@ function _buildLiveForecastData(pods){
         const r=REF[qk];
         const qt=sc(r.t,REFT,T),qw=sc(r.w,REFW,W),qo=sc(r.o,REFO,O),qc=sc(r.c,REFC,C);
         const qRev=scRev(r.rev,REFREV,base||0),qRw=scRev(r.rw,REFREV,base||0),qRl=scRev(r.rl,REFREV,base||0);
-        spq_q[qk]={t:qt,w:qw,o:qo,d:0,c:qc,mo:qMo[qk],st:qStat(qk),rev:qRev,rw:qRw,rl:qRl,rd:0};
+        // Static fallback can't separate r25 / offer per-row, so qBase25 mirrors
+        // qRev and qWonOffer mirrors qRw. Iframe still renders QTD NRR cleanly;
+        // values are approximations until live SP dates land.
+        spq_q[qk]={t:qt,w:qw,o:qo,d:0,c:qc,mo:qMo[qk],st:qStat(qk),rev:qRev,rw:qRw,rl:qRl,rd:0,qBase25:qRev,qWonOffer:qRw};
         sT+=qt;sW+=qw;sO+=qo;sC+=qc;sRev+=qRev;sRw+=qRw;sRl+=qRl;
       }
       // Q4 absorbs rounding so sums match live totals exactly.
-      spq_q.Q4={t:T-sT,w:W-sW,o:O-sO,d:0,c:C-sC,mo:qMo.Q4,st:qStat('Q4'),rev:(base||0)-sRev,rw:(wonBase||0)-sRw,rl:(churnRev||0)-sRl,rd:0};
+      const _q4Rev=(base||0)-sRev,_q4Rw=(wonBase||0)-sRw,_q4Rl=(churnRev||0)-sRl;
+      spq_q.Q4={t:T-sT,w:W-sW,o:O-sO,d:0,c:C-sC,mo:qMo.Q4,st:qStat('Q4'),rev:_q4Rev,rw:_q4Rw,rl:_q4Rl,rd:0,qBase25:_q4Rev,qWonOffer:_q4Rw};
       dlog('[forecast] SP quarter split scaled from hardcoded estimates (no live sub-end dates). Total='+T+' W='+W+' O='+O+' C='+C);
     }
   }
@@ -5396,7 +5405,8 @@ function _render(){
           for(const qk of['Q1','Q2','Q3','Q4']){
             const q=fc.spq_q[qk]||{};
             _SP_Q[qk]={logos:q.t||0,won:q.w||0,lost:q.c||0,declined:q.d||0,open:q.o||0,
-              rev:q.rev||0,rw:q.rw||0,rl:q.rl||0,rd:q.rd||0,mo:q.mo||''};
+              rev:q.rev||0,rw:q.rw||0,rl:q.rl||0,rd:q.rd||0,mo:q.mo||'',
+              qBase25:q.qBase25||0,qWonOffer:q.qWonOffer||0};
           }
           src=src.replace(/const SP\s*=\s*\{[^}]*\};/,`const SP=${JSON.stringify(_SP)};`);
           src=src.replace(/const SP_Q\s*=\s*\{[\s\S]*?\n\};/,`const SP_Q=${JSON.stringify(_SP_Q)};`);
@@ -11159,16 +11169,22 @@ function calc(oc,dc,sc,exp){
   const spPay={};
   for(const qk of['Q2','Q3','Q4']){const th=SP_TH[qk];let p=0;if(spRet<th[0])p=0;else if(spRet<=th[1])p=(spRet-th[0])/(th[1]-th[0])*100;else if(spRet<=th[2])p=100+(spRet-th[1])/(th[2]-th[1])*25;else p=125;spPay[qk]=p}
 
-  // SP Logos per quarter (same cumulative-retention staircase shape as GP)
-  const spL={};let scT=0,scW=0;
+  // SP Logos per quarter (same cumulative-retention staircase shape as GP).
+  // scBase25 / scWonOffer carry the cumulative SP base + Offer Price totals so
+  // the staircase's CUML mode QTD NRR has the right per-cohort denominators.
+  const spL={};let scT=0,scW=0,scBase25=0,scWonOffer=0;
   for(const qk of['Q1','Q2','Q3','Q4']){
     const q=SPQ_Q[qk];const _locked=_qSt(qk)==='closed';
     const pO=_locked?0:Math.round(q.o*scR);const qW=q.w+pO;
-    scT+=q.t;scW+=qW;const th=SP_TH[qk]||[0,0,0];const cR=scT>0?scW/scT*100:0;
+    scT+=q.t;scW+=qW;
+    scBase25+=q.qBase25||0;
+    scWonOffer+=q.qWonOffer||0;
+    const th=SP_TH[qk]||[0,0,0];const cR=scT>0?scW/scT*100:0;
     const qR=q.t>0?qW/q.t*100:0;
     let pay=0;if(th[0]>0){if(cR<th[0])pay=0;else if(cR<=th[1])pay=(cR-th[0])/(th[1]-th[0])*100;else if(cR<=th[2])pay=100+(cR-th[1])/(th[2]-th[1])*25;else pay=125}
     let qPay=0;if(th[0]>0){if(qR<th[0])qPay=0;else if(qR<=th[1])qPay=(qR-th[0])/(th[1]-th[0])*100;else if(qR<=th[2])qPay=100+(qR-th[1])/(th[2]-th[1])*25;else qPay=125}
-    spL[qk]={...q,pO,qW,qR,cT:scT,cW:scW,cR,th,pay,qPay,st:_qSt(qk)};
+    spL[qk]={...q,pO,qW,qR,cT:scT,cW:scW,cR,th,pay,qPay,st:_qSt(qk),
+      cBase25:scBase25,cWonOffer:scWonOffer};
   }
 
   // Total Logos
@@ -11476,6 +11492,24 @@ function render(){
             Comp: <b style="color:${pY>=100?'var(--gn)':pY>0?'var(--or)':'var(--rd)'};font-family:var(--M)">${Math.round(pY)}%</b></div>`;
         } else {
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(224,64,251,.05);color:var(--mt)">Q1 · not goaled <span style="color:var(--pk);font-weight:600">(100%)</span></div>`;
+        }
+        // SP QTD NRR — won Offer Price ÷ 2025 base for this cohort. Same
+        // shape as the GP card: closed quarters label it "NRR" (final),
+        // all others label "QTD NRR" (banked so far). Honors QTR / CUML
+        // mode via cBase25 / cWonOffer for cumulative.
+        {
+          const _spClosed=q.st==='closed';
+          const _spActD=sm==='cum'?(q.cWonOffer||0):(q.qWonOffer||0);
+          const _spActB=sm==='cum'?(q.cBase25||0):(q.qBase25||0);
+          const _spActV=_spActB>0?(_spActD/_spActB*100):0;
+          const _spActCol=_spActV>=100?'var(--gn)':_spActV>=80?'var(--or)':'var(--rd)';
+          const _spActBg=_spActV>=100?'rgba(46,213,115,.05)':_spActV>=80?'rgba(255,165,2,.05)':'rgba(255,71,87,.05)';
+          const _spLbl=_spClosed?'NRR':'QTD NRR';
+          const _spTitle=_spClosed
+            ?`Realized SP NRR for ${qk} — won Offer Price (SP col M) ÷ 2025 base (SP col Z). Final; every deal is closed.${sm==='cum'?' Cumulative through '+qk+'.':''}`
+            :`QTD SP NRR for ${qk} — won Offer Price (SP col M) banked so far ÷ 2025 base (SP col Z). Updates live as deals close.${sm==='cum'?' Cumulative through '+qk+'.':''}`;
+          h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${_spActBg}" title="${_spTitle}">
+            ${_spLbl}: <b style="color:${_spActCol};font-family:var(--M)">${Math.round(_spActV)}%</b> <span style="color:var(--mt);font-family:var(--M);font-size:10px">· ${fS(_spActD)}</span></div>`;
         }
         h+=`</div>`;
       }
