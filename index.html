@@ -11430,7 +11430,11 @@ function render(){
         } else {
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:rgba(124,108,255,.05)">Q1: <b style="color:var(--pu)">100%</b> closed</div>`;
         }
-        if(_isClosed||_isActive){
+        // Realized / banked NRR shown on every quarter. For closed quarters
+        // it's the final figure ("NRR"); for active it's quarter-to-date
+        // ("QTD NRR"); for upcoming/future it's any early-signed deals so
+        // far against that cohort's 2025 base — still labeled "QTD NRR".
+        {
           const _lbl=_isClosed?'NRR':'QTD NRR';
           h+=`<div style="font-size:11px;margin-top:3px;padding:2px 4px;border-radius:3px;background:${_actBg}" title="${_actTitle}">
             ${_lbl}: <b style="color:${_actCol};font-family:var(--M)">${Math.round(_actV)}%</b> <span style="color:var(--mt);font-family:var(--M);font-size:10px">· ${fS(_actD)}</span></div>`;
