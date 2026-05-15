@@ -11184,13 +11184,20 @@ function calc(oc,dc,sc,exp){
   const gpR={};let gcB=0,gcE=0,gcRt=0,gcWr=0;
   for(const qk of['Q1','Q2','Q3','Q4']){
     const qr=GPQR[qk];
+    // Closed quarters are settled — no open / declined-early projections
+    // should fold into qExp / qRet. Locking these to zero makes qNrr and
+    // qGrr equal their realized (qNrrAct / won-only-at-2025-price) values
+    // for past quarters, matching the staircase card's "NRR" line.
+    const _locked=_qSt(qk)==='closed';
     const wonRev=qr.wonOff;
-    const openOffRev=qr.openWOff*ocR; // pipeline with offers
+    const openOffRev=_locked?0:qr.openWOff*ocR; // pipeline with offers
     const openNoOffBase=qr.openBase-(qr.openWOff>0?qr.openWOff/(RNRR.gp/100):0); // base of accounts without offers
-    const openNoOffRev=openNoOffBase*ocR*ef;
-    const declRev=qr.declBase*dcR*ef;
+    const openNoOffRev=_locked?0:openNoOffBase*ocR*ef;
+    const declRev=_locked?0:qr.declBase*dcR*ef;
     const qExp=wonRev+openOffRev+openNoOffRev+declRev;
-    const qRet=(wonRev/(RNRR.gp/100))+(qr.openBase*ocR)+(qr.declBase*dcR); // GRR: at 2025 price
+    const qRet=_locked
+      ?(wonRev/(RNRR.gp/100)) // closed: only the won portion, at 2025 price
+      :(wonRev/(RNRR.gp/100))+(qr.openBase*ocR)+(qr.declBase*dcR);
     gcB+=qr.base;gcE+=qExp;gcRt+=qRet;gcWr+=wonRev;
     // qNrrAct / cNrrAct = realized NRR (Won 2026 revenue ÷ 2025 base), no
     // scenario inputs. Used for past quarters (final) and active quarter
@@ -11285,12 +11292,17 @@ function render(){
     // by this quarter's share of the SP base — rough estimate, since the
     // SP-side pipeline math is full-year only. The segment toggle to GP
     // gives precise per-quarter numbers; SP per-Q values are guidance.
+    // Closed quarters fall back to realized: SP _sExp = SP won 2026 rev
+    // for the quarter (_sQ.rw), Proj-Logo-Ret count = actual wins (no
+    // open-conv projection). Matches how the GP side locks projections
+    // off in calc() for past quarters.
+    const _qLocked=_qSt(qk)==='closed';
     const _sBase=_sQ.rev||0,_sChR=_sQ.rl||0,_sWon=_sQ.w||0,_sTot=_sQ.t||0,_sChN=_sQ.c||0;
     const _spShare=(m.spRev.base>0&&_sBase>0)?(_sBase/m.spRev.base):0;
-    const _sExp=(m.spRev.totExp||0)*_spShare;
+    const _sExp=_qLocked?(_sQ.rw||0):(m.spRev.totExp||0)*_spShare;
     const _sNrr=_sBase>0?(_sExp/_sBase*100):0;
-    const _sGrr=_sNrr*0.85;
-    const _sProjW=_sWon+Math.round((_sQ.o||0)*(S.oc/100));
+    const _sGrr=_qLocked?_sNrr:_sNrr*0.85;
+    const _sProjW=_qLocked?_sWon:(_sWon+Math.round((_sQ.o||0)*(S.oc/100)));
     // Segment-aware composition for tile values
     sBase=seg==='gp'?_gBase:seg==='sp'?_sBase:(_gBase+_sBase);
     sExp=seg==='gp'?_gExp:seg==='sp'?_sExp:(_gExp+_sExp);
