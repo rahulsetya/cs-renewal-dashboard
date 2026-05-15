@@ -3119,10 +3119,15 @@ function _buildLiveGoalsData(){
           }
         }
       }
-      // rev25/rev26 are strict-source columns from the "All SP Rev 25 & 26"
-      // tab so the Revenue Retention card on Overview can compute NRR /
-      // renewed ACV for SP using the same shape as GP (rev / rev26).
-      spAccts.push({n:r.n,q:q||'none',owner,stage:r.s||'',status,rev,rev25:r.r25||0,rev26:r.r26||0,se,ae:r.ae||'',notes:r.notes||''});
+      // rev25 = SP 2025 revenue column (col Z) — 2025 base for the Retention
+      // card's cohort denominator and "Renewed 2025 baseline" row.
+      // rev26 = SP "Offer Price" column (col M) — the 2026 contract value.
+      // This is the SP analog of GP's "Annualized 2026 Renewal Revenue"
+      // (RM col Y, stored on ACCTS.rev26), so the Retention card can sum
+      // GP+SP renewed 2026 revenue across both cohorts with one field.
+      // SP_RAW.r26 (col AA, 2026 Revenue) is intentionally NOT used here —
+      // Offer Price is what represents the renewed-deal value.
+      spAccts.push({n:r.n,q:q||'none',owner,stage:r.s||'',status,rev,rev25:r.r25||0,rev26:r.offer||0,se,ae:r.ae||'',notes:r.notes||''});
     });
     spAgg=spAggD;
     spOwn=Object.values(ownerMap).filter(o=>o.r>0).sort((a,b)=>b.r-a.r);
@@ -7969,10 +7974,15 @@ function rOverview(){
   // Per-quarter aggregation that mixes the GP cohort (ACCTS, inRen=1)
   // with the SP cohort (SP_ACCTS — sourced from the "All SP Rev 25 &
   // 26" tab). GP win/loss is keyed off the stage string; SP win/loss
-  // is keyed off the precomputed `status` field. 2026 ACV is strict:
-  // GP uses the Renewal Master Offer Price (a.rev26), SP uses the SP
-  // tab's 2026 Revenue column (a.rev26). No ET fallback on either
-  // side. Stashes a Slack-ready text block on window for the global
+  // is keyed off the precomputed `status` field. 2026 ACV / renewed-
+  // revenue convention:
+  //   • GP → Annualized 2026 Renewal Revenue (RM col Y, on a.rev26).
+  //     Blank → $0 (no Offer Price fallback).
+  //   • SP → Offer Price (SP col M, also stored on a.rev26 for SP rows).
+  //     SP has no equivalent of GP's Annualized field, so Offer Price
+  //     represents the renewed-deal value.
+  // Both pre-filter to 2026 sub-end at the parent ingest level.
+  // Stashes a Slack-ready text block on window for the global
   // _copyNRRSlack() handler.
   const _nrr=(()=>{
     const WSn=['9. Invoice Sent','10. Paid'],CSn=['11. Churned'];
