@@ -3156,7 +3156,13 @@ function _buildLiveForecastData(pods){
   const _gpPods=_active?[..._active].filter(p=>p!=='SP'):null;
   // GP (D) filter: if no active filter → all D; if active with GP pods → filter D;
   // if active with only 'SP' (no GP pods) → empty.
-  const all=!_active?(D||[]):(_gpPods.length?(D||[]).filter(x=>_gpPods.includes(x.pod)):[]);
+  // GP-only D rows for the GP aggregates. SP rows in D (merged from SP_RAW
+  // via _mergeSPsIntoD) are tagged __sp:true and stay out of the GP cohort —
+  // otherwise they get double-counted against the SP cohort below (spq /
+  // sp_rev / spq_q built directly from SP_RAW). The "Total" segment on the
+  // forecast then sums GPQ + SPQ_Q correctly, with no overlap.
+  const _gpOnly=(D||[]).filter(x=>!x.__sp);
+  const all=!_active?_gpOnly:(_gpPods.length?_gpOnly.filter(x=>_gpPods.includes(x.pod)):[]);
   const gp={T:all.length,W:all.filter(x=>WON.has(x.s)).length,O:all.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s)).length,D:all.filter(x=>DCL.has(x.s)).length,C:all.filter(x=>CHR.has(x.s)).length,base:all.reduce((a,x)=>a+(x.r25||0),0),churnRev:all.filter(x=>CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0)};
   const gpq={},gpqr={};
   const qMo={Q1:'Jan–Mar',Q2:'Apr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dec'};
