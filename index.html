@@ -5556,14 +5556,24 @@ rGP=function(){
       src=src.replace(/const GPQ\s*=\s*\{[\s\S]*?\};/,`const GPQ=${JSON.stringify(live.gpq)};`);
       src=src.replace(/const GP\s*=\s*\{[^}]*\};/,`const GP=${JSON.stringify(live.gp)};`);
       src=src.replace(/const GPQR\s*=\s*\{[\s\S]*?\};/,`const GPQR=${JSON.stringify(live.gpqr)};`);
-      // Live SP — from SP_RAW (All SP Rev 25 & 26 sheet). Falls back to hardcoded if SP_RAW empty.
-      if(live.spq){
-        src=src.replace(/const SPQ\s*=\s*\{[^}]*\};/,`const SPQ=${JSON.stringify(live.spq)};`);
-        // Inner template's `const SP={T:...}` alias (matches only the T:.. form, not the outer Goals SP)
-        src=src.replace(/const SP\s*=\s*\{T:[^}]*\};/,`const SP={T:${live.spq.t},W:${live.spq.w},O:${live.spq.o},D:${live.spq.d},C:${live.spq.c}};`);
-      }
-      if(live.spq_q)src=src.replace(/const SPQ_Q\s*=\s*\{[\s\S]*?\n\};/,`const SPQ_Q=${JSON.stringify(live.spq_q)};`);
-      if(live.sp_rev)src=src.replace(/const SP_REV\s*=\s*\{[\s\S]*?\n\};/,`const SP_REV=${JSON.stringify(live.sp_rev)};`);
+      // Live SP — from SP_RAW (All SP Rev 25 & 26 sheet). When the active
+      // filter excludes the SP cohort (e.g. user picks Pod 1 without SP),
+      // _buildLiveForecastData returns null for spq / spq_q / sp_rev. We
+      // STILL need to inject zeroed constants so the iframe doesn't fall
+      // back to its hardcoded SP defaults (which would otherwise leak SP
+      // numbers into the Total segment despite the filter).
+      const _spqInj=live.spq||{t:0,w:0,o:0,d:0,c:0};
+      src=src.replace(/const SPQ\s*=\s*\{[^}]*\};/,`const SPQ=${JSON.stringify(_spqInj)};`);
+      src=src.replace(/const SP\s*=\s*\{T:[^}]*\};/,`const SP={T:${_spqInj.t},W:${_spqInj.w},O:${_spqInj.o},D:${_spqInj.d},C:${_spqInj.c}};`);
+      const _spqQInj=live.spq_q||{
+        Q1:{t:0,w:0,o:0,d:0,c:0,mo:'Jan–Mar',st:'closed',rev:0,rw:0,rl:0,rd:0,qBase25:0,qWonOffer:0},
+        Q2:{t:0,w:0,o:0,d:0,c:0,mo:'Apr–Jun',st:'active',rev:0,rw:0,rl:0,rd:0,qBase25:0,qWonOffer:0},
+        Q3:{t:0,w:0,o:0,d:0,c:0,mo:'Jul–Sep',st:'upcoming',rev:0,rw:0,rl:0,rd:0,qBase25:0,qWonOffer:0},
+        Q4:{t:0,w:0,o:0,d:0,c:0,mo:'Oct–Dec',st:'future',rev:0,rw:0,rl:0,rd:0,qBase25:0,qWonOffer:0}
+      };
+      src=src.replace(/const SPQ_Q\s*=\s*\{[\s\S]*?\n\};/,`const SPQ_Q=${JSON.stringify(_spqQInj)};`);
+      const _spRevInj=live.sp_rev||{base:0,wonOffer:0,wonBase:0,openBase:0,openMiami:0,churnRev:0};
+      src=src.replace(/const SP_REV\s*=\s*\{[\s\S]*?\n\};/,`const SP_REV=${JSON.stringify(_spRevInj)};`);
     }
     const _fcFilterSummary=(()=>{
       const parts=[];
