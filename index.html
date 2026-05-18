@@ -3194,7 +3194,10 @@ function _buildLiveForecastData(pods,salesReps,csReps){
   let _gpOnly=(D||[]).filter(x=>!x.__sp);
   if(_aeFilter)_gpOnly=_gpOnly.filter(x=>_aeFilter.includes(String(x.ae||'').trim()));
   if(_csFilter)_gpOnly=_gpOnly.filter(x=>_csFilter.includes(displayCsRep(x.csRep)||''));
-  const all=!_active?_gpOnly:(_gpPods.length?_gpOnly.filter(x=>_gpPods.includes(x.pod)):[]);
+  // Match the Pipeline view's pod semantics exactly: Pod 1-4 / Asia / Europe
+  // resolve via POD_REPS predicates (sales-rep based), not d.pod equality.
+  // Any pod name without a predicate falls back to d.pod for backwards compat.
+  const all=!_active?_gpOnly:(_gpPods.length?_gpOnly.filter(x=>_gpPods.some(p=>POD_REPS[p]?POD_REPS[p](x.ae):x.pod===p)):[]);
   const gp={T:all.length,W:all.filter(x=>WON.has(x.s)).length,O:all.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s)).length,D:all.filter(x=>DCL.has(x.s)).length,C:all.filter(x=>CHR.has(x.s)).length,base:all.reduce((a,x)=>a+(x.r25||0),0),churnRev:all.filter(x=>CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0)};
   const gpq={},gpqr={};
   const qMo={Q1:'Jan–Mar',Q2:'Apr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dec'};
@@ -5572,18 +5575,26 @@ rGP=function(){
     const fcNote=D&&D.length
       ? (_fcFilterSummary?`${_fcFilterSummary} · ${_fcGpCount} GP + ${_fcSpCount} SP accounts`:(SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`))
       : 'Using static baseline (no live data loaded)';
-    // Build option lists: pods, sales reps, CS reps. Pods sourced from D
-    // (authoritative "accounts in filter") falling back to ENG_RAW when no
-    // D rows matched yet. Sales reps from D.ae (GP) + SP_RAW.ae (SP).
-    // CS reps from displayCsRep(d.csRep) across all D rows.
-    const _fcGpCounts={};(D||[]).forEach(d=>{if(d.pod)_fcGpCounts[d.pod]=(_fcGpCounts[d.pod]||0)+1;});
-    (ENG_RAW||[]).forEach(r=>{if(r.pod&&_fcGpCounts[r.pod]===undefined)_fcGpCounts[r.pod]=0;});
-    const _fcGpPods=Object.keys(_fcGpCounts).sort((a,b)=>{
+    // Build option lists mirroring the main Pipeline dropdown:
+    //   • Pods = Pod 1-4 + Asia + Europe (POD_REPS predicates on d.ae,
+    //     GP-only — no Strategic, no Scale, since Scale lives under CS Reps).
+    //   • SP = 2026-scoped __sp count (single entry at the end of Pods).
+    //   • Sales Reps from d.ae (GP) — alpha sorted.
+    //   • CS Reps from displayCsRep(d.csRep) — alpha sorted, rolls
+    //     Phoebe / Jovin / Bryan / etc. up under "Scale".
+    const _fcPodCounts={};Object.keys(POD_REPS).forEach(p=>{_fcPodCounts[p]=0;});
+    (D||[]).filter(d=>!d.__sp).forEach(d=>{
+      Object.keys(POD_REPS).forEach(p=>{if(POD_REPS[p](d.ae))_fcPodCounts[p]++;});
+    });
+    const _fcGpPods=Object.keys(_fcPodCounts).sort((a,b)=>{
       const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
       if(na&&nb)return+na[1]-+nb[1];if(na)return -1;if(nb)return 1;return a.localeCompare(b);
     });
-    const _fcSpTot=(SP_RAW||[]).length;
-    const _fcAeCounts={};(D||[]).forEach(d=>{const a=String(d.ae||'').trim();if(a)_fcAeCounts[a]=(_fcAeCounts[a]||0)+1;});
+    // Keep _fcGpCounts as an alias so the existing render code keeps reading
+    // the same lookup name — points at the new POD_REPS-derived counts.
+    const _fcGpCounts=_fcPodCounts;
+    const _fcSpTot=(D||[]).filter(d=>d.__sp===true).length;
+    const _fcAeCounts={};(D||[]).filter(d=>!d.__sp).forEach(d=>{const a=String(d.ae||'').trim();if(a)_fcAeCounts[a]=(_fcAeCounts[a]||0)+1;});
     const _fcAes=Object.keys(_fcAeCounts).sort();
     const _fcCsCounts={};(D||[]).forEach(d=>{const c=displayCsRep(d.csRep);if(c)_fcCsCounts[c]=(_fcCsCounts[c]||0)+1;});
     const _fcCsReps=Object.keys(_fcCsCounts).sort();
@@ -5616,14 +5627,13 @@ rGP=function(){
       <button id="fcPodBtn" onclick="toggleFcPodDrop(event)" title="Filter the forecast by Pod / Sales Rep / CS Rep. Multi-select; sections AND together." style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-width:130px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${_fcBtnLbl}</span><span style="font-size:9px;opacity:.7">▾</span></button>
       <div id="fcPodMenu" class="fc-pod-menu" style="display:${FC_POD_OPEN?'block':'none'};position:absolute;top:calc(100% + 4px);right:0;background:${_fcDdMenuBg};border:1px solid ${_fcDdMenuBd};border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:10000;padding:4px 0" onclick="event.stopPropagation()">
         <div onclick="ssForecastFiltersClearAll();event.stopPropagation()" style="padding:6px 12px;font-size:11px;color:${_fcTotalFilters>0?'#ef4444':_fcDdGrp};cursor:pointer;border-bottom:1px solid ${_fcDdBdr};margin-bottom:4px;font-weight:600">× Clear all filters${_fcTotalFilters>0?` (${_fcTotalFilters})`:''}</div>
-        ${_fcGpPods.length?_fcMkHdr('GP Pods · Engagement Tracker',_fcPods.filter(p=>p!=='SP').length,'ssForecastPodClear',false):''}
-        ${_fcGpPods.map(p=>_fcMkSec(p,p,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle')).join('')}
-        ${_fcSpTot?_fcMkHdr('Service Partners',_fcPods.includes('SP')?1:0,'ssForecastPodClear',true):''}
-        ${_fcSpTot?_fcMkSec('SP','SP',_fcSpTot+' accts',_fcPods,'ssForecastPodToggle'):''}
-        ${_fcAes.length?_fcMkHdr('Sales Reps',_fcSrs.length,'ssForecastSalesRepClear',true):''}
+        ${_fcAes.length?_fcMkHdr('Sales Reps',_fcSrs.length,'ssForecastSalesRepClear',false):''}
         ${_fcAes.map(a=>_fcMkSec(a,a,_fcAeCounts[a]+' accts',_fcSrs,'ssForecastSalesRepToggle')).join('')}
         ${_fcCsReps.length?_fcMkHdr('CS Reps',_fcCsr.length,'ssForecastCsRepClear',true):''}
         ${_fcCsReps.map(c=>_fcMkSec(c,c,_fcCsCounts[c]+' accts',_fcCsr,'ssForecastCsRepToggle')).join('')}
+        ${_fcGpPods.length||_fcSpTot?_fcMkHdr('Pods · Engagement Tracker',_fcPods.length,'ssForecastPodClear',true):''}
+        ${_fcGpPods.map(p=>_fcMkSec(p,p,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle')).join('')}
+        ${_fcSpTot?_fcMkSec('SP','SP',_fcSpTot+' accts',_fcPods,'ssForecastPodToggle'):''}
       </div>
     </div>`:'';
     const _fRefBtn=S.refreshing
