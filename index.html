@@ -820,6 +820,24 @@ document.addEventListener('click',function(e){
 let S={owner:'ALL_OWNERS',tab:'pipeline',sort:'total',drill:null,rsort:'rev',noteOpen:null,hidePaid:false,hideChurned:false,subMonths:[],subMonthsOpen:false,aeDrill:null,tlDrill:null,showAE:true,engQtrFilter:'ALL',eng90Open:false,engPastOpen:false,staleWarning:null,acctSort:{col:'stage',dir:'asc'},acctFilter:{},drillSort:{col:'r25',dir:'desc'},drillFilter:{},acctFlagOpen:false,drillFlagOpen:false,acctFlagRect:null,drillFlagRect:null,acctFlagMode:'any',drillFlagMode:'any',acctSubEndOpen:false,acctSubEndRect:null,engAcctFilter:{},engAcctSort:{col:'acct',dir:'asc'},forecastOpen:false,goalsOpen:false,forecastPods:[],pipelineSearch:''};
 // Normalize S.forecastPods: always an array of pod names (use 'SP' for all SPs)
 function _fcNormPods(){if(!Array.isArray(S.forecastPods))S.forecastPods=S.forecastPods?[String(S.forecastPods)]:[];return S.forecastPods;}
+// Sales Rep + CS Rep multi-select filters on the Forecast tab, parallel
+// to the existing pod multi-select. AND-combined across the three sections
+// (a row must match every active section's selection set).
+function ssForecastSalesRepToggle(name){
+  if(!Array.isArray(S.forecastSalesReps))S.forecastSalesReps=[];
+  const i=S.forecastSalesReps.indexOf(name);
+  if(i>=0)S.forecastSalesReps.splice(i,1);else S.forecastSalesReps.push(name);
+  render();
+}
+function ssForecastSalesRepClear(){S.forecastSalesReps=[];render();}
+function ssForecastCsRepToggle(name){
+  if(!Array.isArray(S.forecastCsReps))S.forecastCsReps=[];
+  const i=S.forecastCsReps.indexOf(name);
+  if(i>=0)S.forecastCsReps.splice(i,1);else S.forecastCsReps.push(name);
+  render();
+}
+function ssForecastCsRepClear(){S.forecastCsReps=[];render();}
+function ssForecastFiltersClearAll(){S.forecastPods=[];S.forecastSalesReps=[];S.forecastCsReps=[];render();}
 function ssForecastPodToggle(p){
   const a=_fcNormPods();const i=a.indexOf(p);
   if(i>=0)a.splice(i,1);else a.push(p);
@@ -3136,13 +3154,21 @@ function _buildLiveGoalsData(){
   }
   return{grr,grrNone,totalNone,churned,allAccts,spAgg,spOwn,spRisk,spAccts,spOq};
 }
-function _buildLiveForecastData(pods){
+function _buildLiveForecastData(pods,salesReps,csReps){
   // Mirrors the inline forecast block: computes GPQ, GP, GPQR from D.
   // `pods` is an optional array of pod names to include — e.g. ['Pod 1','SP'].
   //   • 'SP' is a synthetic pod grouping ALL rows from SP_RAW, regardless of their
   //     ENG_RAW pod assignment (user-requested grouping).
   //   • Any other pod filters D (GP) by d.pod matching.
   //   • Empty/missing array → include everything (all GP + all SP).
+  // `salesReps` / `csReps` are optional name arrays (parallel to the dropdown
+  // sections on the Forecast tab). When non-empty:
+  //   • GP rows are kept only if d.ae ∈ salesReps (AE filter) AND
+  //     displayCsRep(d.csRep) ∈ csReps (CS Rep filter).
+  //   • SP rows: AE filter compares r.ae. CS Rep filter excludes SP rows
+  //     entirely when "Emilie Welch" isn't in the picked set (since every
+  //     SP's CS Rep is Emilie by definition).
+  // All three sections AND together.
   const WON=new Set(['9. Invoice Sent','10. Paid']);
   const CHR=new Set(['11. Churned']);
   const DCL=new Set([]);
@@ -3162,7 +3188,12 @@ function _buildLiveForecastData(pods){
   // otherwise they get double-counted against the SP cohort below (spq /
   // sp_rev / spq_q built directly from SP_RAW). The "Total" segment on the
   // forecast then sums GPQ + SPQ_Q correctly, with no overlap.
-  const _gpOnly=(D||[]).filter(x=>!x.__sp);
+  // Apply Sales Rep / CS Rep filter sections (AND-combined with pod).
+  const _aeFilter=Array.isArray(salesReps)&&salesReps.length?salesReps:null;
+  const _csFilter=Array.isArray(csReps)&&csReps.length?csReps:null;
+  let _gpOnly=(D||[]).filter(x=>!x.__sp);
+  if(_aeFilter)_gpOnly=_gpOnly.filter(x=>_aeFilter.includes(String(x.ae||'').trim()));
+  if(_csFilter)_gpOnly=_gpOnly.filter(x=>_csFilter.includes(displayCsRep(x.csRep)||''));
   const all=!_active?_gpOnly:(_gpPods.length?_gpOnly.filter(x=>_gpPods.includes(x.pod)):[]);
   const gp={T:all.length,W:all.filter(x=>WON.has(x.s)).length,O:all.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s)).length,D:all.filter(x=>DCL.has(x.s)).length,C:all.filter(x=>CHR.has(x.s)).length,base:all.reduce((a,x)=>a+(x.r25||0),0),churnRev:all.filter(x=>CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0)};
   const gpq={},gpqr={};
@@ -3260,7 +3291,14 @@ function _buildLiveForecastData(pods){
   // classify by keywords to mirror the GP WON/CHR buckets.
   // All SPs are grouped under the synthetic pod 'SP'. Include full SP_RAW
   // when 'SP' is selected (or no pods selected); drop all SPs otherwise.
-  const _spAll=_spInc?(SP_RAW||[]):[];
+  // Apply the Forecast tab's Sales Rep / CS Rep filter sections to SP_RAW.
+  // CS Rep filter: SPs always have CS Rep = "Emilie Welch", so if the user
+  // picks any CS Reps and Emilie isn't among them, the SP cohort goes to []
+  // (consistent with how the Pipeline view excludes SPs when a non-Emilie
+  // CS Rep filter is active). AE filter matches r.ae directly.
+  let _spAll=_spInc?(SP_RAW||[]):[];
+  if(_aeFilter)_spAll=_spAll.filter(r=>_aeFilter.includes(String(r.ae||'').trim()));
+  if(_csFilter&&!_csFilter.includes('Emilie Welch'))_spAll=[];
   let spq=null,spq_q=null,sp_rev=null;
   if(_spAll&&_spAll.length){
     // Strict won match — invoice/paid only. Excludes "7. Signed" so SP totals
@@ -5506,9 +5544,11 @@ rGP=function(){
     let src=_fcTpl.value;
     // Inject live GP, GPQ, GPQR — only when D is populated
     const _fcPods=_fcNormPods();
+    const _fcSrs=Array.isArray(S.forecastSalesReps)?S.forecastSalesReps:[];
+    const _fcCsr=Array.isArray(S.forecastCsReps)?S.forecastCsReps:[];
     let _fcGpCount=0,_fcSpCount=0;
     if(D&&D.length>0){
-      const live=_buildLiveForecastData(_fcPods);
+      const live=_buildLiveForecastData(_fcPods,_fcSrs,_fcCsr);
       _fcGpCount=live.gp.T;_fcSpCount=live.spq?live.spq.t:0;
       src=src.replace(/const GPQ\s*=\s*\{[\s\S]*?\};/,`const GPQ=${JSON.stringify(live.gpq)};`);
       src=src.replace(/const GP\s*=\s*\{[^}]*\};/,`const GP=${JSON.stringify(live.gp)};`);
@@ -5522,19 +5562,31 @@ rGP=function(){
       if(live.spq_q)src=src.replace(/const SPQ_Q\s*=\s*\{[\s\S]*?\n\};/,`const SPQ_Q=${JSON.stringify(live.spq_q)};`);
       if(live.sp_rev)src=src.replace(/const SP_REV\s*=\s*\{[\s\S]*?\n\};/,`const SP_REV=${JSON.stringify(live.sp_rev)};`);
     }
+    const _fcFilterSummary=(()=>{
+      const parts=[];
+      if(_fcPods.length)parts.push('Pods: '+_fcPods.join(' + '));
+      if(_fcSrs.length)parts.push('Sales Reps: '+_fcSrs.join(' + '));
+      if(_fcCsr.length)parts.push('CS Reps: '+_fcCsr.join(' + '));
+      return parts.join(' · ');
+    })();
     const fcNote=D&&D.length
-      ? (_fcPods.length?`Pods: ${_fcPods.join(' + ')} · ${_fcGpCount} GP + ${_fcSpCount} SP accounts`:(SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`))
+      ? (_fcFilterSummary?`${_fcFilterSummary} · ${_fcGpCount} GP + ${_fcSpCount} SP accounts`:(SP_RAW&&SP_RAW.length?`Live · ${D.length} GP + ${SP_RAW.length} SP accounts`:`Live GP (${D.length}) · SP static (refresh to load)`))
       : 'Using static baseline (no live data loaded)';
-    // Build pod options list: GP pods sourced from matched D rows (authoritative "accounts in filter")
-    // falling back to ENG_RAW when no D rows matched yet. Numeric Pod 1/2/3/4 ordered first.
+    // Build option lists: pods, sales reps, CS reps. Pods sourced from D
+    // (authoritative "accounts in filter") falling back to ENG_RAW when no
+    // D rows matched yet. Sales reps from D.ae (GP) + SP_RAW.ae (SP).
+    // CS reps from displayCsRep(d.csRep) across all D rows.
     const _fcGpCounts={};(D||[]).forEach(d=>{if(d.pod)_fcGpCounts[d.pod]=(_fcGpCounts[d.pod]||0)+1;});
-    // Ensure pods that exist in ENG_RAW but haven't matched a D row still appear (count=0)
     (ENG_RAW||[]).forEach(r=>{if(r.pod&&_fcGpCounts[r.pod]===undefined)_fcGpCounts[r.pod]=0;});
     const _fcGpPods=Object.keys(_fcGpCounts).sort((a,b)=>{
       const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
       if(na&&nb)return+na[1]-+nb[1];if(na)return -1;if(nb)return 1;return a.localeCompare(b);
     });
     const _fcSpTot=(SP_RAW||[]).length;
+    const _fcAeCounts={};(D||[]).forEach(d=>{const a=String(d.ae||'').trim();if(a)_fcAeCounts[a]=(_fcAeCounts[a]||0)+1;});
+    const _fcAes=Object.keys(_fcAeCounts).sort();
+    const _fcCsCounts={};(D||[]).forEach(d=>{const c=displayCsRep(d.csRep);if(c)_fcCsCounts[c]=(_fcCsCounts[c]||0)+1;});
+    const _fcCsReps=Object.keys(_fcCsCounts).sort();
     // Apply light-mode transforms to the iframe HTML when LIGHT is on
     if(LIGHT){
       // Protect body.light{...} rules from hex substitution (see note in Goals block).
@@ -5546,16 +5598,32 @@ rGP=function(){
     }
     forecastOverlay.style.background=LIGHT?'rgba(200,210,225,.92)':'rgba(5,10,20,.92)';
     const _fBarBg=LIGHT?'#f4f5fa':'#07071a',_fBarBd=LIGHT?'#c8ccd8':'#1a1a35',_fBarTx=LIGHT?'#1a1a28':'#d0d0ec',_fBarMt=LIGHT?'#6a6a88':'#4a4a6e',_fBtnBg=LIGHT?'#e4e6f0':'#1a1a35',_fBtnBd=LIGHT?'#c0c4d2':'#2a2a44',_fBtnTx=LIGHT?'#555a78':'#7777aa',_fIfBg=LIGHT?'#e4e6f0':'#07071a';
-    // Multi-select pod dropdown — custom component (always opens downward, checkbox-style, stays open while selecting)
-    const _fcBtnLbl=_fcPods.length===0?'All pods':(_fcPods.length===1?_fcPods[0]:_fcPods.length+' pods');
+    // Multi-section filter dropdown — Pods + Sales Reps + CS Reps (each a
+    // multi-select checkbox section, AND-combined across sections). Stays
+    // open while selecting; closes on outside click via toggleFcPodDrop.
+    const _fcTotalFilters=_fcPods.length+_fcSrs.length+_fcCsr.length;
+    const _fcBtnLbl=_fcTotalFilters===0?'All accounts':_fcTotalFilters===1?(_fcPods[0]||_fcSrs[0]||_fcCsr[0]):_fcTotalFilters+' filters';
     const _fcDdMenuBg=LIGHT?'#ffffff':'#1a1a35',_fcDdMenuBd=LIGHT?'#c0c4d2':'#2a2a44',_fcDdMenuTx=LIGHT?'#1a1a28':'#d0d0ec',_fcDdHov=LIGHT?'#e4e6f0':'#252545',_fcDdSel=LIGHT?'#2563eb':'#3b3b6e',_fcDdGrp=LIGHT?'#6a6a88':'#7777aa',_fcDdBdr=LIGHT?'#d4dce8':'#2a2a44';
-    const _fcMkItem=(p,lbl,ct)=>{const on=_fcPods.includes(p);return `<div class="fc-pod-item" onclick="ssForecastPodToggle('${p.replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:6px 12px;font-size:12px;color:${on?'#fff':_fcDdMenuTx};background:${on?_fcDdSel:'transparent'};cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap" onmouseover="if(!this.dataset.on)this.style.background='${_fcDdHov}'" onmouseout="if(!this.dataset.on)this.style.background='transparent'"${on?' data-on="1"':''}><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${on?'#fff':_fcDdMenuTx};border-radius:3px;background:${on?'#fff':'transparent'};color:${_fcDdSel};font-size:10px;line-height:11px;text-align:center;font-weight:900">${on?'✓':''}</span><span style="flex:1">${lbl}</span>${ct!=null?`<span style="color:${on?'#d0d0ec':_fcDdGrp};font-size:10px;font-weight:600">${ct}</span>`:''}</div>`;};
-    const _fcPodSel=(_fcGpPods.length||_fcSpTot)?`<div class="fc-pod-dd" style="position:relative;display:inline-block">
-      <button id="fcPodBtn" onclick="toggleFcPodDrop(event)" title="Filter forecast by one or more Pods (multi-select). SP = all SP accounts." style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-width:130px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${_fcBtnLbl}</span><span style="font-size:9px;opacity:.7">▾</span></button>
-      <div id="fcPodMenu" class="fc-pod-menu" style="display:${FC_POD_OPEN?'block':'none'};position:absolute;top:calc(100% + 4px);right:0;background:${_fcDdMenuBg};border:1px solid ${_fcDdMenuBd};border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:220px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:10000;padding:4px 0" onclick="event.stopPropagation()">
-        <div onclick="ssForecastPodClear();event.stopPropagation()" style="padding:6px 12px;font-size:11px;color:${_fcDdGrp};cursor:pointer;border-bottom:1px solid ${_fcDdBdr};margin-bottom:4px;font-weight:600">× Clear selection (show all)</div>
-        ${_fcGpPods.length?`<div style="padding:6px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px">GP Pods · Engagement Tracker</div>${_fcGpPods.map(p=>_fcMkItem(p,p,_fcGpCounts[p]+' accts')).join('')}`:''}
-        ${_fcSpTot?`<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid ${_fcDdBdr};margin-top:4px">Service Partners</div>${_fcMkItem('SP','SP',_fcSpTot+' accts')}`:''}
+    // Generic option row used by all three sections. `selArr` is the
+    // currently-selected array; `fnName` is the global toggle handler.
+    const _fcMkSec=(val,lbl,ct,selArr,fnName)=>{
+      const on=(selArr||[]).includes(val);
+      return `<div onclick="${fnName}('${String(val).replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:6px 12px;font-size:12px;color:${on?'#fff':_fcDdMenuTx};background:${on?_fcDdSel:'transparent'};cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap" onmouseover="if(!this.dataset.on)this.style.background='${_fcDdHov}'" onmouseout="if(!this.dataset.on)this.style.background='transparent'"${on?' data-on="1"':''}><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${on?'#fff':_fcDdMenuTx};border-radius:3px;background:${on?'#fff':'transparent'};color:${_fcDdSel};font-size:10px;line-height:11px;text-align:center;font-weight:900">${on?'✓':''}</span><span style="flex:1">${lbl}</span>${ct!=null?`<span style="color:${on?'#d0d0ec':_fcDdGrp};font-size:10px;font-weight:600">${ct}</span>`:''}</div>`;
+    };
+    // Section-header helper. `selCount` shows "N picked" badge when active.
+    const _fcMkHdr=(title,selCount,clearFn,topBorder)=>`<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;${topBorder?`border-top:1px solid ${_fcDdBdr};margin-top:4px;`:''}display:flex;justify-content:space-between;align-items:center"><span>${title}${selCount>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">· ${selCount} picked</span>`:''}</span>${selCount>0?`<span onclick="${clearFn}();event.stopPropagation()" style="font-size:9px;color:#ef4444;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">clear</span>`:''}</div>`;
+    const _fcPodSel=(_fcGpPods.length||_fcSpTot||_fcAes.length||_fcCsReps.length)?`<div class="fc-pod-dd" style="position:relative;display:inline-block">
+      <button id="fcPodBtn" onclick="toggleFcPodDrop(event)" title="Filter the forecast by Pod / Sales Rep / CS Rep. Multi-select; sections AND together." style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-width:130px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${_fcBtnLbl}</span><span style="font-size:9px;opacity:.7">▾</span></button>
+      <div id="fcPodMenu" class="fc-pod-menu" style="display:${FC_POD_OPEN?'block':'none'};position:absolute;top:calc(100% + 4px);right:0;background:${_fcDdMenuBg};border:1px solid ${_fcDdMenuBd};border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:10000;padding:4px 0" onclick="event.stopPropagation()">
+        <div onclick="ssForecastFiltersClearAll();event.stopPropagation()" style="padding:6px 12px;font-size:11px;color:${_fcTotalFilters>0?'#ef4444':_fcDdGrp};cursor:pointer;border-bottom:1px solid ${_fcDdBdr};margin-bottom:4px;font-weight:600">× Clear all filters${_fcTotalFilters>0?` (${_fcTotalFilters})`:''}</div>
+        ${_fcGpPods.length?_fcMkHdr('GP Pods · Engagement Tracker',_fcPods.filter(p=>p!=='SP').length,'ssForecastPodClear',false):''}
+        ${_fcGpPods.map(p=>_fcMkSec(p,p,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle')).join('')}
+        ${_fcSpTot?_fcMkHdr('Service Partners',_fcPods.includes('SP')?1:0,'ssForecastPodClear',true):''}
+        ${_fcSpTot?_fcMkSec('SP','SP',_fcSpTot+' accts',_fcPods,'ssForecastPodToggle'):''}
+        ${_fcAes.length?_fcMkHdr('Sales Reps',_fcSrs.length,'ssForecastSalesRepClear',true):''}
+        ${_fcAes.map(a=>_fcMkSec(a,a,_fcAeCounts[a]+' accts',_fcSrs,'ssForecastSalesRepToggle')).join('')}
+        ${_fcCsReps.length?_fcMkHdr('CS Reps',_fcCsr.length,'ssForecastCsRepClear',true):''}
+        ${_fcCsReps.map(c=>_fcMkSec(c,c,_fcCsCounts[c]+' accts',_fcCsr,'ssForecastCsRepToggle')).join('')}
       </div>
     </div>`:'';
     const _fRefBtn=S.refreshing
