@@ -473,13 +473,26 @@ let _comboMode='AND';
 // to expand. Auto-expanded when the section has at least one active pick
 // so it's obvious where the filter lives.
 let _ownerDDExpand={salesReps:false,csReps:false,pods:true};
-function toggleOwnerDDSec(s){_ownerDDExpand[s]=!_ownerDDExpand[s];render();}
+// Preserve the scroll position of a dropdown menu across a render() call.
+// Without this, every chevron click rebuilds the dropdown DOM and snaps
+// scroll back to the top. Reads scrollTop before fn(), restores after the
+// next animation frame (by which time render() has reinserted the menu).
+function _preserveScroll(elId,fn){
+  const _el=document.getElementById(elId);
+  const _sc=_el?_el.scrollTop:0;
+  fn();
+  requestAnimationFrame(()=>{
+    const _el2=document.getElementById(elId);
+    if(_el2)_el2.scrollTop=_sc;
+  });
+}
+function toggleOwnerDDSec(s){_ownerDDExpand[s]=!_ownerDDExpand[s];_preserveScroll('ownerDropMenu',render);}
 // Per-pod sub-row expand state. Keyed by pod name. Defaults to COLLAPSED
 // (undefined = collapsed) so the dropdown opens compact. Click the
 // chevron to the left of a pod's checkbox to flip the state without
 // selecting the pod itself (event.stopPropagation on the chevron).
 let _ownerDDPodExpand={};
-function toggleOwnerDDPod(p){_ownerDDPodExpand[p]=!_ownerDDPodExpand[p];render();}
+function toggleOwnerDDPod(p){_ownerDDPodExpand[p]=!_ownerDDPodExpand[p];_preserveScroll('ownerDropMenu',render);}
 // Section combiner for the owner dropdown. 'AND' (default) = a row must
 // match every non-empty section's picks. 'OR' = a row matches if any
 // non-empty section's picks resolve. Stored on S so it persists across
@@ -878,7 +891,7 @@ function ssForecastFiltersClearAll(){S.forecastPods=[];S.forecastSalesReps=[];S.
 function ssForecastPodSubToggle(p){
   if(!S.fcPodExpand)S.fcPodExpand={};
   S.fcPodExpand[p]=!S.fcPodExpand[p];
-  render();
+  _preserveScroll('fcPodMenu',render);
 }
 // Forecast section collapse state. Defaults: SR / CR collapsed, Pods expanded
 // (mirror of the Pipeline view's owner dropdown). Click the chevron in a
@@ -890,7 +903,7 @@ function ssForecastSecToggle(s){
   const def=s==='pods'?true:false;
   const cur=S.fcSecExpand[s]===undefined?def:S.fcSecExpand[s];
   S.fcSecExpand[s]=!cur;
-  render();
+  _preserveScroll('fcPodMenu',render);
 }
 function ssForecastPodToggle(p){
   const a=_fcNormPods();const i=a.indexOf(p);
@@ -3879,7 +3892,7 @@ function _render(){
             const open=_ownerDDExpand.salesReps||srPicks>0;
             const chev=open?'▾':'▸';
             const pickBadge=srPicks>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">${srPicks} picked</span>`:'';
-            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('salesReps')"><span>Sales Reps <span style="color:#64748b;font-weight:400">(${salesReps.length})</span>${pickBadge}</span><span style="color:#64748b;font-size:11px">${chev}</span></div>`;
+            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('salesReps')"><span style="display:flex;align-items:center"><span style="color:#60a5fa;font-size:14px;font-weight:700;padding-right:6px">${chev}</span>Sales Reps <span style="color:#64748b;font-weight:400;margin-left:4px">(${salesReps.length})</span>${pickBadge}</span></div>`;
             if(!open)return hdr;
             return hdr+salesReps.map(o=>{const on=_isOwnerPickActive(o);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('${o.replace(/'/g,"\\'")}')"><span>${cb(on)}${o}</span><span class="ct">${_salesRepCounts[o]} accts</span></div>`;}).join('');
           })()}
@@ -3889,7 +3902,7 @@ function _render(){
             const open=_ownerDDExpand.csReps||csrPicks>0;
             const chev=open?'▾':'▸';
             const pickBadge=csrPicks>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">${csrPicks} picked</span>`:'';
-            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('csReps')"><span>CS Reps <span style="color:#64748b;font-weight:400">(${csReps.length})</span>${pickBadge}</span><span style="color:#64748b;font-size:11px">${chev}</span></div>`;
+            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('csReps')"><span style="display:flex;align-items:center"><span style="color:#60a5fa;font-size:14px;font-weight:700;padding-right:6px">${chev}</span>CS Reps <span style="color:#64748b;font-weight:400;margin-left:4px">(${csReps.length})</span>${pickBadge}</span></div>`;
             if(!open)return hdr;
             return hdr+csReps.map(c=>{const v='CSREP:'+c;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('CSREP:${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${_csRepCounts[c]} accts</span></div>`;}).join('');
           })()}
@@ -3901,7 +3914,7 @@ function _render(){
             const open=_ownerDDExpand.pods||podPicks>0;
             const chev=open?'▾':'▸';
             const pickBadge=podPicks>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">${podPicks} picked</span>`:'';
-            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('pods')"><span>Pods · Engagement Tracker${pickBadge}</span><span style="color:#64748b;font-size:11px">${chev}</span></div>`;
+            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('pods')"><span style="display:flex;align-items:center"><span style="color:#60a5fa;font-size:14px;font-weight:700;padding-right:6px">${chev}</span>Pods · Engagement Tracker${pickBadge}</span></div>`;
             if(!open)return hdr;
             return hdr+pods.map(p=>{
             if(p==='Scale'){
@@ -5789,10 +5802,11 @@ rGP=function(){
     // section's collapse state (S.fcSecExpand[secKey]); the chevron shows
     // current state. `open` is the resolved open flag from S.fcSecExpand.
     const _fcMkHdr=(title,selCount,clearFn,topBorder,secKey,open)=>{
-      const _chev=secKey?`<span style="color:#60a5fa;font-size:11px;font-weight:700;padding-right:6px">${open?'▾':'▸'}</span>`:'';
+      // Bright accent-blue chevron at 14px to match the per-pod chevrons.
+      const _chev=secKey?`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding-right:6px;display:inline-block;min-width:14px;text-align:center">${open?'▾':'▸'}</span>`:'';
       const _clickAttr=secKey?` onclick="ssForecastSecToggle('${secKey}');event.stopPropagation()"`:'';
       const _cursor=secKey?'cursor:pointer;':'';
-      return `<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;${topBorder?`border-top:1px solid ${_fcDdBdr};margin-top:4px;`:''}display:flex;justify-content:space-between;align-items:center;${_cursor}user-select:none"${_clickAttr}><span>${_chev}${title}${selCount>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">· ${selCount} picked</span>`:''}</span>${selCount>0?`<span onclick="${clearFn}();event.stopPropagation()" style="font-size:9px;color:#ef4444;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">clear</span>`:''}</div>`;
+      return `<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;${topBorder?`border-top:1px solid ${_fcDdBdr};margin-top:4px;`:''}display:flex;justify-content:space-between;align-items:center;${_cursor}user-select:none"${_clickAttr}><span style="display:flex;align-items:center">${_chev}${title}${selCount>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600;margin-left:4px">· ${selCount} picked</span>`:''}</span>${selCount>0?`<span onclick="${clearFn}();event.stopPropagation()" style="font-size:9px;color:#ef4444;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">clear</span>`:''}</div>`;
     };
     // Resolve section-collapse state with defaults: SR/CR collapsed, Pods expanded.
     const _fcSrOpen=S.fcSecExpand&&S.fcSecExpand.salesReps!==undefined?S.fcSecExpand.salesReps:false;
@@ -6530,9 +6544,23 @@ var aTab="overview",selGPCSM=null,selGPMonth=[],selGPPod=null;
 // (GP Retention + All Accounts). Keyed by pod name. Defaults collapsed —
 // undefined / falsy = collapsed; user toggle flips to true to expand.
 let _goalsPodExpand={};
+// Preserve scroll position of the owner dropdown menu across re-renders.
+// Same approach as the parent's _preserveScroll, just scoped to the iframe
+// and tries both possible menu IDs (GP Retention + All Accounts).
+function _goalsPreserveScroll(fn){
+  const _ids=['gpOwnerDropMenu','aaOwnerDropMenu'];
+  const _saved={};
+  _ids.forEach(id=>{const el=document.getElementById(id);if(el)_saved[id]=el.scrollTop;});
+  fn();
+  requestAnimationFrame(()=>{
+    Object.keys(_saved).forEach(id=>{const el=document.getElementById(id);if(el)el.scrollTop=_saved[id];});
+  });
+}
 function _toggleGoalsPodSub(p){
   _goalsPodExpand[p]=!_goalsPodExpand[p];
-  if(typeof rT==='function'&&typeof aTab==='string')rT(aTab);
+  _goalsPreserveScroll(()=>{
+    if(typeof rT==='function'&&typeof aTab==='string')rT(aTab);
+  });
 }
 // Toggle a month in/out of the GP Retention month filter. Empty array = no
 // month filter (show all months in the active quarter). Multi-select friendly.
