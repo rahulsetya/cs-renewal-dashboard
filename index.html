@@ -474,16 +474,12 @@ let _comboMode='AND';
 // so it's obvious where the filter lives.
 let _ownerDDExpand={salesReps:false,csReps:false,pods:true};
 function toggleOwnerDDSec(s){_ownerDDExpand[s]=!_ownerDDExpand[s];render();}
-// Per-pod sub-row expand state. Keyed by pod name. Defaults to expanded
-// (undefined = expanded) so the dropdown looks the same as before until
-// the user collapses a pod. Click the small chevron next to a pod's
-// count chip to flip the state without selecting the pod itself.
+// Per-pod sub-row expand state. Keyed by pod name. Defaults to COLLAPSED
+// (undefined = collapsed) so the dropdown opens compact. Click the
+// chevron to the left of a pod's checkbox to flip the state without
+// selecting the pod itself (event.stopPropagation on the chevron).
 let _ownerDDPodExpand={};
-function toggleOwnerDDPod(p){
-  if(_ownerDDPodExpand[p]===false)_ownerDDPodExpand[p]=true;
-  else _ownerDDPodExpand[p]=false;
-  render();
-}
+function toggleOwnerDDPod(p){_ownerDDPodExpand[p]=!_ownerDDPodExpand[p];render();}
 // Section combiner for the owner dropdown. 'AND' (default) = a row must
 // match every non-empty section's picks. 'OR' = a row matches if any
 // non-empty section's picks resolve. Stored on S so it persists across
@@ -3885,9 +3881,9 @@ function _render(){
               //   • Scale USA    (the rest of the Scale team)
               // Counts come from _scaleSubCounts (built via _scaleSubPod).
               const on=_isOwnerPickActive('POD:Scale');
-              const _scaleOpen=_ownerDDPodExpand['Scale']!==false;
-              const _scaleChev=` <span style="color:#64748b;font-size:11px;padding:0 4px;cursor:pointer;user-select:none" onclick="event.stopPropagation();toggleOwnerDDPod('Scale')" title="${_scaleOpen?'Collapse':'Expand'} Scale sub-rows">${_scaleOpen?'▾':'▸'}</span>`;
-              let _scaleHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_podCounts.Scale||0} accts${_scaleChev}</span></div>`;
+              const _scaleOpen=_ownerDDPodExpand['Scale']===true;
+              const _scaleChev=`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 8px 0 2px;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();toggleOwnerDDPod('Scale')" title="${_scaleOpen?'Collapse':'Expand'} Scale sub-rows">${_scaleOpen?'▾':'▸'}</span>`;
+              let _scaleHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:Scale')"><span style="display:flex;align-items:center">${_scaleChev}${cb(on)}Scale</span><span class="ct">${_podCounts.Scale||0} accts</span></div>`;
               if(_scaleOpen){
                 ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
                   const _ct=_scaleSubCounts[_sub]||0;
@@ -3917,10 +3913,12 @@ function _render(){
             // Skipped for SP (atomic flag, no CSM breakdown useful).
             const _expandCsms=POD_REPS[p]||(p!=='Scale'&&p!=='SP');
             // Per-pod collapse chevron — shown only when this pod actually has
-            // sub-rows. Default open (undefined !== false); user click flips.
-            const _podOpen=_ownerDDPodExpand[p]!==false;
-            const _podChev=_expandCsms?` <span style="color:#64748b;font-size:11px;padding:0 4px;cursor:pointer;user-select:none" onclick="event.stopPropagation();toggleOwnerDDPod('${p.replace(/'/g,"\\'")}')" title="${_podOpen?'Collapse':'Expand'} ${p} sub-rows">${_podOpen?'▾':'▸'}</span>`:'';
-            let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"${_podAeTitle}><span>${cb(on)}${p}${_podRepLbl}${offSuffix}</span><span class="ct">${_podCounts[p]} accts${_podChev}</span></div>`;
+            // sub-rows. Defaults to COLLAPSED (=== true means user explicitly
+            // expanded). Rendered to the left of the checkbox in a brighter
+            // accent so it's easy to spot at a glance.
+            const _podOpen=_ownerDDPodExpand[p]===true;
+            const _podChev=_expandCsms?`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 8px 0 2px;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();toggleOwnerDDPod('${p.replace(/'/g,"\\'")}')" title="${_podOpen?'Collapse':'Expand'} ${p} sub-rows">${_podOpen?'▾':'▸'}</span>`:`<span style="display:inline-block;min-width:22px"></span>`;
+            let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"${_podAeTitle}><span style="display:flex;align-items:center">${_podChev}${cb(on)}${p}${_podRepLbl}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
             if(_expandCsms&&_podOpen){
               const csms=_podCsmCounts[p]||{};
               const csmNames=Object.keys(csms).sort((a,b)=>csms[b]-csms[a]);
