@@ -3811,7 +3811,10 @@ function _render(){
             const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} ${p} account${off===1?'':'s'} whose CS Rep isn't on ${p}'s canonical CSM list (Sales Rep ${POD_CSMS[p]&&POD_CSMS[p].length?'in pod, CS Rep elsewhere':'mismatch'})">⚠ ${off} off-pod</span>`:'';
             const _podAeNames=Object.keys(_podShortNames[p]||{}).sort();
             const _podAeTitle=_podAeNames.length?` title="Accounts with AE = &quot;${_podAeNames.join(', ').replace(/"/g,'&quot;')}&quot;"`:'';
-            let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"${_podAeTitle}><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
+            // Regional pods carry the canonical Sales Rep inline so it's clear
+            // from a glance who owns the cohort (Asia = Edwin A, Europe = David X).
+            const _podRepLbl=p==='Asia'?' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':'';
+            let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:${p.replace(/'/g,"\\'")}')"${_podAeTitle}><span>${cb(on)}${p}${_podRepLbl}${offSuffix}</span><span class="ct">${_podCounts[p]} accts</span></div>`;
             // Per-pod CSM sub-rows: every CSM whose accounts roll into this
             // pod, sorted by count desc. Picking a sub-row narrows to that
             // Pod × CSM. Expanded for:
@@ -5642,7 +5645,11 @@ rGP=function(){
         ${_fcCsReps.length?_fcMkHdr('CS Reps',_fcCsr.length,'ssForecastCsRepClear',true):''}
         ${_fcCsReps.map(c=>_fcMkSec(c,c,_fcCsCounts[c]+' accts',_fcCsr,'ssForecastCsRepToggle')).join('')}
         ${_fcGpPods.length||_fcSpTot?_fcMkHdr('Pods · Engagement Tracker',_fcPods.length,'ssForecastPodClear',true):''}
-        ${_fcGpPods.map(p=>_fcMkSec(p,p,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle')).join('')}
+        ${_fcGpPods.map(p=>{
+          // Regional pods carry the canonical Sales Rep inline.
+          const _lbl=p==='Asia'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':p;
+          return _fcMkSec(p,_lbl,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle');
+        }).join('')}
         ${_fcSpTot?_fcMkSec('SP','SP',_fcSpTot+' accts',_fcPods,'ssForecastPodToggle'):''}
       </div>
     </div>`:'';
@@ -8948,7 +8955,9 @@ function rGP(){
               const off=_gpOffPodCounts[p]||0;
               const offOn=_gpIsOwnerPickActive('POD:'+p+':OFF');
               const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickGPOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} ${p} account${off===1?'':'s'} whose CS Rep isn't on ${p}'s canonical CSM list">⚠ ${off} off-pod</span>`:'';
-              let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
+              // Regional pods carry the canonical Sales Rep inline (Asia = Edwin A, Europe = David X).
+              const _gpRepLbl=p==='Asia'?' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':'';
+              let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${_gpRepLbl}${offSuffix}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
               // CSM sub-rows for any pod that has a breakdown — Pod 1-4 and
               // Asia/Europe (predicate-defined) plus any other ET pod that
               // isn't Scale (sub-pods) or SP (atomic).
@@ -10308,7 +10317,9 @@ function rAllAccts(){
                 const off=_aaOffPodCounts[p]||0;
                 const offOn=_aaIsOwnerPickActive('POD:'+p+':OFF');
                 const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickAAOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} off-pod account${off===1?'':'s'} (Sales Rep not in ${p})">⚠ ${off} off-pod</span>`:'';
-                return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${offSuffix}</span><span class="ct">${_aaPodCounts[p]||0} accts</span></div>`;
+                // Regional pods carry the canonical Sales Rep inline (Asia = Edwin A, Europe = David X).
+                const _aaRepLbl=p==='Asia'?' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':'';
+                return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${_aaRepLbl}${offSuffix}</span><span class="ct">${_aaPodCounts[p]||0} accts</span></div>`;
               }).join('');
             }
             // Match the rest of the row's "filter is active" visual cue (blue tinted background)
