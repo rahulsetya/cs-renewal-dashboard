@@ -880,6 +880,18 @@ function ssForecastPodSubToggle(p){
   S.fcPodExpand[p]=!S.fcPodExpand[p];
   render();
 }
+// Forecast section collapse state. Defaults: SR / CR collapsed, Pods expanded
+// (mirror of the Pipeline view's owner dropdown). Click the chevron in a
+// section header to flip.
+function ssForecastSecToggle(s){
+  if(!S.fcSecExpand)S.fcSecExpand={};
+  // First read defaults to false (collapsed) for SR/CR and true (expanded)
+  // for pods, but only on first interaction — after that, user choice wins.
+  const def=s==='pods'?true:false;
+  const cur=S.fcSecExpand[s]===undefined?def:S.fcSecExpand[s];
+  S.fcSecExpand[s]=!cur;
+  render();
+}
 function ssForecastPodToggle(p){
   const a=_fcNormPods();const i=a.indexOf(p);
   if(i>=0)a.splice(i,1);else a.push(p);
@@ -3243,6 +3255,16 @@ function _buildLiveForecastData(pods,salesReps,csReps){
   // use _scaleSubPod (CSM-based). Any other pod name falls back to d.pod.
   const _isScaleRow=x=>{const csR=String(x.csRep||'').trim();if(!csR)return false;const a=RENEWAL_OWNER_ALIAS[csR.toLowerCase()]||csR;return a==='Support iConnections';};
   const _podMatch=(p,x)=>{
+    // PODCSM:<pod>:<csm> — intersection of a pod membership AND a specific CS Rep.
+    if(p.indexOf('PODCSM:')===0){
+      const rest=p.slice(7);
+      const sep=rest.indexOf(':');
+      if(sep<0)return false;
+      const _pod=rest.slice(0,sep),_csm=rest.slice(sep+1);
+      const _podOk=POD_REPS[_pod]?POD_REPS[_pod](x.ae):x.pod===_pod;
+      if(!_podOk)return false;
+      return displayCsRep(x.csRep)===_csm;
+    }
     if(p==='Scale')return _isScaleRow(x);
     if(p==='Scale Europe'||p==='Scale Asia'||p==='Scale USA')return _scaleSubPod(x)===p;
     if(POD_REPS[p])return POD_REPS[p](x.ae);
@@ -5701,13 +5723,22 @@ rGP=function(){
     //   • CS Reps from displayCsRep(d.csRep) — alpha sorted, rolls
     //     Phoebe / Jovin / Bryan / etc. up under "Scale".
     const _fcPodCounts={};Object.keys(POD_REPS).forEach(p=>{_fcPodCounts[p]=0;});
+    // Per-pod CSM breakdown — same shape the Pipeline view uses for the
+    // ↳ CSM sub-rows under each pod. Keyed pod → { csm: count }.
+    const _fcPodCsmCounts={};Object.keys(POD_REPS).forEach(p=>{_fcPodCsmCounts[p]={};});
     // Scale appears as its own pod here too (parallel to Pipeline). Sub-pod
     // counts come from _scaleSubPod (CSM-based: Phoebe→Europe, Jovin→Asia,
     // rest of Scale team → USA).
     _fcPodCounts['Scale']=0;
     const _fcScaleSubCounts={'Scale Europe':0,'Scale Asia':0,'Scale USA':0};
     (D||[]).filter(d=>!d.__sp).forEach(d=>{
-      Object.keys(POD_REPS).forEach(p=>{if(POD_REPS[p](d.ae))_fcPodCounts[p]++;});
+      const _csmDisp=displayCsRep(d.csRep);
+      Object.keys(POD_REPS).forEach(p=>{
+        if(POD_REPS[p](d.ae)){
+          _fcPodCounts[p]++;
+          if(_csmDisp)_fcPodCsmCounts[p][_csmDisp]=(_fcPodCsmCounts[p][_csmDisp]||0)+1;
+        }
+      });
       const _csA=String(d.csRep||'').trim();
       if(_csA){
         const _aliased=RENEWAL_OWNER_ALIAS[_csA.toLowerCase()]||_csA;
@@ -5754,17 +5785,29 @@ rGP=function(){
       return `<div onclick="${fnName}('${String(val).replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:6px 12px;font-size:12px;color:${on?'#fff':_fcDdMenuTx};background:${on?_fcDdSel:'transparent'};cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap" onmouseover="if(!this.dataset.on)this.style.background='${_fcDdHov}'" onmouseout="if(!this.dataset.on)this.style.background='transparent'"${on?' data-on="1"':''}><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${on?'#fff':_fcDdMenuTx};border-radius:3px;background:${on?'#fff':'transparent'};color:${_fcDdSel};font-size:10px;line-height:11px;text-align:center;font-weight:900">${on?'✓':''}</span><span style="flex:1">${lbl}</span>${ct!=null?`<span style="color:${on?'#d0d0ec':_fcDdGrp};font-size:10px;font-weight:600">${ct}</span>`:''}</div>`;
     };
     // Section-header helper. `selCount` shows "N picked" badge when active.
-    const _fcMkHdr=(title,selCount,clearFn,topBorder)=>`<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;${topBorder?`border-top:1px solid ${_fcDdBdr};margin-top:4px;`:''}display:flex;justify-content:space-between;align-items:center"><span>${title}${selCount>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">· ${selCount} picked</span>`:''}</span>${selCount>0?`<span onclick="${clearFn}();event.stopPropagation()" style="font-size:9px;color:#ef4444;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">clear</span>`:''}</div>`;
+    // Optional `secKey` makes the entire header clickable to toggle the
+    // section's collapse state (S.fcSecExpand[secKey]); the chevron shows
+    // current state. `open` is the resolved open flag from S.fcSecExpand.
+    const _fcMkHdr=(title,selCount,clearFn,topBorder,secKey,open)=>{
+      const _chev=secKey?`<span style="color:#60a5fa;font-size:11px;font-weight:700;padding-right:6px">${open?'▾':'▸'}</span>`:'';
+      const _clickAttr=secKey?` onclick="ssForecastSecToggle('${secKey}');event.stopPropagation()"`:'';
+      const _cursor=secKey?'cursor:pointer;':'';
+      return `<div style="padding:8px 12px 2px;font-size:9px;color:${_fcDdGrp};font-weight:700;text-transform:uppercase;letter-spacing:.5px;${topBorder?`border-top:1px solid ${_fcDdBdr};margin-top:4px;`:''}display:flex;justify-content:space-between;align-items:center;${_cursor}user-select:none"${_clickAttr}><span>${_chev}${title}${selCount>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">· ${selCount} picked</span>`:''}</span>${selCount>0?`<span onclick="${clearFn}();event.stopPropagation()" style="font-size:9px;color:#ef4444;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600">clear</span>`:''}</div>`;
+    };
+    // Resolve section-collapse state with defaults: SR/CR collapsed, Pods expanded.
+    const _fcSrOpen=S.fcSecExpand&&S.fcSecExpand.salesReps!==undefined?S.fcSecExpand.salesReps:false;
+    const _fcCrOpen=S.fcSecExpand&&S.fcSecExpand.csReps!==undefined?S.fcSecExpand.csReps:false;
+    const _fcPodSecOpen=S.fcSecExpand&&S.fcSecExpand.pods!==undefined?S.fcSecExpand.pods:true;
     const _fcPodSel=(_fcGpPods.length||_fcSpTot||_fcAes.length||_fcCsReps.length)?`<div class="fc-pod-dd" style="position:relative;display:inline-block">
       <button id="fcPodBtn" onclick="toggleFcPodDrop(event)" title="Filter the forecast by Pod / Sales Rep / CS Rep. Multi-select; sections AND together." style="background:${_fBtnBg};border:1px solid ${_fBtnBd};color:${_fBtnTx};padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;min-width:130px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>${_fcBtnLbl}</span><span style="font-size:9px;opacity:.7">▾</span></button>
       <div id="fcPodMenu" class="fc-pod-menu" style="display:${FC_POD_OPEN?'block':'none'};position:absolute;top:calc(100% + 4px);right:0;background:${_fcDdMenuBg};border:1px solid ${_fcDdMenuBd};border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:240px;max-height:calc(100vh - 100px);overflow-y:auto;z-index:10000;padding:4px 0" onclick="event.stopPropagation()">
         <div onclick="ssForecastFiltersClearAll();event.stopPropagation()" style="padding:6px 12px;font-size:11px;color:${_fcTotalFilters>0?'#ef4444':_fcDdGrp};cursor:pointer;border-bottom:1px solid ${_fcDdBdr};margin-bottom:4px;font-weight:600">× Clear all filters${_fcTotalFilters>0?` (${_fcTotalFilters})`:''}</div>
-        ${_fcAes.length?_fcMkHdr('Sales Reps',_fcSrs.length,'ssForecastSalesRepClear',false):''}
-        ${_fcAes.map(a=>_fcMkSec(a,a,_fcAeCounts[a]+' accts',_fcSrs,'ssForecastSalesRepToggle')).join('')}
-        ${_fcCsReps.length?_fcMkHdr('CS Reps',_fcCsr.length,'ssForecastCsRepClear',true):''}
-        ${_fcCsReps.map(c=>_fcMkSec(c,c,_fcCsCounts[c]+' accts',_fcCsr,'ssForecastCsRepToggle')).join('')}
-        ${_fcGpPods.length||_fcSpTot?_fcMkHdr('Pods · Engagement Tracker',_fcPods.length,'ssForecastPodClear',true):''}
-        ${_fcGpPods.map(p=>{
+        ${_fcAes.length?_fcMkHdr('Sales Reps',_fcSrs.length,'ssForecastSalesRepClear',false,'salesReps',_fcSrOpen):''}
+        ${_fcAes.length&&_fcSrOpen?_fcAes.map(a=>_fcMkSec(a,a,_fcAeCounts[a]+' accts',_fcSrs,'ssForecastSalesRepToggle')).join(''):''}
+        ${_fcCsReps.length?_fcMkHdr('CS Reps',_fcCsr.length,'ssForecastCsRepClear',true,'csReps',_fcCrOpen):''}
+        ${_fcCsReps.length&&_fcCrOpen?_fcCsReps.map(c=>_fcMkSec(c,c,_fcCsCounts[c]+' accts',_fcCsr,'ssForecastCsRepToggle')).join(''):''}
+        ${_fcGpPods.length||_fcSpTot?_fcMkHdr('Pods · Engagement Tracker',_fcPods.length,'ssForecastPodClear',true,'pods',_fcPodSecOpen):''}
+        ${(_fcGpPods.length||_fcSpTot)&&_fcPodSecOpen?_fcGpPods.map(p=>{
           // Regional pods carry the canonical Sales Rep inline.
           const _baseLbl=p==='Asia'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':p;
           // Scale is the only Forecast pod with sub-rows. Build the Scale
@@ -5785,9 +5828,26 @@ rGP=function(){
             }
             return _row;
           }
-          return _fcMkSec(p,_baseLbl,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle');
-        }).join('')}
-        ${_fcSpTot?_fcMkSec('SP','SP',_fcSpTot+' accts',_fcPods,'ssForecastPodToggle'):''}
+          // Regular pod (Pod 1-4 / Asia / Europe): build manually so chevron
+          // sits before the checkbox (matches the Pipeline view). CSM sub-rows
+          // appended when expanded — pick of a sub-row pushes 'PODCSM:<pod>:<csm>'
+          // into S.forecastPods (filter logic in _buildLiveForecastData handles).
+          const _rOn=_fcPods.includes(p);
+          const _csmMap=_fcPodCsmCounts[p]||{};
+          const _csmNames=Object.keys(_csmMap).sort((a,b)=>_csmMap[b]-_csmMap[a]);
+          const _hasCsms=_csmNames.length>0;
+          const _rOpen=!!(S.fcPodExpand&&S.fcPodExpand[p]);
+          const _rChev=_hasCsms?`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 6px 0 0;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();ssForecastPodSubToggle('${p.replace(/'/g,"\\'")}')" title="${_rOpen?'Collapse':'Expand'} ${p} sub-rows">${_rOpen?'▾':'▸'}</span>`:`<span style="display:inline-block;min-width:20px"></span>`;
+          let _rRow=`<div onclick="ssForecastPodToggle('${p.replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:6px 12px;font-size:12px;color:${_rOn?'#fff':_fcDdMenuTx};background:${_rOn?_fcDdSel:'transparent'};cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap"${_rOn?' data-on="1"':''}>${_rChev}<span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_rOn?'#fff':_fcDdMenuTx};border-radius:3px;background:${_rOn?'#fff':'transparent'};color:${_fcDdSel};font-size:10px;line-height:11px;text-align:center;font-weight:900">${_rOn?'✓':''}</span><span style="flex:1">${_baseLbl}</span><span style="color:${_rOn?'#d0d0ec':_fcDdGrp};font-size:10px;font-weight:600">${_fcGpCounts[p]} accts</span></div>`;
+          if(_hasCsms&&_rOpen){
+            _csmNames.forEach(csm=>{
+              const _v='PODCSM:'+p+':'+csm;
+              _rRow+=_fcMkSec(_v,'↳ '+csm,_csmMap[csm]+' accts',_fcPods,'ssForecastPodToggle');
+            });
+          }
+          return _rRow;
+        }).join(''):''}
+        ${_fcSpTot&&_fcPodSecOpen?_fcMkSec('SP','SP',_fcSpTot+' accts',_fcPods,'ssForecastPodToggle'):''}
       </div>
     </div>`:'';
     const _fRefBtn=S.refreshing
