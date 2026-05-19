@@ -472,8 +472,13 @@ let _comboMode='AND';
 // to avoid scrolling past long lists. User can click the section header
 // to expand. Auto-expanded when the section has at least one active pick
 // so it's obvious where the filter lives.
-let _ownerDDExpand={salesReps:false,csReps:false};
+let _ownerDDExpand={salesReps:false,csReps:false,pods:true};
 function toggleOwnerDDSec(s){_ownerDDExpand[s]=!_ownerDDExpand[s];render();}
+// Section combiner for the owner dropdown. 'AND' (default) = a row must
+// match every non-empty section's picks. 'OR' = a row matches if any
+// non-empty section's picks resolve. Stored on S so it persists across
+// renders (lives alongside S.owner picks).
+function pickOwnerCombine(m){S.ownerCombineMode=m;render();}
 function _splitItemsByGroup(items){
   const sr=[],csr=[],pod=[];
   items.forEach(it=>{
@@ -504,9 +509,18 @@ function _combine(items,row){
     }
     return true;
   });
-  const srOk=!g.sr.length||g.sr.some(it=>_itemMatches(it,row));
-  const csrOk=!g.csr.length||g.csr.some(it=>_itemMatches(it,row));
-  const podOk=!podItems.length||podItems.some(it=>_itemMatches(it,row));
+  const srHit=g.sr.length>0&&g.sr.some(it=>_itemMatches(it,row));
+  const csrHit=g.csr.length>0&&g.csr.some(it=>_itemMatches(it,row));
+  const podHit=podItems.length>0&&podItems.some(it=>_itemMatches(it,row));
+  // AND (default): every non-empty section must match.
+  // OR: row passes if ANY non-empty section's picks resolve.
+  if(S.ownerCombineMode==='OR'){
+    if(!g.sr.length&&!g.csr.length&&!podItems.length)return true;
+    return srHit||csrHit||podHit;
+  }
+  const srOk=!g.sr.length||srHit;
+  const csrOk=!g.csr.length||csrHit;
+  const podOk=!podItems.length||podHit;
   return srOk&&csrOk&&podOk;
 }
 // Pipeline-row filter:
@@ -3807,6 +3821,20 @@ function _render(){
           <div class="owner-dd-item${sel.mode==='ALL_OWNERS'?' sel':''}" onclick="pickOwner('ALL_OWNERS')"><span>All Owners <span style="color:#64748b;font-size:10px;font-weight:400">(with SPs)</span></span></div>
           <div class="owner-dd-item${sel.mode==='ALL'?' sel':''}" onclick="pickOwner('ALL')"><span>All Sales Reps</span></div>
           ${(()=>{
+            // Section combiner — AND (default) requires every non-empty
+            // section to match; OR lets any one section's picks resolve.
+            const combMode=S.ownerCombineMode==='OR'?'OR':'AND';
+            const _bg=v=>v===combMode?'#2563eb':'transparent';
+            const _fg=v=>v===combMode?'#fff':'#94a3b8';
+            return `<div style="padding:6px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;background:rgba(30,41,59,.3)" onclick="event.stopPropagation()">
+              <span style="font-size:10px;text-transform:uppercase;color:#64748b;letter-spacing:.5px" title="How picks across Sales Reps / CS Reps / Pods sections combine. AND = row must match each non-empty section. OR = row passes if any section's picks resolve.">Combine sections</span>
+              <span style="display:inline-flex;border:1px solid #475569;border-radius:5px;overflow:hidden;font-size:10px;font-weight:600">
+                <button onclick="event.stopPropagation();pickOwnerCombine('AND')" style="padding:2px 12px;background:${_bg('AND')};color:${_fg('AND')};border:0;cursor:pointer;font-family:inherit">AND</button>
+                <button onclick="event.stopPropagation();pickOwnerCombine('OR')" style="padding:2px 12px;background:${_bg('OR')};color:${_fg('OR')};border:0;border-left:1px solid #475569;cursor:pointer;font-family:inherit">OR</button>
+              </span>
+            </div>`;
+          })()}
+          ${(()=>{
             if(!salesReps.length)return '';
             // Auto-expand when this section has any active pick so the user
             // sees what's filtered. Picked sales reps are bare strings (no
@@ -3829,7 +3857,17 @@ function _render(){
             if(!open)return hdr;
             return hdr+csReps.map(c=>{const v='CSREP:'+c;const on=_isOwnerPickActive(v);return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('CSREP:${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${_csRepCounts[c]} accts</span></div>`;}).join('');
           })()}
-          ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
+          ${pods.length?(()=>{
+            // Pods section header — collapsible (mirror of SR/CR pattern).
+            // Default expanded; collapses on click of the chevron row.
+            // Auto-expands when any Pod / Sub-pod / PODCSM pick is active.
+            const podPicks=sel.items.filter(it=>typeof it==='string'&&(it.startsWith('POD:')||it.startsWith('PODCSM:'))).length;
+            const open=_ownerDDExpand.pods||podPicks>0;
+            const chev=open?'▾':'▸';
+            const pickBadge=podPicks>0?` <span style="color:#60a5fa;font-size:10px;font-weight:600">${podPicks} picked</span>`:'';
+            const hdr=`<div class="owner-dd-grp" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none" onclick="toggleOwnerDDSec('pods')"><span>Pods · Engagement Tracker${pickBadge}</span><span style="color:#64748b;font-size:11px">${chev}</span></div>`;
+            if(!open)return hdr;
+            return hdr+pods.map(p=>{
             if(p==='Scale'){
               // Scale renders as a pod with three CSM-based sub-rows:
               //   • Scale Europe (Phoebe Willoughby)
@@ -3878,7 +3916,7 @@ function _render(){
               });
             }
             return podHtml;
-          }).join('')}${(()=>{
+          }).join('')+(()=>{
             // "No Pod" — accounts whose Sales Rep is blank or doesn't match
             // any POD_REPS predicate. Rendered after the predicate-driven pod
             // rows so it visually anchors the bottom of the Pods section.
@@ -3886,7 +3924,8 @@ function _render(){
             const _npNames=Object.keys(_noPodShortNames).sort();
             const _npTitle=_npNames.length?` title="Accounts with AE = &quot;${_npNames.join(', ').replace(/"/g,'&quot;')}&quot;"`:'';
             return `<div class="owner-dd-item${_npOn?' sel':''}" onclick="pickOwner('POD:No Pod')"${_npTitle}><span>${cb(_npOn)}No Pod</span><span class="ct">${_noPodCount} accts</span></div>`;
-          })()}`:''}
+          })();
+          })():''}
         </div>
       </div>`;})()}
   </div></div>`;
