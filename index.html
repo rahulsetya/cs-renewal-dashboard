@@ -9140,11 +9140,18 @@ function rGP(){
               const offSuffix=off>0?` <span class="off-pod-chip${offOn?' on':''}" onclick="event.stopPropagation();pickGPOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Show ${off} ${p} account${off===1?'':'s'} whose CS Rep isn't on ${p}'s canonical CSM list">⚠ ${off} off-pod</span>`:'';
               // Regional pods carry the canonical Sales Rep inline (Asia = Edwin A, Europe = David X).
               const _gpRepLbl=p==='Asia'?' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':'';
-              let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span>${cb(on)}${p}${_gpRepLbl}${offSuffix}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
+              // Per-pod chevron — shown only when this pod actually has CSM
+              // sub-rows. Defaults COLLAPSED. Click flips. Click stops at
+              // the chevron so the parent pickGPOwner doesn't fire.
+              const _hasCsms=p!=='Scale'&&p!=='SP';
+              const _podOpen=!!_goalsPodExpand[p];
+              const _chev=_hasCsms?`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 8px 0 2px;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();_toggleGoalsPodSub('${p.replace(/'/g,"\\'")}')" title="${_podOpen?'Collapse':'Expand'} ${p} sub-rows">${_podOpen?'▾':'▸'}</span>`:`<span style="display:inline-block;min-width:22px"></span>`;
+              let podHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:${p.replace(/'/g,"\\'")}')"><span style="display:flex;align-items:center">${_chev}${cb(on)}${p}${_gpRepLbl}${offSuffix}</span><span class="ct">${_gpPodCounts[p]||0} accts</span></div>`;
               // CSM sub-rows for any pod that has a breakdown — Pod 1-4 and
               // Asia/Europe (predicate-defined) plus any other ET pod that
-              // isn't Scale (sub-pods) or SP (atomic).
-              if(p!=='Scale'&&p!=='SP'){
+              // isn't Scale (sub-pods) or SP (atomic). Gated on the per-pod
+              // expand state so the list stays compact by default.
+              if(_hasCsms&&_podOpen){
                 const csms=_gpPodCsmCounts[p]||{};
                 const csmNames=Object.keys(csms).sort((a,b)=>csms[b]-csms[a]);
                 const _esc=s=>s.replace(/'/g,"\\'");
