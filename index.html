@@ -872,6 +872,14 @@ function ssForecastCsRepToggle(name){
 }
 function ssForecastCsRepClear(){S.forecastCsReps=[];render();}
 function ssForecastFiltersClearAll(){S.forecastPods=[];S.forecastSalesReps=[];S.forecastCsReps=[];render();}
+// Per-pod expand state on the Forecast tab dropdown — keyed by pod name.
+// Same convention as the parent Pipeline dropdown: undefined / false =
+// collapsed (default), true = user explicitly expanded.
+function ssForecastPodSubToggle(p){
+  if(!S.fcPodExpand)S.fcPodExpand={};
+  S.fcPodExpand[p]=!S.fcPodExpand[p];
+  render();
+}
 function ssForecastPodToggle(p){
   const a=_fcNormPods();const i=a.indexOf(p);
   if(i>=0)a.splice(i,1);else a.push(p);
@@ -5758,10 +5766,16 @@ rGP=function(){
         ${_fcGpPods.length||_fcSpTot?_fcMkHdr('Pods · Engagement Tracker',_fcPods.length,'ssForecastPodClear',true):''}
         ${_fcGpPods.map(p=>{
           // Regional pods carry the canonical Sales Rep inline.
-          const _lbl=p==='Asia'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':p;
+          const _baseLbl=p==='Asia'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':p;
+          // Scale is the only Forecast pod with sub-rows. Prepend a chevron
+          // so users can hide/show the three regional Scale CSM rows. Default
+          // collapsed (matches the Pipeline dropdown behavior).
+          const _hasSubs=p==='Scale';
+          const _podOpen=!!(S.fcPodExpand&&S.fcPodExpand[p]);
+          const _chev=_hasSubs?`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 6px 0 0;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();ssForecastPodSubToggle('${p.replace(/'/g,"\\'")}')" title="${_podOpen?'Collapse':'Expand'} ${p} sub-rows">${_podOpen?'▾':'▸'}</span>`:'';
+          const _lbl=_chev+_baseLbl;
           let _row=_fcMkSec(p,_lbl,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle');
-          // Scale gets three CSM-based sub-rows appended below it.
-          if(p==='Scale'){
+          if(_hasSubs&&_podOpen){
             ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
               const _ct=_fcScaleSubCounts[_sub]||0;
               if(_ct===0)return;
@@ -6449,6 +6463,14 @@ function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(-
 // ── TAB SYSTEM ──────────────────────────────────────
 const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"top10s",l:"Top 10s"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
 var aTab="overview",selGPCSM=null,selGPMonth=[],selGPPod=null;
+// Per-pod expand state shared by the Goals iframe's owner dropdowns
+// (GP Retention + All Accounts). Keyed by pod name. Defaults collapsed —
+// undefined / falsy = collapsed; user toggle flips to true to expand.
+let _goalsPodExpand={};
+function _toggleGoalsPodSub(p){
+  _goalsPodExpand[p]=!_goalsPodExpand[p];
+  if(typeof rT==='function'&&typeof aTab==='string')rT(aTab);
+}
 // Toggle a month in/out of the GP Retention month filter. Empty array = no
 // month filter (show all months in the active quarter). Multi-select friendly.
 function _toggleGPMonth(mn){
@@ -9092,15 +9114,21 @@ function rGP(){
               if(p==='Scale'){
                 // Scale renders as a pod row with three CSM-based sub-rows:
                 //   • Scale Europe (Phoebe), Scale Asia (Jovin), Scale USA (rest).
+                // Chevron on the left toggles sub-row visibility — default
+                // collapsed, matches Pipeline dropdown behavior.
                 const on=_gpIsOwnerPickActive('POD:Scale');
-                let _h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_gpPodCounts.Scale||0} accts</span></div>`;
-                ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
-                  const _ct=_gpScaleSubCounts[_sub]||0;
-                  if(_ct===0)return;
-                  const _subOn=_gpIsOwnerPickActive('POD:'+_sub);
-                  const _csmHint=_sub==='Scale Europe'?'Phoebe Willoughby':_sub==='Scale Asia'?'Jovin Lee':'Bryan / Olivia / Mario / Luis / Connor';
-                  _h+=`<div class="owner-dd-item owner-dd-sub${_subOn?' sel':''}" onclick="pickGPOwner('POD:${_sub.replace(/'/g,"\\'")}')" title="Scale accounts owned by ${_csmHint}"><span>${cb(_subOn)}↳ ${_sub}</span><span class="ct">${_ct} accts</span></div>`;
-                });
+                const _open=!!_goalsPodExpand['Scale'];
+                const _chev=`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 8px 0 2px;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();_toggleGoalsPodSub('Scale')" title="${_open?'Collapse':'Expand'} Scale sub-rows">${_open?'▾':'▸'}</span>`;
+                let _h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:Scale')"><span style="display:flex;align-items:center">${_chev}${cb(on)}Scale</span><span class="ct">${_gpPodCounts.Scale||0} accts</span></div>`;
+                if(_open){
+                  ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
+                    const _ct=_gpScaleSubCounts[_sub]||0;
+                    if(_ct===0)return;
+                    const _subOn=_gpIsOwnerPickActive('POD:'+_sub);
+                    const _csmHint=_sub==='Scale Europe'?'Phoebe Willoughby':_sub==='Scale Asia'?'Jovin Lee':'Bryan / Olivia / Mario / Luis / Connor';
+                    _h+=`<div class="owner-dd-item owner-dd-sub${_subOn?' sel':''}" onclick="pickGPOwner('POD:${_sub.replace(/'/g,"\\'")}')" title="Scale accounts owned by ${_csmHint}"><span>${cb(_subOn)}↳ ${_sub}</span><span class="ct">${_ct} accts</span></div>`;
+                  });
+                }
                 return _h;
               }
               const on=_gpIsOwnerPickActive('POD:'+p);
@@ -10475,15 +10503,21 @@ function rAllAccts(){
                 if(p==='Scale'){
                   // Scale renders as a pod row with three CSM-based sub-rows:
                   //   • Scale Europe (Phoebe), Scale Asia (Jovin), Scale USA (rest).
+                  // Chevron on the left toggles sub-row visibility — default
+                  // collapsed, matches Pipeline dropdown behavior.
                   const on=_aaIsOwnerPickActive('POD:Scale');
-                  let _h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_aaPodCounts.Scale||0} accts</span></div>`;
-                  ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
-                    const _ct=_aaScaleSubCounts[_sub]||0;
-                    if(_ct===0)return;
-                    const _subOn=_aaIsOwnerPickActive('POD:'+_sub);
-                    const _csmHint=_sub==='Scale Europe'?'Phoebe Willoughby':_sub==='Scale Asia'?'Jovin Lee':'Bryan / Olivia / Mario / Luis / Connor';
-                    _h+=`<div class="owner-dd-item owner-dd-sub${_subOn?' sel':''}" onclick="pickAAOwner('POD:${_sub.replace(/'/g,"\\'")}')" title="Scale accounts owned by ${_csmHint}"><span>${cb(_subOn)}↳ ${_sub}</span><span class="ct">${_ct} accts</span></div>`;
-                  });
+                  const _open=!!_goalsPodExpand['Scale'];
+                  const _chev=`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 8px 0 2px;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();_toggleGoalsPodSub('Scale')" title="${_open?'Collapse':'Expand'} Scale sub-rows">${_open?'▾':'▸'}</span>`;
+                  let _h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:Scale')"><span style="display:flex;align-items:center">${_chev}${cb(on)}Scale</span><span class="ct">${_aaPodCounts.Scale||0} accts</span></div>`;
+                  if(_open){
+                    ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
+                      const _ct=_aaScaleSubCounts[_sub]||0;
+                      if(_ct===0)return;
+                      const _subOn=_aaIsOwnerPickActive('POD:'+_sub);
+                      const _csmHint=_sub==='Scale Europe'?'Phoebe Willoughby':_sub==='Scale Asia'?'Jovin Lee':'Bryan / Olivia / Mario / Luis / Connor';
+                      _h+=`<div class="owner-dd-item owner-dd-sub${_subOn?' sel':''}" onclick="pickAAOwner('POD:${_sub.replace(/'/g,"\\'")}')" title="Scale accounts owned by ${_csmHint}"><span>${cb(_subOn)}↳ ${_sub}</span><span class="ct">${_ct} accts</span></div>`;
+                    });
+                  }
                   return _h;
                 }
                 const on=_aaIsOwnerPickActive('POD:'+p);
