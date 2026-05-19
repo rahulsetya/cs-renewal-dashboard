@@ -5767,22 +5767,25 @@ rGP=function(){
         ${_fcGpPods.map(p=>{
           // Regional pods carry the canonical Sales Rep inline.
           const _baseLbl=p==='Asia'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':p;
-          // Scale is the only Forecast pod with sub-rows. Prepend a chevron
-          // so users can hide/show the three regional Scale CSM rows. Default
-          // collapsed (matches the Pipeline dropdown behavior).
-          const _hasSubs=p==='Scale';
-          const _podOpen=!!(S.fcPodExpand&&S.fcPodExpand[p]);
-          const _chev=_hasSubs?`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 6px 0 0;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();ssForecastPodSubToggle('${p.replace(/'/g,"\\'")}')" title="${_podOpen?'Collapse':'Expand'} ${p} sub-rows">${_podOpen?'▾':'▸'}</span>`:'';
-          const _lbl=_chev+_baseLbl;
-          let _row=_fcMkSec(p,_lbl,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle');
-          if(_hasSubs&&_podOpen){
-            ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
-              const _ct=_fcScaleSubCounts[_sub]||0;
-              if(_ct===0)return;
-              _row+=_fcMkSec(_sub,'↳ '+_sub,_ct+' accts',_fcPods,'ssForecastPodToggle');
-            });
+          // Scale is the only Forecast pod with sub-rows. Build the Scale
+          // row manually so the chevron sits BEFORE the checkbox (the
+          // _fcMkSec helper hardcodes checkbox-first layout). Default
+          // collapsed; click chevron to expand the three regional CSM rows.
+          if(p==='Scale'){
+            const _on=_fcPods.includes('Scale');
+            const _podOpen=!!(S.fcPodExpand&&S.fcPodExpand['Scale']);
+            const _chev=`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 6px 0 0;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();ssForecastPodSubToggle('Scale')" title="${_podOpen?'Collapse':'Expand'} Scale sub-rows">${_podOpen?'▾':'▸'}</span>`;
+            let _row=`<div onclick="ssForecastPodToggle('Scale');event.stopPropagation()" style="padding:6px 12px;font-size:12px;color:${_on?'#fff':_fcDdMenuTx};background:${_on?_fcDdSel:'transparent'};cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap"${_on?' data-on="1"':''}>${_chev}<span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_on?'#fff':_fcDdMenuTx};border-radius:3px;background:${_on?'#fff':'transparent'};color:${_fcDdSel};font-size:10px;line-height:11px;text-align:center;font-weight:900">${_on?'✓':''}</span><span style="flex:1">${_baseLbl}</span><span style="color:${_on?'#d0d0ec':_fcDdGrp};font-size:10px;font-weight:600">${_fcGpCounts[p]} accts</span></div>`;
+            if(_podOpen){
+              ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
+                const _ct=_fcScaleSubCounts[_sub]||0;
+                if(_ct===0)return;
+                _row+=_fcMkSec(_sub,'↳ '+_sub,_ct+' accts',_fcPods,'ssForecastPodToggle');
+              });
+            }
+            return _row;
           }
-          return _row;
+          return _fcMkSec(p,_baseLbl,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle');
         }).join('')}
         ${_fcSpTot?_fcMkSec('SP','SP',_fcSpTot+' accts',_fcPods,'ssForecastPodToggle'):''}
       </div>
