@@ -264,10 +264,22 @@ const SCALE_EUROPE_REP = ae => {
   return a==='dx' || a.startsWith('dx ') || a.startsWith('david x');
 };
 function _scaleSubPod(row){
-  if(!row||row.pod!=='Scale')return null;
-  if(SCALE_EUROPE_REP(row.ae))return 'Scale Europe';
-  if(SCALE_ASIA_REP(row.ae))return 'Scale Asia';
-  return 'Scale USA';
+  // Scale sub-pod assignment is now CSM-based (per user spec). Returns
+  // null for any account not on the Scale book (csRep aliasing to
+  // "Support iConnections"). Bucket rules:
+  //   • Phoebe Willoughby → Scale Europe
+  //   • Jovin Lee          → Scale Asia
+  //   • Every other Scale-team CSM (Bryan / Olivia / Mario / Luis /
+  //     Connor / literal Support iConnections) → Scale USA
+  if(!row)return null;
+  const raw=String(row.csRep||'').trim();
+  if(!raw)return null;
+  const rawLc=raw.toLowerCase();
+  if(rawLc==='phoebe willoughby')return 'Scale Europe';
+  if(rawLc==='jovin lee')return 'Scale Asia';
+  const aliased=RENEWAL_OWNER_ALIAS[rawLc]||raw;
+  if(aliased==='Support iConnections')return 'Scale USA';
+  return null;
 }
 
 // ── Pod composition (CSM ↔ Sales Rep) ───────────────────────────────────────
@@ -386,7 +398,9 @@ function _itemMatches(item,row){
       return _salesRepPod(row)===basePod&&_isOffPod(row);
     }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
-      return row&&row.pod==='Scale'&&_scaleSubPod(row)===pod;
+      // _scaleSubPod returns null for any account not on Scale (csRep
+      // doesn't alias to Support iConnections), so the bare match is safe.
+      return row&&_scaleSubPod(row)===pod;
     // Scale = any account whose CS Rep (Renewal Master "CS Rep" column)
     // aliases to "Support iConnections" — i.e. Phoebe / Jovin / Bryan /
     // Olivia / Mario / Luis / Connor / literal Support iConnections.
@@ -3196,8 +3210,17 @@ function _buildLiveForecastData(pods,salesReps,csReps){
   if(_csFilter)_gpOnly=_gpOnly.filter(x=>_csFilter.includes(displayCsRep(x.csRep)||''));
   // Match the Pipeline view's pod semantics exactly: Pod 1-4 / Asia / Europe
   // resolve via POD_REPS predicates (sales-rep based), not d.pod equality.
-  // Any pod name without a predicate falls back to d.pod for backwards compat.
-  const all=!_active?_gpOnly:(_gpPods.length?_gpOnly.filter(x=>_gpPods.some(p=>POD_REPS[p]?POD_REPS[p](x.ae):x.pod===p)):[]);
+  // Scale = csRep aliases to "Support iConnections" (same as the parent
+  // _itemMatches POD:Scale matcher). Scale Europe / Asia / USA sub-pods
+  // use _scaleSubPod (CSM-based). Any other pod name falls back to d.pod.
+  const _isScaleRow=x=>{const csR=String(x.csRep||'').trim();if(!csR)return false;const a=RENEWAL_OWNER_ALIAS[csR.toLowerCase()]||csR;return a==='Support iConnections';};
+  const _podMatch=(p,x)=>{
+    if(p==='Scale')return _isScaleRow(x);
+    if(p==='Scale Europe'||p==='Scale Asia'||p==='Scale USA')return _scaleSubPod(x)===p;
+    if(POD_REPS[p])return POD_REPS[p](x.ae);
+    return x.pod===p;
+  };
+  const all=!_active?_gpOnly:(_gpPods.length?_gpOnly.filter(x=>_gpPods.some(p=>_podMatch(p,x))):[]);
   const gp={T:all.length,W:all.filter(x=>WON.has(x.s)).length,O:all.filter(x=>!WON.has(x.s)&&!CHR.has(x.s)&&!DCL.has(x.s)).length,D:all.filter(x=>DCL.has(x.s)).length,C:all.filter(x=>CHR.has(x.s)).length,base:all.reduce((a,x)=>a+(x.r25||0),0),churnRev:all.filter(x=>CHR.has(x.s)).reduce((a,x)=>a+(x.r25||0),0)};
   const gpq={},gpqr={};
   const qMo={Q1:'Jan–Mar',Q2:'Apr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dec'};
@@ -3705,8 +3728,17 @@ function _render(){
       const _sn=_aeShortName(d.ae);
       if(_sn)_noPodShortNames[_sn]=1;
     }
-    // Scale lives in the CS Reps section now (via displayCsRep's rollup
-    // to "Scale"), so no separate pod-section count is built here.
+    // Scale is also surfaced as its own pod row (per user spec). Same
+    // membership rule as the POD:Scale matcher in _itemMatches — csRep
+    // aliases to "Support iConnections". Excludes SP rows (which have
+    // their own pod row). Note: Scale ALSO appears under CS Reps via
+    // displayCsRep — duplicate exposure is intentional so users can pick
+    // Scale from either section.
+    const _csR=String(d.csRep||'').trim();
+    if(_csR&&!d.__sp){
+      const _aliased=RENEWAL_OWNER_ALIAS[_csR.toLowerCase()]||_csR;
+      if(_aliased==='Support iConnections')_podCounts['Scale']=(_podCounts['Scale']||0)+1;
+    }
     // SP is special-cased — the count must match the filter, which keys off
     // d.__sp (set by _mergeSPsIntoD on the SP sheet), not the ET pod column
     // (which has been seen mis-tagged on GP accounts). Scoped to 2026 sub-end
@@ -3799,10 +3831,21 @@ function _render(){
           })()}
           ${pods.length?`<div class="owner-dd-grp">Pods · Engagement Tracker</div>${pods.map(p=>{
             if(p==='Scale'){
-              // Scale renders as a single row now — the regional breakdowns
-              // (Asia / Europe) live as their own top-level Sales-Rep pods.
+              // Scale renders as a pod with three CSM-based sub-rows:
+              //   • Scale Europe (Phoebe Willoughby)
+              //   • Scale Asia   (Jovin Lee)
+              //   • Scale USA    (the rest of the Scale team)
+              // Counts come from _scaleSubCounts (built via _scaleSubPod).
               const on=_isOwnerPickActive('POD:Scale');
-              return `<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_podCounts.Scale||0} accts</span></div>`;
+              let _scaleHtml=`<div class="owner-dd-item${on?' sel':''}" onclick="pickOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_podCounts.Scale||0} accts</span></div>`;
+              ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
+                const _ct=_scaleSubCounts[_sub]||0;
+                if(_ct===0)return;
+                const _subOn=_isOwnerPickActive('POD:'+_sub);
+                const _csmHint=_sub==='Scale Europe'?'Phoebe Willoughby':_sub==='Scale Asia'?'Jovin Lee':'Bryan / Olivia / Mario / Luis / Connor';
+                _scaleHtml+=`<div class="owner-dd-item owner-dd-sub${_subOn?' sel':''}" onclick="pickOwner('POD:${_sub.replace(/'/g,"\\'")}')" title="Scale accounts owned by ${_csmHint}"><span>${cb(_subOn)}↳ ${_sub}</span><span class="ct">${_ct} accts</span></div>`;
+              });
+              return _scaleHtml;
             }
             const on=_isOwnerPickActive('POD:'+p);
             const off=_offPodCounts[p]||0;
@@ -5596,9 +5639,23 @@ rGP=function(){
     //   • CS Reps from displayCsRep(d.csRep) — alpha sorted, rolls
     //     Phoebe / Jovin / Bryan / etc. up under "Scale".
     const _fcPodCounts={};Object.keys(POD_REPS).forEach(p=>{_fcPodCounts[p]=0;});
+    // Scale appears as its own pod here too (parallel to Pipeline). Sub-pod
+    // counts come from _scaleSubPod (CSM-based: Phoebe→Europe, Jovin→Asia,
+    // rest of Scale team → USA).
+    _fcPodCounts['Scale']=0;
+    const _fcScaleSubCounts={'Scale Europe':0,'Scale Asia':0,'Scale USA':0};
     (D||[]).filter(d=>!d.__sp).forEach(d=>{
       Object.keys(POD_REPS).forEach(p=>{if(POD_REPS[p](d.ae))_fcPodCounts[p]++;});
+      const _csA=String(d.csRep||'').trim();
+      if(_csA){
+        const _aliased=RENEWAL_OWNER_ALIAS[_csA.toLowerCase()]||_csA;
+        if(_aliased==='Support iConnections')_fcPodCounts['Scale']++;
+      }
+      const _scSub=_scaleSubPod(d);if(_scSub)_fcScaleSubCounts[_scSub]++;
     });
+    // Drop Scale from the list if no Scale accounts (keeps the dropdown clean
+    // in test / partial-data scenarios).
+    if(_fcPodCounts['Scale']===0)delete _fcPodCounts['Scale'];
     const _fcGpPods=Object.keys(_fcPodCounts).sort((a,b)=>{
       const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
       if(na&&nb)return+na[1]-+nb[1];if(na)return -1;if(nb)return 1;return a.localeCompare(b);
@@ -5648,7 +5705,16 @@ rGP=function(){
         ${_fcGpPods.map(p=>{
           // Regional pods carry the canonical Sales Rep inline.
           const _lbl=p==='Asia'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(Edwin A)</span>':p==='Europe'?p+' <span style="color:#64748b;font-size:10px;font-weight:400">(David X)</span>':p;
-          return _fcMkSec(p,_lbl,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle');
+          let _row=_fcMkSec(p,_lbl,_fcGpCounts[p]+' accts',_fcPods,'ssForecastPodToggle');
+          // Scale gets three CSM-based sub-rows appended below it.
+          if(p==='Scale'){
+            ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
+              const _ct=_fcScaleSubCounts[_sub]||0;
+              if(_ct===0)return;
+              _row+=_fcMkSec(_sub,'↳ '+_sub,_ct+' accts',_fcPods,'ssForecastPodToggle');
+            });
+          }
+          return _row;
         }).join('')}
         ${_fcSpTot?_fcMkSec('SP','SP',_fcSpTot+' accts',_fcPods,'ssForecastPodToggle'):''}
       </div>
@@ -6363,10 +6429,26 @@ const _GP_SCALE_EUROPE_REP = ae => {
   return a==='dx' || a.startsWith('dx ') || a.startsWith('david x');
 };
 function _gpScaleSubPod(a){
-  if(!a||a.pool!=='Scale')return null;
-  if(_GP_SCALE_EUROPE_REP(a.ae))return 'Scale Europe';
-  if(_GP_SCALE_ASIA_REP(a.ae))return 'Scale Asia';
-  return 'Scale USA';
+  // CSM-based Scale sub-pod assignment (parent _scaleSubPod mirror):
+  //   • Phoebe Willoughby → Scale Europe
+  //   • Jovin Lee          → Scale Asia
+  //   • Other Scale-team CSMs (Bryan / Olivia / Mario / Luis / Connor /
+  //     literal Support iConnections) → Scale USA
+  // Returns null for any account not on Scale (csRep doesn't alias to
+  // Support iConnections via _GP_OWNER_ALIAS below).
+  if(!a)return null;
+  const raw=String(a.csRep||'').trim();
+  if(!raw)return null;
+  const rawLc=raw.toLowerCase();
+  if(rawLc==='phoebe willoughby')return 'Scale Europe';
+  if(rawLc==='jovin lee')return 'Scale Asia';
+  // _GP_OWNER_ALIAS is defined a few lines below — at call time it's
+  // resolved against the iframe's top-level alias map (mirror of parent
+  // RENEWAL_OWNER_ALIAS). Forward reference is fine since runtime calls
+  // happen after the iframe's module has finished evaluating.
+  const aliased=(_GP_OWNER_ALIAS&&_GP_OWNER_ALIAS[rawLc])||raw;
+  if(aliased==='Support iConnections')return 'Scale USA';
+  return null;
 }
 // ── Iframe CSM aliasing (mirrors parent RENEWAL_OWNER_ALIAS) ──────────────
 // Scale support staff (Phoebe, Jovin, Bryan, etc.) all roll up under
@@ -6455,7 +6537,9 @@ function _gpItemMatches(item,a){
       return _gpSalesRepPod(a)===basePod&&_gpIsOffPod(a);
     }
     if(pod==='Scale USA'||pod==='Scale Asia'||pod==='Scale Europe')
-      return a&&a.pool==='Scale'&&_gpScaleSubPod(a)===pod;
+      // _gpScaleSubPod is now CSM-based and returns null for non-Scale
+      // accounts, so the bare match is safe (no need to gate on a.pool).
+      return a&&_gpScaleSubPod(a)===pod;
     // Scale = CS Rep aliases to "Support iConnections" (Phoebe / Jovin /
     // Bryan / Olivia / Mario / Luis / Connor / literal Support iC).
     // Mirrors the parent dashboard's definition; d.pool==='Scale' no
@@ -8914,7 +8998,13 @@ function rGP(){
                 _gpPodCsmCounts[p][csmKey]=(_gpPodCsmCounts[p][csmKey]||0)+1;
               }
             });
-            // Scale moved into the CS Reps section — no pod-section count.
+            // Scale appears in BOTH the CS Reps section (via the Scale rollup
+            // label) AND as its own pod row with CSM-based sub-pods. Add the
+            // Scale pod count here using the same csRep alias rule as the
+            // parent's POD:Scale matcher.
+            if(_csmAliased==='Support iConnections'){
+              _gpPodCounts['Scale']=(_gpPodCounts['Scale']||0)+1;
+            }
             if(a.pod&&!_GP_POD_REPS[a.pod]&&a.pod!=='Strategic'&&a.pod!=='Scale'){
               _gpPodCounts[a.pod]=(_gpPodCounts[a.pod]||0)+1;
               if(a.pod!=='SP'){
@@ -8946,10 +9036,18 @@ function rGP(){
             menu+=`<div class="owner-dd-grp">Pods</div>`;
             menu+=podsToShow.map(p=>{
               if(p==='Scale'){
-                // Scale renders as a single row now — the regional Asia /
-                // Europe breakdowns live as their own top-level Sales-Rep pods.
+                // Scale renders as a pod row with three CSM-based sub-rows:
+                //   • Scale Europe (Phoebe), Scale Asia (Jovin), Scale USA (rest).
                 const on=_gpIsOwnerPickActive('POD:Scale');
-                return `<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_gpPodCounts.Scale||0} accts</span></div>`;
+                let _h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickGPOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_gpPodCounts.Scale||0} accts</span></div>`;
+                ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
+                  const _ct=_gpScaleSubCounts[_sub]||0;
+                  if(_ct===0)return;
+                  const _subOn=_gpIsOwnerPickActive('POD:'+_sub);
+                  const _csmHint=_sub==='Scale Europe'?'Phoebe Willoughby':_sub==='Scale Asia'?'Jovin Lee':'Bryan / Olivia / Mario / Luis / Connor';
+                  _h+=`<div class="owner-dd-item owner-dd-sub${_subOn?' sel':''}" onclick="pickGPOwner('POD:${_sub.replace(/'/g,"\\'")}')" title="Scale accounts owned by ${_csmHint}"><span>${cb(_subOn)}↳ ${_sub}</span><span class="ct">${_ct} accts</span></div>`;
+                });
+                return _h;
               }
               const on=_gpIsOwnerPickActive('POD:'+p);
               const off=_gpOffPodCounts[p]||0;
@@ -10184,8 +10282,13 @@ function rAllAccts(){
   // accounts.
   const csmList=[...new Set(all.map(a=>_gpDisplayCsRep(a.csRep)).filter(Boolean))].sort();
   const segs=[...new Set(all.map(a=>a.seg).filter(Boolean))].sort();
-  // Pod list — engagement-tracker pods, sorted Pod 1, Pod 2, …, then alphabetic
+  // Pod list — engagement-tracker pods, sorted Pod 1, Pod 2, …, then alphabetic.
+  // Add a synthetic "Scale" entry (CS-Rep-aliased to Support iConnections) so
+  // it appears as its own pod row with sub-pods — parallel to the parent
+  // Pipeline dropdown.
   const podSet={};all.forEach(a=>{if(a.pod)podSet[a.pod]=(podSet[a.pod]||0)+1;});
+  const _aaScaleCount=all.filter(a=>(_GP_OWNER_ALIAS[String(a.csRep||'').toLowerCase()]||a.csRep)==='Support iConnections').length;
+  if(_aaScaleCount>0)podSet['Scale']=_aaScaleCount;
   const podList=Object.keys(podSet).sort((a,b)=>{
     const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
     if(na&&nb)return +na[1]-+nb[1];
@@ -10288,9 +10391,17 @@ function rAllAccts(){
             // Per-row counts so the dropdown reflects the universe of "all engagement-tracker accounts"
             const _aaPodCounts={};const _aaScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
             const _aaOffPodCounts={};
-            // Scale is in the CS Reps section now, not Pods. Don't tally
-            // a separate Scale pod count.
-            all.forEach(a=>{if(a.pod&&a.pod!=='Scale'){_aaPodCounts[a.pod]=(_aaPodCounts[a.pod]||0)+1;}const sub=_gpScaleSubPod(a);if(sub)_aaScaleSubCounts[sub]++;if(_gpIsOffPod(a)){const cp=_gpSalesRepPod(a);if(cp)_aaOffPodCounts[cp]=(_aaOffPodCounts[cp]||0)+1;}});
+            // Pod counts. Scale is also surfaced as its own pod row (per
+            // user spec), counted via csRep aliasing to Support iConnections
+            // — independent of d.pod equality. _aaScaleSubCounts tracks the
+            // Phoebe / Jovin / rest split via _gpScaleSubPod.
+            all.forEach(a=>{
+              if(a.pod&&a.pod!=='Scale'){_aaPodCounts[a.pod]=(_aaPodCounts[a.pod]||0)+1;}
+              const _csA=(_GP_OWNER_ALIAS[String(a.csRep||'').toLowerCase()]||a.csRep);
+              if(_csA==='Support iConnections')_aaPodCounts['Scale']=(_aaPodCounts['Scale']||0)+1;
+              const sub=_gpScaleSubPod(a);if(sub)_aaScaleSubCounts[sub]++;
+              if(_gpIsOffPod(a)){const cp=_gpSalesRepPod(a);if(cp)_aaOffPodCounts[cp]=(_aaOffPodCounts[cp]||0)+1;}
+            });
             const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
             let menu=`<div class="owner-dd-item${aSel.mode==='ALL'?' sel':''}" onclick="pickAAOwner('ALL')"><span>All CSMs &amp; Pods</span><span class="ct">${all.length} accts</span></div>`;
             if(csmList.length){
@@ -10308,10 +10419,18 @@ function rAllAccts(){
               menu+=`<div class="owner-dd-grp">Pods · Engagement Tracker</div>`;
               menu+=podList.map(p=>{
                 if(p==='Scale'){
-                  // Scale renders as a single row now — regional breakdowns
-                  // (Asia / Europe) live as their own top-level Sales-Rep pods.
+                  // Scale renders as a pod row with three CSM-based sub-rows:
+                  //   • Scale Europe (Phoebe), Scale Asia (Jovin), Scale USA (rest).
                   const on=_aaIsOwnerPickActive('POD:Scale');
-                  return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_aaPodCounts.Scale||0} accts</span></div>`;
+                  let _h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:Scale')"><span>${cb(on)}Scale</span><span class="ct">${_aaPodCounts.Scale||0} accts</span></div>`;
+                  ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
+                    const _ct=_aaScaleSubCounts[_sub]||0;
+                    if(_ct===0)return;
+                    const _subOn=_aaIsOwnerPickActive('POD:'+_sub);
+                    const _csmHint=_sub==='Scale Europe'?'Phoebe Willoughby':_sub==='Scale Asia'?'Jovin Lee':'Bryan / Olivia / Mario / Luis / Connor';
+                    _h+=`<div class="owner-dd-item owner-dd-sub${_subOn?' sel':''}" onclick="pickAAOwner('POD:${_sub.replace(/'/g,"\\'")}')" title="Scale accounts owned by ${_csmHint}"><span>${cb(_subOn)}↳ ${_sub}</span><span class="ct">${_ct} accts</span></div>`;
+                  });
+                  return _h;
                 }
                 const on=_aaIsOwnerPickActive('POD:'+p);
                 const off=_aaOffPodCounts[p]||0;
