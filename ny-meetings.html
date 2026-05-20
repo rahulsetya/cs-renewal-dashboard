@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GA NY 2026 — CS NY Meeting Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c23;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --faint: #374151;
+    --accent: #3b82f6;
+    --accent-glow: rgba(59,130,246,0.15);
+    --green: #10b981;
+    --green-glow: rgba(16,185,129,0.12);
+    --amber: #f59e0b;
+    --amber-glow: rgba(245,158,11,0.12);
+    --red: #ef4444;
+    --red-glow: rgba(239,68,68,0.12);
+    --purple: #8b5cf6;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Header */
+  .header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .badge {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .title { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+  .subtitle { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .upload-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .upload-btn:hover { border-color: var(--accent); background: var(--accent-glow); }
+  #file-input { display: none; }
+  .date-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--faint);
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  /* Main */
+  .main { padding: 24px 28px; max-width: 1400px; }
+
+  /* Stat cards */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border-bright); }
+  .stat-card.accent { border-color: rgba(59,130,246,0.3); }
+  .stat-card.green  { border-color: rgba(16,185,129,0.3); }
+  .stat-card.amber  { border-color: rgba(245,158,11,0.3); }
+  .stat-card.red    { border-color: rgba(239,68,68,0.25); }
+  .stat-card.purple { border-color: rgba(139,92,246,0.3); }
+  .stat-glow {
+    position: absolute; top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    filter: blur(30px);
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  .accent .stat-glow { background: var(--accent); }
+  .green  .stat-glow { background: var(--green); }
+  .amber  .stat-glow { background: var(--amber); }
+  .red    .stat-glow { background: var(--red); }
+  .purple .stat-glow { background: var(--purple); }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; margin-bottom: 8px; }
+  .stat-val { font-family: 'DM Mono', monospace; font-size: 32px; font-weight: 500; line-height: 1; }
+  .accent .stat-val { color: var(--accent); }
+  .green  .stat-val { color: var(--green); }
+  .amber  .stat-val { color: var(--amber); }
+  .red    .stat-val { color: var(--red); }
+  .purple .stat-val { color: var(--purple); }
+  .stat-delta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .delta-up   { color: var(--green); }
+  .delta-down { color: var(--red); }
+  .delta-flat { color: var(--muted); }
+
+  /* Two-col layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  /* Panels */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+  .panel-body { padding: 16px 18px; }
+
+  /* CSM bars */
+  .csm-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .csm-row:last-child { margin-bottom: 0; }
+  .csm-name { font-size: 12px; width: 145px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .csm-bar-wrap { flex: 1; height: 8px; background: var(--faint); border-radius: 4px; overflow: hidden; }
+  .csm-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .csm-bar-fill.confirmed { background: var(--green); }
+  .csm-bar-fill.sent { background: var(--accent); }
+  .csm-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); width: 28px; text-align: right; flex-shrink: 0; }
+
+  /* Table */
+  .tbl-wrap { overflow-x: auto; max-height: 340px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  thead th:hover { color: var(--text); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  td { padding: 8px 12px; vertical-align: middle; }
+  .td-company { font-weight: 500; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .td-csm { color: var(--muted); white-space: nowrap; }
+  .td-num { font-family: 'DM Mono', monospace; text-align: right; }
+  .td-num.hi { color: var(--green); font-weight: 500; }
+  .td-num.warn { color: var(--amber); }
+  .td-num.bad { color: var(--red); }
+  .conv-pill {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .conv-high { background: var(--green-glow); color: var(--green); border: 1px solid rgba(16,185,129,0.25); }
+  .conv-med  { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+  .conv-low  { background: var(--red-glow);   color: var(--red);   border: 1px solid rgba(239,68,68,0.25); }
+  .conv-zero { background: var(--faint); color: var(--muted); border: 1px solid transparent; }
+
+  /* Timeline */
+  .timeline { padding: 12px 18px 16px; }
+  .tl-entry {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  .tl-entry:last-child { margin-bottom: 0; }
+  .tl-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .tl-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); width: 52px; flex-shrink: 0; }
+  .tl-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
+  .tl-metric { display: flex; flex-direction: column; }
+  .tl-metric-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .tl-metric-val { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--text); }
+  .tl-change { font-size: 10px; font-family: 'DM Mono', monospace; }
+
+  /* Filters */
+  .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+  .result-count { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-left: auto; }
+
+  /* Donut */
+  .donut-wrap { display: flex; align-items: center; gap: 20px; padding: 10px 0; }
+  svg.donut { transform: rotate(-90deg); }
+  .donut-legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; margin-left: auto; padding-left: 16px; }
+
+  /* Empty state */
+  .empty { padding: 32px; text-align: center; color: var(--muted); font-size: 13px; }
+
+  /* No history */
+  .no-history { padding: 24px 18px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+
+  /* Sort indicator */
+  .sort-asc::after { content: ' ↑'; }
+  .sort-desc::after { content: ' ↓'; }
+
+  /* Pacing bar */
+  .pace-wrap { display: flex; align-items: center; gap: 8px; }
+  .pace-bar-track { flex: 1; height: 6px; background: var(--faint); border-radius: 3px; overflow: visible; position: relative; }
+  .pace-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .pace-marker { position: absolute; top: -3px; width: 2px; height: 12px; background: rgba(255,255,255,0.3); border-radius: 1px; }
+  .pace-pct { font-family: 'DM Mono', monospace; font-size: 11px; width: 36px; text-align: right; flex-shrink: 0; }
+
+  /* High risk card */
+  .risk-list { padding: 0 18px 16px; }
+  .risk-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .risk-item:last-child { border-bottom: none; }
+  .risk-company { font-size: 12px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .risk-csm { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+  .risk-badge { font-family: 'DM Mono', monospace; font-size: 10px; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+  .risk-badge.proj { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+  .risk-badge.sent { background: var(--red-glow); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="badge">GA NY 2026</div>
+    <div>
+      <div class="title">CS NY Meeting Dashboard</div>
+      <div class="subtitle">Global Alts New York 2026 — Meeting Activity</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="date-badge" id="current-date-badge">—</span>
+    <label class="upload-btn" for="file-input">
+      ↑ Upload New CSV
+    </label>
+    <input type="file" id="file-input" accept=".csv">
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Pacing Banner -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);font-weight:600">Scheduler Window</span>
+      <span style="font-family:'DM Mono',monospace;font-size:12px">May 12 &rarr; Jun 1 &nbsp;<span style="color:var(--muted)">|</span>&nbsp; 20 days total</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:200px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+        <span>Day <span id="pace-day" style="color:var(--text);font-family:'DM Mono',monospace">7</span> of 20</span>
+        <span id="pace-pct-label" style="color:var(--accent);font-family:'DM Mono',monospace">35% elapsed</span>
+      </div>
+      <div style="height:6px;background:var(--faint);border-radius:3px;overflow:hidden">
+        <div id="pace-global-bar" style="height:100%;border-radius:3px;background:var(--accent);width:35%"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted)">At this pace, accounts should be at <span id="pace-expected-pct" style="color:var(--text);font-family:'DM Mono',monospace">35%</span> of their projected meeting goal</div>
+    </div>
+    <div style="display:flex;gap:20px;flex-shrink:0">
+      <div style="text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--green)" id="pace-ahead-count">—</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Ahead of Pace</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--amber)" id="pace-on-count">—</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">On Pace</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:22px;color:var(--red)" id="pace-behind-count">—</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Behind Pace</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="stat-grid" style="grid-template-columns:repeat(6,1fr)">
+    <div class="stat-card accent">
+      <div class="stat-glow"></div>
+      <div class="stat-label">Accounts</div>
+      <div class="stat-val" id="s-accounts">—</div>
+      <div class="stat-delta" id="d-accounts"><span class="delta-flat">— first snapshot</span></div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-glow"></div>
+      <div class="stat-label">Confirmed Meetings</div>
+      <div class="stat-val" id="s-confirmed">—</div>
+      <div class="stat-delta" id="d-confirmed"><span class="delta-flat">—</span></div>
+    </div>
+    <div class="stat-card accent">
+      <div class="stat-glow"></div>
+      <div class="stat-label">Meeting Requests Sent</div>
+      <div class="stat-val" id="s-sent">—</div>
+      <div class="stat-delta" id="d-sent"><span class="delta-flat">—</span></div>
+    </div>
+    <div class="stat-card red" style="border-color:rgba(239,68,68,0.3)">
+      <div class="stat-glow"></div>
+      <div class="stat-label">Zero Requests Sent</div>
+      <div class="stat-val" id="s-zerosent">—</div>
+      <div class="stat-delta" id="d-zerosent"><span class="delta-flat">—</span></div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-glow"></div>
+      <div class="stat-label">Cancelled</div>
+      <div class="stat-val" id="s-cancelled">—</div>
+      <div class="stat-delta" id="d-cancelled"><span class="delta-flat">—</span></div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-glow"></div>
+      <div class="stat-label">Declined</div>
+      <div class="stat-val" id="s-declined">—</div>
+      <div class="stat-delta" id="d-declined"><span class="delta-flat">—</span></div>
+    </div>
+  </div>
+
+  <!-- Row 2: CSM Breakdown + Donut + Timeline -->
+  <div class="three-col">
+
+    <!-- Confirmed by CSM -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Confirmed Meetings by CSM</span>
+        <span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:8px">
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>Scale</span>
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:var(--purple);display:inline-block"></span>Enterprise</span>
+        </span>
+      </div>
+      <div class="panel-body" id="csm-confirmed-bars"></div>
+    </div>
+
+    <!-- Requests Sent by CSM -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Meeting Requests Sent by CSM</span>
+      </div>
+      <div class="panel-body" id="csm-sent-bars"></div>
+    </div>
+
+    <!-- Donut: conversion breakdown -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Request Outcomes</span>
+      </div>
+      <div class="panel-body">
+        <div class="donut-wrap" id="donut-wrap">
+          <svg class="donut" id="donut-svg" width="110" height="110" viewBox="0 0 110 110"></svg>
+          <div class="donut-legend" id="donut-legend"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Row 2b: High Risk Flags -->
+  <div class="two-col" style="margin-bottom:16px">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">⚠ High Risk Flags</span>
+        <span style="font-size:11px;color:var(--muted)">Projected &lt; 5 AND sent &lt; 50</span>
+      </div>
+      <div class="risk-list" id="high-risk-list">
+        <div style="padding:16px 0;color:var(--muted);font-size:12px">Loading...</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Most Behind Pace</span>
+        <span style="font-size:11px;color:var(--muted)" id="behind-pace-subtitle">vs. expected at day 7 of 20</span>
+      </div>
+      <div class="risk-list" id="behind-pace-list">
+        <div style="padding:16px 0;color:var(--muted);font-size:12px">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Table -->
+  <div class="panel" style="margin-bottom:16px">
+    <div class="panel-header">
+      <span class="panel-title">Account Detail</span>
+      <div class="filters" style="margin-bottom:0">
+        <select class="filter-select" id="f-team" onchange="renderTable()">
+          <option value="">All Teams</option>
+          <option value="Scale">Scale</option>
+          <option value="Enterprise">Enterprise</option>
+        </select>
+        <select class="filter-select" id="f-csm" onchange="renderTable()">
+          <option value="">All CSMs</option>
+          <option value="__SCALE__">Scale (All)</option>
+          <optgroup label="── Enterprise ──">
+            <option>Alex Cherecwich</option>
+            <option>Andreas Santikos</option>
+            <option>Christina Chumak</option>
+            <option>Courtney Krieg</option>
+            <option>Helen Ramsay</option>
+            <option>Joe Romanoff</option>
+            <option>Juwan Pryce</option>
+            <option>Kristan Hester</option>
+            <option>Lucy Garber</option>
+            <option>Sunny Unger</option>
+          </optgroup>
+        </select>
+        <select class="filter-select" id="f-conf" onchange="renderTable()">
+          <option value="">All</option>
+          <option value="yes">Has Confirmed</option>
+          <option value="no">Zero Confirmed</option>
+        </select>
+        <select class="filter-select" id="f-sent" onchange="renderTable()">
+          <option value="">All</option>
+          <option value="none">No Requests Sent</option>
+          <option value="has">Has Requests Sent</option>
+        </select>
+        <select class="filter-select" id="f-proj" onchange="renderTable()">
+          <option value="">All</option>
+          <option value="behind">Behind Pace</option>
+          <option value="ahead">Ahead of Pace</option>
+          <option value="highrisk">High Risk Only</option>
+          <option value="low">Low Goal (&lt; 5)</option>
+          <option value="noproj">No Projection</option>
+        </select>
+        <select class="filter-select" id="f-sales" onchange="renderTable()">
+          <option value="">All Salespeople</option>
+          <option>David Johnson</option>
+          <option>David Xuereb</option>
+          <option>Earl Blasi</option>
+          <option>Edwin Ang</option>
+          <option>Ian Rzeszowski</option>
+          <option>Jake Delaney</option>
+          <option>James Thompson</option>
+          <option>Juliet Bergman</option>
+          <option>Lauren Sharabi</option>
+          <option>Marc Hershan</option>
+          <option>Sebastian Tanner</option>
+        </select>
+        <span class="result-count" id="tbl-count"></span>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="main-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable('company')" id="th-company">Company</th>
+            <th onclick="sortTable('companyType')" id="th-companyType">Type</th>
+            <th onclick="sortTable('companyId')" id="th-companyId">Co. ID</th>
+            <th onclick="sortTable('aum')" id="th-aum">AUM</th>
+            <th onclick="sortTable('joinedYearMonth')" id="th-joinedYearMonth">Joined</th>
+            <th onclick="sortTable('csm')" id="th-csm">CSM</th>
+            <th onclick="sortTable('salesperson')" id="th-salesperson">Salesperson</th>
+            <th onclick="sortTable('confirmed')" id="th-confirmed" class="sort-desc">Confirmed</th>
+            <th onclick="sortTable('projected')" id="th-projected">Goal</th>
+            <th onclick="sortTable('pacePct')" id="th-pacePct">Pace %</th>
+            <th onclick="sortTable('paceDelta')" id="th-paceDelta">vs. Expected</th>
+            <th onclick="sortTable('cancelled')" id="th-cancelled">Cancelled</th>
+            <th onclick="sortTable('sent')" id="th-sent">Sent</th>
+            <th onclick="sortTable('received')" id="th-received">Received</th>
+            <th onclick="sortTable('declined')" id="th-declined">Declined</th>
+            <th onclick="sortTable('followup')" id="th-followup">Followups</th>
+            <th onclick="sortTable('strategies')" id="th-strategies">Strategy</th>
+            <th onclick="sortTable('conv')" id="th-conv">Conv. Rate</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Row 4: Daily trend timeline -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Daily Snapshot History</span>
+      <span style="font-size:11px;color:var(--muted)">Upload each day to track changes</span>
+    </div>
+    <div id="timeline-container">
+      <div class="no-history">No historical data yet. Upload tomorrow's CSV to start tracking daily changes in confirmed meetings and requests sent.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Storage keys ──
+const SNAP_KEY = 'gany_snapshots';
+const SCALE_CSMS = new Set([
+  "Support iConnections","Olivia Juliano","Bryan Perez",
+  "Mario Giron","Luis Pedroz Veliz","Phoebe Willoughby","Jovin Lee"
+]);
+// All CSMs now included — no TARGET_CSMS restriction on display
+
+// ── Pacing constants ──
+const SCHED_START = new Date('2026-05-12');
+const SCHED_END   = new Date('2026-06-01');
+const SCHED_TOTAL_DAYS = Math.round((SCHED_END - SCHED_START) / 86400000); // 20
+function getPacingPct(asOf) {
+  const d = asOf || new Date();
+  const elapsed = Math.min(Math.max((d - SCHED_START) / 86400000, 0), SCHED_TOTAL_DAYS);
+  return elapsed / SCHED_TOTAL_DAYS;
+}
+function getPaceMetrics(row, pacePct) {
+  if (row.projected === null || row.projected === undefined) return { expectedNow: null, paceDelta: null, pacePct: null, paceStatus: 'none' };
+  const expectedNow = row.projected * pacePct;
+  const paceDelta   = Math.round((row.confirmed - expectedNow) * 10) / 10;
+  const pct         = row.projected > 0 ? Math.round((row.confirmed / row.projected) * 100) : 0;
+  const status      = paceDelta > 0.5 ? 'ahead' : paceDelta < -0.5 ? 'behind' : 'on';
+  return { expectedNow: Math.round(expectedNow * 10) / 10, paceDelta, pacePct: pct, paceStatus: status };
+}
+function isHighRisk(row) {
+  return row.projected !== null && row.projected !== undefined && row.projected < 5 && row.sent < 50;
+}
+
+// ── State ──
+let currentData = [];
+let sortCol = 'confirmed';
+let sortDir = 'desc';
+let snapshots = loadSnapshots();
+
+// ── Boot with embedded 5/19 data ──
+const SEED_DATE = '5/19 AM';
+const SEED_DATA = [{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44395","company":"16th Amendment Advisors","aum":"$400,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Sebastian Tanner","confirmed":4,"cancelled":0,"sent":55,"received":3,"declined":4,"followup":56,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-0.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42576","company":"1DP Investment Management Ltd","aum":"$50,000,000","joinedYearMonth":"2025-06","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":3,"cancelled":0,"sent":83,"received":1,"declined":6,"followup":83,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-2.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44819","company":"5AM Ventures","aum":"$1,000,000,000","joinedYearMonth":"2026-05","csm":"Olivia Juliano","team":"Scale","salesperson":"Jake Delaney","confirmed":8,"cancelled":0,"sent":50,"received":6,"declined":3,"followup":50,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":2.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"10446","company":"95 Impact Partners, LLC","aum":"$10,000,000","joinedYearMonth":"2022-08","csm":"Olivia Juliano","team":"Scale","salesperson":"Marc Hershan","confirmed":2,"cancelled":0,"sent":52,"received":1,"declined":3,"followup":52,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-10.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6493","company":"ABC Arbitrage Asset Management","aum":"$300,000,000","joinedYearMonth":"2021-11","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":3,"cancelled":0,"sent":33,"received":5,"declined":2,"followup":34,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":-6.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"2453","company":"AG Capital","aum":"$319,000,000","joinedYearMonth":"2021-01","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":5,"cancelled":3,"sent":68,"received":3,"declined":2,"followup":69,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-10.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14681","company":"AGL Credit Management LP","aum":"$18,000,000,000","joinedYearMonth":"2021-09","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-9.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"4245","company":"AIR Asset Management","aum":"$722,000,000","joinedYearMonth":"2021-08","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Earl Blasi","confirmed":5,"cancelled":0,"sent":85,"received":5,"declined":10,"followup":86,"projected":20.0,"strategies":"Insurance-Linked Securities / Catastrophe Bonds, Private Credit, Venture Capital","strategyCount":3,"delta":-15.0},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16420","company":"ARB Asset Management","aum":"$300,000,000","joinedYearMonth":"2023-04","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":8,"cancelled":1,"sent":57,"received":9,"declined":6,"followup":57,"projected":18.1,"strategies":"Global Macro, Relative Value","strategyCount":2,"delta":-10.1},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"20435","company":"ARKHOUSE","aum":"$100,000,000","joinedYearMonth":"2024-01","csm":"Support iConnections","team":"Scale","salesperson":"Sebastian Tanner","confirmed":7,"cancelled":0,"sent":112,"received":4,"declined":5,"followup":112,"projected":8.3,"strategies":"Event Driven","strategyCount":1,"delta":-1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"816","company":"ARR Investment Partners","aum":"$51,000,000","joinedYearMonth":"2020-06","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":2,"cancelled":0,"sent":79,"received":2,"declined":10,"followup":79,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-10.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44299","company":"AWH Partners","aum":"$2,000,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":0,"cancelled":0,"sent":13,"received":0,"declined":0,"followup":13,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-6.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42455","company":"Abacus Global Management","aum":"$3,600,000,000","joinedYearMonth":"2025-06","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Jake Delaney","confirmed":3,"cancelled":0,"sent":67,"received":2,"declined":6,"followup":68,"projected":13.5,"strategies":"Insurance-Linked Securities / Catastrophe Bonds, Private Credit","strategyCount":2,"delta":-10.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"17225","company":"Acorn Capital Management","aum":"$1,150,000,000","joinedYearMonth":"2023-06","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":11,"cancelled":1,"sent":66,"received":5,"declined":4,"followup":99,"projected":18.2,"strategies":"Private Credit, Private Equity","strategyCount":2,"delta":-7.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"20294","company":"Advent Global Opportunities","aum":"$90,000,000,000","joinedYearMonth":"2021-09","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":0,"cancelled":0,"sent":50,"received":0,"declined":4,"followup":50,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-5.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"12113","company":"Aera VC","aum":"$50,000,000","joinedYearMonth":"2022-10","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":3,"cancelled":0,"sent":80,"received":2,"declined":5,"followup":80,"projected":17.7,"strategies":"Multi-Strategy, Venture Capital","strategyCount":2,"delta":-14.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44820","company":"Aethon","aum":"$0","joinedYearMonth":"2026-05","csm":"Bryan Perez","team":"Scale","salesperson":"Earl Blasi","confirmed":2,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-10.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16289","company":"Ahead Capital Management LLC","aum":"$0","joinedYearMonth":"2023-04","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Jake Delaney","confirmed":3,"cancelled":0,"sent":0,"received":4,"declined":0,"followup":0,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-12.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44868","company":"Alluvium Equity","aum":"","joinedYearMonth":"2026-05","csm":"Bryan Perez","team":"Scale","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44501","company":"Alpha Compute Capital","aum":"$50,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Edwin Ang","confirmed":1,"cancelled":0,"sent":33,"received":2,"declined":3,"followup":33,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44860","company":"Alpha Longevity Management","aum":"$700,000,000","joinedYearMonth":"2026-05","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16494","company":"Alphemy Capital","aum":"$200,000,000","joinedYearMonth":"2023-04","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":1,"cancelled":0,"sent":4,"received":1,"declined":1,"followup":4,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-6.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43698","company":"Alpine Associates Management","aum":"$1,100,000,000","joinedYearMonth":"2022-11","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":5,"cancelled":0,"sent":94,"received":6,"declined":6,"followup":95,"projected":8.3,"strategies":"Event Driven","strategyCount":1,"delta":-3.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"8926","company":"Altriarch Asset Management","aum":"$425,000,000","joinedYearMonth":"2022-05","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Earl Blasi","confirmed":2,"cancelled":0,"sent":26,"received":2,"declined":3,"followup":26,"projected":4.8,"strategies":"Specialty Finance","strategyCount":1,"delta":-2.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44383","company":"Amplified Momentum Group","aum":"$10,000,000","joinedYearMonth":"2026-01","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":2,"cancelled":0,"sent":0,"received":3,"declined":0,"followup":0,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":-7.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44274","company":"Amun Ra Advisors LLP","aum":"$200,000,000","joinedYearMonth":"2026-01","csm":"Jovin Lee","team":"Scale","salesperson":"Edwin Ang","confirmed":6,"cancelled":0,"sent":86,"received":0,"declined":5,"followup":135,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"17295","company":"Anacapa Advisors","aum":"$0","joinedYearMonth":"2023-07","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":1,"cancelled":0,"sent":81,"received":1,"declined":5,"followup":81,"projected":15.4,"strategies":"Long Only Equity, Multi-Strategy, Options Trading","strategyCount":3,"delta":-14.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6182","company":"Analog Century Management","aum":"$2,900,000,000","joinedYearMonth":"2021-10","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Earl Blasi","confirmed":12,"cancelled":0,"sent":55,"received":10,"declined":0,"followup":58,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-0.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"384","company":"Anchor Health Capital","aum":"$790,000,000","joinedYearMonth":"2020-05","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":0,"cancelled":8,"sent":78,"received":0,"declined":7,"followup":135,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-6.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"4503","company":"Anson Funds Management","aum":"$2,400,000,000","joinedYearMonth":"2021-08","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":2,"cancelled":0,"sent":0,"received":7,"declined":0,"followup":0,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":-7.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44804","company":"Antalya Management ","aum":"$12,400,000","joinedYearMonth":"2026-04","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":7,"cancelled":0,"sent":105,"received":2,"declined":6,"followup":106,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"11443","company":"Aperture Investors","aum":"$5,910,000,000","joinedYearMonth":"2022-09","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":3,"cancelled":0,"sent":71,"received":2,"declined":4,"followup":71,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42674","company":"Aptitude Development","aum":"$1,200,000,000","joinedYearMonth":"2025-07","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":1,"cancelled":0,"sent":0,"received":3,"declined":0,"followup":0,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"7386","company":"Arbiter Partners","aum":"$1,300,000,000","joinedYearMonth":"2022-03","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":6,"cancelled":0,"sent":50,"received":7,"declined":4,"followup":51,"projected":14.7,"strategies":"Long Only Equity, Long/Short Equity","strategyCount":2,"delta":-8.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41760","company":"Argosy Credit Partners","aum":"$270,000,000","joinedYearMonth":"2025-03","csm":"Phoebe Willoughby","team":"Scale","salesperson":"David Xuereb","confirmed":4,"cancelled":0,"sent":80,"received":0,"declined":2,"followup":80,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-6.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"791","company":"Argosy Private Equity","aum":"$1,200,000,000","joinedYearMonth":"2020-06","csm":"Phoebe Willoughby","team":"Scale","salesperson":"David Xuereb","confirmed":4,"cancelled":0,"sent":56,"received":3,"declined":2,"followup":57,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-8.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44191","company":"Aristides Capital LLC","aum":"$338,500,000","joinedYearMonth":"2026-01","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":10,"cancelled":0,"sent":0,"received":12,"declined":0,"followup":0,"projected":17.8,"strategies":"Long/Short Equity, Multi-Strategy","strategyCount":2,"delta":-7.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40279","company":"Arkaim Advisors","aum":"$909,000,000","joinedYearMonth":"2024-10","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":0,"cancelled":0,"sent":91,"received":1,"declined":11,"followup":91,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-4.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44386","company":"Arsenal Bridge Ventures","aum":"$47,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":1,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44394","company":"Artystone LLP","aum":"$225,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":4,"cancelled":0,"sent":98,"received":2,"declined":12,"followup":98,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-0.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44810","company":"Ascend","aum":"$65,000,000","joinedYearMonth":"2026-04","csm":"Bryan Perez","team":"Scale","salesperson":"James Thompson","confirmed":1,"cancelled":0,"sent":42,"received":0,"declined":3,"followup":42,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16235","company":"Atreides Management","aum":"$7,000,000,000","joinedYearMonth":"2023-03","csm":"Kristan Hester","team":"Enterprise","salesperson":"Rob Tappero","confirmed":2,"cancelled":0,"sent":0,"received":11,"declined":0,"followup":0,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-10.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44131","company":"Avos Capital","aum":"$396,000,000","joinedYearMonth":"2025-12","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":4,"cancelled":0,"sent":47,"received":3,"declined":5,"followup":47,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-11.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40962","company":"Axium Capital","aum":"$400,000,000","joinedYearMonth":"2024-12","csm":"Andreas Santikos","team":"Enterprise","salesperson":"David Johnson","confirmed":3,"cancelled":0,"sent":79,"received":5,"declined":4,"followup":80,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-2.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"12359","company":"B.E. Blank & Company","aum":"$520,000,000","joinedYearMonth":"2022-10","csm":"Courtney Krieg","team":"Enterprise","salesperson":"David Xuereb","confirmed":3,"cancelled":11,"sent":83,"received":3,"declined":4,"followup":84,"projected":4.8,"strategies":"Specialty Finance","strategyCount":1,"delta":-1.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"12202","company":"BC Partners","aum":"$40,000,000,000","joinedYearMonth":"2022-10","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":5,"cancelled":0,"sent":20,"received":5,"declined":1,"followup":20,"projected":12.9,"strategies":"Private Credit, Specialty Finance","strategyCount":2,"delta":-7.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43917","company":"BOKA Capital Ltd","aum":"$100,000,000","joinedYearMonth":"2025-11","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":5,"cancelled":0,"sent":69,"received":2,"declined":9,"followup":69,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-4.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44445","company":"BTC Management","aum":"$600,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":57,"received":1,"declined":5,"followup":57,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-7.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43452","company":"Baker Brothers Advisors","aum":"$27,000,000,000","joinedYearMonth":"2025-09","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":2,"cancelled":0,"sent":20,"received":4,"declined":0,"followup":21,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-3.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41956","company":"Barrett Capital Group","aum":"$35,000,000","joinedYearMonth":"2025-04","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Earl Blasi","confirmed":7,"cancelled":0,"sent":110,"received":1,"declined":11,"followup":111,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-3.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"21944","company":"Bergen Park Capital Management","aum":"$65,000,000","joinedYearMonth":"2022-07","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":5,"cancelled":0,"sent":105,"received":2,"declined":4,"followup":105,"projected":14.7,"strategies":"Long Only Equity, Long/Short Equity","strategyCount":2,"delta":-9.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43832","company":"BitRock Capital","aum":"$120,000,000","joinedYearMonth":"2025-10","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Edwin Ang","confirmed":1,"cancelled":0,"sent":80,"received":2,"declined":5,"followup":80,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44168","company":"Blue Mars Capital","aum":"","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Marc Hershan","confirmed":4,"cancelled":0,"sent":77,"received":2,"declined":9,"followup":77,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-8.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44454","company":"Boxer Capital Management","aum":"$200,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":10,"cancelled":0,"sent":19,"received":9,"declined":0,"followup":19,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-2.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16","company":"Bramshill Investments","aum":"$8,000,000,000","joinedYearMonth":"2020-05","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":2,"cancelled":0,"sent":70,"received":3,"declined":6,"followup":71,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-2.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"5240","company":"BroadLight Capital Management","aum":"$250,000,000","joinedYearMonth":"2021-09","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":5,"cancelled":1,"sent":36,"received":4,"declined":4,"followup":36,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-7.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44842","company":"Buffalo Thorn Capital Management","aum":"$10,000,000","joinedYearMonth":"2026-05","csm":"Luis Pedro V\u00e9liz","team":"Scale","salesperson":"Marc Hershan","confirmed":0,"cancelled":0,"sent":64,"received":0,"declined":5,"followup":64,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-5.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44372","company":"CMCC Global (Titan)","aum":"$500,000,000","joinedYearMonth":"2026-01","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Edwin Ang","confirmed":3,"cancelled":0,"sent":50,"received":1,"declined":1,"followup":50,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-6.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43681","company":"CTM Asset Management","aum":"$1,250,000,000","joinedYearMonth":"2025-10","csm":"Support iConnections","team":"Scale","salesperson":"Earl Blasi","confirmed":2,"cancelled":0,"sent":52,"received":1,"declined":7,"followup":52,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-8.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44847","company":"Canon Capital","aum":"$25,000,000","joinedYearMonth":"2026-05","csm":"Luis Pedro V\u00e9liz","team":"Scale","salesperson":"Juliet Bergman","confirmed":0,"cancelled":0,"sent":44,"received":0,"declined":1,"followup":44,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-9.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44527","company":"Captains of Capital","aum":"$5,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"David Xuereb","confirmed":6,"cancelled":0,"sent":1,"received":6,"declined":0,"followup":2,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-6.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"9170","company":"Carbon Cap Management LLP","aum":"$560,000,000","joinedYearMonth":"2021-02","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":4,"cancelled":0,"sent":66,"received":2,"declined":5,"followup":66,"projected":7.7,"strategies":"Managed Futures/CTAs/CPO","strategyCount":1,"delta":-3.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"2369","company":"Carlson Capital, L.P.","aum":"$500,000,000","joinedYearMonth":"2020-12","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":4,"cancelled":0,"sent":7,"received":2,"declined":0,"followup":7,"projected":7.2,"strategies":"Relative Value","strategyCount":1,"delta":-3.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16830","company":"Carronade Capital Management, LP","aum":"$4,000,000,000","joinedYearMonth":"2023-05","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":8,"cancelled":0,"sent":19,"received":7,"declined":1,"followup":21,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":-1.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44831","company":"Catalyst Investors","aum":"$500,000,000","joinedYearMonth":"2026-05","csm":"Bryan Perez","team":"Scale","salesperson":"David Johnson","confirmed":3,"cancelled":0,"sent":69,"received":0,"declined":8,"followup":69,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-9.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1468","company":"Centurion Asset Management Inc.","aum":"$5,600,000,000","joinedYearMonth":"2020-10","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Earl Blasi","confirmed":0,"cancelled":0,"sent":75,"received":1,"declined":6,"followup":75,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-4.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"3972","company":"Chicago Atlantic Advisers, LLC","aum":"$2,500,000,000","joinedYearMonth":"2021-07","csm":"Kristan Hester","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":13,"cancelled":0,"sent":316,"received":0,"declined":52,"followup":488,"projected":12.9,"strategies":"Private Credit, Specialty Finance","strategyCount":2,"delta":0.1},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14476","company":"Clear Investment Group LLC","aum":"$600,000,000","joinedYearMonth":"2022-12","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":3,"cancelled":1,"sent":87,"received":4,"declined":6,"followup":89,"projected":15.7,"strategies":"Private Equity, Real Estate","strategyCount":2,"delta":-12.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"19881","company":"ClearAlpha Technologies","aum":"$300,000,000","joinedYearMonth":"2023-10","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":2,"cancelled":0,"sent":51,"received":0,"declined":0,"followup":51,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":-7.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14673","company":"Coromandel Capital","aum":"$149,000,000","joinedYearMonth":"2023-01","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":67,"received":0,"declined":2,"followup":67,"projected":12.9,"strategies":"Private Credit, Specialty Finance","strategyCount":2,"delta":-12.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44763","company":"Counterframe Capital Management","aum":"$0","joinedYearMonth":"2026-04","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":11,"cancelled":0,"sent":86,"received":5,"declined":5,"followup":86,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-1.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44824","company":"Crypto Native Capital","aum":"$11,000,000","joinedYearMonth":"2026-05","csm":"Luis Pedro V\u00e9liz","team":"Scale","salesperson":"Juliet Bergman","confirmed":0,"cancelled":0,"sent":11,"received":0,"declined":1,"followup":11,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44513","company":"Curex Capital Advisors","aum":"$23,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Sebastian Tanner","confirmed":7,"cancelled":0,"sent":99,"received":3,"declined":16,"followup":140,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44419","company":"Cybernetix Ventures","aum":"$36,500,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":5,"cancelled":0,"sent":63,"received":2,"declined":10,"followup":63,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-4.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"20293","company":"DSC Meridian Capital","aum":"$2,100,000,000","joinedYearMonth":"2023-12","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":3,"cancelled":0,"sent":64,"received":4,"declined":6,"followup":64,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44221","company":"Daedalian Partners","aum":"$50,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":2,"cancelled":0,"sent":68,"received":1,"declined":6,"followup":69,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-3.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"22022","company":"Data Driven Energy","aum":"$180,000,000","joinedYearMonth":"2024-03","csm":"Christina Chumak","team":"Enterprise","salesperson":"David Xuereb","confirmed":6,"cancelled":1,"sent":147,"received":1,"declined":19,"followup":148,"projected":7.5,"strategies":"Real Assets & Infrastructure","strategyCount":1,"delta":-1.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"20022","company":"Davern Capital Partners","aum":"$395,000,000","joinedYearMonth":"2023-11","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":0,"cancelled":1,"sent":38,"received":2,"declined":3,"followup":38,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-12.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"23267","company":"Dayah Capital","aum":"$285,000,000","joinedYearMonth":"2024-08","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":5,"cancelled":0,"sent":93,"received":4,"declined":2,"followup":93,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-7.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44490","company":"Deep Tech Fund Advisors","aum":"$100,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Marc Hershan","confirmed":3,"cancelled":0,"sent":0,"received":4,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-6.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44385","company":"DeltaTerra Investments","aum":"$34,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":1,"cancelled":0,"sent":79,"received":2,"declined":6,"followup":138,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-3.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42798","company":"Deltroit Asset Management","aum":"$1,700,000,000","joinedYearMonth":"2025-08","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":3,"cancelled":0,"sent":50,"received":1,"declined":3,"followup":51,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"19387","company":"Domain Real Estate Partners","aum":"$4,440,000,000","joinedYearMonth":"2023-09","csm":"Joe Romanoff","team":"Enterprise","salesperson":"David Xuereb","confirmed":4,"cancelled":0,"sent":96,"received":1,"declined":11,"followup":96,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-2.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44200","company":"Double River","aum":"$100,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":3,"cancelled":0,"sent":0,"received":3,"declined":0,"followup":1,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-2.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"23254","company":"Dunamis Asset Management","aum":"$50,000,000","joinedYearMonth":"2024-08","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":3,"cancelled":1,"sent":0,"received":5,"declined":0,"followup":0,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":-6.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16367","company":"Easterly Asset Management","aum":"$4,000,000,000","joinedYearMonth":"2021-08","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":3,"cancelled":2,"sent":78,"received":3,"declined":4,"followup":85,"projected":15.7,"strategies":"Private Equity, Real Assets & Infrastructure","strategyCount":2,"delta":-12.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41274","company":"Eckuity Capital","aum":"$127,000,000","joinedYearMonth":"2025-01","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":5,"cancelled":0,"sent":91,"received":2,"declined":10,"followup":91,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-4.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6415","company":"Electron Capital Partners LLC","aum":"$4,099,999,999","joinedYearMonth":"2021-11","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":5,"cancelled":0,"sent":57,"received":4,"declined":5,"followup":58,"projected":14.7,"strategies":"Long Only Equity, Long/Short Equity","strategyCount":2,"delta":-9.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44418","company":"Elron Ventures","aum":"$530,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":2,"cancelled":4,"sent":96,"received":0,"declined":12,"followup":100,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44278","company":"Envoy Capital","aum":"$7,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Sebastian Tanner","confirmed":1,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-4.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"39622","company":"Epicenter Capital","aum":"$33,000,000","joinedYearMonth":"2020-06","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":0,"cancelled":1,"sent":24,"received":2,"declined":0,"followup":24,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-12.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40643","company":"Equal Capital","aum":"$20,000,000","joinedYearMonth":"2024-11","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Jake Delaney","confirmed":2,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-8.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"455","company":"Equinox Partners","aum":"$1,710,000,000","joinedYearMonth":"2020-06","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":4,"cancelled":0,"sent":62,"received":4,"declined":5,"followup":62,"projected":14.7,"strategies":"Long Only Equity, Long/Short Equity","strategyCount":2,"delta":-10.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"22401","company":"FC Capital","aum":"$1,500,000,000","joinedYearMonth":"2024-04","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":6,"cancelled":0,"sent":103,"received":1,"declined":6,"followup":103,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-4.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42118","company":"FCVC","aum":"$893,800,000","joinedYearMonth":"2025-05","csm":"Christina Chumak","team":"Enterprise","salesperson":"","confirmed":3,"cancelled":0,"sent":73,"received":1,"declined":8,"followup":132,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-6.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"21185","company":"FOVC","aum":"$20,000,000","joinedYearMonth":"2022-06","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":2,"cancelled":0,"sent":57,"received":1,"declined":6,"followup":57,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"22879","company":"Fermat Capital Management","aum":"$11,200,000,000","joinedYearMonth":"2020-06","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":6,"cancelled":0,"sent":47,"received":5,"declined":3,"followup":48,"projected":3.3,"strategies":"Insurance-Linked Securities / Catastrophe Bonds","strategyCount":1,"delta":2.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16208","company":"Flat Rock Global","aum":"$1,600,000,000","joinedYearMonth":"2023-03","csm":"Support iConnections","team":"Scale","salesperson":"David Xuereb","confirmed":3,"cancelled":0,"sent":81,"received":3,"declined":12,"followup":81,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-7.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44037","company":"Footpath Ventures","aum":"$350,000,000","joinedYearMonth":"2025-12","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":10,"cancelled":0,"sent":70,"received":6,"declined":5,"followup":72,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-2.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42781","company":"Forman Capital","aum":"$500,000,000","joinedYearMonth":"2025-08","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":3,"cancelled":0,"sent":75,"received":2,"declined":2,"followup":75,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-7.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"5028","company":"Fortress Investment Group","aum":"$54,000,000,000","joinedYearMonth":"2021-09","csm":"Kristan Hester","team":"Enterprise","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":18.2,"strategies":"Multi-Strategy, Private Credit","strategyCount":2,"delta":-18.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44780","company":"Fundamenta Capital","aum":"$633,000,000","joinedYearMonth":"2026-04","csm":"Bryan Perez","team":"Scale","salesperson":"James Thompson","confirmed":4,"cancelled":0,"sent":21,"received":4,"declined":1,"followup":21,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-0.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40883","company":"G Squared","aum":"$6,000,000,000","joinedYearMonth":"2024-12","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Edwin Ang","confirmed":9,"cancelled":0,"sent":45,"received":5,"declined":2,"followup":45,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-0.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"335","company":"Gates Capital","aum":"$2,000,000,000","joinedYearMonth":"2020-05","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":1,"cancelled":0,"sent":69,"received":2,"declined":4,"followup":69,"projected":8.3,"strategies":"Event Driven","strategyCount":1,"delta":-7.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1968","company":"Genoa Ventures","aum":"$160,000,000","joinedYearMonth":"2020-10","csm":"Mario Giron","team":"Scale","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-9.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1581","company":"Glade Brook Capital Partners","aum":"$4,000,000,000","joinedYearMonth":"2020-10","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":6,"cancelled":0,"sent":0,"received":7,"declined":0,"followup":1,"projected":16.3,"strategies":"Private Equity, Venture Capital","strategyCount":2,"delta":-10.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42734","company":"Golden Section","aum":"$100,000,000","joinedYearMonth":"2025-07","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Jake Delaney","confirmed":11,"cancelled":0,"sent":127,"received":2,"declined":9,"followup":128,"projected":17.9,"strategies":"Private Credit, Venture Capital","strategyCount":2,"delta":-6.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"11849","company":"Goldman Sachs Asset Management","aum":"$3,100,000,000,000","joinedYearMonth":"2022-10","csm":"Kristan Hester","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":3,"cancelled":0,"sent":0,"received":4,"declined":0,"followup":0,"projected":18.2,"strategies":"Multi-Strategy, Private Credit","strategyCount":2,"delta":-15.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43930","company":"Goodman Capital","aum":"$560,000,000","joinedYearMonth":"2025-11","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":9,"cancelled":0,"sent":119,"received":0,"declined":14,"followup":146,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-1.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"21803","company":"Grey Rock Investment Partners","aum":"$1,400,000,000","joinedYearMonth":"2024-02","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":1,"cancelled":0,"sent":1,"received":2,"declined":0,"followup":1,"projected":15.7,"strategies":"Private Equity, Real Assets & Infrastructure","strategyCount":2,"delta":-14.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44751","company":"Griffin Partners","aum":"$723,000,000","joinedYearMonth":"2026-04","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":3,"cancelled":0,"sent":75,"received":1,"declined":9,"followup":75,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-3.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44341","company":"Grizzly Capital Management","aum":"$33,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":2,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":8.3,"strategies":"Event Driven","strategyCount":1,"delta":-6.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44738","company":"Groundbreak Ventures","aum":"$25,000,000","joinedYearMonth":"2026-03","csm":"Support iConnections","team":"Scale","salesperson":"Edwin Ang","confirmed":1,"cancelled":0,"sent":77,"received":1,"declined":4,"followup":77,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44384","company":"HL Energy Ventures","aum":"$75,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"10061","company":"Hain Capital Group","aum":"$65,000,000","joinedYearMonth":"2022-08","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":3,"cancelled":0,"sent":84,"received":1,"declined":14,"followup":85,"projected":8.3,"strategies":"Event Driven","strategyCount":1,"delta":-5.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44844","company":"Harbour Island Opportunity Fund","aum":"$1,000,000","joinedYearMonth":"2026-05","csm":"Bryan Perez","team":"Scale","salesperson":"Marc Hershan","confirmed":0,"cancelled":0,"sent":10,"received":0,"declined":0,"followup":10,"projected":4.8,"strategies":"Specialty Finance","strategyCount":1,"delta":-4.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14219","company":"Harlan Capital Partners LLC","aum":"$281,000,000","joinedYearMonth":"2022-11","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Earl Blasi","confirmed":6,"cancelled":0,"sent":77,"received":3,"declined":8,"followup":77,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-4.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"398","company":"Harraden Circle Investments, LLC","aum":"$340,000,000","joinedYearMonth":"2020-05","csm":"Support iConnections","team":"Scale","salesperson":"Marc Hershan","confirmed":4,"cancelled":2,"sent":75,"received":5,"declined":3,"followup":110,"projected":8.3,"strategies":"Event Driven","strategyCount":1,"delta":-4.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42737","company":"Havelet Bay Capital","aum":"$2,400,000","joinedYearMonth":"2025-08","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Jake Delaney","confirmed":1,"cancelled":0,"sent":0,"received":3,"declined":0,"followup":0,"projected":3.4,"strategies":"Options Trading","strategyCount":1,"delta":-2.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"385","company":"Highland Peak Capital","aum":"$315,000,000","joinedYearMonth":"2020-05","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":8,"cancelled":1,"sent":22,"received":9,"declined":0,"followup":22,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-4.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"8398","company":"Hivemind Capital","aum":"$1,000,000,000","joinedYearMonth":"2022-04","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":10,"cancelled":0,"sent":88,"received":7,"declined":7,"followup":97,"projected":25.5,"strategies":"Digital Assets, Long/Short Equity, Venture Capital","strategyCount":3,"delta":-15.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41043","company":"Human Ventures","aum":"$250,000,000","joinedYearMonth":"2024-12","csm":"Kristan Hester","team":"Enterprise","salesperson":"Earl Blasi","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-9.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42209","company":"ICG Advisors","aum":"","joinedYearMonth":"2023-10","csm":"Joe Romanoff","team":"Enterprise","salesperson":"","confirmed":3,"cancelled":0,"sent":145,"received":0,"declined":8,"followup":145,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-7.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6836","company":"ION Asset Management","aum":"$3,000,000,000","joinedYearMonth":"2020-06","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Earl Blasi","confirmed":8,"cancelled":0,"sent":67,"received":7,"declined":2,"followup":69,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"2573","company":"Ibex Investors LLC","aum":"$1,200,000,000","joinedYearMonth":"2021-01","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Rob Tappero","confirmed":3,"cancelled":0,"sent":97,"received":2,"declined":10,"followup":97,"projected":14.6,"strategies":"Long Only Equity, Venture Capital","strategyCount":2,"delta":-11.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"19826","company":"Ibis Capital","aum":"$10,000,000","joinedYearMonth":"2023-10","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":1,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":-8.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"19886","company":"IceCap Group","aum":"$150,000,000","joinedYearMonth":"2023-10","csm":"Courtney Krieg","team":"Enterprise","salesperson":"David Johnson","confirmed":1,"cancelled":0,"sent":2,"received":1,"declined":0,"followup":2,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16253","company":"Imperial Fund Asset Management","aum":"$10,700,000,000","joinedYearMonth":"2023-03","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":5,"cancelled":0,"sent":98,"received":3,"declined":12,"followup":100,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-5.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"4273","company":"Incline Global Management LLC","aum":"$274,000,000","joinedYearMonth":"2021-08","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":5,"cancelled":0,"sent":97,"received":5,"declined":8,"followup":97,"projected":14.7,"strategies":"Long Only Equity, Long/Short Equity","strategyCount":2,"delta":-9.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"378","company":"Ion Pacific","aum":"$760,000,000","joinedYearMonth":"2020-05","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":10,"cancelled":0,"sent":64,"received":5,"declined":6,"followup":64,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":0.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44301","company":"JEM Capital Management","aum":"$3,600,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":1,"cancelled":17,"sent":92,"received":0,"declined":5,"followup":92,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-11.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44830","company":"JVP Management","aum":"$5,000,000,000","joinedYearMonth":"2026-05","csm":"Sunny Unger","team":"Enterprise","salesperson":"Marc Hershan","confirmed":1,"cancelled":0,"sent":73,"received":1,"declined":8,"followup":73,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44843","company":"JW Capital Management","aum":"$1,000,000,000","joinedYearMonth":"2026-05","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":1,"cancelled":0,"sent":68,"received":0,"declined":4,"followup":68,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44684","company":"Javelin Venture Partners","aum":"$625,000,000","joinedYearMonth":"2026-03","csm":"Juwan Pryce","team":"Enterprise","salesperson":"David Xuereb","confirmed":5,"cancelled":0,"sent":52,"received":5,"declined":3,"followup":53,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-4.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"21934","company":"Kadita Partners","aum":"$150,000,000","joinedYearMonth":"2024-02","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":1,"cancelled":0,"sent":28,"received":0,"declined":3,"followup":28,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-9.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"626","company":"Kawa Capital Management","aum":"$2,900,000,000","joinedYearMonth":"2020-06","csm":"Joe Romanoff","team":"Enterprise","salesperson":"David Johnson","confirmed":6,"cancelled":0,"sent":33,"received":7,"declined":3,"followup":36,"projected":17.9,"strategies":"Global Macro, Liquid Credit","strategyCount":2,"delta":-11.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41383","company":"Kineo Capital","aum":"$70,000,000","joinedYearMonth":"2025-01","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":9,"cancelled":0,"sent":90,"received":4,"declined":3,"followup":92,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":3.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44378","company":"Kinetica Venture Partners","aum":"$70,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":6,"cancelled":0,"sent":95,"received":3,"declined":11,"followup":95,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-3.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44250","company":"L1 Capital Group","aum":"$11,000,000,000","joinedYearMonth":"2026-01","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Edwin Ang","confirmed":0,"cancelled":6,"sent":0,"received":10,"declined":0,"followup":10,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-12.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43461","company":"LAV Asset Management","aum":"$51,000,000","joinedYearMonth":"2025-10","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Edwin Ang","confirmed":9,"cancelled":0,"sent":27,"received":8,"declined":1,"followup":27,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-3.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"488","company":"LMCG Investments, LLC","aum":"$5,500,000,000","joinedYearMonth":"2020-06","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":5,"cancelled":0,"sent":67,"received":5,"declined":10,"followup":67,"projected":7.2,"strategies":"Relative Value","strategyCount":1,"delta":-2.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44772","company":"Laguna Bay","aum":"$560,000,000","joinedYearMonth":"2026-04","csm":"Jovin Lee","team":"Scale","salesperson":"Juliet Bergman","confirmed":2,"cancelled":0,"sent":64,"received":0,"declined":4,"followup":64,"projected":7.5,"strategies":"Real Assets & Infrastructure","strategyCount":1,"delta":-5.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41955","company":"Landrock LP","aum":"$1,000,000,000","joinedYearMonth":"2025-04","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":0,"cancelled":1,"sent":12,"received":1,"declined":1,"followup":12,"projected":15.7,"strategies":"Private Equity, Real Estate","strategyCount":2,"delta":-15.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44187","company":"Lane Gate Advisors LP","aum":"$45,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":3.3,"strategies":"Insurance-Linked Securities / Catastrophe Bonds","strategyCount":1,"delta":-3.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"12183","company":"Lateral Investment Management","aum":"$350,000,000","joinedYearMonth":"2022-10","csm":"Mario Giron","team":"Scale","salesperson":"David Johnson","confirmed":1,"cancelled":0,"sent":66,"received":0,"declined":6,"followup":66,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-11.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"3218","company":"Leadenhall Capital Partners","aum":"$6,000,000,000","joinedYearMonth":"2021-04","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":2,"cancelled":0,"sent":6,"received":4,"declined":2,"followup":7,"projected":3.3,"strategies":"Insurance-Linked Securities / Catastrophe Bonds","strategyCount":1,"delta":-1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44786","company":"Lentor Capital Management, LLC","aum":"$3,000,000","joinedYearMonth":"2026-04","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":2,"cancelled":0,"sent":16,"received":2,"declined":2,"followup":16,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-13.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14423","company":"Liberty City Ventures","aum":"$2,000,000,000","joinedYearMonth":"2022-12","csm":"Sunny Unger","team":"Enterprise","salesperson":"Marc Hershan","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43857","company":"Lightship Anchor","aum":"$350,000,000","joinedYearMonth":"2025-11","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":2,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43929","company":"Locust Point Capital","aum":"$1,700,000,000","joinedYearMonth":"2020-10","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":2,"cancelled":0,"sent":0,"received":4,"declined":0,"followup":0,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-8.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16932","company":"Locust Wood Capital Advisers LLC","aum":"$4,200,000,000","joinedYearMonth":"2023-06","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":7,"cancelled":1,"sent":95,"received":5,"declined":7,"followup":172,"projected":14.7,"strategies":"Long Only Equity, Long/Short Equity","strategyCount":2,"delta":-7.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"796","company":"Lodbrok Capital LLP","aum":"$1,400,000,000","joinedYearMonth":"2020-06","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":5,"cancelled":0,"sent":80,"received":4,"declined":10,"followup":81,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":0.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"9127","company":"Logista Advisors LLC","aum":"$0","joinedYearMonth":"2022-06","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":8,"cancelled":0,"sent":113,"received":4,"declined":9,"followup":114,"projected":12.7,"strategies":"Volatility","strategyCount":1,"delta":-4.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"249","company":"Long Path Partners","aum":"$1,500,000,000","joinedYearMonth":"2020-05","csm":"Sunny Unger","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":1,"cancelled":0,"sent":43,"received":1,"declined":3,"followup":43,"projected":17.2,"strategies":"Long Only Equity, Private Equity","strategyCount":2,"delta":-16.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42633","company":"LongHash Ventures","aum":"$100,000,000","joinedYearMonth":"2025-07","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Edwin Ang","confirmed":2,"cancelled":0,"sent":85,"received":2,"declined":6,"followup":85,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-5.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"3466","company":"Longreach Alternatives","aum":"$600,000,000","joinedYearMonth":"2021-04","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Edwin Ang","confirmed":2,"cancelled":0,"sent":45,"received":3,"declined":3,"followup":46,"projected":7.5,"strategies":"Real Assets & Infrastructure","strategyCount":1,"delta":-5.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"108","company":"MKP Capital Management, L.L.C.","aum":"$3,900,000,000","joinedYearMonth":"2020-05","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":3,"cancelled":0,"sent":54,"received":3,"declined":9,"followup":54,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-12.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"10463","company":"MUST Asset Management","aum":"$1,386,000,000","joinedYearMonth":"2022-08","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":6,"cancelled":0,"sent":79,"received":2,"declined":6,"followup":80,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":0.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"9919","company":"MVP Ventures","aum":"$340,000,000","joinedYearMonth":"2022-08","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Earl Blasi","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44185","company":"Madryn Asset Management","aum":"$1,200,000,000","joinedYearMonth":"2026-01","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":3,"cancelled":0,"sent":0,"received":3,"declined":0,"followup":0,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-7.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44240","company":"Magarian Fund","aum":"$335,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":3,"cancelled":0,"sent":15,"received":4,"declined":1,"followup":15,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-2.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44834","company":"Main Character Capital","aum":"$100,000,000","joinedYearMonth":"2026-05","csm":"Mario Giron","team":"Scale","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44760","company":"Mantis VC","aum":"$220,000,000","joinedYearMonth":"2026-04","csm":"Kristan Hester","team":"Enterprise","salesperson":"David Johnson","confirmed":15,"cancelled":0,"sent":78,"received":7,"declined":8,"followup":78,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":5.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6413","company":"Marble Bar Asset Management","aum":"$3,000,000,000","joinedYearMonth":"2021-11","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Earl Blasi","confirmed":3,"cancelled":2,"sent":0,"received":6,"declined":0,"followup":0,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-9.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"17964","company":"Marlinspike","aum":"$225,000,000","joinedYearMonth":"2023-07","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":7,"cancelled":0,"sent":59,"received":4,"declined":5,"followup":60,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-2.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6423","company":"Massar Capital Management","aum":"$1,800,000,000","joinedYearMonth":"2021-11","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":8,"cancelled":0,"sent":22,"received":9,"declined":1,"followup":22,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43751","company":"Maven 11 Capital","aum":"$400,000,000","joinedYearMonth":"2025-10","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Steven Reichard","confirmed":2,"cancelled":0,"sent":35,"received":2,"declined":4,"followup":35,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-5.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42785","company":"Melanion Capital","aum":"$0","joinedYearMonth":"2025-08","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Edwin Ang","confirmed":8,"cancelled":1,"sent":89,"received":5,"declined":13,"followup":90,"projected":24.3,"strategies":"Digital Assets, Managed Futures/CTAs/CPO, Options Trading, Volatility","strategyCount":4,"delta":-16.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44548","company":"Members Capital Management","aum":"$15,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Earl Blasi","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":3.3,"strategies":"Insurance-Linked Securities / Catastrophe Bonds","strategyCount":1,"delta":-3.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"21064","company":"Mercator Partners","aum":"$245,900,000","joinedYearMonth":"2024-01","csm":"Support iConnections","team":"Scale","salesperson":"Earl Blasi","confirmed":2,"cancelled":0,"sent":8,"received":4,"declined":0,"followup":8,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-10.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44289","company":"Meritex","aum":"$1,800,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":2,"cancelled":0,"sent":48,"received":2,"declined":6,"followup":49,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-4.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"39544","company":"Mesarete Capital LLP","aum":"$3,100,000,000","joinedYearMonth":"2024-09","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Jake Delaney","confirmed":0,"cancelled":0,"sent":27,"received":1,"declined":3,"followup":28,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-4.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"31304","company":"Metacapital Management","aum":"$150,000,000","joinedYearMonth":"2024-09","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":2,"cancelled":1,"sent":62,"received":1,"declined":1,"followup":63,"projected":12.9,"strategies":"Event Driven, Relative Value","strategyCount":2,"delta":-10.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41757","company":"Mica Creek Capital","aum":"$182,000,000","joinedYearMonth":"2025-03","csm":"Christina Chumak","team":"Enterprise","salesperson":"Jake Delaney","confirmed":1,"cancelled":0,"sent":3,"received":1,"declined":0,"followup":3,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42934","company":"MiddleGround Capital","aum":"$4,200,000,000","joinedYearMonth":"2025-08","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Earl Blasi","confirmed":7,"cancelled":0,"sent":92,"received":7,"declined":14,"followup":92,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-5.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"538","company":"Millstreet Capital Management","aum":"$3,300,000,000","joinedYearMonth":"2020-06","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":3,"cancelled":0,"sent":0,"received":3,"declined":0,"followup":0,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44048","company":"Moonshots Capital","aum":"$250,000,000","joinedYearMonth":"2025-12","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":2,"cancelled":0,"sent":93,"received":0,"declined":10,"followup":93,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44215","company":"Moran Tice Capital","aum":"$61,800,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":2,"cancelled":0,"sent":77,"received":2,"declined":9,"followup":77,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-10.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"11806","company":"Mountaineer Partners","aum":"$245,000,000","joinedYearMonth":"2022-09","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":5,"cancelled":0,"sent":81,"received":2,"declined":4,"followup":81,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-7.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"10637","company":"Multicoin Capital","aum":"$2,700,000,000","joinedYearMonth":"2022-04","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":2,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-5.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1096","company":"Mulvaney Capital Management Limited","aum":"$515,000,000","joinedYearMonth":"2020-09","csm":"Support iConnections","team":"Scale","salesperson":"Earl Blasi","confirmed":4,"cancelled":0,"sent":54,"received":2,"declined":6,"followup":54,"projected":7.7,"strategies":"Managed Futures/CTAs/CPO","strategyCount":1,"delta":-3.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14539","company":"Murchinson Ltd","aum":"$0","joinedYearMonth":"2023-01","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":12,"cancelled":1,"sent":122,"received":4,"declined":22,"followup":124,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":2.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"19373","company":"Nand Capital","aum":"$10,000,000","joinedYearMonth":"2023-09","csm":"Mario Giron","team":"Scale","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":10,"received":0,"declined":0,"followup":10,"projected":3.4,"strategies":"Options Trading","strategyCount":1,"delta":-3.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43628","company":"Necessary Ventures","aum":"$65,000,000","joinedYearMonth":"2025-10","csm":"Support iConnections","team":"Scale","salesperson":"Sebastian Tanner","confirmed":2,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":1,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"9645","company":"Neuberger Berman","aum":"$567,000,000,000","joinedYearMonth":"2020-09","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":6,"cancelled":0,"sent":24,"received":7,"declined":2,"followup":26,"projected":10.9,"strategies":"Event Driven, Insurance-Linked Securities / Catastrophe Bonds","strategyCount":2,"delta":-4.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16265","company":"NewVest","aum":"$0","joinedYearMonth":"2023-03","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Jake Delaney","confirmed":1,"cancelled":0,"sent":25,"received":0,"declined":2,"followup":25,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-11.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42940","company":"NextEquity Partners","aum":"$240,000,000","joinedYearMonth":"2025-08","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":7,"cancelled":0,"sent":79,"received":3,"declined":8,"followup":128,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-2.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"8796","company":"Nickel Digital Asset Management","aum":"$260,000,000","joinedYearMonth":"2022-04","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Steven Reichard","confirmed":5,"cancelled":0,"sent":64,"received":2,"declined":9,"followup":64,"projected":16.2,"strategies":"Digital Assets, Multi-Strategy","strategyCount":2,"delta":-11.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44141","company":"Northwell Health Equity Partners","aum":"$0","joinedYearMonth":"2025-12","csm":"Kristan Hester","team":"Enterprise","salesperson":"","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"11922","company":"ORIX Corporation USA","aum":"$43,000,000,000","joinedYearMonth":"2021-11","csm":"Kristan Hester","team":"Enterprise","salesperson":"David Johnson","confirmed":5,"cancelled":0,"sent":145,"received":2,"declined":15,"followup":145,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-5.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44859","company":"OakPoint Real Estate","aum":"$800,000,000","joinedYearMonth":"2026-05","csm":"Olivia Juliano","team":"Scale","salesperson":"Earl Blasi","confirmed":0,"cancelled":0,"sent":49,"received":0,"declined":5,"followup":49,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"9266","company":"Obra Capital, Inc","aum":"$7,100,000,000","joinedYearMonth":"2022-07","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":3,"cancelled":0,"sent":89,"received":2,"declined":8,"followup":89,"projected":21.8,"strategies":"Insurance-Linked Securities / Catastrophe Bonds, Multi-Strategy, Private Credit, Specialty Finance","strategyCount":4,"delta":-18.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44519","company":"Offset8 Capital","aum":"$100,000,000","joinedYearMonth":"2024-02","csm":"Support iConnections","team":"Scale","salesperson":"David Xuereb","confirmed":0,"cancelled":0,"sent":18,"received":0,"declined":0,"followup":18,"projected":4.8,"strategies":"Specialty Finance","strategyCount":1,"delta":-4.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1484","company":"Orchard Global","aum":"$9,000,000,000","joinedYearMonth":"2020-10","csm":"Kristan Hester","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":5,"cancelled":0,"sent":30,"received":5,"declined":1,"followup":31,"projected":20.1,"strategies":"Liquid Credit, Multi-Strategy, Private Credit","strategyCount":3,"delta":-15.1},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43184","company":"Oxford Funds","aum":"$3,300,000,000","joinedYearMonth":"2025-09","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":3,"cancelled":3,"sent":72,"received":1,"declined":6,"followup":76,"projected":17.7,"strategies":"Private Credit, Relative Value","strategyCount":2,"delta":-14.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41922","company":"PFM Health Sciences","aum":"$820,000,000","joinedYearMonth":"2025-04","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":5,"cancelled":1,"sent":58,"received":3,"declined":3,"followup":59,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-7.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"10146","company":"PICTON Investments","aum":"$13,000,000,000","joinedYearMonth":"2022-08","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":4,"cancelled":0,"sent":0,"received":5,"declined":0,"followup":2,"projected":13.8,"strategies":"Multi-Strategy, Relative Value","strategyCount":2,"delta":-9.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42003","company":"PPM America Capital Partners","aum":"$6,400,000,000","joinedYearMonth":"2025-04","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":6,"cancelled":0,"sent":87,"received":2,"declined":7,"followup":87,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-6.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44683","company":"Pacific Bridge NY","aum":"$50,000,000","joinedYearMonth":"2026-03","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":2,"cancelled":0,"sent":48,"received":1,"declined":3,"followup":48,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"39425","company":"Palinuro Capital","aum":"$600,000,000","joinedYearMonth":"2024-09","csm":"Mario Giron","team":"Scale","salesperson":"Earl Blasi","confirmed":9,"cancelled":0,"sent":62,"received":7,"declined":2,"followup":63,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-6.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6218","company":"Palmer Square Capital Management","aum":"$36,000,000,000","joinedYearMonth":"2021-10","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":5,"cancelled":0,"sent":78,"received":4,"declined":6,"followup":79,"projected":13.6,"strategies":"Liquid Credit, Long Only Fixed Income, Private Credit","strategyCount":3,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"5032","company":"Pantera Capital","aum":"$5,000,000,000","joinedYearMonth":"2021-09","csm":"Kristan Hester","team":"Enterprise","salesperson":"Steven Reichard","confirmed":14,"cancelled":1,"sent":198,"received":1,"declined":20,"followup":198,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":4.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"20491","company":"Park City Capital","aum":"$35,000,000","joinedYearMonth":"2024-01","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":2,"cancelled":0,"sent":53,"received":2,"declined":4,"followup":53,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-10.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"20039","company":"Park Square Capital","aum":"$19,200,000,000","joinedYearMonth":"2023-11","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":9,"cancelled":0,"sent":11,"received":10,"declined":1,"followup":15,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-1.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44841","company":"Patere Funds","aum":"$2,150,000","joinedYearMonth":"2026-05","csm":"Mario Giron","team":"Scale","salesperson":"Marc Hershan","confirmed":4,"cancelled":0,"sent":77,"received":1,"declined":12,"followup":113,"projected":4.8,"strategies":"Specialty Finance","strategyCount":1,"delta":-0.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44791","company":"Peak Enterprises","aum":"$500,000,000","joinedYearMonth":"2026-04","csm":"Luis Pedro V\u00e9liz","team":"Scale","salesperson":"James Thompson","confirmed":3,"cancelled":0,"sent":64,"received":1,"declined":5,"followup":65,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-3.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42952","company":"Peninsula Investments","aum":"$787,000,000","joinedYearMonth":"2025-08","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":1,"cancelled":0,"sent":70,"received":2,"declined":4,"followup":70,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42643","company":"Perfin Infra Administra\u00e7\u00e3o de Recursos LTDA","aum":"$7,800,000,000","joinedYearMonth":"2025-07","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":3,"cancelled":0,"sent":108,"received":0,"declined":19,"followup":192,"projected":7.5,"strategies":"Real Assets & Infrastructure","strategyCount":1,"delta":-4.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6411","company":"Phase3 Capital Management LLC","aum":"$512,000,000","joinedYearMonth":"2021-11","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Earl Blasi","confirmed":1,"cancelled":0,"sent":75,"received":2,"declined":8,"followup":75,"projected":12.2,"strategies":"Managed Futures/CTAs/CPO, Relative Value","strategyCount":2,"delta":-11.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44423","company":"Pilot Wave Holdings","aum":"$100,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":8,"cancelled":1,"sent":58,"received":9,"declined":9,"followup":59,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-4.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"22561","company":"Prentice Capital Management","aum":"$900,000,000","joinedYearMonth":"2020-06","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":0,"cancelled":0,"sent":2,"received":0,"declined":0,"followup":2,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-12.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"18821","company":"Preston Capital","aum":"$3,700,000,000","joinedYearMonth":"2023-08","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":4,"cancelled":0,"sent":52,"received":4,"declined":2,"followup":52,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-6.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44239","company":"QuantStrat","aum":"$150,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":0,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-7.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44415","company":"Quantumvest","aum":"$45,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":4,"cancelled":0,"sent":81,"received":2,"declined":8,"followup":82,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-1.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16662","company":"Quartus Capital Partners LLC","aum":"$158,380,000","joinedYearMonth":"2023-05","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":2,"cancelled":0,"sent":99,"received":2,"declined":9,"followup":99,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"188","company":"R. G. Niederhoffer Capital Management","aum":"$1,100,000,000","joinedYearMonth":"2020-05","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Jake Delaney","confirmed":3,"cancelled":0,"sent":62,"received":3,"declined":3,"followup":64,"projected":7.7,"strategies":"Managed Futures/CTAs/CPO","strategyCount":1,"delta":-4.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40814","company":"RBC Global Asset Management","aum":"$534,000,000,000","joinedYearMonth":"2021-04","csm":"Kristan Hester","team":"Enterprise","salesperson":"David Johnson","confirmed":1,"cancelled":0,"sent":67,"received":2,"declined":3,"followup":67,"projected":20.7,"strategies":"Alternative Risk Premia, Event Driven, Liquid Credit, Private Credit","strategyCount":4,"delta":-19.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43499","company":"RBR Asset Management","aum":"$2,000,000,000","joinedYearMonth":"2025-10","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Earl Blasi","confirmed":2,"cancelled":0,"sent":44,"received":1,"declined":4,"followup":44,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-4.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"261","company":"RMWC","aum":"$807,000,000","joinedYearMonth":"2020-05","csm":"Joe Romanoff","team":"Enterprise","salesperson":"David Johnson","confirmed":5,"cancelled":0,"sent":53,"received":2,"declined":6,"followup":53,"projected":10.8,"strategies":"Real Assets & Infrastructure, Real Estate","strategyCount":2,"delta":-5.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42787","company":"Range Equity Management","aum":"","joinedYearMonth":"2025-08","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":1,"cancelled":0,"sent":18,"received":0,"declined":1,"followup":18,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44869","company":"Rebalance Capital","aum":"$50,000,000","joinedYearMonth":"2026-05","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"4073","company":"Red Ember Capital","aum":"$29,000,000","joinedYearMonth":"2021-08","csm":"Support iConnections","team":"Scale","salesperson":"Earl Blasi","confirmed":4,"cancelled":0,"sent":74,"received":3,"declined":8,"followup":74,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-8.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"673","company":"Red Reef Partners, LP","aum":"$332,000,000","joinedYearMonth":"2020-06","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Edwin Ang","confirmed":2,"cancelled":0,"sent":63,"received":2,"declined":7,"followup":64,"projected":7.5,"strategies":"Real Assets & Infrastructure","strategyCount":1,"delta":-5.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44174","company":"Redwood Peak","aum":"$150,000,000","joinedYearMonth":"2026-01","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Edwin Ang","confirmed":1,"cancelled":0,"sent":0,"received":2,"declined":0,"followup":0,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-11.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"31306","company":"RevTek Capital","aum":"$130,000,000","joinedYearMonth":"2024-09","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":7,"cancelled":5,"sent":111,"received":1,"declined":13,"followup":144,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-3.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"754","company":"RichBrook Advisors, LP","aum":"$1,019,000,000","joinedYearMonth":"2020-06","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":1,"cancelled":0,"sent":35,"received":2,"declined":5,"followup":35,"projected":17.7,"strategies":"Private Credit, Relative Value","strategyCount":2,"delta":-16.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14656","company":"Ridge Ventures","aum":"$650,000,000","joinedYearMonth":"2023-01","csm":"Luis Pedro V\u00e9liz","team":"Scale","salesperson":"David Johnson","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44248","company":"Rise Management Services LLC","aum":"$30,000,000","joinedYearMonth":"2024-01","csm":"Support iConnections","team":"Scale","salesperson":"Ian Rzeszowski","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":10.8,"strategies":"Real Assets & Infrastructure, Real Estate","strategyCount":2,"delta":-9.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6945","company":"Rockefeller Capital Management","aum":"$210,000,000,000","joinedYearMonth":"2020-06","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"James Thompson","confirmed":21,"cancelled":1,"sent":215,"received":3,"declined":13,"followup":374,"projected":23.4,"strategies":"Long/Short Equity, Private Equity","strategyCount":2,"delta":-2.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44188","company":"Rockport Energy Partners","aum":"$200,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":1,"cancelled":1,"sent":72,"received":1,"declined":8,"followup":104,"projected":7.5,"strategies":"Real Assets & Infrastructure","strategyCount":1,"delta":-6.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40268","company":"Rome Capital Management","aum":"$155,000,000","joinedYearMonth":"2024-10","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":2,"cancelled":0,"sent":82,"received":3,"declined":6,"followup":82,"projected":14.7,"strategies":"Long Only Equity, Long/Short Equity","strategyCount":2,"delta":-12.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41764","company":"Root Capital","aum":"$1,500,000,000","joinedYearMonth":"2025-03","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Edwin Ang","confirmed":6,"cancelled":1,"sent":158,"received":0,"declined":24,"followup":242,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-4.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1934","company":"Rose Grove Capital Management","aum":"$1,500,000,000","joinedYearMonth":"2020-10","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":5,"cancelled":0,"sent":99,"received":4,"declined":6,"followup":100,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":0.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"575","company":"Ruffer","aum":"$25,600,000,000","joinedYearMonth":"2020-06","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":5,"cancelled":0,"sent":20,"received":5,"declined":2,"followup":22,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-10.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42980","company":"SSI Investment Management","aum":"$2,800,000,000","joinedYearMonth":"2025-08","csm":"Luis Pedro V\u00e9liz","team":"Scale","salesperson":"Earl Blasi","confirmed":0,"cancelled":0,"sent":4,"received":0,"declined":0,"followup":4,"projected":7.9,"strategies":"Long Only Fixed Income, Relative Value","strategyCount":2,"delta":-7.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14414","company":"Sagard","aum":"$46,000,000,000","joinedYearMonth":"2022-08","csm":"Joe Romanoff","team":"Enterprise","salesperson":"David Johnson","confirmed":11,"cancelled":0,"sent":57,"received":7,"declined":8,"followup":58,"projected":23.2,"strategies":"Private Credit, Private Equity, Real Estate, Specialty Finance, Venture Capital","strategyCount":5,"delta":-12.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6332","company":"Sandglass Capital Advisors LLC","aum":"$1,000,000,000","joinedYearMonth":"2020-10","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Rob Tappero","confirmed":10,"cancelled":1,"sent":110,"received":5,"declined":8,"followup":112,"projected":18.0,"strategies":"Event Driven, Private Credit","strategyCount":2,"delta":-8.0},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42177","company":"Sant\u00e9","aum":"$1,100,000,000","joinedYearMonth":"2025-05","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":6,"cancelled":0,"sent":71,"received":3,"declined":6,"followup":72,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-3.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"22289","company":"Scarcity Partners","aum":"$150,000,000","joinedYearMonth":"2024-04","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":0,"cancelled":1,"sent":0,"received":2,"declined":0,"followup":0,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-12.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44436","company":"Schafer Cullen Capital Management","aum":"$27,443,930,000","joinedYearMonth":"2026-02","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Marc Hershan","confirmed":1,"cancelled":0,"sent":40,"received":2,"declined":2,"followup":41,"projected":8.8,"strategies":"Long Only Equity, Options Trading","strategyCount":2,"delta":-7.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"39728","company":"Secfi Asset Management","aum":"$400,000,000","joinedYearMonth":"2024-10","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":8,"cancelled":1,"sent":91,"received":5,"declined":13,"followup":91,"projected":20.0,"strategies":"Multi-Strategy, Private Equity","strategyCount":2,"delta":-12.0},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40747","company":"Second Horizon Capital","aum":"$500,000,000","joinedYearMonth":"2024-11","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":2,"cancelled":0,"sent":38,"received":1,"declined":8,"followup":38,"projected":7.5,"strategies":"Real Assets & Infrastructure","strategyCount":1,"delta":-5.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"14886","company":"Selwood Asset Management","aum":"$1,700,000,000","joinedYearMonth":"2023-02","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":5,"cancelled":2,"sent":110,"received":0,"declined":9,"followup":173,"projected":13.3,"strategies":"Liquid Credit, Private Credit","strategyCount":2,"delta":-8.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1103","company":"Serone Capital Management","aum":"$3,600,000,000","joinedYearMonth":"2020-09","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":3,"cancelled":0,"sent":80,"received":3,"declined":1,"followup":80,"projected":4.3,"strategies":"Liquid Credit","strategyCount":1,"delta":-1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44835","company":"Setpoint Capital","aum":"$1,100,000,000","joinedYearMonth":"2026-05","csm":"Juwan Pryce","team":"Enterprise","salesperson":"David Johnson","confirmed":4,"cancelled":0,"sent":83,"received":1,"declined":7,"followup":84,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-6.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43376","company":"Shannon River Capital Management","aum":"$770,000,000","joinedYearMonth":"2025-09","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Jake Delaney","confirmed":7,"cancelled":0,"sent":99,"received":2,"declined":4,"followup":128,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"9128","company":"Silverview Credit Partners","aum":"$700,000,000","joinedYearMonth":"2022-06","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":5,"cancelled":0,"sent":40,"received":2,"declined":6,"followup":40,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-5.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44331","company":"Skaana Management","aum":"$49,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":5,"cancelled":1,"sent":61,"received":4,"declined":5,"followup":66,"projected":7.2,"strategies":"Relative Value","strategyCount":1,"delta":-2.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44839","company":"Skydeck","aum":"$125,000,000","joinedYearMonth":"2026-05","csm":"Bryan Perez","team":"Scale","salesperson":"James Thompson","confirmed":3,"cancelled":0,"sent":54,"received":0,"declined":7,"followup":54,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-6.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42147","company":"Slate Property Group","aum":"$10,100,000,000","joinedYearMonth":"2025-05","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":1,"cancelled":1,"sent":67,"received":1,"declined":5,"followup":67,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44432","company":"Small World Capital","aum":"$130,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Marc Hershan","confirmed":3,"cancelled":0,"sent":65,"received":0,"declined":6,"followup":65,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-6.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6239","company":"Soleus Capital Management, L.P.","aum":"$3,200,000,000","joinedYearMonth":"2021-10","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":11,"cancelled":1,"sent":7,"received":17,"declined":0,"followup":9,"projected":23.4,"strategies":"Long/Short Equity, Private Equity","strategyCount":2,"delta":-12.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"21933","company":"Sorengo Partners","aum":"$32,000,000","joinedYearMonth":"2024-02","csm":"Phoebe Willoughby","team":"Scale","salesperson":"David Xuereb","confirmed":6,"cancelled":13,"sent":112,"received":1,"declined":4,"followup":126,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-6.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"8285","company":"Sound Ventures","aum":"$1,300,000,000","joinedYearMonth":"2022-04","csm":"Kristan Hester","team":"Enterprise","salesperson":"","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"9224","company":"Southern Oak Capital","aum":"$92,000,000","joinedYearMonth":"2022-03","csm":"Support iConnections","team":"Scale","salesperson":"Lauren Sharabi","confirmed":6,"cancelled":0,"sent":87,"received":1,"declined":7,"followup":87,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-4.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44139","company":"Spira Equity Partners","aum":"$880,000,000","joinedYearMonth":"2025-12","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-12.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"7749","company":"Statistica Capital","aum":"$38,000,000","joinedYearMonth":"2022-04","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":6,"cancelled":0,"sent":41,"received":7,"declined":4,"followup":73,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44840","company":"Stein Financial","aum":"$0","joinedYearMonth":"2026-05","csm":"Luis Pedro V\u00e9liz","team":"Scale","salesperson":"Marc Hershan","confirmed":1,"cancelled":0,"sent":83,"received":0,"declined":6,"followup":83,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-4.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44845","company":"Strivepoint Capital","aum":"$6,000,000","joinedYearMonth":"2026-05","csm":"Mario Giron","team":"Scale","salesperson":"Marc Hershan","confirmed":0,"cancelled":0,"sent":3,"received":0,"declined":0,"followup":3,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-12.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40351","company":"SummerHaven Investment Management","aum":"$2,600,000,000","joinedYearMonth":"2024-10","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Jake Delaney","confirmed":7,"cancelled":0,"sent":90,"received":5,"declined":10,"followup":94,"projected":7.7,"strategies":"Managed Futures/CTAs/CPO","strategyCount":1,"delta":-0.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44216","company":"Summit Partners","aum":"$2,200,000,000","joinedYearMonth":"2026-01","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":1,"cancelled":0,"sent":77,"received":1,"declined":1,"followup":77,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-11.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"19399","company":"Swiss Re Insurance-Linked Strategies","aum":"$7,000,000,000","joinedYearMonth":"2023-08","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":6,"cancelled":0,"sent":52,"received":5,"declined":10,"followup":53,"projected":3.3,"strategies":"Insurance-Linked Securities / Catastrophe Bonds","strategyCount":1,"delta":2.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"19938","company":"TR Capital Management","aum":"$0","joinedYearMonth":"2023-10","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":3,"cancelled":0,"sent":84,"received":2,"declined":7,"followup":86,"projected":8.3,"strategies":"Event Driven","strategyCount":1,"delta":-5.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"10082","company":"Tailor Ridge Capital","aum":"$195,000,000","joinedYearMonth":"2022-08","csm":"Joe Romanoff","team":"Enterprise","salesperson":"David Johnson","confirmed":9,"cancelled":0,"sent":146,"received":1,"declined":21,"followup":147,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-1.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1383","company":"Tall Trees Capital Management, LP","aum":"$22,000,000","joinedYearMonth":"2020-09","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":6,"cancelled":0,"sent":45,"received":6,"declined":6,"followup":49,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-6.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"2447","company":"Tangency Capital","aum":"$3,700,000,000","joinedYearMonth":"2020-12","csm":"Support iConnections","team":"Scale","salesperson":"David Xuereb","confirmed":6,"cancelled":1,"sent":52,"received":6,"declined":6,"followup":52,"projected":3.3,"strategies":"Insurance-Linked Securities / Catastrophe Bonds","strategyCount":1,"delta":2.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44823","company":"Tau Capital","aum":"$350,000,000","joinedYearMonth":"2026-05","csm":"Phoebe Willoughby","team":"Scale","salesperson":"Edwin Ang","confirmed":2,"cancelled":0,"sent":75,"received":1,"declined":6,"followup":75,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-7.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"3391","company":"Tekmerion Capital Management, LP","aum":"$1,000,000,000","joinedYearMonth":"2021-04","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":7,"cancelled":0,"sent":34,"received":8,"declined":1,"followup":34,"projected":15.6,"strategies":"Global Macro","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41904","company":"The Baupost Group","aum":"$0","joinedYearMonth":"2025-04","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":14,"cancelled":0,"sent":86,"received":4,"declined":5,"followup":87,"projected":9.5,"strategies":"Multi-Strategy","strategyCount":1,"delta":4.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42995","company":"The Gate Technologies Capital","aum":"$500,000,000","joinedYearMonth":"2025-08","csm":"Lucy Garber","team":"Enterprise","salesperson":"Edwin Ang","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"19203","company":"The Raine Group","aum":"$3,000,000,000","joinedYearMonth":"2023-09","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":11,"cancelled":0,"sent":93,"received":7,"declined":7,"followup":96,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-1.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40280","company":"Thebes Partners","aum":"$1,300,000,000","joinedYearMonth":"2024-10","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Earl Blasi","confirmed":2,"cancelled":0,"sent":23,"received":1,"declined":0,"followup":23,"projected":8.3,"strategies":"Event Driven","strategyCount":1,"delta":-6.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"4242","company":"Third Point","aum":"$24,100,000,000","joinedYearMonth":"2021-08","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":11,"cancelled":1,"sent":90,"received":8,"declined":7,"followup":155,"projected":16.7,"strategies":"Event Driven, Liquid Credit, Multi-Strategy","strategyCount":3,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44715","company":"Thompson Thrift Development","aum":"$1,700,000,000","joinedYearMonth":"2026-03","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":3,"cancelled":1,"sent":81,"received":2,"declined":12,"followup":135,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-3.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43487","company":"Tobin Capital Group","aum":"$540,000,000","joinedYearMonth":"2025-10","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"David Johnson","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"12262","company":"Tola Capital","aum":"$688,000,000","joinedYearMonth":"2022-10","csm":"Support iConnections","team":"Scale","salesperson":"David Johnson","confirmed":4,"cancelled":0,"sent":16,"received":3,"declined":2,"followup":27,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-5.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44853","company":"TradeAir","aum":"$14,400,000","joinedYearMonth":"2026-05","csm":"Jovin Lee","team":"Scale","salesperson":"Edwin Ang","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":null,"strategies":"","strategyCount":0,"delta":null},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"3445","company":"Triata Capital Limited","aum":"$1,400,000,000","joinedYearMonth":"2021-04","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Earl Blasi","confirmed":9,"cancelled":0,"sent":89,"received":2,"declined":7,"followup":89,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":-3.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"12065","company":"TruMed Investment","aum":"","joinedYearMonth":"2022-10","csm":"Jovin Lee","team":"Scale","salesperson":"Sebastian Tanner","confirmed":1,"cancelled":0,"sent":70,"received":0,"declined":3,"followup":70,"projected":17.2,"strategies":"Long Only Equity, Private Equity","strategyCount":2,"delta":-16.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44373","company":"True","aum":"$100,000,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Juliet Bergman","confirmed":3,"cancelled":0,"sent":0,"received":3,"declined":0,"followup":1,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-6.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41687","company":"Trutino Capital Management","aum":"$842,000,000","joinedYearMonth":"2025-02","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":2,"cancelled":0,"sent":104,"received":1,"declined":15,"followup":105,"projected":7.2,"strategies":"Relative Value","strategyCount":1,"delta":-5.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43926","company":"TwentyFour Asset Management","aum":"$31,000,000,000","joinedYearMonth":"2025-11","csm":"Helen Ramsay","team":"Enterprise","salesperson":"David Xuereb","confirmed":1,"cancelled":0,"sent":79,"received":1,"declined":10,"followup":80,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-9.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"28","company":"Typhon Capital Management /Juris Trade","aum":"$0","joinedYearMonth":"2020-05","csm":"Joe Romanoff","team":"Enterprise","salesperson":"Rob Tappero","confirmed":6,"cancelled":1,"sent":111,"received":7,"declined":9,"followup":112,"projected":23.1,"strategies":"Digital Assets, Managed Futures/CTAs/CPO, Multi-Strategy, Options Trading, Relative Value","strategyCount":5,"delta":-17.1},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44308","company":"UTXO Management","aum":"$100,800,000","joinedYearMonth":"2026-01","csm":"Support iConnections","team":"Scale","salesperson":"Earl Blasi","confirmed":4,"cancelled":0,"sent":114,"received":1,"declined":13,"followup":114,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-3.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"12655","company":"Underscore VC","aum":"$300,000,000","joinedYearMonth":"2022-11","csm":"Alex Cherecwich","team":"Enterprise","salesperson":"Edwin Ang","confirmed":3,"cancelled":0,"sent":0,"received":3,"declined":0,"followup":0,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-6.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"40889","company":"United Beren Energy","aum":"$25,000,000","joinedYearMonth":"2024-12","csm":"Olivia Juliano","team":"Scale","salesperson":"Juliet Bergman","confirmed":0,"cancelled":0,"sent":85,"received":0,"declined":10,"followup":85,"projected":10.9,"strategies":"Private Credit","strategyCount":1,"delta":-10.9},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43868","company":"Up Campus Student Living","aum":"$1,000,000,000","joinedYearMonth":"2025-11","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":1,"cancelled":0,"sent":35,"received":1,"declined":6,"followup":35,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-5.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6915","company":"Urban Standard Capital","aum":"$370,000,000","joinedYearMonth":"2021-12","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Earl Blasi","confirmed":2,"cancelled":6,"sent":99,"received":1,"declined":12,"followup":99,"projected":14.4,"strategies":"Private Credit, Real Estate","strategyCount":2,"delta":-12.4},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"42775","company":"Variis Partners","aum":"$49,000,000","joinedYearMonth":"2025-08","csm":"Support iConnections","team":"Scale","salesperson":"James Thompson","confirmed":1,"cancelled":0,"sent":68,"received":0,"declined":7,"followup":68,"projected":5.6,"strategies":"Long Only Equity","strategyCount":1,"delta":-4.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"16963","company":"Vesey Ventures","aum":"$100,000,000","joinedYearMonth":"2023-06","csm":"Support iConnections","team":"Scale","salesperson":"Earl Blasi","confirmed":5,"cancelled":0,"sent":76,"received":1,"declined":6,"followup":76,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-4.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44446","company":"Vesper","aum":"$185,000,000","joinedYearMonth":"2026-02","csm":"Support iConnections","team":"Scale","salesperson":"Jake Delaney","confirmed":6,"cancelled":0,"sent":74,"received":4,"declined":7,"followup":75,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-6.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43836","company":"VestedWorld","aum":"$40,000,000","joinedYearMonth":"2025-10","csm":"Sunny Unger","team":"Enterprise","salesperson":"Marc Hershan","confirmed":1,"cancelled":0,"sent":78,"received":1,"declined":9,"followup":78,"projected":9.6,"strategies":"Venture Capital","strategyCount":1,"delta":-8.6},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"39326","company":"Viking Global Investors","aum":"$52,000,000,000","joinedYearMonth":"2024-06","csm":"Lucy Garber","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":6,"cancelled":2,"sent":5,"received":15,"declined":0,"followup":7,"projected":18.2,"strategies":"Private Credit, Private Equity","strategyCount":2,"delta":-12.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44381","company":"Vireo Growth ","aum":"$1,000,000,000","joinedYearMonth":"2026-01","csm":"Juwan Pryce","team":"Enterprise","salesperson":"Jennifer Milburn","confirmed":3,"cancelled":0,"sent":0,"received":4,"declined":0,"followup":0,"projected":12.8,"strategies":"Private Equity","strategyCount":1,"delta":-9.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"43979","company":"Virt\u00fa Investments (Virtu)","aum":"$2,000,000,000","joinedYearMonth":"2025-12","csm":"Sunny Unger","team":"Enterprise","salesperson":"James Thompson","confirmed":5,"cancelled":0,"sent":25,"received":2,"declined":0,"followup":25,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-1.7},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1540","company":"Wellington Management","aum":"$1,000,000,000,000","joinedYearMonth":"2020-10","csm":"Christina Chumak","team":"Enterprise","salesperson":"Juliet Bergman","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":27.2,"strategies":"Long/Short Equity, Multi-Strategy, Private Equity","strategyCount":3,"delta":-27.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"62","company":"Westbeck Capital","aum":"$1,260,000,000","joinedYearMonth":"2020-05","csm":"Helen Ramsay","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":14,"cancelled":1,"sent":84,"received":10,"declined":6,"followup":84,"projected":12.7,"strategies":"Long/Short Equity","strategyCount":1,"delta":1.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44665","company":"Westwood","aum":"$17,300,000,000","joinedYearMonth":"2026-02","csm":"Kristan Hester","team":"Enterprise","salesperson":"David Johnson","confirmed":15,"cancelled":0,"sent":203,"received":1,"declined":28,"followup":333,"projected":7.5,"strategies":"Real Assets & Infrastructure","strategyCount":1,"delta":7.5},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"44149","company":"Worth Venture Partners","aum":"$450,000,000","joinedYearMonth":"2023-12","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":1,"cancelled":0,"sent":0,"received":1,"declined":0,"followup":0,"projected":7.2,"strategies":"Relative Value","strategyCount":1,"delta":-6.2},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"6969","company":"Yorkville Advisors","aum":"$707,720,000","joinedYearMonth":"2021-12","csm":"Courtney Krieg","team":"Enterprise","salesperson":"James Thompson","confirmed":0,"cancelled":0,"sent":0,"received":0,"declined":0,"followup":0,"projected":4.8,"strategies":"Specialty Finance","strategyCount":1,"delta":-4.8},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"1557","company":"ZAIS Group","aum":"$5,300,000,000","joinedYearMonth":"2020-10","csm":"Courtney Krieg","team":"Enterprise","salesperson":"Sebastian Tanner","confirmed":5,"cancelled":0,"sent":38,"received":4,"declined":4,"followup":38,"projected":13.3,"strategies":"Liquid Credit, Private Credit","strategyCount":2,"delta":-8.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"41124","company":"ZX Squared Capital Management Limited","aum":"$45,000,000","joinedYearMonth":"2024-12","csm":"Andreas Santikos","team":"Enterprise","salesperson":"Edwin Ang","confirmed":3,"cancelled":0,"sent":22,"received":5,"declined":2,"followup":22,"projected":7.3,"strategies":"Digital Assets","strategyCount":1,"delta":-4.3},{"eventName":"Global Alts New York 2026","companyType":"Manager","companyId":"18523","company":"Zenzic Capital","aum":"$335,000,000","joinedYearMonth":"2023-08","csm":"Support iConnections","team":"Scale","salesperson":"David Xuereb","confirmed":0,"cancelled":0,"sent":78,"received":0,"declined":6,"followup":78,"projected":6.7,"strategies":"Real Estate","strategyCount":1,"delta":-6.7}];
+
+// ── Load/save snapshots ──
+function loadSnapshots() {
+  try {
+    const raw = localStorage.getItem(SNAP_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+function saveSnapshots() {
+  try { localStorage.setItem(SNAP_KEY, JSON.stringify(snapshots)); } catch(e) {}
+}
+function aggregateMetrics(data) {
+  return {
+    accounts: data.length,
+    confirmed: data.reduce((s,r)=>s+r.confirmed,0),
+    sent: data.reduce((s,r)=>s+r.sent,0),
+    cancelled: data.reduce((s,r)=>s+r.cancelled,0),
+    declined: data.reduce((s,r)=>s+r.declined,0),
+    received: data.reduce((s,r)=>s+r.received,0),
+    zeroSent: data.filter(r=>r.sent===0).length,
+  };
+}
+
+// ── Init ──
+function init() {
+  // Seed 5/19 if not already stored
+  if (!snapshots.find(s => s.date === SEED_DATE)) {
+    const morningMetrics = {accounts:303,confirmed:1151,cancelled:117,sent:16499,received:829,declined:1482,zeroSent:57};
+    snapshots.push({ date: SEED_DATE, metrics: morningMetrics });
+    saveSnapshots();
+  }
+  // Add 5/19 PM snapshot if not already present
+  const PM_DATE = '5/19 PM';
+  if (!snapshots.find(s => s.date === PM_DATE)) {
+    snapshots.push({ date: PM_DATE, metrics: aggregateMetrics(SEED_DATA) });
+    saveSnapshots();
+  }
+  currentData = SEED_DATA;
+  // Use latest snapshot date as display
+  const latest = snapshots[snapshots.length - 1];
+  document.getElementById('current-date-badge').textContent = latest.date;
+  // If more than one snapshot, show latest data
+  renderAll();
+}
+
+function renderAll() {
+  const pacePct = getPacingPct(new Date('2026-05-19'));
+  const elapsedDays = Math.round(pacePct * SCHED_TOTAL_DAYS);
+
+  // Update pacing banner
+  document.getElementById('pace-day').textContent = elapsedDays;
+  document.getElementById('pace-pct-label').textContent = Math.round(pacePct * 100) + '% elapsed';
+  document.getElementById('pace-global-bar').style.width = Math.round(pacePct * 100) + '%';
+  document.getElementById('pace-expected-pct').textContent = Math.round(pacePct * 100) + '%';
+
+  const matched = currentData.filter(r => r.projected !== null && r.projected !== undefined);
+  const ahead  = matched.filter(r => getPaceMetrics(r, pacePct).paceStatus === 'ahead').length;
+  const on     = matched.filter(r => getPaceMetrics(r, pacePct).paceStatus === 'on').length;
+  const behind = matched.filter(r => getPaceMetrics(r, pacePct).paceStatus === 'behind').length;
+  document.getElementById('pace-ahead-count').textContent = ahead;
+  document.getElementById('pace-on-count').textContent = on;
+  document.getElementById('pace-behind-count').textContent = behind;
+
+  const m = aggregateMetrics(currentData);
+  const prev = snapshots.length > 1 ? snapshots[snapshots.length - 2].metrics : null;
+  const curr = snapshots[snapshots.length - 1].metrics;
+
+  setStatCard('s-accounts', 'd-accounts', curr.accounts, prev?.accounts);
+  setStatCard('s-confirmed', 'd-confirmed', curr.confirmed, prev?.confirmed);
+  setStatCard('s-sent', 'd-sent', curr.sent, prev?.sent);
+  setStatCard('s-cancelled', 'd-cancelled', curr.cancelled, prev?.cancelled);
+  setStatCard('s-declined', 'd-declined', curr.declined, prev?.declined);
+
+  // Zero requests sent — DoD: compare to previous day's snapshot, fall back to oldest
+  document.getElementById('s-zerosent').textContent = curr.zeroSent !== undefined ? curr.zeroSent : currentData.filter(r=>r.sent===0).length;
+  const wowSnap = (() => {
+    if (snapshots.length < 2) return null;
+    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Find closest snapshot at or before 7 days ago; fall back to first
+    return snapshots[0];
+  })();
+  const zeroEl = document.getElementById('d-zerosent');
+  const curZero = curr.zeroSent !== undefined ? curr.zeroSent : currentData.filter(r=>r.sent===0).length;
+  if (!wowSnap || wowSnap.metrics.zeroSent === undefined) {
+    zeroEl.innerHTML = '<span class="delta-flat">— first snapshot</span>';
+  } else {
+    const diff = curZero - wowSnap.metrics.zeroSent;
+    // For zero sent, down is good
+    if (diff < 0) zeroEl.innerHTML = `<span class="delta-up">▼ ${diff} DoD</span>`;
+    else if (diff > 0) zeroEl.innerHTML = `<span class="delta-down">▲ +${diff} DoD</span>`;
+    else zeroEl.innerHTML = `<span class="delta-flat">— no change DoD</span>`;
+  }
+
+  renderCSMBars();
+  renderDonut();
+  renderHighRisk(pacePct);
+  renderBehindPace(pacePct);
+  renderTable();
+  renderTimeline();
+}
+
+function setStatCard(valId, deltaId, val, prevVal) {
+  document.getElementById(valId).textContent = val;
+  const deltaEl = document.getElementById(deltaId);
+  if (prevVal === null || prevVal === undefined) {
+    deltaEl.innerHTML = '<span class="delta-flat">— first snapshot</span>';
+  } else {
+    const diff = val - prevVal;
+    if (diff > 0) deltaEl.innerHTML = `<span class="delta-up">▲ +${diff} vs prev</span>`;
+    else if (diff < 0) deltaEl.innerHTML = `<span class="delta-down">▼ ${diff} vs prev</span>`;
+    else deltaEl.innerHTML = `<span class="delta-flat">— no change</span>`;
+  }
+}
+
+function renderCSMBars() {
+  const csmMap = {};
+  for (const r of currentData) {
+    if (!csmMap[r.csm]) csmMap[r.csm] = { confirmed: 0, sent: 0, team: r.team };
+    csmMap[r.csm].confirmed += r.confirmed;
+    csmMap[r.csm].sent += r.sent;
+  }
+  const entries = Object.entries(csmMap).sort((a,b) => b[1].confirmed - a[1].confirmed);
+  const maxConf = Math.max(...entries.map(e=>e[1].confirmed), 1);
+  const maxSent = Math.max(...entries.map(e=>e[1].sent), 1);
+
+  const confEl = document.getElementById('csm-confirmed-bars');
+  const sentEl = document.getElementById('csm-sent-bars');
+  confEl.innerHTML = '';
+  sentEl.innerHTML = '';
+
+  for (const [csm, d] of entries) {
+    const shortName = csm === 'Support iConnections' ? 'Support iConn.' : csm;
+    const teamDot = d.team === 'Scale'
+      ? '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:4px;flex-shrink:0"></span>'
+      : '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);margin-right:4px;flex-shrink:0"></span>';
+    confEl.innerHTML += `
+      <div class="csm-row">
+        <span class="csm-name" style="display:flex;align-items:center">${teamDot}${shortName}</span>
+        <div class="csm-bar-wrap"><div class="csm-bar-fill confirmed" style="width:${(d.confirmed/maxConf*100).toFixed(1)}%"></div></div>
+        <span class="csm-num">${d.confirmed}</span>
+      </div>`;
+    sentEl.innerHTML += `
+      <div class="csm-row">
+        <span class="csm-name" style="display:flex;align-items:center">${teamDot}${shortName}</span>
+        <div class="csm-bar-wrap"><div class="csm-bar-fill sent" style="width:${(d.sent/maxSent*100).toFixed(1)}%"></div></div>
+        <span class="csm-num">${d.sent}</span>
+      </div>`;
+  }
+}
+
+function renderDonut() {
+  const confirmed = currentData.reduce((s,r)=>s+r.confirmed,0);
+  const declined  = currentData.reduce((s,r)=>s+r.declined,0);
+  const cancelled = currentData.reduce((s,r)=>s+r.cancelled,0);
+  const pending   = Math.max(0, currentData.reduce((s,r)=>s+r.sent,0) - confirmed - declined - cancelled);
+  const total = confirmed + declined + cancelled + pending;
+  if (!total) return;
+
+  const cx=55, cy=55, r=40, thick=14;
+  const colors = ['#10b981','#ef4444','#f59e0b','#3b82f6'];
+  const labels = ['Confirmed','Declined','Cancelled','Pending'];
+  const vals   = [confirmed, declined, cancelled, pending];
+
+  let offset = 0;
+  let paths = '';
+  const circ = 2 * Math.PI * r;
+  for (let i=0; i<vals.length; i++) {
+    if (!vals[i]) continue;
+    const pct = vals[i] / total;
+    const dash = pct * circ;
+    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${colors[i]}" stroke-width="${thick}" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset * circ}" />`;
+    offset += pct;
+  }
+
+  document.getElementById('donut-svg').innerHTML = paths;
+
+  const legend = labels.map((l,i) => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${colors[i]}"></div>
+      <span>${l}</span>
+      <span class="legend-val" style="color:${colors[i]}">${vals[i]}</span>
+    </div>`).join('');
+  document.getElementById('donut-legend').innerHTML = legend;
+}
+
+function renderHighRisk(pacePct) {
+  const pp = pacePct || getPacingPct(new Date('2026-05-19'));
+  const risks = currentData.filter(isHighRisk).sort((a,b) => a.sent - b.sent);
+  const el = document.getElementById('high-risk-list');
+  if (!risks.length) { el.innerHTML = '<div style="padding:16px 0;color:var(--muted);font-size:12px">No high risk accounts.</div>'; return; }
+  const shortCsm = c => c === 'Support iConnections' ? 'Support iConn.' : c;
+  el.innerHTML = risks.map(r => {
+    const pm = getPaceMetrics(r, pp);
+    return `<div class="risk-item">
+      <div class="risk-company">${r.company}</div>
+      <div class="risk-csm">${shortCsm(r.csm)}</div>
+      <span class="risk-badge proj">Goal: ${r.projected}</span>
+      <span class="risk-badge sent">Sent: ${r.sent}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderBehindPace(pacePct) {
+  const pp = pacePct || getPacingPct(new Date('2026-05-19'));
+  const withMetrics = currentData
+    .filter(r => r.projected !== null && r.projected !== undefined)
+    .map(r => ({ ...r, ...getPaceMetrics(r, pp) }))
+    .filter(r => r.paceStatus === 'behind')
+    .sort((a,b) => a.paceDelta - b.paceDelta)
+    .slice(0, 10);
+  const el = document.getElementById('behind-pace-list');
+  if (!withMetrics.length) { el.innerHTML = '<div style="padding:16px 0;color:var(--muted);font-size:12px">No accounts behind pace.</div>'; return; }
+  const shortCsm = c => c === 'Support iConnections' ? 'Support iConn.' : c;
+  el.innerHTML = withMetrics.map(r => {
+    const fillPct = r.projected > 0 ? Math.min(Math.round((r.confirmed / r.projected) * 100), 100) : 0;
+    const targetPct = Math.round(getPacingPct(new Date('2026-05-19')) * 100);
+    return `<div class="risk-item">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span class="risk-company" style="flex:1">${r.company}</span>
+          <span class="risk-csm" style="margin-left:8px">${shortCsm(r.csm)}</span>
+        </div>
+        <div class="pace-wrap">
+          <div class="pace-bar-track">
+            <div class="pace-bar-fill" style="width:${fillPct}%;background:${fillPct < targetPct * 0.5 ? 'var(--red)' : 'var(--amber)'}"></div>
+            <div class="pace-marker" style="left:${targetPct}%"></div>
+          </div>
+          <span class="pace-pct" style="color:${fillPct < targetPct * 0.5 ? 'var(--red)' : 'var(--amber)'}">${fillPct}%</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${r.confirmed} confirmed / ${r.projected} goal &nbsp;·&nbsp; expected by now: ${r.expectedNow} &nbsp;·&nbsp; <span style="color:var(--red)">${r.paceDelta > 0 ? '+' : ''}${r.paceDelta} off pace</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+function renderTable() {
+  const pacePct = getPacingPct(new Date('2026-05-19'));
+  const targetPct = Math.round(pacePct * 100);
+  const csmFilter  = document.getElementById('f-csm').value;
+  const teamFilter = document.getElementById('f-team').value;
+  const confFilter = document.getElementById('f-conf').value;
+  const sentFilter = document.getElementById('f-sent').value;
+  const projFilter = document.getElementById('f-proj').value;
+  const salesFilter = document.getElementById('f-sales').value;
+
+  let data = currentData.map(r => ({ ...r, ...getPaceMetrics(r, pacePct) }));
+  if (teamFilter) data = data.filter(r => r.team === teamFilter);
+  if (csmFilter === '__SCALE__') data = data.filter(r => r.team === 'Scale');
+  else if (csmFilter) data = data.filter(r => r.csm === csmFilter);
+  if (confFilter === 'yes') data = data.filter(r => r.confirmed > 0);
+  if (confFilter === 'no')  data = data.filter(r => r.confirmed === 0);
+  if (sentFilter === 'none') data = data.filter(r => r.sent === 0);
+  if (sentFilter === 'has')  data = data.filter(r => r.sent > 0);
+  if (projFilter === 'behind')   data = data.filter(r => r.paceStatus === 'behind');
+  if (projFilter === 'ahead')    data = data.filter(r => r.paceStatus === 'ahead');
+  if (projFilter === 'highrisk') data = data.filter(r => isHighRisk(r));
+  if (projFilter === 'low')      data = data.filter(r => r.projected !== null && r.projected !== undefined && r.projected < 5);
+  if (projFilter === 'noproj')   data = data.filter(r => r.projected === null || r.projected === undefined);
+  if (salesFilter) data = data.filter(r => r.salesperson === salesFilter);
+
+  data.sort((a, b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (sortCol === 'conv') { av = a.sent > 0 ? a.confirmed / a.sent : 0; bv = b.sent > 0 ? b.confirmed / b.sent : 0; }
+    if (av === null || av === undefined) av = sortDir === 'asc' ? Infinity : -Infinity;
+    if (bv === null || bv === undefined) bv = sortDir === 'asc' ? Infinity : -Infinity;
+    if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    return sortDir === 'asc' ? av - bv : bv - av;
+  });
+
+  document.getElementById('tbl-count').textContent = data.length + ' accounts';
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = data.map(r => {
+    const conv = r.sent > 0 ? ((r.confirmed / r.sent) * 100).toFixed(0) : null;
+    const convClass = conv === null ? 'conv-zero' : conv >= 20 ? 'conv-high' : conv >= 8 ? 'conv-med' : 'conv-low';
+    const convLabel = conv === null ? '\u2014' : conv + '%';
+    const shortCsm = r.csm === 'Support iConnections' ? 'Support iConn.' : r.csm;
+
+    const goalLabel = r.projected !== null && r.projected !== undefined ? r.projected.toFixed(1) : '\u2014';
+    const isLowProj = r.projected !== null && r.projected !== undefined && r.projected < 5;
+    const goalCell = '<span style="color:' + (isLowProj ? 'var(--amber)' : 'var(--muted)') + '">' + goalLabel + '</span>';
+
+    let pacePctCell = '\u2014';
+    if (r.pacePct !== null && r.pacePct !== undefined) {
+      const fillW = Math.min(r.pacePct, 100);
+      const barColor = r.paceStatus === 'ahead' ? 'var(--green)' : r.paceStatus === 'behind' ? (r.pacePct < targetPct * 0.5 ? 'var(--red)' : 'var(--amber)') : 'var(--green)';
+      pacePctCell = '<div class="pace-wrap" style="min-width:80px"><div class="pace-bar-track"><div class="pace-bar-fill" style="width:' + fillW + '%;background:' + barColor + '"></div><div class="pace-marker" style="left:' + Math.min(targetPct,100) + '%"></div></div><span class="pace-pct" style="color:' + barColor + '">' + r.pacePct + '%</span></div>';
+    }
+
+    let vsCell = '\u2014';
+    if (r.paceDelta !== null && r.paceDelta !== undefined) {
+      const big = Math.abs(r.paceDelta) >= 3;
+      if (r.paceDelta > 0.5) vsCell = '<span style="color:var(--green);font-weight:500">+' + r.paceDelta + '</span>';
+      else if (r.paceDelta < -0.5) vsCell = '<span style="color:' + (big ? 'var(--red)' : 'var(--amber)') + ';font-weight:' + (big?'600':'500') + '">' + r.paceDelta + '</span>';
+      else vsCell = '<span style="color:var(--muted)">on pace</span>';
+    }
+
+    const highRisk = isHighRisk(r);
+    const rowStyle = highRisk ? ' style="background:rgba(245,158,11,0.05)"' : r.paceStatus === 'behind' && r.paceDelta < -3 ? ' style="background:rgba(239,68,68,0.04)"' : '';
+    const riskTag = highRisk ? ' <span style="color:var(--amber);font-size:10px">\u26a0</span>' : '';
+
+    return '<tr' + rowStyle + '>' +
+      '<td class="td-company">' + r.company + riskTag + '</td>' +
+      '<td class="td-csm">' + (r.companyType||'\u2014') + '</td>' +
+      '<td class="td-num" style="color:var(--muted);font-size:11px">' + (r.companyId||'\u2014') + '</td>' +
+      '<td class="td-csm" style="white-space:nowrap">' + (r.aum||'\u2014') + '</td>' +
+      '<td class="td-csm" style="white-space:nowrap">' + (r.joinedYearMonth||'\u2014') + '</td>' +
+      '<td class="td-csm">' + shortCsm + '</td>' +
+      '<td class="td-csm">' + (r.salesperson||'\u2014') + '</td>' +
+      '<td class="td-num hi">' + r.confirmed + '</td>' +
+      '<td class="td-num">' + goalCell + '</td>' +
+      '<td>' + pacePctCell + '</td>' +
+      '<td class="td-num">' + vsCell + '</td>' +
+      '<td class="td-num ' + (r.cancelled > 5 ? 'bad' : r.cancelled > 0 ? 'warn' : '') + '">' + r.cancelled + '</td>' +
+      '<td class="td-num">' + r.sent + '</td>' +
+      '<td class="td-num">' + r.received + '</td>' +
+      '<td class="td-num ' + (r.declined > 10 ? 'bad' : r.declined > 4 ? 'warn' : '') + '">' + r.declined + '</td>' +
+      '<td class="td-num">' + r.followup + '</td>' +
+      '<td class="td-csm" style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--muted)">' + (r.strategies||'\u2014') + '</td>' +
+      '<td><span class="conv-pill ' + convClass + '">' + convLabel + '</span></td>' +
+      '</tr>';
+  }).join('');
+
+  ['company','companyType','companyId','aum','joinedYearMonth','csm','salesperson','confirmed','projected','pacePct','paceDelta','cancelled','sent','received','declined','followup','strategies','conv'].forEach(function(col) {
+    const el = document.getElementById('th-' + col);
+    if (el) el.className = col === sortCol ? (sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '';
+  });
+}
+
+function sortTable(col) {
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = col === 'company' || col === 'csm' ? 'asc' : 'desc'; }
+  renderTable();
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timeline-container');
+  if (snapshots.length < 2) {
+    container.innerHTML = '<div class="no-history">No historical comparisons yet. Upload tomorrow\'s CSV to start tracking daily changes.</div>';
+    return;
+  }
+
+  let html = '<div class="timeline">';
+  for (let i = snapshots.length - 1; i >= 0; i--) {
+    const s = snapshots[i];
+    const prev = i > 0 ? snapshots[i-1].metrics : null;
+    const confDelta = prev ? s.metrics.confirmed - prev.confirmed : null;
+    const sentDelta = prev ? s.metrics.sent - prev.sent : null;
+
+    const confDeltaHtml = confDelta !== null
+      ? `<span class="${confDelta > 0 ? 'delta-up' : confDelta < 0 ? 'delta-down' : 'delta-flat'}">${confDelta > 0 ? '+' : ''}${confDelta}</span>`
+      : '<span class="delta-flat">base</span>';
+    const sentDeltaHtml = sentDelta !== null
+      ? `<span class="${sentDelta > 0 ? 'delta-up' : sentDelta < 0 ? 'delta-down' : 'delta-flat'}">${sentDelta > 0 ? '+' : ''}${sentDelta}</span>`
+      : '<span class="delta-flat">base</span>';
+
+    html += `
+      <div class="tl-entry">
+        <div class="tl-dot" style="background:${i===snapshots.length-1?'var(--accent)':'var(--faint)'}"></div>
+        <div class="tl-date">${s.date}</div>
+        <div class="tl-metrics">
+          <div class="tl-metric">
+            <span class="tl-metric-label">Confirmed</span>
+            <span class="tl-metric-val" style="color:var(--green)">${s.metrics.confirmed}</span>
+            <span class="tl-change" style="font-family:'DM Mono',monospace">${confDeltaHtml}</span>
+          </div>
+          <div class="tl-metric">
+            <span class="tl-metric-label">Requests Sent</span>
+            <span class="tl-metric-val" style="color:var(--accent)">${s.metrics.sent}</span>
+            <span class="tl-change" style="font-family:'DM Mono',monospace">${sentDeltaHtml}</span>
+          </div>
+          <div class="tl-metric">
+            <span class="tl-metric-label">Cancelled</span>
+            <span class="tl-metric-val" style="color:var(--amber)">${s.metrics.cancelled}</span>
+          </div>
+          <div class="tl-metric">
+            <span class="tl-metric-label">Declined</span>
+            <span class="tl-metric-val" style="color:var(--red)">${s.metrics.declined}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ── CSV Upload ──
+document.getElementById('file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const text = ev.target.result;
+    parseAndLoad(text, file.name);
+  };
+  reader.readAsText(file);
+  this.value = '';
+});
+
+function parseAndLoad(csvText, filename) {
+  const lines = csvText.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+
+  const idxCompany  = headers.indexOf('Company Name');
+  const idxCsm      = headers.indexOf('iC Account Manager Name');
+  const idxAum      = headers.indexOf('GP Firm AUM');
+  const idxConf     = headers.indexOf('Confirmed Meeting Count');
+  const idxCancel   = headers.indexOf('Cancelled Meeting Count');
+  const idxSent     = headers.indexOf('Count of Unique Meetings Sent');
+  const idxReceived = headers.indexOf('Count of Unique Meetings Received');
+  const idxDeclined = headers.indexOf('Count of Unique Declined Meetings Sent');
+  const idxFollowup = headers.indexOf('Total Followup Messages');
+
+  const parsed = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseCSVLine(lines[i]);
+    const csm = (row[idxCsm] || '').trim();
+    if (!csm) continue;
+    const cid = (row[idxCompany - 3] || '').trim(); // Company ID col
+    // Look up projection from existing seed data by company name match
+    const companyName = (row[idxCompany] || '').trim();
+    const existingRow = SEED_DATA.find(s => s.company === companyName);
+    const projected = existingRow ? existingRow.projected : null;
+    const confirmed = parseInt(row[idxConf] || 0);
+    const delta = projected !== null ? Math.round((confirmed - projected) * 10) / 10 : null;
+    parsed.push({
+      company:  companyName,
+      csm,
+      aum:      (row[idxAum] || '').trim(),
+      confirmed,
+      cancelled: parseInt(row[idxCancel]|| 0),
+      sent:      parseInt(row[idxSent]  || 0),
+      received:  parseInt(row[idxReceived]||0),
+      declined:  parseInt(row[idxDeclined]||0),
+      followup:  parseInt(row[idxFollowup]||0),
+      projected,
+      strategies: existingRow ? existingRow.strategies : '',
+      strategyCount: existingRow ? existingRow.strategyCount : 0,
+      delta,
+      // preserve other fields from seed if available
+      companyType: existingRow ? existingRow.companyType : '',
+      companyId: existingRow ? existingRow.companyId : '',
+      joinedYearMonth: existingRow ? existingRow.joinedYearMonth : '',
+      salesperson: existingRow ? existingRow.salesperson : '',
+      eventName: existingRow ? existingRow.eventName : '',
+    });
+  }
+
+  if (!parsed.length) { alert('No matching CSM accounts found in this file.'); return; }
+
+  // Determine date label - prompt user or infer from today
+  const today = new Date();
+  const dateLabel = `${today.getMonth()+1}/${today.getDate()}`;
+
+  // Remove existing snapshot for this date if any
+  snapshots = snapshots.filter(s => s.date !== dateLabel);
+  snapshots.push({ date: dateLabel, metrics: aggregateMetrics(parsed) });
+  saveSnapshots();
+
+  currentData = parsed;
+  document.getElementById('current-date-badge').textContent = dateLabel;
+  renderAll();
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+init();
+</script>
+</body>
+</html>

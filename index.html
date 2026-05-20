@@ -854,6 +854,7 @@ function pickTitleDest(dest){
   const b=document.getElementById('titleDropBtn');if(b)b.classList.remove('op');
   if(dest==='pipeline'){ss('tab','pipeline');}
   else if(dest==='goals'){S.goalsOpen=true;_syncHash();render();}
+  else if(dest==='ny'){S.nyOpen=true;_syncHash();render();}
 }
 document.addEventListener('click',function(e){
   if(!TITLE_DROP_OPEN)return;
@@ -2757,6 +2758,7 @@ function _spClick(){_spClicks++;if(_spClickTimer)clearTimeout(_spClickTimer);_sp
 let _acctTabClicks=0,_acctTabTimer=null;
 function _acctTabClick(){_acctTabClicks++;if(_acctTabTimer)clearTimeout(_acctTabTimer);_acctTabTimer=setTimeout(()=>{_acctTabClicks=0;},3000);if(_acctTabClicks>=5){_acctTabClicks=0;S.forecastOpen=!S.forecastOpen;_syncHash();render();}}
 function _closeForecast(){S.forecastOpen=false;_syncHash();render();}
+function _closeNY(){S.nyOpen=false;_syncHash();render();}
 // Renewal Master data explorer — opens an overlay showing every row from
 // the Master Tracker (GP) sheet and the All SP Rev 25 & 26 (SP) sheet,
 // tagged by source. 7 clicks on the "2025 Revenue (Base)" KPI within 3s
@@ -2783,7 +2785,7 @@ function _closeGoals(){S.goalsOpen=false;_syncHash();render();}
 // Reflect overlay state in the URL hash so it's shareable / bookmarkable.
 // history.replaceState avoids polluting the back-button history.
 function _syncHash(){
-  const target=S.goalsOpen?'#goals':S.forecastOpen?'#forecast':'';
+  const target=S.goalsOpen?'#goals':S.forecastOpen?'#forecast':S.nyOpen?'#ny':'';
   if((location.hash||'')!==target){
     try{history.replaceState(null,'',location.pathname+location.search+target);}catch(e){}
   }
@@ -3648,6 +3650,7 @@ function render(){
     const _h=(location.hash||'').toLowerCase().replace(/^#\/?/,'');
     if(_h==='goals'){S.goalsOpen=true;_hashRouted=true;}
     else if(_h==='forecast'){S.forecastOpen=true;_hashRouted=true;}
+    else if(_h==='ny'){S.nyOpen=true;_hashRouted=true;}
     else if(_h===''){_hashRouted=true;} // no hash → mark handled, don't re-check
   }
   try{_render();}catch(e){console.error('Render error:',e);document.getElementById('app').innerHTML=`<div class="w"><div class="err-card" style="margin-top:40px"><strong>⚠ Render Error</strong>${e.message}<br><br><small style="color:#94a3b8">Check console for details</small></div><button class="btn-ms" style="max-width:200px;margin-top:16px" onclick="S.tab='pipeline';render()">Back to Pipeline</button></div>`;}}
@@ -3833,7 +3836,7 @@ function _render(){
   });
   const gap=r25T-offT;
   let h='';
-  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><div class="title-dd"><button class="title-dd-btn" id="titleDropBtn" onclick="toggleTitleDrop(event)" title="Switch dashboard"><h1 style="margin:0">CS Renewal Pipeline</h1><span class="cr">▾</span></button><div class="title-dd-menu" id="titleDropMenu"><div class="title-dd-item" onclick="pickTitleDest('pipeline')"><span class="ic">📊</span><div><div>CS Renewal Pipeline</div><span class="sub">Account-level pipeline & forecast</span></div></div><div class="title-dd-item" onclick="pickTitleDest('goals')"><span class="ic">🎯</span><div><div>Goals & Variable Comp Dashboard</div><span class="sub">Quarterly targets, retention, cadence</span></div></div></div></div><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button><button onclick="ss('hideChurned',${!S.hideChurned})" style="background:${S.hideChurned?'#10b981':'#1e293b'};border:1px solid ${S.hideChurned?'#059669':'#334155'};color:${S.hideChurned?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideChurned?'✓ Hiding Churned':'Hide Churned'}</button><button onclick="toggleHideSPs()" title="Hide all SP accounts (Emilie Welch). When turned on from the default view, also switches the owner filter to 'All Sales Reps'." style="background:${S.hideSPs?'#10b981':'#1e293b'};border:1px solid ${S.hideSPs?'#059669':'#334155'};color:${S.hideSPs?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideSPs?'✓ Hiding SPs':'Hide SPs'}</button><button onclick="ss('showAE',${!S.showAE})" style="background:${S.showAE?'#2563eb':'#1e293b'};border:1px solid ${S.showAE?'#1d4ed8':'#334155'};color:${S.showAE?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.showAE?'✓ Show Sales Rep':'Show Sales Rep'}</button>${(()=>{const sel=(S.subMonths||[]),sc=sel.length,isOn=sc>0;const lbl=sc===0?'Sub End: Months':sc===MO.length?'Sub End: All months':sc===1?`Sub End: ${MON[MO.indexOf(sel[0])]||'?'}`:`Sub End: ${sc} months`;return`<details ${S.subMonthsOpen?'open':''} style="position:relative;display:inline-block"><summary onclick="event.preventDefault();ss('subMonthsOpen',${!S.subMonthsOpen})" style="background:${isOn?'#0369a1':'#1e293b'};border:1px solid ${isOn?'#0284c7':'#334155'};color:${isOn?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;list-style:none;user-select:none">${isOn?'✓ ':''}${lbl} ▾</summary><div style="position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:170px;box-shadow:0 4px 14px rgba(0,0,0,0.5)"><div style="display:flex;gap:6px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid #334155"><button class="sb${sc===MO.length?' a':''}" style="font-size:10px;padding:3px 10px" onclick="setAllSubMonths(true)">All</button><button class="sb${sc===0?' a':''}" style="font-size:10px;padding:3px 10px" onclick="setAllSubMonths(false)">None</button></div>${MO.map((p,i)=>`<label style="display:flex;align-items:center;gap:7px;font-size:11px;color:#e2e8f0;cursor:pointer;user-select:none;padding:3px 2px"><input type="checkbox" ${sel.includes(p)?'checked':''} onchange="toggleSubMonth('${p}')" style="cursor:pointer">${MON[i]} ${p.split('-')[0]}</label>`).join('')}</div></details>`;})()}</div><p class="sub">${tot} <span onclick="_acctTabClick()" style="cursor:default;user-select:none">accounts</span> · Live from <span onclick="_spClick()" style="cursor:default;user-select:none">SharePoint</span> · ${lastUpdated}</p></div>
+  h+=`<div class="hdr"><div><div style="display:flex;align-items:center;gap:10px"><div class="title-dd"><button class="title-dd-btn" id="titleDropBtn" onclick="toggleTitleDrop(event)" title="Switch dashboard"><h1 style="margin:0">CS Renewal Pipeline</h1><span class="cr">▾</span></button><div class="title-dd-menu" id="titleDropMenu"><div class="title-dd-item" onclick="pickTitleDest('pipeline')"><span class="ic">📊</span><div><div>CS Renewal Pipeline</div><span class="sub">Account-level pipeline & forecast</span></div></div><div class="title-dd-item" onclick="pickTitleDest('goals')"><span class="ic">🎯</span><div><div>Goals & Variable Comp Dashboard</div><span class="sub">Quarterly targets, retention, cadence</span></div></div><div class="title-dd-item" onclick="pickTitleDest('ny')"><span class="ic">🗽</span><div><div>CS NY Meeting Dashboard</div><span class="sub">GA NY 2026 meeting activity (CSV upload)</span></div></div></div></div><button onclick="ss('hidePaid',${!S.hidePaid})" style="background:${S.hidePaid?'#10b981':'#1e293b'};border:1px solid ${S.hidePaid?'#059669':'#334155'};color:${S.hidePaid?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hidePaid?'✓ Hiding Paid':'Hide Paid'}</button><button onclick="ss('hideChurned',${!S.hideChurned})" style="background:${S.hideChurned?'#10b981':'#1e293b'};border:1px solid ${S.hideChurned?'#059669':'#334155'};color:${S.hideChurned?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideChurned?'✓ Hiding Churned':'Hide Churned'}</button><button onclick="toggleHideSPs()" title="Hide all SP accounts (Emilie Welch). When turned on from the default view, also switches the owner filter to 'All Sales Reps'." style="background:${S.hideSPs?'#10b981':'#1e293b'};border:1px solid ${S.hideSPs?'#059669':'#334155'};color:${S.hideSPs?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.hideSPs?'✓ Hiding SPs':'Hide SPs'}</button><button onclick="ss('showAE',${!S.showAE})" style="background:${S.showAE?'#2563eb':'#1e293b'};border:1px solid ${S.showAE?'#1d4ed8':'#334155'};color:${S.showAE?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${S.showAE?'✓ Show Sales Rep':'Show Sales Rep'}</button>${(()=>{const sel=(S.subMonths||[]),sc=sel.length,isOn=sc>0;const lbl=sc===0?'Sub End: Months':sc===MO.length?'Sub End: All months':sc===1?`Sub End: ${MON[MO.indexOf(sel[0])]||'?'}`:`Sub End: ${sc} months`;return`<details ${S.subMonthsOpen?'open':''} style="position:relative;display:inline-block"><summary onclick="event.preventDefault();ss('subMonthsOpen',${!S.subMonthsOpen})" style="background:${isOn?'#0369a1':'#1e293b'};border:1px solid ${isOn?'#0284c7':'#334155'};color:${isOn?'#fff':'#64748b'};padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;list-style:none;user-select:none">${isOn?'✓ ':''}${lbl} ▾</summary><div style="position:absolute;top:calc(100% + 4px);left:0;z-index:50;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:170px;box-shadow:0 4px 14px rgba(0,0,0,0.5)"><div style="display:flex;gap:6px;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid #334155"><button class="sb${sc===MO.length?' a':''}" style="font-size:10px;padding:3px 10px" onclick="setAllSubMonths(true)">All</button><button class="sb${sc===0?' a':''}" style="font-size:10px;padding:3px 10px" onclick="setAllSubMonths(false)">None</button></div>${MO.map((p,i)=>`<label style="display:flex;align-items:center;gap:7px;font-size:11px;color:#e2e8f0;cursor:pointer;user-select:none;padding:3px 2px"><input type="checkbox" ${sel.includes(p)?'checked':''} onchange="toggleSubMonth('${p}')" style="cursor:pointer">${MON[i]} ${p.split('-')[0]}</label>`).join('')}</div></details>`;})()}</div><p class="sub">${tot} <span onclick="_acctTabClick()" style="cursor:default;user-select:none">accounts</span> · Live from <span onclick="_spClick()" style="cursor:default;user-select:none">SharePoint</span> · ${lastUpdated}</p></div>
   <div style="display:flex;gap:8px;align-items:flex-start">
     <button onclick="ssTheme()" title="Toggle light/dark mode" style="display:flex;align-items:center;gap:6px;background:${LIGHT?'#ffffff':'#1e293b'};color:${LIGHT?'#475569':'#94a3b8'};border:1px solid ${LIGHT?'#cbd5e1':'#334155'};padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">${LIGHT?'🌙 Dark':'☀️ Light'}</button>
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px">
@@ -5873,6 +5876,22 @@ rGP=function(){
   }else{
     if(forecastOverlay)forecastOverlay.style.display='none';
   }
+  // CS NY Meeting Dashboard overlay — wraps the standalone ny-meetings.html
+  // file in an iframe so its self-contained CSV-upload + localStorage flow
+  // stays intact. Same overlay shape as Goals / Forecast (close button + iframe).
+  let nyOverlay=document.getElementById('_ny_overlay');
+  if(S.nyOpen){
+    if(!nyOverlay){nyOverlay=document.createElement('div');nyOverlay.id='_ny_overlay';nyOverlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(5,10,20,.92);display:flex;flex-direction:column;font-family:inherit';document.body.appendChild(nyOverlay);}
+    nyOverlay.style.display='flex';
+    const _nyBarBg=LIGHT?'#f4f5fa':'#07071a',_nyBarBd=LIGHT?'#c8ccd8':'#1a1a35',_nyBarTx=LIGHT?'#1a1a28':'#d0d0ec',_nyBtnBg=LIGHT?'#e4e6f0':'#1a1a35',_nyBtnBd=LIGHT?'#c0c4d2':'#2a2a44',_nyBtnTx=LIGHT?'#555a78':'#7777aa';
+    // Build the iframe once. Re-renders don't reload it (preserves the user's
+    // uploaded snapshots in localStorage and avoids losing scroll / filter state).
+    if(!document.getElementById('_ny_iframe')){
+      nyOverlay.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:${_nyBarBg};border-bottom:1px solid ${_nyBarBd};flex-shrink:0;gap:12px"><span style="font-size:13px;font-weight:700;color:${_nyBarTx};white-space:nowrap">iConnections — CS NY Meeting Dashboard</span><span style="font-size:11px;color:${_nyBtnTx};flex:1;text-align:center">GA NY 2026 · upload a new CSV via the button inside</span><div style="display:flex;gap:8px;align-items:center"><button onclick="_closeNY()" style="background:${_nyBtnBg};border:1px solid ${_nyBtnBd};color:${_nyBtnTx};padding:5px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">✕ Close</button></div></div><iframe id="_ny_iframe" src="ny-meetings.html" style="flex:1;border:none;background:#0a0c10"></iframe>`;
+    }
+  }else{
+    if(nyOverlay)nyOverlay.style.display='none';
+  }
   // Renewal-master data explorer — unified view of Master Tracker (GP)
   // and All SP Rev 25 & 26 (SP) rows, both sourced from the renewal master.
   let dexOverlay=document.getElementById('_dex_overlay');
@@ -6178,9 +6197,9 @@ rGP=function(){
 // Route on browser back/forward/manual hash edits without reloading the page.
 window.addEventListener('hashchange',()=>{
   const _h=(location.hash||'').toLowerCase().replace(/^#\/?/,'');
-  const wantGoals=_h==='goals',wantForecast=_h==='forecast';
-  if(wantGoals!==!!S.goalsOpen||wantForecast!==!!S.forecastOpen){
-    S.goalsOpen=wantGoals;S.forecastOpen=wantForecast;render();
+  const wantGoals=_h==='goals',wantForecast=_h==='forecast',wantNY=_h==='ny';
+  if(wantGoals!==!!S.goalsOpen||wantForecast!==!!S.forecastOpen||wantNY!==!!S.nyOpen){
+    S.goalsOpen=wantGoals;S.forecastOpen=wantForecast;S.nyOpen=wantNY;render();
   }
 });
 init();
