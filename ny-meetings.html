@@ -627,6 +627,87 @@ function loadSnapshots() {
 function saveSnapshots() {
   try { localStorage.setItem(SNAP_KEY, JSON.stringify(snapshots)); } catch(e) {}
 }
+
+// ── Team-wide snapshot via GitHub ──
+// Every upload auto-publishes the merged dataset + snapshot history to
+// ny-snapshot.json in the repo. Other users get the latest snapshot on
+// next page load. Uses the same PAT as the main dashboard's audit publish
+// (`cs_pubtok` in localStorage). Silent no-op if the PAT isn't set on
+// this browser — local snapshots still save, just no team sync.
+const _NY_PUB_REPO = 'rahulsetya/cs-renewal-dashboard';
+const _NY_PUB_FILE = 'ny-snapshot.json';
+function _nyGetToken(){
+  try { const v = localStorage.getItem('cs_pubtok'); return v ? atob(v) : null; }
+  catch(e){ return null; }
+}
+async function _nyPublishSnapshot(){
+  const tok = _nyGetToken();
+  if(!tok) return; // no PAT → skip silently, local save still works
+  try {
+    // Read current sha so we can update (GitHub Contents API requires it).
+    let sha = null;
+    try {
+      const r0 = await fetch(`https://api.github.com/repos/${_NY_PUB_REPO}/contents/${_NY_PUB_FILE}`, {
+        headers: {'Authorization':'Bearer '+tok,'Accept':'application/vnd.github+json'},
+        cache: 'no-store'
+      });
+      if(r0.ok){ sha = (await r0.json()).sha; }
+    } catch(e){}
+    const payload = {
+      publishedAt: new Date().toISOString(),
+      currentDate: document.getElementById('current-date-badge').textContent || '',
+      rowCount: currentData.length,
+      snapshots,
+      rows: currentData
+    };
+    const json = JSON.stringify(payload);
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    const body = {
+      message: `NY Meeting snapshot ${payload.currentDate} (${payload.rowCount} rows)`,
+      content: b64,
+      branch: 'main'
+    };
+    if(sha) body.sha = sha;
+    const r1 = await fetch(`https://api.github.com/repos/${_NY_PUB_REPO}/contents/${_NY_PUB_FILE}`, {
+      method: 'PUT',
+      headers: {'Authorization':'Bearer '+tok,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if(!r1.ok){
+      const t = await r1.text();
+      console.warn('NY publish failed:', r1.status, t.slice(0,200));
+    } else {
+      console.info('NY publish OK · '+payload.rowCount+' rows · '+payload.currentDate);
+    }
+  } catch(err){ console.warn('NY publish error:', err); }
+}
+async function _nyHydrateFromPublished(){
+  try {
+    const r = await fetch('ny-snapshot.json?t=' + Date.now(), { cache: 'no-store' });
+    if(!r.ok) return false;
+    const data = await r.json();
+    if(!data) return false;
+    // Merge published snapshots into local (latest wins per date).
+    if(Array.isArray(data.snapshots)){
+      const byDate = new Map();
+      [...snapshots, ...data.snapshots].forEach(s => byDate.set(s.date, s));
+      snapshots = [...byDate.values()];
+      saveSnapshots();
+    }
+    // Adopt published rows as the live dataset — represents the latest
+    // upload from any team member.
+    if(Array.isArray(data.rows) && data.rows.length){
+      currentData = data.rows;
+      if(data.currentDate){
+        const el = document.getElementById('current-date-badge');
+        if(el) el.textContent = data.currentDate;
+      }
+      renderAll();
+      return true;
+    }
+  } catch(e){ console.warn('NY hydrate error:', e); }
+  return false;
+}
 function aggregateMetrics(data) {
   return {
     accounts: data.length,
@@ -659,6 +740,10 @@ function init() {
   document.getElementById('current-date-badge').textContent = latest.date;
   // If more than one snapshot, show latest data
   renderAll();
+  // Then hydrate from the team-published snapshot. If a newer team upload
+  // exists, it overrides the seed and the dashboard re-renders. Runs
+  // async so the initial seed paint is instant.
+  _nyHydrateFromPublished();
 }
 
 function renderAll() {
@@ -1135,6 +1220,9 @@ function _renderUploaded(){
   currentData = built;
   document.getElementById('current-date-badge').textContent = dateLabel;
   renderAll();
+  // Fire-and-forget team publish — committed to ny-snapshot.json so every
+  // other user picks up this upload on next refresh.
+  _nyPublishSnapshot();
 }
 
 document.getElementById('file-input-meet').addEventListener('change', function(e){
