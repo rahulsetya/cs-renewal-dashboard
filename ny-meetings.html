@@ -82,6 +82,70 @@
   }
   .upload-btn:hover { border-color: var(--accent); background: var(--accent-glow); }
   #file-input, #file-input-meet, #file-input-proj { display: none; }
+
+  /* Upload modal + drop zones */
+  .upload-modal {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .upload-modal-card {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 560px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .upload-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.2px; }
+  .upload-sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+  .upload-pw {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    margin-bottom: 8px;
+  }
+  .upload-pw:focus { border-color: var(--accent); }
+  .upload-pw-error { color: var(--red); font-size: 12px; margin-bottom: 4px; }
+  .upload-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+  .upload-btn-primary {
+    background: var(--accent); color: #fff; border: 0;
+    padding: 8px 18px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .upload-btn-primary:hover { filter: brightness(1.1); }
+  .upload-btn-secondary {
+    background: var(--surface2); color: var(--text);
+    border: 1px solid var(--border-bright);
+    padding: 8px 18px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .upload-btn-secondary:hover { border-color: var(--accent); }
+  .drop-zone {
+    border: 2px dashed var(--border-bright);
+    border-radius: 10px;
+    padding: 22px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 12px;
+  }
+  .drop-zone:hover { border-color: var(--accent); }
+  .drop-zone.dragover { border-color: var(--accent); background: var(--accent-glow); }
+  .drop-zone.has-file { border-color: var(--green); background: var(--green-glow); }
+  .dz-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .dz-sub { font-size: 11px; color: var(--muted); }
+  .dz-status { font-size: 11px; color: var(--green); margin-top: 8px; font-family: 'DM Mono', monospace; }
   .date-badge {
     font-family: 'DM Mono', monospace;
     font-size: 11px;
@@ -316,14 +380,9 @@
   <div class="header-right">
     <span id="last-updated-badge" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:right;line-height:1.3;display:none" title="When the most recent team upload was published to the shared snapshot."></span>
     <span class="date-badge" id="current-date-badge">—</span>
-    <label class="upload-btn" for="file-input-meet" title="Meeting Data CSV — must have columns: Event Name, Company Type, Company ID, Company Name, GP Firm AUM, Joined Year Month, iC Account Manager Name, iC Salesperson Name, Confirmed Meeting Count, Cancelled Meeting Count, Count of Unique Meetings Sent, Count of Unique Meetings Received, Count of Unique Declined Meetings Sent, Total Followup Messages">
-      ↑ Meeting Data CSV
-    </label>
-    <input type="file" id="file-input-meet" accept=".csv">
-    <label class="upload-btn" for="file-input-proj" title="Projections CSV — must have columns: iC Event Name, GP Company ID, GP Company Name, GP Total Marketed Strategies, GP Marketed Strategies (All), Count of GPs (Distinct), Total Projected Meetings">
-      ↑ Projections CSV
-    </label>
-    <input type="file" id="file-input-proj" accept=".csv">
+    <button class="upload-btn" onclick="_nyOpenUploadModal()" title="Password-protected upload — drag or click to select Meeting Data + Projections CSVs.">
+      ↑ Upload CSV
+    </button>
   </div>
 </header>
 
@@ -575,6 +634,41 @@
     </div>
   </div>
 
+</div>
+
+<!-- Upload modal (password-protected, two drag-or-select zones) -->
+<div id="upload-modal" class="upload-modal" style="display:none">
+  <div class="upload-modal-card">
+    <div id="upload-step-pw">
+      <div class="upload-title">Upload CSV</div>
+      <div class="upload-sub">This action publishes to the shared team snapshot. Enter the password to continue.</div>
+      <input type="password" id="upload-pw-input" class="upload-pw" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter')_nyTryPassword()">
+      <div id="upload-pw-error" class="upload-pw-error" style="display:none">Incorrect password.</div>
+      <div class="upload-actions">
+        <button class="upload-btn-secondary" onclick="_nyCloseUploadModal()">Cancel</button>
+        <button class="upload-btn-primary" onclick="_nyTryPassword()">Continue</button>
+      </div>
+    </div>
+    <div id="upload-step-files" style="display:none">
+      <div class="upload-title">Upload CSV</div>
+      <div class="upload-sub">Drop or click each box to select. Files merge on Company ID. Upload one or both — the other side falls back to the seed.</div>
+      <div id="drop-zone-meet" class="drop-zone">
+        <div class="dz-title">↑ Meeting Data CSV</div>
+        <div class="dz-sub">Confirmed / Cancelled / Sent / Received / Declined / Followup counts<br>(gp_company_meeting_data.csv)</div>
+        <div id="dz-status-meet" class="dz-status" style="display:none"></div>
+        <input type="file" id="file-input-meet" accept=".csv">
+      </div>
+      <div id="drop-zone-proj" class="drop-zone">
+        <div class="dz-title">↑ Projections CSV</div>
+        <div class="dz-sub">Total Projected Meetings + GP Marketed Strategies<br>(projected_meetings_by_gp_schedule_*.csv)</div>
+        <div id="dz-status-proj" class="dz-status" style="display:none"></div>
+        <input type="file" id="file-input-proj" accept=".csv">
+      </div>
+      <div class="upload-actions">
+        <button class="upload-btn-secondary" onclick="_nyCloseUploadModal()">Done</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1241,35 +1335,96 @@ function _renderUploaded(){
   _nyPublishSnapshot();
 }
 
-document.getElementById('file-input-meet').addEventListener('change', function(e){
-  const file = e.target.files[0];
+// ── Password-protected upload modal ──
+// Client-side gate only — UX guard against accidental publishes, not real auth.
+const _NY_UPLOAD_PASSWORD = 'rahulsetya777';
+
+function _nyOpenUploadModal(){
+  const m = document.getElementById('upload-modal');
+  document.getElementById('upload-step-pw').style.display = '';
+  document.getElementById('upload-step-files').style.display = 'none';
+  document.getElementById('upload-pw-input').value = '';
+  document.getElementById('upload-pw-error').style.display = 'none';
+  m.style.display = 'flex';
+  setTimeout(()=>document.getElementById('upload-pw-input').focus(), 30);
+}
+
+function _nyCloseUploadModal(){
+  document.getElementById('upload-modal').style.display = 'none';
+}
+
+function _nyTryPassword(){
+  const v = document.getElementById('upload-pw-input').value;
+  if(v === _NY_UPLOAD_PASSWORD){
+    document.getElementById('upload-step-pw').style.display = 'none';
+    document.getElementById('upload-step-files').style.display = '';
+  }else{
+    document.getElementById('upload-pw-error').style.display = '';
+  }
+}
+
+function _updateDropZoneStatus(zoneId, statusId, fileName, count, label){
+  const zone = document.getElementById(zoneId);
+  const status = document.getElementById(statusId);
+  if(zone) zone.classList.add('has-file');
+  if(status){
+    status.style.display = '';
+    status.textContent = '✓ ' + fileName + ' · ' + count + ' ' + label;
+  }
+}
+
+function _nyHandleMeetingFile(file){
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(ev){
     try{
       _pendMeetings = _parseMeetingsCsv(ev.target.result);
       if(!_pendMeetings.length){ alert('No rows found in meeting CSV.'); return; }
+      _updateDropZoneStatus('drop-zone-meet', 'dz-status-meet', file.name, _pendMeetings.length, 'rows');
       _renderUploaded();
     }catch(err){ alert('Meeting CSV error: ' + err.message); }
   };
   reader.readAsText(file);
-  this.value = '';
-});
+}
 
-document.getElementById('file-input-proj').addEventListener('change', function(e){
-  const file = e.target.files[0];
+function _nyHandleProjectionFile(file){
   if(!file) return;
   const reader = new FileReader();
   reader.onload = function(ev){
     try{
       _pendProjections = _parseProjCsv(ev.target.result);
+      _updateDropZoneStatus('drop-zone-proj', 'dz-status-proj', file.name, Object.keys(_pendProjections).length, 'companies');
       if(_pendMeetings) _renderUploaded();
-      else alert('Projections loaded — upload a Meeting Data CSV to refresh the dashboard.');
     }catch(err){ alert('Projections CSV error: ' + err.message); }
   };
   reader.readAsText(file);
-  this.value = '';
-});
+}
+
+function _nySetupDropZone(zoneId, inputId, handler){
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  if(!zone || !input) return;
+  zone.addEventListener('click', (e)=>{
+    if(e.target === input) return;
+    input.click();
+  });
+  zone.addEventListener('dragover', (e)=>{ e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', ()=> zone.classList.remove('dragover'));
+  zone.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(file) handler(file);
+  });
+  input.addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(file) handler(file);
+    this.value = '';
+  });
+}
+
+_nySetupDropZone('drop-zone-meet', 'file-input-meet', _nyHandleMeetingFile);
+_nySetupDropZone('drop-zone-proj', 'file-input-proj', _nyHandleProjectionFile);
 
 function parseCSVLine(line) {
   const result = [];
