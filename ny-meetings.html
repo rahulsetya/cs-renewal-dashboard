@@ -314,6 +314,7 @@
     </div>
   </div>
   <div class="header-right">
+    <span id="last-updated-badge" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:right;line-height:1.3;display:none" title="When the most recent team upload was published to the shared snapshot."></span>
     <span class="date-badge" id="current-date-badge">—</span>
     <label class="upload-btn" for="file-input-meet" title="Meeting Data CSV — must have columns: Event Name, Company Type, Company ID, Company Name, GP Firm AUM, Joined Year Month, iC Account Manager Name, iC Salesperson Name, Confirmed Meeting Count, Cancelled Meeting Count, Count of Unique Meetings Sent, Count of Unique Meetings Received, Count of Unique Declined Meetings Sent, Total Followup Messages">
       ↑ Meeting Data CSV
@@ -678,8 +679,21 @@ async function _nyPublishSnapshot(){
       console.warn('NY publish failed:', r1.status, t.slice(0,200));
     } else {
       console.info('NY publish OK · '+payload.rowCount+' rows · '+payload.currentDate);
+      _nySetLastUpdatedBadge(payload.publishedAt);
     }
   } catch(err){ console.warn('NY publish error:', err); }
+}
+function _nySetLastUpdatedBadge(iso){
+  const el = document.getElementById('last-updated-badge');
+  if(!el) return;
+  if(!iso){ el.style.display='none'; return; }
+  try {
+    const dt = new Date(iso);
+    const opts = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+    el.textContent = 'Team update · ' + dt.toLocaleString('en-US', opts);
+    el.title = 'Last team upload published at ' + dt.toISOString();
+    el.style.display = 'inline';
+  } catch(e){ el.style.display='none'; }
 }
 async function _nyHydrateFromPublished(){
   try {
@@ -702,9 +716,11 @@ async function _nyHydrateFromPublished(){
         const el = document.getElementById('current-date-badge');
         if(el) el.textContent = data.currentDate;
       }
+      _nySetLastUpdatedBadge(data.publishedAt);
       renderAll();
       return true;
     }
+    _nySetLastUpdatedBadge(data.publishedAt);
   } catch(e){ console.warn('NY hydrate error:', e); }
   return false;
 }
