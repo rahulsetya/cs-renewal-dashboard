@@ -7386,6 +7386,44 @@ function _toggleCadIncludeLP(){
   try{localStorage.setItem(_CAD_INCLUDE_LP_KEY,_cadIncludeLP?'1':'0');}catch(e){}
   if(aTab==='cadence')rT('cadence');
 }
+// "Include multiple calls w/ same firm" toggle — default OFF mirrors the
+// engagement tracker (one yes = one call regardless of how many meetings
+// HubSpot actually has). When ON, each cell is replaced with the sum of
+// HubSpot meeting counts across that CSM's accounts for the month — so a
+// firm with 3 meetings contributes 3, not 1. Requires HubSpot audit data
+// (GP or SP) to be loaded; otherwise the toggle is hidden.
+let _cadMultiCalls=false;
+const _CAD_MULTI_CALLS_KEY='cs_cadmulticalls_v1';
+try{const _r=localStorage.getItem(_CAD_MULTI_CALLS_KEY);if(_r==='1')_cadMultiCalls=true;}catch(e){}
+function _toggleCadMultiCalls(){
+  _cadMultiCalls=!_cadMultiCalls;
+  try{localStorage.setItem(_CAD_MULTI_CALLS_KEY,_cadMultiCalls?'1':'0');}catch(e){}
+  if(aTab==='cadence')rT('cadence');
+}
+// Sum HubSpot meeting counts across a CSM's accounts for one month. Called
+// from the cadence table when _cadMultiCalls is ON so the cell reflects
+// real call volume, not 1-per-firm. Uses _hsBucket which falls back across
+// GP and SP audit data.
+function _cadMultiMonthCount(cData,mo){
+  if(!cData||!cData.allAccts)return 0;
+  let total=0;
+  for(const a of cData.allAccts){
+    const pid=String(a.platformId||'').trim();
+    if(!pid)continue;
+    const b=_hsBucket(pid,mo);
+    if(b&&b.count)total+=b.count;
+  }
+  return total;
+}
+// Resolve the cell value the cadence table should show for (CSM, month).
+// Off → engagement-tracker "yes" count. On + audit loaded → real HubSpot
+// volume summed across the CSM's accounts.
+function _cadCellCount(cData,mo){
+  if(_cadMultiCalls&&(_cadAuditData||_cadSPAuditData)){
+    return _cadMultiMonthCount(cData,mo);
+  }
+  return (cData&&cData.months&&cData.months[mo]&&cData.months[mo].yes)||0;
+}
 // Auto-publish-on-import — when on, every successful GP or LP HubSpot
 // import auto-fires _cadPublishToTeam so the team sees fresh data without
 // the user clicking 📤 each time. Off by default; flips via the checkbox
@@ -9783,6 +9821,7 @@ function rCadence(){
       </select>
       ${_cadCurMoIsOverride?`<span style="font-size:10px;color:var(--amber);font-weight:700;background:var(--amberG);border:1px solid rgba(245,158,11,.4);padding:3px 8px;border-radius:10px" title="The +N to 50% badges and Export button are pinned to ${_cadCurMo}, not the live month (${_cadLiveMo}).">📌 pinned to ${_cadCurMo}</span>`:''}
       ${_cadLPData?`<label onclick="_toggleCadIncludeLP()" title="When ON, percentages and the +N-to-50% gap badge count GP + LP combined. Big numbers in cells stay GP — only the % math changes." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadIncludeLP?'#fb923c':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:5px 10px;border:1px solid ${_cadIncludeLP?'#fb923c':'var(--border)'};border-radius:6px;background:${_cadIncludeLP?'rgba(251,146,60,.08)':'transparent'};margin-left:6px"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_cadIncludeLP?'#fb923c':'var(--dim)'};border-radius:3px;background:${_cadIncludeLP?'#fb923c':'transparent'};color:#0a0e1a;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadIncludeLP?'✓':''}</span>Include LP in % &amp; gap</label>`:''}
+      ${(_cadAuditData||_cadSPAuditData)?`<label onclick="_toggleCadMultiCalls()" title="When ON, each cell counts every HubSpot meeting (not just 1 per firm) — so a firm with 3 meetings in a month contributes 3. When OFF, mirrors the engagement tracker (1 per firm per month)." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadMultiCalls?'#22d3ee':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:5px 10px;border:1px solid ${_cadMultiCalls?'#22d3ee':'var(--border)'};border-radius:6px;background:${_cadMultiCalls?'rgba(34,211,238,.08)':'transparent'}"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_cadMultiCalls?'#22d3ee':'var(--dim)'};border-radius:3px;background:${_cadMultiCalls?'#22d3ee':'transparent'};color:#0a0e1a;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadMultiCalls?'✓':''}</span>Include multiple calls w/ same firm</label>`:''}
       ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="margin-left:auto;background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadAuditPromptImport()" style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot meeting export (.xlsx) — password protected">⬆ Import GP HubSpot${_cadAuditData?' ✓':''}</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadSPPromptImport()" style="background:#7f1d3a;color:#fecdd3;border:1px solid #f43f5e;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import SP HubSpot meeting export (.xlsx) — reads the second tab of the workbook">⬆ Import SP HubSpot${_cadSPAuditData?' ✓':''}</button>`:''}
@@ -9835,7 +9874,7 @@ function rCadence(){
           const cData=cd.csm[c.n]||{total:0,months:{}};
           tA+=cData.total||c.a||0;
           visCols.forEach(m=>{
-            tC+=(cData.months[m]?.yes||0);
+            tC+=_cadCellCount(cData,m);
             if(_calcIncludeLP)tC+=_cadLPCount(c.n,m);
           });
         });
@@ -9934,8 +9973,8 @@ function rCadence(){
               // Sort by GP+LP combined when LP is loaded so the headline
               // numbers in the cell drive the order. Without LP, behaves
               // exactly like before (GP-only).
-              if(_k==='total')return visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0)+(_cadLPData?_cadLPCount(c.n,m):0),0);
-              return (cData.months[_k]?.yes||0)+(_cadLPData?_cadLPCount(c.n,_k):0);
+              if(_k==='total')return visCols.reduce((s,m)=>s+_cadCellCount(cData,m)+(_cadLPData?_cadLPCount(c.n,m):0),0);
+              return _cadCellCount(cData,_k)+(_cadLPData?_cadLPCount(c.n,_k):0);
             };
             return _rowsRaw.sort((a,b)=>{const va=_valOf(a),vb=_valOf(b);if(va<vb)return -1*_dir;if(va>vb)return 1*_dir;return 0;});
           })().map(c=>{
@@ -9943,7 +9982,7 @@ function rCadence(){
             const cData=cd.csm[c.n]||{total:0,months:{},allAccts:[]};
             const rid='cad_'+c.n.replace(/\W/g,'_');
             const tot=cData.total||1;
-            const qTot=visCols.reduce((s,m)=>s+(cData.months[m]?.yes||0),0);
+            const qTot=visCols.reduce((s,m)=>s+_cadCellCount(cData,m),0);
             const snapQTot=_rcCad?.[c.n]?visCols.reduce((s,m)=>s+((_rcCad[c.n].months||{})[m]||0),0):null;
             const qTotDiff=snapQTot!==null?qTot-snapQTot:0;
             // Discrepancy chips (❌ unconfirmed / ⚠ missed logging) — only when
@@ -9970,7 +10009,7 @@ function rCadence(){
               </td>
               <td style="padding:7px 8px"><span class="pill" style="color:${PC[c.seg]||'var(--rose)'}">${isSP?'SP':c.seg}</span></td>
               ${visCols.map(m=>{
-                const cnt=cData.months[m]?.yes||0;
+                const cnt=_cadCellCount(cData,m);
                 const lpCnt=_cadLPCount(c.n,m);
                 // Effective count for % + gap calculations. When the
                 // "Include LP" toggle is on (and LP data is loaded), GP+LP
@@ -10031,7 +10070,7 @@ function rCadence(){
                 const cData=cd.csm[c.n]||{total:0,months:{}};
                 tAccts+=cData.total||c.a||0;
                 visCols.forEach(m=>{
-                  const cur=cData.months[m]?.yes||0;
+                  const cur=_cadCellCount(cData,m);
                   monthTot[m].cur+=cur;
                   tQ+=cur;
                   const sn=_rcCad?.[c.n]?(_rcCad[c.n].months||{})[m]||0:null;
