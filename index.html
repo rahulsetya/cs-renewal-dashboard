@@ -9811,7 +9811,11 @@ function rCadence(){
   const _rcSnap=_rcLoadSnap();
   const _rcTs=_rcSnap?new Date(_rcSnap.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):null;
   const _rcCad=_rcSnap?.cadence||null;
-  const _rcCadD=(csm,month,cur)=>{if(!_rcCad||!_rcCad[csm])return'';const old=(_rcCad[csm].months||{})[month]||0,diff=cur-old;if(!diff)return'';return`<span style="font-size:9px;font-weight:700;color:${diff>0?'var(--green)':'var(--red)'};display:block">${diff>0?'▲':'▼'}${Math.abs(diff)}</span>`;};
+  // Snapshots store the OFF-mode (1-per-firm) count, so when the multi-calls
+  // toggle is ON the diff would compare 1-per-firm vs. multi-count and show
+  // a misleadingly large delta. Suppress the arrow entirely in ON mode until
+  // snapshots learn to capture both numbers.
+  const _rcCadD=(csm,month,cur)=>{if(!_rcCad||!_rcCad[csm]||_cadMultiCalls)return'';const old=(_rcCad[csm].months||{})[month]||0,diff=cur-old;if(!diff)return'';return`<span style="font-size:9px;font-weight:700;color:${diff>0?'var(--green)':'var(--red)'};display:block">${diff>0?'▲':'▼'}${Math.abs(diff)}</span>`;};
   // Audit-derived discrepancy chips per CSM. Computed once for the whole
   // table and looked up by CSM name in the row render. Counts are scoped
   // to the audit panel's selected month (NOT the visible quarter), so the
@@ -9993,7 +9997,9 @@ function rCadence(){
             const tot=cData.total||1;
             const qTot=visCols.reduce((s,m)=>s+_cadCellCount(cData,m),0);
             const snapQTot=_rcCad?.[c.n]?visCols.reduce((s,m)=>s+((_rcCad[c.n].months||{})[m]||0),0):null;
-            const qTotDiff=snapQTot!==null?qTot-snapQTot:0;
+            // Suppress snap delta in multi-calls mode — snapshot stores
+            // 1-per-firm counts so the comparison would mislead.
+            const qTotDiff=(snapQTot!==null&&!_cadMultiCalls)?qTot-snapQTot:0;
             // Discrepancy chips (❌ unconfirmed / ⚠ missed logging) — only when
             // an audit is loaded and the CSM has at least one in the audit
             // month. event.stopPropagation keeps clicks from also expanding
@@ -10090,12 +10096,14 @@ function rCadence(){
                 });
               });
               const tRet=tAccts?pct(tQ/tAccts*100):'0%';
-              const qDiff=_rcCad?tQ-tQSnap:0;
+              // Suppress snap diffs in multi-calls mode — see note above
+              // _rcCadD for why the comparison is meaningless here.
+              const qDiff=(_rcCad&&!_cadMultiCalls)?tQ-tQSnap:0;
               const monthCell=(m)=>{
                 const v=monthTot[m].cur;
                 const effV=v+(_cadIncludeLP&&_cadLPData?monthTot[m].lp:0);
                 const pv=tAccts?pct(effV/tAccts*100):'0%';
-                const dv=_rcCad?v-monthTot[m].snap:0;
+                const dv=(_rcCad&&!_cadMultiCalls)?v-monthTot[m].snap:0;
                 const diffHTML=dv?`<span style="font-size:9px;font-weight:700;color:${dv>0?'var(--green)':'var(--red)'};display:block">${dv>0?'▲':'▼'}${Math.abs(dv)}</span>`:'';
                 const lpInline=_cadLPData?`<span style="font-weight:500;font-size:11px;font-family:var(--mono);color:${monthTot[m].lp>0?'#fb923c':'var(--dim)'};opacity:${monthTot[m].lp>0?'.85':'.45'};margin-left:8px;letter-spacing:.2px">(${monthTot[m].lp})</span>`:'';
                 return `<td style="text-align:center;padding:9px 10px;font-weight:700;font-size:15px;font-family:var(--mono);color:${v>0?'var(--green)':'var(--dim)'}">${v}${lpInline}${diffHTML}<div style="font-size:10px;color:var(--dim);font-weight:500">${pv}</div></td>`;
