@@ -7404,6 +7404,12 @@ function _toggleCadMultiCalls(){
 // from the cadence table when _cadMultiCalls is ON so the cell reflects
 // real call volume, not 1-per-firm. Uses _hsBucket which falls back across
 // GP and SP audit data.
+// Manual ✓ Verify overrides ("meeting was on Zoom, not in HubSpot") count
+// as 1 when HubSpot has zero meetings for that firm/month — otherwise OFF
+// would count those rows (tracker still says Y) but ON would silently drop
+// them. When HubSpot has any meetings, we use that count and ignore the
+// override flag (HubSpot is the precise number; the override is just an
+// audit-resolution mark).
 function _cadMultiMonthCount(cData,mo){
   if(!cData||!cData.allAccts)return 0;
   let total=0;
@@ -7411,7 +7417,10 @@ function _cadMultiMonthCount(cData,mo){
     const pid=String(a.platformId||'').trim();
     if(!pid)continue;
     const b=_hsBucket(pid,mo);
-    if(b&&b.count)total+=b.count;
+    const hs=(b&&b.count)||0;
+    if(hs>0){total+=hs;continue;}
+    const ovr=_getOvr(pid,mo);
+    if(ovr&&ovr.status==='verified')total+=1;
   }
   return total;
 }
@@ -9821,7 +9830,7 @@ function rCadence(){
       </select>
       ${_cadCurMoIsOverride?`<span style="font-size:10px;color:var(--amber);font-weight:700;background:var(--amberG);border:1px solid rgba(245,158,11,.4);padding:3px 8px;border-radius:10px" title="The +N to 50% badges and Export button are pinned to ${_cadCurMo}, not the live month (${_cadLiveMo}).">📌 pinned to ${_cadCurMo}</span>`:''}
       ${_cadLPData?`<label onclick="_toggleCadIncludeLP()" title="When ON, percentages and the +N-to-50% gap badge count GP + LP combined. Big numbers in cells stay GP — only the % math changes." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadIncludeLP?'#fb923c':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:5px 10px;border:1px solid ${_cadIncludeLP?'#fb923c':'var(--border)'};border-radius:6px;background:${_cadIncludeLP?'rgba(251,146,60,.08)':'transparent'};margin-left:6px"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_cadIncludeLP?'#fb923c':'var(--dim)'};border-radius:3px;background:${_cadIncludeLP?'#fb923c':'transparent'};color:#0a0e1a;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadIncludeLP?'✓':''}</span>Include LP in % &amp; gap</label>`:''}
-      ${(_cadAuditData||_cadSPAuditData)?`<label onclick="_toggleCadMultiCalls()" title="When ON, each cell counts every HubSpot meeting (not just 1 per firm) — so a firm with 3 meetings in a month contributes 3. When OFF, mirrors the engagement tracker (1 per firm per month)." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadMultiCalls?'#22d3ee':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:5px 10px;border:1px solid ${_cadMultiCalls?'#22d3ee':'var(--border)'};border-radius:6px;background:${_cadMultiCalls?'rgba(34,211,238,.08)':'transparent'}"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_cadMultiCalls?'#22d3ee':'var(--dim)'};border-radius:3px;background:${_cadMultiCalls?'#22d3ee':'transparent'};color:#0a0e1a;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadMultiCalls?'✓':''}</span>Include multiple calls w/ same firm</label>`:''}
+      ${(_cadAuditData||_cadSPAuditData)?`<label onclick="_toggleCadMultiCalls()" title="When ON, each cell counts every HubSpot meeting (not just 1 per firm) — so a firm with 3 meetings in a month contributes 3. Manually ✓ Verified rows (Zoom calls etc. not in HubSpot) count as 1 when HubSpot has no record for that firm/month. When OFF, mirrors the engagement tracker (1 per firm per month)." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadMultiCalls?'#22d3ee':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:5px 10px;border:1px solid ${_cadMultiCalls?'#22d3ee':'var(--border)'};border-radius:6px;background:${_cadMultiCalls?'rgba(34,211,238,.08)':'transparent'}"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_cadMultiCalls?'#22d3ee':'var(--dim)'};border-radius:3px;background:${_cadMultiCalls?'#22d3ee':'transparent'};color:#0a0e1a;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadMultiCalls?'✓':''}</span>Include multiple calls w/ same firm</label>`:''}
       ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="margin-left:auto;background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadAuditPromptImport()" style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot meeting export (.xlsx) — password protected">⬆ Import GP HubSpot${_cadAuditData?' ✓':''}</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadSPPromptImport()" style="background:#7f1d3a;color:#fecdd3;border:1px solid #f43f5e;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import SP HubSpot meeting export (.xlsx) — reads the second tab of the workbook">⬆ Import SP HubSpot${_cadSPAuditData?' ✓':''}</button>`:''}
