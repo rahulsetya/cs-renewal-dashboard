@@ -10411,7 +10411,7 @@ function rCadence(){
             <span style="color:var(--dim);font-size:10px;margin-left:auto">Tip: tick the column header to select all eligible rows in view.</span>
           </div>`;
         })()}
-        <div style="overflow-x:auto;max-height:480px;overflow-y:auto;display:${discShown.length?'block':'none'}">
+        <div style="overflow-x:auto;display:${discShown.length?'block':'none'}">
           <table style="border-collapse:collapse;width:100%;min-width:780px;font-size:11px">
             ${(function(){
               const arrow=k=>_cadDiscSort.col===k?(_cadDiscSort.dir==='asc'?' <span style="color:var(--accent);font-size:9px">▲</span>':' <span style="color:var(--accent);font-size:9px">▼</span>'):' <span style="color:var(--dim);opacity:.4;font-size:9px">↕</span>';
