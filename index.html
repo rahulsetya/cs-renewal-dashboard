@@ -7301,9 +7301,11 @@ function _cadOvrMassVerify(){
 // review tool; you don't usually want yesterday's filter sticking around).
 let _cadDiscSort={col:'acct',dir:'asc'};
 // status is an array (multi-select) so the audit can show e.g. unconfirmed
-// + missed-logging together. Empty array = "All statuses" (no filter). csm
-// stays single-select since it's a long list of names.
-let _cadDiscFilt={status:[],csm:''};
+// + missed-logging together. Default = ALL three chips on so the table
+// opens at the full discrepancy pool (125 in practice). Unticking a chip
+// narrows; clicking ✕ Clear resets back to all-on. csm stays single-select
+// since it's a long list of names.
+let _cadDiscFilt={status:['unverified','forgot','verified'],csm:''};
 function _cadDiscSetFilt(k,v){_cadDiscFilt[k]=v||'';if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
 // Toggle one status in/out of the multi-select. Re-renders so the chip
 // active state and the table both update.
@@ -7314,7 +7316,7 @@ function _cadDiscToggleStatus(s){
   _cadDiscFilt.status=cur;
   if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
 }
-function _cadDiscClearFilt(){_cadDiscFilt={status:[],csm:''};if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
+function _cadDiscClearFilt(){_cadDiscFilt={status:['unverified','forgot','verified'],csm:''};if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);}
 // Click handler for the CSM-row discrepancy chips ("❌3" / "⚠2"). Expands
 // (or collapses) an inline panel directly underneath the clicked CSM row
 // showing the offending accounts for that status. We deliberately don't
@@ -10272,8 +10274,11 @@ function rCadence(){
           // Stable tiebreaker: account A→Z then CSM A→Z.
           return (a.acct||'').localeCompare(b.acct||'')||(a.csm||'').localeCompare(b.csm||'');
         });
-      const discShown=discList.slice(0,200);
-      const _filtActive=!!(_fStatus.length||_fCsm);
+      const discShown=discList;
+      // Filter is "active" only when the view is narrowed from the default
+      // (all 3 status chips on + no CSM). Drives the "X of Y" count hint
+      // and the ✕ Clear button visibility.
+      const _filtActive=!!(_fStatus.length<3||_fCsm);
       const _curAuditMo=_liveCadAuditMo();
       const _moChips=(CADENCE_DATA.cols||[]).map(mo=>`<button onclick="_setCadAuditMo('${mo}')" style="background:${mo===_curAuditMo?'#3b82f6':'transparent'};color:${mo===_curAuditMo?'#fff':'var(--text)'};border:1px solid ${mo===_curAuditMo?'#3b82f6':'var(--border)'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${mo}</button>`).join('');
       return`
@@ -10362,7 +10367,7 @@ function rCadence(){
         </table>
       </div>`:'<div style="font-size:12px;color:var(--muted);padding:8px 0">No CSM activity to score.</div>'}
       ${discPool.length?`<div id="cad-review-section" style="margin-top:18px;scroll-margin-top:60px">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Review & Resolve — <span style="color:var(--accent)">${_curAuditMo}</span> <span style="color:var(--dim);font-weight:400">(${_filtActive?`${discList.length} of ${discPool.length}`:discList.length}${discList.length>200?', showing first 200':''})</span></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px">Review & Resolve — <span style="color:var(--accent)">${_curAuditMo}</span> <span style="color:var(--dim);font-weight:400">(${_filtActive?`${discList.length} of ${discPool.length}`:discList.length})</span></div>
         <div style="font-size:10px;color:var(--dim);margin-bottom:6px"><span style="color:var(--red)">❌ Unconfirmed</span> = tracker marked Y but no HubSpot meeting · <span style="color:var(--amber)">⚠ Missed Logging</span> = HubSpot meeting exists but tracker blank · click <strong style="color:var(--green)">Verify</strong> if you confirm the call really happened (e.g. on Zoom), or <strong style="color:var(--accent)">Note</strong> to record context.</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:11px">
           <span style="color:var(--dim);font-weight:600">Status:</span>
