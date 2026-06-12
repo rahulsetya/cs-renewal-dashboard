@@ -7244,6 +7244,11 @@ function _cadOvrClear(pid,mo){
 // cleared after a successful mass verify, when audit data is cleared, or
 // via the explicit ✕ Clear selection button.
 let _cadDiscSelected=new Set();
+// Snapshot of the keys eligible for "select all" — refreshed every render
+// from the Review & Resolve table, so _cadDiscToggleAllSel() can read it
+// without JSON-encoding the list into an HTML attribute (escaping was
+// fragile when rows contained mixed pid types).
+let _cadDiscEligibleKeys=[];
 function _cadDiscSelKey(pid,mo){return String(pid||'').trim()+'|'+new Date().getFullYear()+'-'+mo;}
 function _cadDiscToggleSel(pid,mo){
   const k=_cadDiscSelKey(pid,mo);
@@ -7252,11 +7257,10 @@ function _cadDiscToggleSel(pid,mo){
   if(typeof aTab!=='undefined'&&typeof rT==='function')rT(aTab);
 }
 // Select-all toggle: if every eligible-visible row is already selected,
-// clear those; otherwise add them all. visiblePidMos is a JSON-encoded
-// array of {pid,mo} pairs so it can travel through the onclick attribute.
-function _cadDiscToggleAllSel(visibleJson){
-  let pairs=[];try{pairs=JSON.parse(visibleJson)||[];}catch(e){return;}
-  const keys=pairs.map(p=>_cadDiscSelKey(p.pid,p.mo));
+// clear those; otherwise add them all. Reads the latest eligible-keys
+// snapshot the render set, so no data crosses through an onclick string.
+function _cadDiscToggleAllSel(){
+  const keys=_cadDiscEligibleKeys||[];
   const allOn=keys.length>0&&keys.every(k=>_cadDiscSelected.has(k));
   if(allOn)keys.forEach(k=>_cadDiscSelected.delete(k));
   else keys.forEach(k=>_cadDiscSelected.add(k));
@@ -10409,15 +10413,17 @@ function rCadence(){
               const baseTh='padding:6px 10px;line-height:1.3;cursor:pointer;user-select:none;color:var(--dim);font-weight:600';
               const hov='onmouseover="this.style.color=\'var(--text)\'" onmouseout="this.style.color=\'var(--dim)\'"';
               // Eligible rows for mass select: have a PID AND aren't already
-              // verified via override. Compute once so the master checkbox
-              // state (and the per-row checkbox visibility) stay in sync.
+              // verified via override. Cache the keys on the module so the
+              // master-checkbox onclick can read them directly (no JSON
+              // round-trip through the HTML attribute). The cache is set
+              // here on every render — it always reflects what the user is
+              // looking at right now.
               const _eligible=discShown.filter(r=>!!r.pid&&!(r.override&&r.override.status==='verified'));
-              const _eligPairs=_eligible.map(r=>({pid:r.pid,mo:r.month}));
-              const _allVisJson=JSON.stringify(_eligPairs).replace(/"/g,'&quot;');
-              const _allSelKeys=_eligPairs.map(p=>_cadDiscSelKey(p.pid,p.mo));
+              const _allSelKeys=_eligible.map(r=>_cadDiscSelKey(r.pid,r.month));
+              _cadDiscEligibleKeys=_allSelKeys;
               const _allOn=_allSelKeys.length>0&&_allSelKeys.every(k=>_cadDiscSelected.has(k));
               const _someOn=_allSelKeys.some(k=>_cadDiscSelected.has(k));
-              const _hdrChk=_eligible.length===0?'':`<input type="checkbox" ${_allOn?'checked':''} ${(!_allOn&&_someOn)?'data-indeterminate="1"':''} onclick="event.stopPropagation();_cadDiscToggleAllSel('${_allVisJson}')" title="Select all eligible rows in view (excludes rows without a Platform ID or already verified)." style="cursor:pointer;vertical-align:middle">`;
+              const _hdrChk=_eligible.length===0?'':`<input type="checkbox" ${_allOn?'checked':''} ${(!_allOn&&_someOn)?'data-indeterminate="1"':''} onclick="event.stopPropagation();_cadDiscToggleAllSel()" title="Select all ${_eligible.length} eligible row${_eligible.length===1?'':'s'} in view (excludes rows without a Platform ID or already verified)." style="cursor:pointer;vertical-align:middle">`;
               return`<thead style="position:sticky;top:0;background:var(--bg);z-index:1"><tr style="border-bottom:1px solid var(--borderL)">
               <th style="text-align:center;padding:6px 8px;width:28px">${_hdrChk}</th>
               <th onclick="_cadDiscSetSort('status')" ${hov} style="text-align:left;${baseTh}" title="Click to sort by status.">Status${arrow('status')}</th>
