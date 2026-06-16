@@ -9908,13 +9908,17 @@ function rCadence(){
     </div>
     ${(()=>{
       // ── Cadence Achievement Calculator ─────────────────────────────────
-      // Targets per pool (Q-Total = quarter calls ÷ accounts × 100):
-      //   ENT + STRATEGIC = 50%/quarter (50% of accounts engaged per Q)
-      //   SCALE = 150%/quarter (bi-monthly cadence = ~1.5 calls/account/Q)
-      //   SPs = no target set (display only)
-      // Pacing math: linear pro-rata. Expected = target × (days elapsed /
-      // days in quarter). Projection = current ÷ (days elapsed / days in Q).
-      // Past quarters: shows final achievement; future quarters: hidden.
+      // Model: % of FULL cadence reached. Each pool defines a "full" goal
+      // (calls per acct per quarter at full pace). Floor = 50% of full.
+      //   ENT + STRATEGIC: full = accts × 3 (every acct every month)
+      //   SCALE:           full = accts × 2 (bi-monthly)
+      //   SPs:             full = accts × 1 (once per quarter)
+      // Big % = unique firm-month calls ÷ full × 100.
+      //   ≥ 100% → at full cadence (green)
+      //   50–100% → above floor, behind full (amber/green by pace)
+      //   < 50%  → below floor (red)
+      // Bar shows a marker at the 50% floor line so the threshold is
+      // visible against the live %. Past quarters: hit/floor/miss verdict.
       const _qIdxMap={Q1:0,Q2:3,Q3:6,Q4:9};
       const _qIdx=_qIdxMap[selCadQ];
       if(_qIdx==null)return'';
@@ -9929,19 +9933,13 @@ function rCadence(){
       if(_isFuture)return `<div class="card" style="margin-bottom:12px"><h3>Cadence Achievement Calculator</h3><div class="sh">${selCadQ} ${_yr} hasn't started yet.</div></div>`;
       if(_dEl<1)_dEl=1;if(_dEl>_dIn)_dEl=_dIn;
       const _pctThru=_dEl/_dIn;
+      const _nM=visCols.length||3;
       const _pools=[
-        // Floor targets per pool — each is 50% of the "full cadence" goal:
-        //   ENT + Strategic full = engage every account every month (100%/mo);
-        //                    floor = 50% monthly → 150% Q-Total
-        //   SCALE full = 2 calls/account/Q (200%); floor = 1 call → 100% Q-Total
-        //   SPs   full = 1 call/account/Q  (100%); floor = 0.5    → 50%  Q-Total
-        {label:'ENT + STRATEGIC',target:150,filter:c=>c.t!=='SP'&&(c.seg==='Enterprise'||c.seg==='Strategic'),accent:'var(--accent)'},
-        {label:'SCALE',target:100,filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4'},
-        {label:'SPs',target:50,filter:c=>c.t==='SP',accent:'#f43f5e'}
+        {label:'ENT + STRATEGIC',filter:c=>c.t!=='SP'&&(c.seg==='Enterprise'||c.seg==='Strategic'),accent:'var(--accent)',callsPerAcctFull:_nM,fullDesc:'every acct every month',floorDesc:'every acct every other month',denomLbl:`accts × ${_nM}`},
+        {label:'SCALE',filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4',callsPerAcctFull:2,fullDesc:'every acct bi-monthly',floorDesc:'every acct once per quarter',denomLbl:'accts × 2'},
+        {label:'SPs',filter:c=>c.t==='SP',accent:'#f43f5e',callsPerAcctFull:1,fullDesc:'every acct once per quarter',floorDesc:'half the book per quarter',denomLbl:'accts × 1'}
       ];
       const _csmList=typeof CSM!=='undefined'?CSM:[];
-      // Calculator respects the "Include LP in % & gap" toggle so its math
-      // stays consistent with the per-CSM cell % and the +N-to-50% badge.
       const _calcIncludeLP=!!(_cadIncludeLP&&_cadLPData);
       const _cardsHTML=_pools.map(p=>{
         let tA=0,tC=0;
@@ -9953,70 +9951,68 @@ function rCadence(){
             if(_calcIncludeLP)tC+=_cadLPCount(c.n,m);
           });
         });
-        const cur=tA>0?(tC/tA)*100:0;
-        const exp=p.target!=null?p.target*_pctThru:null;
-        const proj=_pctThru>0?cur/_pctThru:0;
-        const expCalls=p.target!=null?Math.ceil((p.target/100)*tA*_pctThru):null;
-        const tgtCalls=p.target!=null?Math.ceil((p.target/100)*tA):null;
-        const gap=expCalls!=null?(expCalls-tC):null;
-        const onPace=exp!=null?cur>=exp*0.95:false;
-        let statusColor='var(--dim)',statusLabel='No target set';
-        if(p.target!=null){
-          if(_isPast){
-            const hit=cur>=p.target;
-            statusColor=hit?'var(--green)':'var(--red)';
-            statusLabel=hit?`✓ Quarter complete · target hit`:`✕ Quarter complete · missed target`;
-          } else if(onPace){
-            statusColor='var(--green)';statusLabel='✓ On pace';
-          } else if(proj>=p.target){
-            statusColor='var(--amber)';statusLabel='⚠ Behind pace · projection still on target';
-          } else {
-            statusColor='var(--red)';statusLabel='⚠ Behind pace · projected to miss';
-          }
+        // Full cadence call target. The big % below is current ÷ full × 100.
+        // The 50% mark on the bar IS the floor threshold by definition.
+        const fullCalls=Math.ceil(tA*p.callsPerAcctFull);
+        const floorCalls=Math.ceil(fullCalls/2);
+        const fullPct=fullCalls>0?(tC/fullCalls)*100:0;
+        const expPct=_pctThru*100;
+        const projPct=_pctThru>0?fullPct/_pctThru:0;
+        const expCalls=Math.ceil(fullCalls*_pctThru);
+        const gap=expCalls-tC;
+        const onPaceFull=fullPct>=expPct*0.95;
+        const aboveFloorNow=fullPct>=50;
+        const projAboveFloor=projPct>=50;
+        let statusColor='var(--dim)',statusLabel='';
+        if(_isPast){
+          if(fullPct>=100){statusColor='var(--green)';statusLabel='✓ Quarter complete · full cadence hit';}
+          else if(fullPct>=50){statusColor='var(--amber)';statusLabel=`✓ Quarter complete · floor hit (${pct(fullPct)} of full)`;}
+          else{statusColor='var(--red)';statusLabel=`✕ Quarter complete · below floor (${pct(fullPct)} of full)`;}
+        } else if(onPaceFull){
+          statusColor='var(--green)';statusLabel='✓ On pace for full cadence';
+        } else if(aboveFloorNow&&projAboveFloor){
+          statusColor='var(--amber)';statusLabel='⚠ Behind full pace · above floor';
+        } else if(projAboveFloor){
+          statusColor='var(--amber)';statusLabel='⚠ Below floor now · projection above floor';
+        } else {
+          statusColor='var(--red)';statusLabel='⚠ Projected to finish below floor';
         }
-        // Achievement-of-target framing: how close are we to the goal, on a
-        // 0→100% scale where 100% = floor target hit. Avoids the confusing
-        // 22% (sounds fine) vs 150% target (oh no) interpretation problem.
-        const curPctT=p.target!=null&&p.target>0?(cur/p.target)*100:null;
-        const projPctT=p.target!=null&&p.target>0?(proj/p.target)*100:null;
-        const expPctT=_pctThru*100; // expected % of target equals % through Q
-        const _barFill=curPctT!=null?Math.min(100,Math.max(0,curPctT)):0;
-        const _barExp=Math.min(100,Math.max(0,expPctT));
-        const _barProj=projPctT!=null?Math.min(100,Math.max(0,projPctT)):0;
-        const _barColor=projPctT==null?'var(--dim)':projPctT>=100?'var(--green)':projPctT>=80?'var(--amber)':'var(--red)';
+        const _barFill=Math.min(100,Math.max(0,fullPct));
+        const _barExp=Math.min(100,Math.max(0,expPct));
+        const _barProj=Math.min(100,Math.max(0,projPct));
+        const _barColor=fullPct<50?'var(--red)':projPct>=100?'var(--green)':'var(--amber)';
         return `<div style="flex:1;min-width:240px;background:var(--bg);border:1px solid var(--border);border-left:3px solid ${p.accent};border-radius:8px;padding:12px 14px">
           <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px">${p.label}</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Target: ${p.target==null?'—':p.target+'% Q-Total'} ${p.target!=null?`<span style="color:var(--dim)">(${tgtCalls.toLocaleString()} calls across ${tA.toLocaleString()} accts)</span>`:''}</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
-            <div style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--mono)">${curPctT!=null?pct(curPctT):pct(cur)}</div>
-            <div style="font-size:10px;color:var(--dim)">${curPctT!=null?'of target':''} · ${tC.toLocaleString()} / ${tgtCalls!=null?tgtCalls.toLocaleString():tA.toLocaleString()} calls</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Full: <strong style="color:var(--text)">${fullCalls.toLocaleString()}</strong> calls (${p.denomLbl}) · Floor at <strong style="color:var(--amber)">${floorCalls.toLocaleString()}</strong> (50%)</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
+            <div style="font-size:22px;font-weight:700;color:${aboveFloorNow?'var(--text)':'var(--red)'};font-family:var(--mono)" title="unique firm calls per month, summed ÷ full × 100. 100% = full cadence, 50% = floor.">${pct(fullPct)}</div>
+            <div style="font-size:10px;color:var(--dim)">of full · ${tC.toLocaleString()} / ${fullCalls.toLocaleString()} calls${aboveFloorNow?'':' <span style=\"color:var(--red);font-weight:700\">· below floor</span>'}</div>
           </div>
-          ${curPctT!=null?`<div style="font-size:9px;color:var(--dim);margin-bottom:8px">(${pct(cur)} Q-Total)</div>`:'<div style="margin-bottom:6px"></div>'}
-          ${p.target!=null?`<div style="margin-bottom:8px">
+          <div style="margin-bottom:8px">
             <div style="position:relative;height:6px;background:var(--border);border-radius:3px">
               <div style="position:absolute;left:0;top:0;height:100%;width:${_barFill}%;background:${_barColor};border-radius:3px;transition:width .3s"></div>
-              ${!_isPast?`<div style="position:absolute;left:${_barExp}%;top:-3px;width:2px;height:12px;background:var(--muted);opacity:.8" title="Expected by today: ${pct(expPctT)} of target"></div>`:''}
-              ${!_isPast?`<div style="position:absolute;left:${_barProj}%;top:-3px;width:2px;height:12px;background:var(--amber);opacity:.9" title="Projection end-of-Q: ${pct(projPctT)} of target"></div>`:''}
+              <div style="position:absolute;left:50%;top:-4px;width:2px;height:14px;background:var(--amber);opacity:.9" title="Floor (50% of full)"></div>
+              ${!_isPast?`<div style="position:absolute;left:${_barExp}%;top:-3px;width:2px;height:12px;background:var(--muted);opacity:.7" title="Expected by today: ${pct(expPct)} of full"></div>`:''}
+              ${!_isPast?`<div style="position:absolute;left:${_barProj}%;top:-3px;width:2px;height:12px;background:var(--accent);opacity:.7" title="Projection end-of-Q: ${pct(projPct)} of full"></div>`:''}
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:3px"><span>0%</span><span>${p.target}% (target)</span></div>
-          </div>`:''}
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:3px"><span>0%</span><span style="color:var(--amber)">50% floor</span><span>100% full</span></div>
+          </div>
           <div style="font-size:11px;color:${statusColor};font-weight:600;margin-bottom:6px">${statusLabel}</div>
-          ${p.target!=null&&!_isPast?`<div style="font-size:10px;color:var(--dim);line-height:1.6">
-            Expected by today: <strong style="color:var(--text)">${pct(expPctT)}</strong> of target (${expCalls.toLocaleString()} calls)<br>
-            Run-rate projection: <strong style="color:${projPctT>=100?'var(--green)':projPctT>=80?'var(--amber)':'var(--red)'}">${pct(projPctT)}</strong> of target <span style="color:var(--dim)">(${pct(proj)} Q-Total)</span><br>
-            ${gap>0?`Behind by <strong style="color:var(--amber)">${gap.toLocaleString()} calls</strong> to be on pace today · ${(tgtCalls-tC).toLocaleString()} short of full goal`:`<span style="color:var(--green)">✓ ${Math.abs(gap).toLocaleString()} calls ahead of pace</span>`}
-          </div>`:''}
-          ${p.target!=null&&_isPast?`<div style="font-size:10px;color:var(--dim)">Final: ${pct(curPctT)} of target (${pct(cur)} Q-Total) · gap ${tC>=tgtCalls?'+':''}${(tC-tgtCalls).toLocaleString()} calls</div>`:''}
+          ${!_isPast?`<div style="font-size:10px;color:var(--dim);line-height:1.6">
+            Expected by today: <strong style="color:var(--text)">${pct(expPct)}</strong> of full (${expCalls.toLocaleString()} calls)<br>
+            Run-rate projection: <strong style="color:${projPct>=100?'var(--green)':projPct>=50?'var(--amber)':'var(--red)'}">${pct(projPct)}</strong> of full by end of quarter<br>
+            ${aboveFloorNow?'':`<strong style="color:var(--red)">${(floorCalls-tC).toLocaleString()} call${(floorCalls-tC)===1?'':'s'} short of floor</strong> · `}${gap>0?`Behind by <strong style="color:var(--amber)">${gap.toLocaleString()} call${gap===1?'':'s'}</strong> on full pace`:`<span style="color:var(--green)">✓ ${Math.abs(gap).toLocaleString()} call${Math.abs(gap)===1?'':'s'} ahead of full pace</span>`}
+          </div>`:`<div style="font-size:10px;color:var(--dim)">${tC.toLocaleString()} of ${fullCalls.toLocaleString()} full · floor was ${floorCalls.toLocaleString()}</div>`}
         </div>`;
       }).join('');
       return `<div class="card" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0">Cadence Achievement Calculator</h3>
-          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}${_calcIncludeLP?' · <span style="color:#fb923c;font-weight:600">+ LP</span>':''} · <span style="color:var(--dim);font-style:italic">% shown is achievement of target (0→100% scale)</span></div>
+          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}${_calcIncludeLP?' · <span style="color:#fb923c;font-weight:600">+ LP</span>':''} · <span style="color:var(--dim);font-style:italic">% of full cadence · floor = 50%</span></div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">${_cardsHTML}</div>
         <div style="font-size:10px;color:var(--dim);margin-top:10px;line-height:1.5">
-          <strong style="color:var(--muted)">Floor targets (50% of full cadence):</strong> Enterprise + Strategic = 50% of accounts engaged per month (150% Q-Total) · Scale = 1 call per account per quarter (100% Q-Total) · SPs = 0.5 calls per account per quarter (50% Q-Total)
+          <strong style="color:var(--muted)">Full cadence (denominator):</strong> ENT + STRATEGIC = accts × ${_nM} (every acct every month) · SCALE = accts × 2 (bi-monthly) · SPs = accts × 1 (quarterly) · <strong style="color:var(--amber)">Floor = 50% of full.</strong> &lt;50% reads red.
         </div>
       </div>`;
     })()}
