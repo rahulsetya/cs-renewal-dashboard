@@ -9908,14 +9908,13 @@ function rCadence(){
     </div>
     ${(()=>{
       // ── Cadence Achievement Calculator ─────────────────────────────────
-      // Model: % of monthly engagement slots filled.
-      //   numerator   = sum of unique-firm calls per month across the quarter
-      //                 (one firm reached in April = 1 even if called 3 times)
-      //   denominator = accounts × months in quarter (typically × 3)
-      //   result      = clean 0–100% scale; 100% = every account every month.
-      // Pacing math: linear pro-rata. Expected by today = (days elapsed /
-      // days in quarter) × 100. Projection = current ÷ days-elapsed-ratio.
-      // Past quarters: shows final %; future quarters: hidden.
+      // Targets per pool (Q-Total = quarter calls ÷ accounts × 100):
+      //   ENT + STRATEGIC = 50%/quarter (50% of accounts engaged per Q)
+      //   SCALE = 150%/quarter (bi-monthly cadence = ~1.5 calls/account/Q)
+      //   SPs = no target set (display only)
+      // Pacing math: linear pro-rata. Expected = target × (days elapsed /
+      // days in quarter). Projection = current ÷ (days elapsed / days in Q).
+      // Past quarters: shows final achievement; future quarters: hidden.
       const _qIdxMap={Q1:0,Q2:3,Q3:6,Q4:9};
       const _qIdx=_qIdxMap[selCadQ];
       if(_qIdx==null)return'';
@@ -9930,13 +9929,15 @@ function rCadence(){
       if(_isFuture)return `<div class="card" style="margin-bottom:12px"><h3>Cadence Achievement Calculator</h3><div class="sh">${selCadQ} ${_yr} hasn't started yet.</div></div>`;
       if(_dEl<1)_dEl=1;if(_dEl>_dIn)_dEl=_dIn;
       const _pctThru=_dEl/_dIn;
-      // Months in the visible quarter — typically 3, but defensive against
-      // partial tracker columns. Drives the slot-count denominator.
-      const _nM=visCols.length||3;
       const _pools=[
-        {label:'ENT + STRATEGIC',filter:c=>c.t!=='SP'&&(c.seg==='Enterprise'||c.seg==='Strategic'),accent:'var(--accent)'},
-        {label:'SCALE',filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4'},
-        {label:'SPs',filter:c=>c.t==='SP',accent:'#f43f5e'}
+        // Floor targets per pool — each is 50% of the "full cadence" goal:
+        //   ENT + Strategic full = engage every account every month (100%/mo);
+        //                    floor = 50% monthly → 150% Q-Total
+        //   SCALE full = 2 calls/account/Q (200%); floor = 1 call → 100% Q-Total
+        //   SPs   full = 1 call/account/Q  (100%); floor = 0.5    → 50%  Q-Total
+        {label:'ENT + STRATEGIC',target:150,filter:c=>c.t!=='SP'&&(c.seg==='Enterprise'||c.seg==='Strategic'),accent:'var(--accent)'},
+        {label:'SCALE',target:100,filter:c=>c.t!=='SP'&&c.seg==='Scale',accent:'#06b6d4'},
+        {label:'SPs',target:50,filter:c=>c.t==='SP',accent:'#f43f5e'}
       ];
       const _csmList=typeof CSM!=='undefined'?CSM:[];
       // Calculator respects the "Include LP in % & gap" toggle so its math
@@ -9952,65 +9953,70 @@ function rCadence(){
             if(_calcIncludeLP)tC+=_cadLPCount(c.n,m);
           });
         });
-        // Slots = accounts × months. Every (account, month) pair is one slot
-        // a CSM can "fill" with a touch. A firm touched 3 times in April
-        // still only fills April's slot (when the multi-calls toggle is OFF).
-        const tSlots=tA*_nM;
-        const slotsPct=tSlots>0?(tC/tSlots)*100:0;
-        const expPct=_pctThru*100;                          // expected % by today
-        const projPct=_pctThru>0?slotsPct/_pctThru:0;       // end-of-Q projection
-        const expSlots=Math.ceil(tSlots*_pctThru);
-        const gap=expSlots-tC;                              // positive = behind
-        const onPace=slotsPct>=expPct*0.95;
-        let statusColor='var(--dim)',statusLabel='';
-        if(_isPast){
-          // Past quarter — just report the final %, no pass/fail since the
-          // "what's a passing %" decision is leadership's. Color by tier so
-          // you can scan a row of past quarters quickly.
-          statusColor=slotsPct>=80?'var(--green)':slotsPct>=50?'var(--amber)':'var(--red)';
-          statusLabel=`Quarter complete · final ${pct(slotsPct)}`;
-        } else if(onPace){
-          statusColor='var(--green)';statusLabel='✓ On pace';
-        } else if(projPct>=expPct){
-          statusColor='var(--amber)';statusLabel='⚠ Behind pace · projection trending up';
-        } else {
-          statusColor='var(--red)';statusLabel='⚠ Behind pace';
+        const cur=tA>0?(tC/tA)*100:0;
+        const exp=p.target!=null?p.target*_pctThru:null;
+        const proj=_pctThru>0?cur/_pctThru:0;
+        const expCalls=p.target!=null?Math.ceil((p.target/100)*tA*_pctThru):null;
+        const tgtCalls=p.target!=null?Math.ceil((p.target/100)*tA):null;
+        const gap=expCalls!=null?(expCalls-tC):null;
+        const onPace=exp!=null?cur>=exp*0.95:false;
+        let statusColor='var(--dim)',statusLabel='No target set';
+        if(p.target!=null){
+          if(_isPast){
+            const hit=cur>=p.target;
+            statusColor=hit?'var(--green)':'var(--red)';
+            statusLabel=hit?`✓ Quarter complete · target hit`:`✕ Quarter complete · missed target`;
+          } else if(onPace){
+            statusColor='var(--green)';statusLabel='✓ On pace';
+          } else if(proj>=p.target){
+            statusColor='var(--amber)';statusLabel='⚠ Behind pace · projection still on target';
+          } else {
+            statusColor='var(--red)';statusLabel='⚠ Behind pace · projected to miss';
+          }
         }
-        const _barFill=Math.min(100,Math.max(0,slotsPct));
-        const _barExp=Math.min(100,Math.max(0,expPct));
-        const _barProj=Math.min(100,Math.max(0,projPct));
-        const _barColor=projPct>=expPct?'var(--green)':projPct>=expPct*0.5?'var(--amber)':'var(--red)';
+        // Achievement-of-target framing: how close are we to the goal, on a
+        // 0→100% scale where 100% = floor target hit. Avoids the confusing
+        // 22% (sounds fine) vs 150% target (oh no) interpretation problem.
+        const curPctT=p.target!=null&&p.target>0?(cur/p.target)*100:null;
+        const projPctT=p.target!=null&&p.target>0?(proj/p.target)*100:null;
+        const expPctT=_pctThru*100; // expected % of target equals % through Q
+        const _barFill=curPctT!=null?Math.min(100,Math.max(0,curPctT)):0;
+        const _barExp=Math.min(100,Math.max(0,expPctT));
+        const _barProj=projPctT!=null?Math.min(100,Math.max(0,projPctT)):0;
+        const _barColor=projPctT==null?'var(--dim)':projPctT>=100?'var(--green)':projPctT>=80?'var(--amber)':'var(--red)';
         return `<div style="flex:1;min-width:240px;background:var(--bg);border:1px solid var(--border);border-left:3px solid ${p.accent};border-radius:8px;padding:12px 14px">
           <div style="font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px">${p.label}</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${tA.toLocaleString()} accts × ${_nM} ${_nM===1?'month':'months'} = <strong style="color:var(--text)">${tSlots.toLocaleString()}</strong> firm-month slots</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
-            <div style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--mono)" title="(unique firm calls per month, summed) / (accounts × ${_nM}) × 100">${pct(slotsPct)}</div>
-            <div style="font-size:10px;color:var(--dim)">monthly engagement · ${tC.toLocaleString()} / ${tSlots.toLocaleString()} slots filled</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Target: ${p.target==null?'—':p.target+'% Q-Total'} ${p.target!=null?`<span style="color:var(--dim)">(${tgtCalls.toLocaleString()} calls across ${tA.toLocaleString()} accts)</span>`:''}</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:2px">
+            <div style="font-size:22px;font-weight:700;color:var(--text);font-family:var(--mono)">${curPctT!=null?pct(curPctT):pct(cur)}</div>
+            <div style="font-size:10px;color:var(--dim)">${curPctT!=null?'of target':''} · ${tC.toLocaleString()} / ${tgtCalls!=null?tgtCalls.toLocaleString():tA.toLocaleString()} calls</div>
           </div>
-          <div style="margin-bottom:8px">
+          ${curPctT!=null?`<div style="font-size:9px;color:var(--dim);margin-bottom:8px">(${pct(cur)} Q-Total)</div>`:'<div style="margin-bottom:6px"></div>'}
+          ${p.target!=null?`<div style="margin-bottom:8px">
             <div style="position:relative;height:6px;background:var(--border);border-radius:3px">
               <div style="position:absolute;left:0;top:0;height:100%;width:${_barFill}%;background:${_barColor};border-radius:3px;transition:width .3s"></div>
-              ${!_isPast?`<div style="position:absolute;left:${_barExp}%;top:-3px;width:2px;height:12px;background:var(--muted);opacity:.8" title="Expected by today: ${pct(expPct)}"></div>`:''}
-              ${!_isPast?`<div style="position:absolute;left:${_barProj}%;top:-3px;width:2px;height:12px;background:var(--amber);opacity:.9" title="Projection end-of-Q: ${pct(projPct)}"></div>`:''}
+              ${!_isPast?`<div style="position:absolute;left:${_barExp}%;top:-3px;width:2px;height:12px;background:var(--muted);opacity:.8" title="Expected by today: ${pct(expPctT)} of target"></div>`:''}
+              ${!_isPast?`<div style="position:absolute;left:${_barProj}%;top:-3px;width:2px;height:12px;background:var(--amber);opacity:.9" title="Projection end-of-Q: ${pct(projPctT)} of target"></div>`:''}
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:3px"><span>0%</span><span>100% (every acct, every month)</span></div>
-          </div>
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:3px"><span>0%</span><span>${p.target}% (target)</span></div>
+          </div>`:''}
           <div style="font-size:11px;color:${statusColor};font-weight:600;margin-bottom:6px">${statusLabel}</div>
-          ${!_isPast?`<div style="font-size:10px;color:var(--dim);line-height:1.6">
-            Expected by today: <strong style="color:var(--text)">${pct(expPct)}</strong> (${expSlots.toLocaleString()} slots)<br>
-            Run-rate projection: <strong style="color:${projPct>=expPct?'var(--green)':projPct>=expPct*0.5?'var(--amber)':'var(--red)'}">${pct(projPct)}</strong> by end of quarter<br>
-            ${gap>0?`Behind by <strong style="color:var(--amber)">${gap.toLocaleString()} slot${gap===1?'':'s'}</strong> to be on pace today · ${(tSlots-tC).toLocaleString()} slots remaining`:`<span style="color:var(--green)">✓ ${Math.abs(gap).toLocaleString()} slot${Math.abs(gap)===1?'':'s'} ahead of pace</span>`}
-          </div>`:`<div style="font-size:10px;color:var(--dim)">${tC.toLocaleString()} of ${tSlots.toLocaleString()} slots filled · ${tSlots-tC} unfilled</div>`}
+          ${p.target!=null&&!_isPast?`<div style="font-size:10px;color:var(--dim);line-height:1.6">
+            Expected by today: <strong style="color:var(--text)">${pct(expPctT)}</strong> of target (${expCalls.toLocaleString()} calls)<br>
+            Run-rate projection: <strong style="color:${projPctT>=100?'var(--green)':projPctT>=80?'var(--amber)':'var(--red)'}">${pct(projPctT)}</strong> of target <span style="color:var(--dim)">(${pct(proj)} Q-Total)</span><br>
+            ${gap>0?`Behind by <strong style="color:var(--amber)">${gap.toLocaleString()} calls</strong> to be on pace today · ${(tgtCalls-tC).toLocaleString()} short of full goal`:`<span style="color:var(--green)">✓ ${Math.abs(gap).toLocaleString()} calls ahead of pace</span>`}
+          </div>`:''}
+          ${p.target!=null&&_isPast?`<div style="font-size:10px;color:var(--dim)">Final: ${pct(curPctT)} of target (${pct(cur)} Q-Total) · gap ${tC>=tgtCalls?'+':''}${(tC-tgtCalls).toLocaleString()} calls</div>`:''}
         </div>`;
       }).join('');
       return `<div class="card" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:8px">
           <h3 style="margin:0">Cadence Achievement Calculator</h3>
-          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}${_calcIncludeLP?' · <span style="color:#fb923c;font-weight:600">+ LP</span>':''} · <span style="color:var(--dim);font-style:italic">% = monthly engagement slots filled (0→100%)</span></div>
+          <div class="sh" style="margin:0">${selCadQ} ${_yr} · ${_isPast?'Quarter complete ('+_dIn+' days)':'Day '+_dEl+' of '+_dIn+' ('+pct(_pctThru*100)+' through quarter)'}${_calcIncludeLP?' · <span style="color:#fb923c;font-weight:600">+ LP</span>':''} · <span style="color:var(--dim);font-style:italic">% shown is achievement of target (0→100% scale)</span></div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">${_cardsHTML}</div>
         <div style="font-size:10px;color:var(--dim);margin-top:10px;line-height:1.5">
-          <strong style="color:var(--muted)">Formula:</strong> (unique firm calls per month, summed across the quarter) ÷ (accounts × ${_nM} months) × 100 · A firm touched 3× in April still fills only April's slot when "Include multiple calls" is OFF · 100% means every account was reached every month.
+          <strong style="color:var(--muted)">Floor targets (50% of full cadence):</strong> Enterprise + Strategic = 50% of accounts engaged per month (150% Q-Total) · Scale = 1 call per account per quarter (100% Q-Total) · SPs = 0.5 calls per account per quarter (50% Q-Total)
         </div>
       </div>`;
     })()}
