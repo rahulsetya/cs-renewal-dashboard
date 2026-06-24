@@ -11902,7 +11902,7 @@ function rOffers(){
         <th style="${stTh};text-align:left" onclick="_offSort('seRM')">Sub End ${_offArr('seRM')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('csRep')">CSM ${_offArr('csRep')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('ae')">Sales Owner ${_offArr('ae')}</th>
-        <th style="${stTh};text-align:left" onclick="_offSort('platformId')">Platform ID ${_offArr('platformId')}</th>
+        <th style="${stTh};text-align:left;width:74px" onclick="_offSort('platformId')">Platform ID ${_offArr('platformId')}</th>
         <th style="${stTh};text-align:right" onclick="_offSort('rev')">2025 Rev ${_offArr('rev')}</th>
         <th style="${stTh};text-align:right" onclick="_offSort('rev26')">2026 Offer (RM) ${_offArr('rev26')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('seg')">Segment ${_offArr('seg')}</th>
@@ -11923,11 +11923,11 @@ function rOffers(){
           <td style="${stTd};color:var(--muted)">${_offFmtDate(a.seRM||a.se)}</td>
           <td style="${stTd};color:var(--muted)">${a.csRep||'—'}</td>
           <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
-          <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${a.platformId||'—'}</td>
+          <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px;width:74px">${a.platformId||'—'}</td>
           <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--dim)">${_offFmt$(a.rev)}</td>
           <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--green)">${_offFmt$(a.rev26)}</td>
           <td style="${stTd};color:var(--muted)">${a.seg||'—'}</td>
-          <td style="${stTd};color:${stageColor(a.stage)}">${a.stage||'—'}</td>
+          <td style="${stTd};color:${stageColor(a.stage)};overflow:visible;text-overflow:clip">${a.stage||'—'}</td>
         </tr>${open?dealSubRow(pidK):''}`;
         }).join(''):`<tr><td colspan="10" style="padding:18px;text-align:center;color:var(--dim);font-size:11px">No accounts match the current filters.</td></tr>`}
       </tbody>
