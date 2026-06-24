@@ -11537,9 +11537,15 @@ function _offTryPassword(){
   rOffers();
 }
 function _offToggleRow(pid){_offExpand[pid]=!_offExpand[pid];rOffers();}
-function _offClearQuarter(){
-  if(!confirm('Clear uploaded deals for '+_offState.q+'?'))return;
-  _offDealsByQ[_offState.q]=[];_offSaveDeals();_offExpand={};rOffers();
+// Clear is only callable from inside the password-gated modal — the modal
+// already required the password to open the files step, so we trust the
+// caller. Wipes one quarter's deals, persists locally, auto-publishes the
+// empty state so the rest of the team also loses that quarter's data.
+function _offClearQuarter(q){
+  q=q||_offState.q;
+  if(!confirm('Clear uploaded deals for '+q+'? This also publishes the empty state to the team.'))return;
+  _offDealsByQ[q]=[];_offSaveDeals();_offExpand={};rOffers();
+  _offPublishDeals().then(ok=>{if(ok)console.info('[offers] cleared',q,'and published');});
 }
 // Parse the .xlsx the user generated from HubSpot for ONE quarter. Expected
 // columns (case-insensitive, by header name): Platform Company ID, Deal Name,
@@ -11944,8 +11950,8 @@ function rOffers(){
   const _qDealCt=_qTotals[selQ]||0;
   const _qAnyLoaded=_qTotals.Q1+_qTotals.Q2+_qTotals.Q3+_qTotals.Q4;
   const uploadBar=`
-    <button onclick="_offOpenUpload()" title="Upload HubSpot deal exports. Password protected. Once unlocked, drop a separate .xlsx into each quarter's box. Auto-publishes to the team." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload Deals${_qAnyLoaded?' ✓':''}</button>
-    ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} in ${selQ} · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched</span><button onclick="_offClearQuarter()" title="Wipe uploaded deals for ${selQ}" style="background:transparent;color:var(--dim);border:1px solid var(--border);padding:4px 9px;border-radius:6px;font-size:10px;cursor:pointer;font-family:inherit">✕ Clear ${selQ}</button>`:_qAnyLoaded?`<span style="font-size:10px;color:var(--dim);font-weight:600">${_qAnyLoaded} deal${_qAnyLoaded===1?'':'s'} loaded across other quarters</span>`:''}
+    <button onclick="_offOpenUpload()" title="Upload HubSpot deal exports. Password protected. Once unlocked, drop a separate .xlsx into each quarter's box (or clear a quarter from there). Auto-publishes to the team." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload Deals${_qAnyLoaded?' ✓':''}</button>
+    ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} in ${selQ} · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched</span>`:_qAnyLoaded?`<span style="font-size:10px;color:var(--dim);font-weight:600">${_qAnyLoaded} deal${_qAnyLoaded===1?'':'s'} loaded across other quarters</span>`:''}
   `;
   // Password-gated upload modal. step='pw' shows password input; step='file'
   // shows FOUR drop zones (one per quarter) so a user can load any/all in a
@@ -11953,7 +11959,13 @@ function rOffers(){
   // team via offers-deals.json on main. Only rendered when _OFF_UPLOAD_OPEN.
   const _qZone=(q)=>{
     const ct=(_offDealsByQ[q]||[]).length;
-    return `<div ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(59,130,246,.08)'" ondragleave="this.style.borderColor=${ct?"'var(--green)'":"'var(--borderL)'"};this.style.background=${ct?"'rgba(16,185,129,.06)'":"'transparent'"}" ondrop="event.preventDefault();this.style.borderColor=${ct?"'var(--green)'":"'var(--borderL)'"};this.style.background=${ct?"'rgba(16,185,129,.06)'":"'transparent'"};const f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f)_offHandleDealsFile(f,'${q}')" onclick="document.getElementById('offFileInput-${q}').click()" style="border:2px dashed ${ct?'var(--green)':'var(--borderL)'};background:${ct?'rgba(16,185,129,.06)':'transparent'};border-radius:10px;padding:14px 14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;flex:1;min-width:0">
+    // Clear button only renders when the quarter has data. It sits INSIDE the
+    // password-unlocked modal so a casual visitor can't reach it. Stopping
+    // propagation on the click so the surrounding drop-zone click doesn't
+    // also fire the file picker.
+    const clearBtn=ct?`<button onclick="event.stopPropagation();_offClearQuarter('${q}')" title="Clear ${q} deals (publishes the empty state)" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.35);color:var(--red);border:1px solid rgba(239,68,68,.4);padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.3px">✕ CLEAR</button>`:'';
+    return `<div ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(59,130,246,.08)'" ondragleave="this.style.borderColor=${ct?"'var(--green)'":"'var(--borderL)'"};this.style.background=${ct?"'rgba(16,185,129,.06)'":"'transparent'"}" ondrop="event.preventDefault();this.style.borderColor=${ct?"'var(--green)'":"'var(--borderL)'"};this.style.background=${ct?"'rgba(16,185,129,.06)'":"'transparent'"};const f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f)_offHandleDealsFile(f,'${q}')" onclick="document.getElementById('offFileInput-${q}').click()" style="position:relative;border:2px dashed ${ct?'var(--green)':'var(--borderL)'};background:${ct?'rgba(16,185,129,.06)':'transparent'};border-radius:10px;padding:14px 14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;flex:1;min-width:0">
+      ${clearBtn}
       <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${q}</div>
       <div style="font-size:10px;color:${ct?'var(--green)':'var(--dim)'};line-height:1.4">${ct?'✓ '+ct+' deal'+(ct===1?'':'s')+' loaded':'Drop .xlsx here'}</div>
       <input id="offFileInput-${q}" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="const f=this.files&&this.files[0];if(f){_offHandleDealsFile(f,'${q}');this.value=''}">
