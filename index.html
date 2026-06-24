@@ -11541,14 +11541,16 @@ function _offClearQuarter(){
   if(!confirm('Clear uploaded deals for '+_offState.q+'?'))return;
   _offDealsByQ[_offState.q]=[];_offSaveDeals();_offExpand={};rOffers();
 }
-// Parse the .xlsx the user generated from HubSpot. Expected columns (case-
-// insensitive, by header name): Platform Company ID, Deal Name, NEW Deal
-// Type, Amount, Currency, Deal Stage, Event Attending, NEW Deal Terms,
+// Parse the .xlsx the user generated from HubSpot for ONE quarter. Expected
+// columns (case-insensitive, by header name): Platform Company ID, Deal Name,
+// NEW Deal Type, Amount, Currency, Deal Stage, Event Attending, NEW Deal Terms,
 // HubSpot Link. Rows with no Platform Company ID are dropped (including the
-// TOTAL row at the bottom of the export).
-function _offHandleDealsFile(file){
+// TOTAL row at the bottom of the export). Auto-publishes to the team after a
+// successful parse so other users see it on next refresh.
+function _offHandleDealsFile(file,quarter){
   if(!file)return;
   if(typeof XLSX==='undefined'){alert('Excel parser not loaded yet. Wait a moment and try again.');return;}
+  const q=quarter||_offState.q;
   const fr=new FileReader();
   fr.onload=function(ev){
     try{
@@ -11572,14 +11574,62 @@ function _offHandleDealsFile(file){
           link:String(pick(r,'HubSpot Link','Link')||'').trim()
         });
       }
-      _offDealsByQ[_offState.q]=parsed;
+      _offDealsByQ[q]=parsed;
       _offSaveDeals();
-      _OFF_UPLOAD_OPEN=false;
       rOffers();
-      alert('Loaded '+parsed.length+' deal row'+(parsed.length===1?'':'s')+' into '+_offState.q+'.');
+      // Fire-and-forget team publish so other browsers see this data on next refresh.
+      _offPublishDeals().then(ok=>{if(ok)console.info('[offers] published',q,'with',parsed.length,'deals');});
     }catch(err){alert('Failed to parse file: '+(err.message||err));}
   };
   fr.readAsArrayBuffer(file);
+}
+// ── Team publish / hydrate via GitHub Contents API + GitHub Pages ──
+// Same iframe-shared cs_pubtok the cadence audit uses. PUT writes offers-
+// deals.json on main; the GET on subsequent loads reads from the published
+// gh-pages copy so other team members see the same data automatically.
+function _offGetPubToken(){try{const v=localStorage.getItem('cs_pubtok');return v?atob(v):null;}catch(e){return null;}}
+function _offSetPubToken(t){try{localStorage.setItem('cs_pubtok',btoa(t));}catch(e){}}
+async function _offPublishDeals(){
+  let token=_offGetPubToken();
+  if(!token){
+    token=prompt('One-time setup: paste your GitHub PAT to share deals with the team.\n\nNeeds Contents R+W on rahulsetya/cs-renewal-dashboard. Stored locally only — never sent anywhere else.');
+    if(!token||!token.trim())return false;
+    token=token.trim();
+    _offSetPubToken(token);
+  }
+  const url='https://api.github.com/repos/rahulsetya/cs-renewal-dashboard/contents/offers-deals.json';
+  let sha=null;
+  try{
+    const r=await fetch(url,{headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}});
+    if(r.ok){const j=await r.json();sha=j.sha;}
+    else if(r.status===401){
+      try{localStorage.removeItem('cs_pubtok');}catch(e){}
+      alert('Saved token was rejected by GitHub. Cleared it — try uploading again to re-enter.');
+      return false;
+    }
+  }catch(e){}
+  const payload={publishedAt:new Date().toISOString(),quarters:_offDealsByQ};
+  const body={message:'Update offers-deals.json',content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2)))),branch:'main'};
+  if(sha)body.sha=sha;
+  try{
+    const r2=await fetch(url,{method:'PUT',headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)});
+    return r2.ok;
+  }catch(e){return false;}
+}
+let _offHydrated=false;
+async function _offHydrateFromTeam(){
+  if(_offHydrated)return;
+  _offHydrated=true;
+  try{
+    // Cache-bust so refreshes pick up the latest publish.
+    const r=await fetch('offers-deals.json?_='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const j=await r.json();
+    if(!j||typeof j!=='object'||!j.quarters)return;
+    _offDealsByQ=Object.assign({Q1:[],Q2:[],Q3:[],Q4:[]},j.quarters);
+    _offSaveDeals();
+    if(typeof aTab!=='undefined'&&aTab==='offers')rOffers();
+  }catch(e){}
 }
 function _offFmt$(n){if(!n)return'—';const sign=n<0?'-':'';const a=Math.abs(n);return sign+(a>=1e6?'$'+(a/1e6).toFixed(1)+'M':a>=1e3?'$'+(a/1e3).toFixed(0)+'K':'$'+Math.round(a));}
 function _offFmtDate(iso){
@@ -11883,22 +11933,38 @@ function rOffers(){
       </tbody>
     </table>
   </div>`;
-  // Per-quarter upload + clear controls. Wording reflects whether deals are
-  // currently loaded for the selected quarter.
-  const _qDealCt=(_offDealsByQ[selQ]||[]).length;
+  const _sfR=_sfSnapshot();
+  // Trigger one-time team hydration. Returns immediately after the first
+  // call; subsequent renders skip it.
+  if(typeof _offHydrateFromTeam==='function')_offHydrateFromTeam();
+  // Single upload button — no quarter label. After password the modal shows
+  // one drop zone per quarter so a user can load files for any/all quarters
+  // in a single session.
+  const _qTotals={Q1:(_offDealsByQ.Q1||[]).length,Q2:(_offDealsByQ.Q2||[]).length,Q3:(_offDealsByQ.Q3||[]).length,Q4:(_offDealsByQ.Q4||[]).length};
+  const _qDealCt=_qTotals[selQ]||0;
+  const _qAnyLoaded=_qTotals.Q1+_qTotals.Q2+_qTotals.Q3+_qTotals.Q4;
   const uploadBar=`
-    <button onclick="_offOpenUpload()" title="Upload the HubSpot export (.xlsx) for ${selQ}. Password protected. Each upload replaces what's loaded for this quarter only." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload ${selQ} Deals${_qDealCt?' ✓':''}</button>
-    ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} loaded · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched</span><button onclick="_offClearQuarter()" title="Wipe uploaded deals for ${selQ}" style="background:transparent;color:var(--dim);border:1px solid var(--border);padding:4px 9px;border-radius:6px;font-size:10px;cursor:pointer;font-family:inherit">✕ Clear ${selQ}</button>`:''}
+    <button onclick="_offOpenUpload()" title="Upload HubSpot deal exports. Password protected. Once unlocked, drop a separate .xlsx into each quarter's box. Auto-publishes to the team." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload Deals${_qAnyLoaded?' ✓':''}</button>
+    ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} in ${selQ} · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched</span><button onclick="_offClearQuarter()" title="Wipe uploaded deals for ${selQ}" style="background:transparent;color:var(--dim);border:1px solid var(--border);padding:4px 9px;border-radius:6px;font-size:10px;cursor:pointer;font-family:inherit">✕ Clear ${selQ}</button>`:_qAnyLoaded?`<span style="font-size:10px;color:var(--dim);font-weight:600">${_qAnyLoaded} deal${_qAnyLoaded===1?'':'s'} loaded across other quarters</span>`:''}
   `;
   // Password-gated upload modal. step='pw' shows password input; step='file'
-  // shows the drop zone. Wrapped in a fixed-position div so it overlays the
-  // tab content. Only rendered when _OFF_UPLOAD_OPEN is true.
+  // shows FOUR drop zones (one per quarter) so a user can load any/all in a
+  // single session. After each file parse the data auto-publishes to the
+  // team via offers-deals.json on main. Only rendered when _OFF_UPLOAD_OPEN.
+  const _qZone=(q)=>{
+    const ct=(_offDealsByQ[q]||[]).length;
+    return `<div ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(59,130,246,.08)'" ondragleave="this.style.borderColor=${ct?"'var(--green)'":"'var(--borderL)'"};this.style.background=${ct?"'rgba(16,185,129,.06)'":"'transparent'"}" ondrop="event.preventDefault();this.style.borderColor=${ct?"'var(--green)'":"'var(--borderL)'"};this.style.background=${ct?"'rgba(16,185,129,.06)'":"'transparent'"};const f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f)_offHandleDealsFile(f,'${q}')" onclick="document.getElementById('offFileInput-${q}').click()" style="border:2px dashed ${ct?'var(--green)':'var(--borderL)'};background:${ct?'rgba(16,185,129,.06)':'transparent'};border-radius:10px;padding:14px 14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${q}</div>
+      <div style="font-size:10px;color:${ct?'var(--green)':'var(--dim)'};line-height:1.4">${ct?'✓ '+ct+' deal'+(ct===1?'':'s')+' loaded':'Drop .xlsx here'}</div>
+      <input id="offFileInput-${q}" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="const f=this.files&&this.files[0];if(f){_offHandleDealsFile(f,'${q}');this.value=''}">
+    </div>`;
+  };
   const uploadModal=_OFF_UPLOAD_OPEN?`
     <div style="position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)" onclick="if(event.target===this)_offCloseUpload()">
-      <div style="background:var(--card);border:1px solid var(--borderL);border-radius:12px;padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+      <div style="background:var(--card);border:1px solid var(--borderL);border-radius:12px;padding:24px;max-width:680px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.6)">
         ${_OFF_UPLOAD_STEP==='pw'?`
-          <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Upload ${selQ} Deals</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">Password-protected. After unlock, drop or pick a HubSpot export (.xlsx). Replaces any deals already loaded for ${selQ}.</div>
+          <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Upload Deals</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">Password-protected. After unlock you'll see a drop zone for each quarter (Q1–Q4); drag a HubSpot export (.xlsx) into the matching quarter. Files auto-publish to the team — everyone on the dashboard picks them up on the next refresh.</div>
           <input id="offUploadPw" type="password" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter')_offTryPassword()" style="width:100%;background:var(--bg);border:1px solid var(--borderL);color:var(--text);padding:10px 12px;border-radius:6px;font-size:13px;font-family:inherit;outline:none;margin-bottom:8px">
           ${_OFF_UPLOAD_ERR?`<div style="font-size:11px;color:var(--red);margin-bottom:8px">${_OFF_UPLOAD_ERR}</div>`:''}
           <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
@@ -11906,14 +11972,11 @@ function rOffers(){
             <button onclick="_offTryPassword()" style="background:var(--accent);color:#fff;border:0;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Continue</button>
           </div>
         `:`
-          <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Upload ${selQ} Deals</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">Drop or click below to load the HubSpot export. Rows are keyed by <strong>Platform Company ID</strong>; the TOTAL row is ignored.</div>
-          <div id="offDropZone" ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(59,130,246,.08)'" ondragleave="this.style.borderColor='var(--borderL)';this.style.background='transparent'" ondrop="event.preventDefault();this.style.borderColor='var(--borderL)';this.style.background='transparent';const f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f)_offHandleDealsFile(f)" onclick="document.getElementById('offFileInput').click()" style="border:2px dashed var(--borderL);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s">
-            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">↑ Drop .xlsx here or click to select</div>
-            <div style="font-size:11px;color:var(--dim)">Will replace any deals previously loaded for ${selQ}</div>
-          </div>
-          <input id="offFileInput" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="const f=this.files&&this.files[0];if(f){_offHandleDealsFile(f);this.value=''}">
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+          <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Upload Deals · Drag one .xlsx into each quarter</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">Each file is parsed by header (Platform Company ID, Deal Name, NEW Deal Type, Amount, Currency, Deal Stage, Event Attending, NEW Deal Terms, HubSpot Link). The TOTAL row is ignored. Loading into a quarter <strong>replaces</strong> that quarter's deals only. After each drop, the data is auto-published to the team.</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">${_qZone('Q1')}${_qZone('Q2')}${_qZone('Q3')}${_qZone('Q4')}</div>
+          <div style="font-size:10px;color:var(--dim);margin-bottom:12px">First time publishing? You'll be prompted once for a GitHub PAT with Contents R+W access. Token is stored only in this browser.</div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
             <button onclick="_offCloseUpload()" style="background:transparent;color:var(--text);border:1px solid var(--borderL);padding:7px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Done</button>
           </div>
         `}
