@@ -6212,6 +6212,7 @@ init();
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CS Goals & Variable Comp Dashboard — iConnections H1 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0B1120;--card:#111827;--border:#1e293b;--borderL:#334155;--text:#e2e8f0;--muted:#94a3b8;--dim:#64748b;--accent:#3b82f6;--accentG:rgba(59,130,246,.15);--green:#10b981;--greenG:rgba(16,185,129,.15);--red:#ef4444;--redG:rgba(239,68,68,.12);--amber:#f59e0b;--amberG:rgba(245,158,11,.12);--purple:#8b5cf6;--cyan:#06b6d4;--rose:#f43f5e;--roseG:rgba(244,63,94,.12);--orange:#f97316;--orangeG:rgba(249,115,22,.12);--mono:'JetBrains Mono',monospace}
@@ -11514,6 +11515,72 @@ function _offCurrentQ(){const m=(new Date()).getMonth();return'Q'+(Math.floor(m/
 // stageFilter is an array (multi-select) — empty = no stage filter (all stages
 // visible). Other filters stay single-value.
 let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:[],sortCol:'seRM',sortDir:'asc'};
+// ── Per-quarter HubSpot deals upload (password-gated) ──
+// Shape: _offDealsByQ = { Q1: [ {pid, dealName, dealType, amount, currency,
+//   stage, eventAttending, dealTerms, link} ], Q2: [...], ... }
+// Persisted to localStorage so an upload survives reloads. One upload per
+// quarter; uploading again for a quarter REPLACES that quarter's data.
+const _OFF_DEALS_KEY='cs_offers_deals_v1';
+const _OFF_DEALS_PASSWORD='rahulsetya';
+let _offDealsByQ={Q1:[],Q2:[],Q3:[],Q4:[]};
+try{const _r=localStorage.getItem(_OFF_DEALS_KEY);if(_r){const _p=JSON.parse(_r);if(_p&&typeof _p==='object')_offDealsByQ=Object.assign({Q1:[],Q2:[],Q3:[],Q4:[]},_p);}}catch(e){}
+// Expanded-row state per platform ID; lives only in memory.
+let _offExpand={};
+let _OFF_UPLOAD_OPEN=false,_OFF_UPLOAD_STEP='pw',_OFF_UPLOAD_ERR='';
+function _offSaveDeals(){try{localStorage.setItem(_OFF_DEALS_KEY,JSON.stringify(_offDealsByQ));}catch(e){}}
+function _offOpenUpload(){_OFF_UPLOAD_OPEN=true;_OFF_UPLOAD_STEP='pw';_OFF_UPLOAD_ERR='';rOffers();setTimeout(()=>{const i=document.getElementById('offUploadPw');if(i)i.focus();},30);}
+function _offCloseUpload(){_OFF_UPLOAD_OPEN=false;rOffers();}
+function _offTryPassword(){
+  const v=(document.getElementById('offUploadPw')||{}).value||'';
+  if(v===_OFF_DEALS_PASSWORD){_OFF_UPLOAD_STEP='file';_OFF_UPLOAD_ERR='';}
+  else{_OFF_UPLOAD_ERR='Incorrect password.';}
+  rOffers();
+}
+function _offToggleRow(pid){_offExpand[pid]=!_offExpand[pid];rOffers();}
+function _offClearQuarter(){
+  if(!confirm('Clear uploaded deals for '+_offState.q+'?'))return;
+  _offDealsByQ[_offState.q]=[];_offSaveDeals();_offExpand={};rOffers();
+}
+// Parse the .xlsx the user generated from HubSpot. Expected columns (case-
+// insensitive, by header name): Platform Company ID, Deal Name, NEW Deal
+// Type, Amount, Currency, Deal Stage, Event Attending, NEW Deal Terms,
+// HubSpot Link. Rows with no Platform Company ID are dropped (including the
+// TOTAL row at the bottom of the export).
+function _offHandleDealsFile(file){
+  if(!file)return;
+  if(typeof XLSX==='undefined'){alert('Excel parser not loaded yet. Wait a moment and try again.');return;}
+  const fr=new FileReader();
+  fr.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});
+      const pick=(r,...names)=>{for(const n of names){if(r[n]!=null&&String(r[n]).trim()!=='')return r[n];const lc=Object.keys(r).find(k=>k.toLowerCase().trim()===n.toLowerCase().trim());if(lc&&r[lc]!=null&&String(r[lc]).trim()!=='')return r[lc];}return'';};
+      const parsed=[];
+      for(const r of rows){
+        const pid=String(pick(r,'Platform Company ID')||'').trim();
+        if(!pid||pid.toLowerCase()==='total')continue;
+        parsed.push({
+          pid,
+          dealName:String(pick(r,'Deal Name')||'').trim(),
+          dealType:String(pick(r,'NEW Deal Type','New Deal Type','Deal Type')||'').trim(),
+          amount:Number(pick(r,'Amount'))||0,
+          currency:String(pick(r,'Currency')||'').trim(),
+          stage:String(pick(r,'Deal Stage','Stage')||'').trim(),
+          eventAttending:String(pick(r,'Event Attending')||'').trim(),
+          dealTerms:String(pick(r,'NEW Deal Terms','New Deal Terms','Deal Terms')||'').trim(),
+          link:String(pick(r,'HubSpot Link','Link')||'').trim()
+        });
+      }
+      _offDealsByQ[_offState.q]=parsed;
+      _offSaveDeals();
+      _OFF_UPLOAD_OPEN=false;
+      rOffers();
+      alert('Loaded '+parsed.length+' deal row'+(parsed.length===1?'':'s')+' into '+_offState.q+'.');
+    }catch(err){alert('Failed to parse file: '+(err.message||err));}
+  };
+  fr.readAsArrayBuffer(file);
+}
 function _offFmt$(n){if(!n)return'—';const sign=n<0?'-':'';const a=Math.abs(n);return sign+(a>=1e6?'$'+(a/1e6).toFixed(1)+'M':a>=1e3?'$'+(a/1e3).toFixed(0)+'K':'$'+Math.round(a));}
 function _offFmtDate(iso){
   if(!iso)return'—';
@@ -11747,9 +11814,40 @@ function rOffers(){
       <span style="font-size:10px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-right:4px">Stages:</span>
       ${stageChips}
     </div>`:'';
+  // Index uploaded deals for the active quarter by platform ID so each row
+  // can show a chevron + N-deals badge when there's a match.
+  const _dealsForQ=(_offDealsByQ[selQ]||[]);
+  const _dealsByPid={};
+  _dealsForQ.forEach(d=>{const k=String(d.pid||'').trim();if(!k)return;if(!_dealsByPid[k])_dealsByPid[k]=[];_dealsByPid[k].push(d);});
+  const _dealMatchedRows=rows.filter(r=>_dealsByPid[String(r.platformId||'').trim()]).length;
+  const _escAttr=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const _fmtDealAmt=(n,c)=>{n=Number(n)||0;const s=n<0?'-':'';const a=Math.abs(n);const v=a>=1e6?'$'+(a/1e6).toFixed(2)+'M':a>=1e3?'$'+(a/1e3).toFixed(1)+'K':'$'+a.toFixed(0);return s+v+(c&&c!=='USD'?' '+c:'');};
+  const dealSubRow=(pid)=>{
+    const ds=_dealsByPid[pid]||[];
+    if(!ds.length)return'';
+    const inner=`<table style="width:100%;border-collapse:collapse;font-size:11px;margin:4px 0">
+      <thead><tr style="background:rgba(59,130,246,.08)">
+        <th style="padding:6px 10px;text-align:left;color:var(--accent);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Deal Name</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--accent);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">NEW Deal Type</th>
+        <th style="padding:6px 10px;text-align:right;color:var(--accent);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Amount</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--accent);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Stage</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--accent);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Event Attending</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--accent);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">NEW Deal Terms</th>
+      </tr></thead>
+      <tbody>${ds.map(d=>`<tr style="border-top:1px solid rgba(59,130,246,.15)">
+        <td style="padding:6px 10px;color:var(--text);font-weight:500">${d.link?`<a href="${_escAttr(d.link)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)">${_escAttr(d.dealName)||'(unnamed)'}</a>`:_escAttr(d.dealName)||'—'}</td>
+        <td style="padding:6px 10px;color:var(--muted)">${_escAttr(d.dealType)||'—'}</td>
+        <td style="padding:6px 10px;text-align:right;font-family:var(--mono);color:var(--green)">${_fmtDealAmt(d.amount,d.currency)}</td>
+        <td style="padding:6px 10px;color:${stageColor(d.stage)}">${_escAttr(d.stage)||'—'}</td>
+        <td style="padding:6px 10px;color:var(--dim);font-size:10px">${_escAttr(d.eventAttending)||'—'}</td>
+        <td style="padding:6px 10px;color:var(--dim);font-size:10px;line-height:1.4">${_escAttr(d.dealTerms)||'—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+    return `<tr><td colspan="10" style="padding:0;background:rgba(0,0,0,.18);border-left:3px solid var(--accent)"><div style="padding:6px 14px 10px 38px">${inner}</div></td></tr>`;
+  };
   const tableHTML=`<div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:880px">
       <thead><tr>
+        <th style="${stTh};width:24px"></th>
         <th style="${stTh};text-align:left" onclick="_offSort('n')">Account ${_offArr('n')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('seRM')">Sub End ${_offArr('seRM')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('csRep')">CSM ${_offArr('csRep')}</th>
@@ -11761,7 +11859,16 @@ function rOffers(){
         <th style="${stTh};text-align:left" onclick="_offSort('stage')">Stage ${_offArr('stage')}</th>
       </tr></thead>
       <tbody>
-        ${rows.length?rows.map(a=>`<tr>
+        ${rows.length?rows.map(a=>{
+          const pidK=String(a.platformId||'').trim();
+          const ds=pidK?(_dealsByPid[pidK]||[]):[];
+          const hasDeals=ds.length>0;
+          const open=hasDeals&&!!_offExpand[pidK];
+          const chev=hasDeals
+            ?`<span onclick="_offToggleRow('${pidK.replace(/'/g,"\\'")}')" title="${ds.length} HubSpot deal${ds.length===1?'':'s'} — click to ${open?'collapse':'expand'}" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:4px;user-select:none;padding:0 2px"><span style="display:inline-block;min-width:10px;text-align:center">${open?'▾':'▸'}</span><span style="font-size:10px;font-weight:600;background:rgba(59,130,246,.15);color:var(--accent);padding:1px 6px;border-radius:8px">${ds.length}</span></span>`
+            :'<span style="color:var(--dim);opacity:.35">—</span>';
+          return`<tr>
+          <td style="${stTd};text-align:center;padding:5px 6px">${chev}</td>
           <td style="${stTd};color:var(--text);font-weight:500">${a.n||'—'}</td>
           <td style="${stTd};color:var(--muted)">${_offFmtDate(a.seRM||a.se)}</td>
           <td style="${stTd};color:var(--muted)">${a.csRep||'—'}</td>
@@ -11771,19 +11878,57 @@ function rOffers(){
           <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--green)">${_offFmt$(a.rev26)}</td>
           <td style="${stTd};color:var(--muted)">${a.seg||'—'}</td>
           <td style="${stTd};color:${stageColor(a.stage)}">${a.stage||'—'}</td>
-        </tr>`).join(''):`<tr><td colspan="9" style="padding:18px;text-align:center;color:var(--dim);font-size:11px">No accounts match the current filters.</td></tr>`}
+        </tr>${open?dealSubRow(pidK):''}`;
+        }).join(''):`<tr><td colspan="10" style="padding:18px;text-align:center;color:var(--dim);font-size:11px">No accounts match the current filters.</td></tr>`}
       </tbody>
     </table>
   </div>`;
-  const _sfR=_sfSnapshot();
+  // Per-quarter upload + clear controls. Wording reflects whether deals are
+  // currently loaded for the selected quarter.
+  const _qDealCt=(_offDealsByQ[selQ]||[]).length;
+  const uploadBar=`
+    <button onclick="_offOpenUpload()" title="Upload the HubSpot export (.xlsx) for ${selQ}. Password protected. Each upload replaces what's loaded for this quarter only." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload ${selQ} Deals${_qDealCt?' ✓':''}</button>
+    ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} loaded · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched</span><button onclick="_offClearQuarter()" title="Wipe uploaded deals for ${selQ}" style="background:transparent;color:var(--dim);border:1px solid var(--border);padding:4px 9px;border-radius:6px;font-size:10px;cursor:pointer;font-family:inherit">✕ Clear ${selQ}</button>`:''}
+  `;
+  // Password-gated upload modal. step='pw' shows password input; step='file'
+  // shows the drop zone. Wrapped in a fixed-position div so it overlays the
+  // tab content. Only rendered when _OFF_UPLOAD_OPEN is true.
+  const uploadModal=_OFF_UPLOAD_OPEN?`
+    <div style="position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)" onclick="if(event.target===this)_offCloseUpload()">
+      <div style="background:var(--card);border:1px solid var(--borderL);border-radius:12px;padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+        ${_OFF_UPLOAD_STEP==='pw'?`
+          <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Upload ${selQ} Deals</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">Password-protected. After unlock, drop or pick a HubSpot export (.xlsx). Replaces any deals already loaded for ${selQ}.</div>
+          <input id="offUploadPw" type="password" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter')_offTryPassword()" style="width:100%;background:var(--bg);border:1px solid var(--borderL);color:var(--text);padding:10px 12px;border-radius:6px;font-size:13px;font-family:inherit;outline:none;margin-bottom:8px">
+          ${_OFF_UPLOAD_ERR?`<div style="font-size:11px;color:var(--red);margin-bottom:8px">${_OFF_UPLOAD_ERR}</div>`:''}
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+            <button onclick="_offCloseUpload()" style="background:transparent;color:var(--text);border:1px solid var(--borderL);padding:7px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Cancel</button>
+            <button onclick="_offTryPassword()" style="background:var(--accent);color:#fff;border:0;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Continue</button>
+          </div>
+        `:`
+          <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Upload ${selQ} Deals</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">Drop or click below to load the HubSpot export. Rows are keyed by <strong>Platform Company ID</strong>; the TOTAL row is ignored.</div>
+          <div id="offDropZone" ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(59,130,246,.08)'" ondragleave="this.style.borderColor='var(--borderL)';this.style.background='transparent'" ondrop="event.preventDefault();this.style.borderColor='var(--borderL)';this.style.background='transparent';const f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f)_offHandleDealsFile(f)" onclick="document.getElementById('offFileInput').click()" style="border:2px dashed var(--borderL);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s">
+            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px">↑ Drop .xlsx here or click to select</div>
+            <div style="font-size:11px;color:var(--dim)">Will replace any deals previously loaded for ${selQ}</div>
+          </div>
+          <input id="offFileInput" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="const f=this.files&&this.files[0];if(f){_offHandleDealsFile(f);this.value=''}">
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+            <button onclick="_offCloseUpload()" style="background:transparent;color:var(--text);border:1px solid var(--borderL);padding:7px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Done</button>
+          </div>
+        `}
+      </div>
+    </div>
+  `:'';
   el.innerHTML=`
     <div class="card" style="margin-bottom:12px">
       <h3>Offers</h3>
-      <div class="sh">GP renewal accounts (one row per Renewal Master entry) for the selected quarter. Sub end is from the Renewal Master; 2025 / 2026 revenue from RM (won = annualized 2026, otherwise offer price). Stage reflects the dashboard-normalized RM value. Pod / CSM filter is shared with the All Accounts tab.</div>
+      <div class="sh">GP renewal accounts (one row per Renewal Master entry) for the selected quarter. Sub end is from the Renewal Master; 2025 / 2026 revenue from RM (won = annualized 2026, otherwise offer price). Stage reflects the dashboard-normalized RM value. Pod / CSM filter is shared with the All Accounts tab. Upload a HubSpot export (.xlsx) for each quarter to surface open deals per account.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
         ${dropdown}
         <span style="margin-left:8px;color:var(--dim);font-size:11px">Quarter:</span>
         ${quarterBar}
+        ${uploadBar}
         <span style="margin-left:auto;color:var(--dim);font-size:11px">${rows.length} of ${qCounts[selQ]||0} ${selQ} accounts · ${baseRows.length} total</span>
       </div>
     </div>
@@ -11796,6 +11941,7 @@ function rOffers(){
       ${stageRow}
       <div style="margin-top:12px">${tableHTML}</div>
     </div>
+    ${uploadModal}
   `;
   _sfR();
 }
