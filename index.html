@@ -11677,6 +11677,54 @@ async function _offPublishDeals(){
     return r2.ok;
   }catch(e){return false;}
 }
+// ── Public export ──
+// Anyone can hit this — it just reads what's already in localStorage / the
+// team-shared offers-deals.json (already hydrated) and dumps an XLSX. No
+// password gate because this is a read-only operation on data the team has
+// already published. One row per deal, joined to the account. Accounts with
+// no matching deals still appear (with the deal columns blank) so the export
+// matches what the Offers tab is showing.
+function _offExportQuarter(){
+  if(typeof XLSX==='undefined'){alert('Excel library not loaded yet — refresh the page and try again.');return;}
+  const q=_offState.q;
+  const all=(ACCTS||[]).filter(a=>a.inRen);
+  const qAccts=all.filter(a=>{const aq=a.qRM||'';if(q==='Undated')return aq!=='Q1'&&aq!=='Q2'&&aq!=='Q3'&&aq!=='Q4';return aq===q;});
+  qAccts.sort((a,b)=>(a.n||'').localeCompare(b.n||''));
+  const deals=(_offDealsByQ&&_offDealsByQ[q])||[];
+  const dealsByPid={};
+  deals.forEach(d=>{const k=String(d.pid||'').trim();if(k){if(!dealsByPid[k])dealsByPid[k]=[];dealsByPid[k].push(d);}});
+  const headers=['Quarter','Platform Company ID','Company Name','CSM','Sales Owner','Segment','2025 Revenue','2026 Offer (RM)','Sub End Date','RM Stage','Deal Name','NEW Deal Type','Amount','Currency','Deal Stage','Event Attending','NEW Deal Terms','HubSpot Deal Link'];
+  const aoa=[headers];
+  qAccts.forEach(a=>{
+    const pid=String(a.platformId||'').trim();
+    const ds=pid?(dealsByPid[pid]||[]):[];
+    const base=[q,pid,a.n||'',a.csRep||'',a.ae||'',a.seg||'',Number(a.rev)||0,Number(a.rev26)||0,a.seRM||'',a.stage||''];
+    if(ds.length){
+      ds.forEach(d=>{
+        aoa.push(base.concat([d.dealName||'',d.dealType||'',Number(d.amount)||0,d.currency||'USD',d.stage||'',d.eventAttending||'',d.dealTerms||'',d.link||'']));
+      });
+    } else {
+      aoa.push(base.concat(['','','','','','','','']));
+    }
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:6},{wch:14},{wch:42},{wch:22},{wch:22},{wch:12},{wch:13},{wch:14},{wch:12},{wch:26},{wch:46},{wch:20},{wch:12},{wch:8},{wch:32},{wch:40},{wch:64},{wch:64}];
+  // Currency format on the two revenue columns + Amount column.
+  for(let r=2;r<=aoa.length;r++){
+    ['G','H','M'].forEach(col=>{const cell=ws[col+r];if(cell&&typeof cell.v==='number')cell.z='"$"#,##0';});
+  }
+  // Make the HubSpot Link clickable inside Excel.
+  for(let r=2;r<=aoa.length;r++){
+    const cell=ws['R'+r];
+    if(cell&&typeof cell.v==='string'&&cell.v.indexOf('http')===0)cell.l={Target:cell.v,Tooltip:'Open deal in HubSpot'};
+  }
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Offers '+q);
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const fname=`offers-${q}-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.xlsx`;
+  XLSX.writeFile(wb,fname);
+}
 let _offHydrated=false;
 async function _offHydrateFromTeam(){
   if(_offHydrated)return;
@@ -12024,6 +12072,7 @@ function rOffers(){
   const _qUploadStr=_qUploadAt?_offFmtUpload(_qUploadAt):'';
   const uploadBar=`
     <button onclick="_offOpenUpload()" title="Upload HubSpot deal exports. Password protected. Once unlocked, drop a separate .xlsx into each quarter's box (or clear a quarter from there). Auto-publishes to the team." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload Deals${_qAnyLoaded?' ✓':''}</button>
+    <button onclick="_offExportQuarter()" title="Download a .xlsx with every ${selQ} account joined to its open HubSpot deals (one row per deal). HubSpot Link column is clickable inside Excel. Available to anyone — no password needed." style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↓ Export ${selQ}</button>
     ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} in ${selQ} · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched${_qUploadStr?` · <span style="color:var(--dim);font-weight:500;font-family:var(--mono);font-size:9px">${selQ} uploaded ${_qUploadStr}</span>`:''}</span>`:_qAnyLoaded?`<span style="font-size:10px;color:var(--dim);font-weight:600">${_qAnyLoaded} deal${_qAnyLoaded===1?'':'s'} loaded across other quarters</span>`:''}
   `;
   // Password-gated upload modal. step='pw' shows password input; step='file'
