@@ -6806,7 +6806,7 @@ function _gpIsOwnerPickActive(v){
   return sel.mode==='PICK'&&sel.items.indexOf(v)>=0;
 }
 function pickGPCombo(m){_gpComboMode=m==='AND'?'AND':'OR';GP_OWNER_DROP_OPEN=true;rT('gp_grr');}
-function pickAACombo(m){_aaComboMode=m==='AND'?'AND':'OR';_AA_OWNER_DROP_OPEN=true;rAllAccts();}
+function pickAACombo(m){_aaComboMode=m==='AND'?'AND':'OR';_AA_OWNER_DROP_OPEN=true;if(typeof rT==='function'&&typeof aTab==='string')rT(aTab);else rAllAccts();}
 // Goals iframe equivalent of the parent dashboard's clearAllFilters.
 // Resets the CSM/Pod selection and the month picks back to the default
 // view. Quarter / view state stays — those are navigation, not filters.
@@ -10593,13 +10593,19 @@ function _aaMatchesOwnerFilter(a){
   return _gpCombine(sel.items,a,_aaComboMode);
 }
 function pickAAOwner(v){
-  if(v==='ALL'){_aaState.owner='ALL';_AA_OWNER_DROP_OPEN=false;rAllAccts();return;}
+  // Re-render whichever tab the user is currently looking at. Both All
+  // Accounts and Offers tabs read _aaState.owner, and both render
+  // functions wipe the OTHER tab's content to avoid the duplicate-ID
+  // dropdown bug — so calling rAllAccts() blindly from the Offers tab
+  // would clear what the user is staring at ("screen goes dark").
+  const _go=()=>{if(typeof rT==='function'&&typeof aTab==='string')rT(aTab);else rAllAccts();};
+  if(v==='ALL'){_aaState.owner='ALL';_AA_OWNER_DROP_OPEN=false;_go();return;}
   let cur=Array.isArray(_aaState.owner)?_aaState.owner.slice():(_aaState.owner==='ALL'||!_aaState.owner)?[]:[_aaState.owner];
   const idx=cur.indexOf(v);
   if(idx>=0)cur.splice(idx,1);else cur.push(v);
   _aaState.owner=cur.length===0?'ALL':cur;
   _AA_OWNER_DROP_OPEN=true;
-  rAllAccts();
+  _go();
 }
 function toggleAAOwnerDrop(e){
   if(e&&e.stopPropagation)e.stopPropagation();
