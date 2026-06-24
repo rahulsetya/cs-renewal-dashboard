@@ -6336,7 +6336,7 @@ body.light .scenario-slider::-moz-range-track{background:#bccedd}
   <div id="tab-gp_grr" class="tab-content"></div>
   <div id="tab-sp_grr" class="tab-content"></div>
   <div id="tab-cadence" class="tab-content"></div>
-  <div id="tab-top10s" class="tab-content"></div>
+  <div id="tab-offers" class="tab-content"></div>
   <div id="tab-all_accounts" class="tab-content"></div>
   <div id="tab-payout" class="tab-content"></div>
   <div id="tab-targets" class="tab-content"></div>
@@ -6557,7 +6557,7 @@ function poolCard(pool,d,target,gifted){
 function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(--green)"},{l:"Open (in progress)",c:"var(--amber)"},{l:"Declined Early (re-engageable)",c:"var(--orange)"},{l:"Churned (confirmed lost)",c:"var(--red)"}].map(x=>`<span><span class="legend-dot" style="background:${x.c}"></span>${x.l}</span>`).join('')}</div>`}
 
 // ── TAB SYSTEM ──────────────────────────────────────
-const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"top10s",l:"Top 10s"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
+const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"offers",l:"Offers"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
 var aTab="overview",selGPCSM=null,selGPMonth=[],selGPPod=null;
 // Per-pod expand state shared by the Goals iframe's owner dropdowns
 // (GP Retention + All Accounts). Keyed by pod name. Defaults collapsed —
@@ -11491,117 +11491,226 @@ function rRCHistory(){
 }
 
 // ── TOP 10s ─────────────────────────────────────────────
-// Renders the "Top 10s" tab from the engagement tracker. Sortable by any
-// column, filterable by CSM and by sub-end-date range, KPIs at top, notes
-// hidden behind a click on the account name.
-let _t10State={search:'',csm:'',seMin:'',seMax:'',sortCol:'endISO',sortDir:'asc',openNote:''};
-function _t10Fmt$(n){return n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+Math.round(n||0);}
-function _t10FmtDate(iso,raw){
-  if(!iso)return raw||'';
+// ── OFFERS TAB ───────────────────────────────────────────────────────────────
+// Renders all GP accounts grouped by quarter (Q1/Q2/Q3/Q4) with columns:
+// Sub End, CSM, Sales Owner, Platform ID, 2025 Revenue, 2026 Revenue,
+// Segment, Stage. Pod / CSM filter is SHARED with the All Accounts tab
+// (same _aaState.owner state) so picking a pod here also narrows that
+// tab, and vice versa — consistent filter across the goals dashboard.
+// Sort defaults to Sub End ASC within each quarter (soonest first).
+let _offState={sortCol:'seRM',sortDir:'asc'};
+function _offFmt$(n){if(!n)return'—';const sign=n<0?'-':'';const a=Math.abs(n);return sign+(a>=1e6?'$'+(a/1e6).toFixed(1)+'M':a>=1e3?'$'+(a/1e3).toFixed(0)+'K':'$'+Math.round(a));}
+function _offFmtDate(iso){
+  if(!iso)return'—';
   const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const m=iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m?mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1]:(raw||'');
+  const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m?mo[parseInt(m[2])-1]+' '+parseInt(m[3])+', '+m[1]:String(iso);
 }
-function _t10Sort(col){const cur=_t10State;if(cur.sortCol===col){cur.sortDir=cur.sortDir==='desc'?'asc':'desc';}else{cur.sortCol=col;cur.sortDir=(col==='acct'||col==='csm'||col==='ae')?'asc':'desc';}rTop10s();}
-function _t10Arr(col){if(_t10State.sortCol!==col)return'<span style="color:var(--dim);opacity:.4">↕</span>';return _t10State.sortDir==='desc'?'<span style="color:var(--accent)">▼</span>':'<span style="color:var(--accent)">▲</span>';}
-function _t10SetF(k,v){_t10State[k]=v;rTop10s();}
-function _t10Clear(){_t10State.search='';_t10State.csm='';_t10State.seMin='';_t10State.seMax='';rTop10s();}
-function _t10ToggleNote(k){_t10State.openNote=_t10State.openNote===k?'':k;rTop10s();}
-function rTop10s(){
-  const el=document.getElementById('tab-top10s');
-  if(!TOP10||!TOP10.length){
-    el.innerHTML=`<div class="card"><h3>Top 10s</h3><div class="sh" style="color:var(--amber)">Top 10s sheet not loaded — refresh to pull from the engagement tracker.</div></div>`;
-    return;
-  }
-  // Filter
-  const st=_t10State,q=st.search.toLowerCase().trim();
-  const filtered=TOP10.filter(r=>{
-    if(st.csm&&r.csm!==st.csm)return false;
-    if(st.seMin&&(!r.endISO||r.endISO<st.seMin))return false;
-    if(st.seMax&&(!r.endISO||r.endISO>st.seMax))return false;
-    if(q){const bag=(r.acct+' '+r.csm+' '+r.ae+' '+r.seg+' '+r.notes).toLowerCase();if(!bag.includes(q))return false;}
-    return true;
+function _offSort(col){if(_offState.sortCol===col){_offState.sortDir=_offState.sortDir==='asc'?'desc':'asc';}else{_offState.sortCol=col;_offState.sortDir=(col==='n'||col==='csRep'||col==='ae'||col==='stage'||col==='seg')?'asc':(col==='seRM')?'asc':'desc';}rOffers();}
+function _offArr(col){if(_offState.sortCol!==col)return'<span style="color:var(--dim);opacity:.4">↕</span>';return _offState.sortDir==='desc'?'<span style="color:var(--accent)">▼</span>':'<span style="color:var(--accent)">▲</span>';}
+function rOffers(){
+  const el=document.getElementById('tab-offers');
+  if(!el)return;
+  // Source = ACCTS limited to engagement-tracker rows AND RM-matched rows.
+  // The All Accounts tab uses `inEng` only; for Offers we also include RM-only
+  // rows (inRen=1, inEng=0) since those are real renewals that just don't have
+  // an ET row — relevant for the offer pipeline view.
+  const all=(ACCTS||[]).filter(a=>a.inEng||a.inRen);
+  // Build the CSM/Pod options shown in the dropdown — pulled from the same
+  // universe All Accounts uses so the two stay aligned.
+  const csmList=[...new Set(all.map(a=>_gpDisplayCsRep(a.csRep)).filter(Boolean))].sort();
+  const podSet={};all.forEach(a=>{if(a.pod)podSet[a.pod]=(podSet[a.pod]||0)+1;});
+  const _offScaleCount=all.filter(a=>(_GP_OWNER_ALIAS[String(a.csRep||'').toLowerCase()]||a.csRep)==='Support iConnections').length;
+  if(_offScaleCount>0)podSet['Scale']=_offScaleCount;
+  const podList=Object.keys(podSet).sort((a,b)=>{
+    const na=a.match(/^pod\s*(\d+)$/i),nb=b.match(/^pod\s*(\d+)$/i);
+    if(na&&nb)return +na[1]-+nb[1];
+    if(na)return -1;if(nb)return 1;
+    return a.localeCompare(b);
   });
-  // Sort
-  const col=st.sortCol,dir=st.sortDir==='asc'?1:-1;
-  filtered.sort((a,b)=>{
+  // Drop any stale owner items from _aaState that no longer match an account
+  // — same logic the All Accounts tab uses, so the filter stays valid across
+  // tabs.
+  if(Array.isArray(_aaState.owner)){
+    const valid=_aaState.owner.filter(it=>{
+      if(typeof it==='string'&&it.indexOf('POD:')===0){
+        const v=it.slice(4);
+        if(v.endsWith(':OFF'))return!!_GP_POD_CSMS[v.slice(0,-4)];
+        if(v==='Scale USA'||v==='Scale Asia'||v==='Scale Europe')return true;
+        return podList.indexOf(v)>=0||v==='Scale';
+      }
+      return csmList.indexOf(it)>=0;
+    });
+    _aaState.owner=valid.length?valid:'ALL';
+  }
+  // Apply the pod/CSM filter. Reuses the All Accounts matcher so behavior is
+  // identical (handles plain CSM, POD:<pod>, POD:Scale <region>, POD:<pod>:OFF).
+  let rows=all.slice().filter(_aaMatchesOwnerFilter);
+  // Sort within each quarter. Comparator handles strings, numbers, dates.
+  const col=_offState.sortCol,dir=_offState.sortDir==='asc'?1:-1;
+  rows.sort((a,b)=>{
     let va=a[col],vb=b[col];
-    if(col==='endISO'){
-      // Blank sub-end dates always sort to the end, regardless of direction —
-      // an ascending "soonest first" view shouldn't be crowded by undated rows.
+    if(col==='seRM'){
+      // Blank sub-end dates always sort to the end — soonest-first views
+      // shouldn't be cluttered by undated rows.
       const ea=!va,eb=!vb;if(ea&&eb)return 0;if(ea)return 1;if(eb)return -1;
-    } else if(typeof va==='string'||typeof vb==='string'){va=(va||'').toString().toLowerCase();vb=(vb||'').toString().toLowerCase();}
-    else{va=va||0;vb=vb||0;}
+    }else if(col==='rev'||col==='rev26'){va=va||0;vb=vb||0;}
+    else{va=(va||'').toString().toLowerCase();vb=(vb||'').toString().toLowerCase();}
     if(va<vb)return -1*dir;if(va>vb)return 1*dir;return 0;
   });
-  // KPIs (uses the iframe's sc() helper so cards match the rest of the dashboard)
-  const totAcct=filtered.length;
-  const tot25=filtered.reduce((s,r)=>s+(r.rev25||0),0);
-  const tot26=filtered.reduce((s,r)=>s+(r.rev26||0),0);
-  const uniqCsm=[...new Set(filtered.map(r=>r.csm).filter(Boolean))].length;
-  // Unique CSM list for filter dropdown (from full set, not filtered)
-  const csmOpts=[...new Set(TOP10.map(r=>r.csm).filter(Boolean))].sort();
-  const _sfR=_sfSnapshot();
-  el.innerHTML=`
-    <div class="cards">
-      ${sc('Accounts',totAcct,'in current filter','var(--accent)')}
-      ${sc('2025 Revenue',_t10Fmt$(tot25),'baseline','var(--muted)')}
-      ${sc('2026 Revenue',_t10Fmt$(tot26),(tot25>0?((tot26-tot25)/tot25*100).toFixed(1)+'% vs 2025':'renewal target'),'var(--green)')}
-      ${sc('CSMs Covered',uniqCsm,'unique reps','var(--rose)')}
-    </div>
-    <div class="card">
-      <h3>Top 10s by CSM</h3>
-      <div class="sh">Sourced from the <strong>Top 10s</strong> tab on the engagement tracker. Click an <span style="color:var(--accent)">account name</span> to expand its notes (column I). All columns sortable.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0 8px 0">
-        <input data-sf="t10Search" type="text" placeholder="Search account / notes…" value="${(st.search||'').replace(/"/g,'&quot;')}" oninput="_t10SetF('search',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;min-width:200px;font-family:inherit">
-        <select onchange="_t10SetF('csm',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit">
-          <option value="">All CSMs (${csmOpts.length})</option>
-          ${csmOpts.map(c=>`<option value="${c}"${st.csm===c?' selected':''}>${c}</option>`).join('')}
-        </select>
-        <label style="font-size:11px;color:var(--dim)">Sub End ≥</label>
-        <input type="date" value="${st.seMin||''}" onchange="_t10SetF('seMin',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit">
-        <label style="font-size:11px;color:var(--dim)">≤</label>
-        <input type="date" value="${st.seMax||''}" onchange="_t10SetF('seMax',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit">
-        ${(st.search||st.csm||st.seMin||st.seMax)?`<button onclick="_t10Clear()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
-        <span style="margin-left:auto;color:var(--dim);font-size:11px">${totAcct} of ${TOP10.length} accounts</span>
-      </div>
+  // Group by quarter. qRM is the RM-derived quarter; falls back to q (ET
+  // quarter) when RM has no date. Accounts with no quarter info land in
+  // "Undated".
+  const byQ={Q1:[],Q2:[],Q3:[],Q4:[],Undated:[]};
+  rows.forEach(a=>{
+    const q=a.qRM||a.q||'';
+    if(q==='Q1'||q==='Q2'||q==='Q3'||q==='Q4')byQ[q].push(a);
+    else byQ.Undated.push(a);
+  });
+  // Owner dropdown — reuse the All Accounts dropdown HTML. Same state so the
+  // two tabs stay aligned. Counts reflect the Offers tab universe (inEng OR
+  // inRen) rather than AA's inEng-only.
+  const _aaPodCounts={};const _aaScaleSubCounts={'Scale USA':0,'Scale Asia':0,'Scale Europe':0};
+  const _aaOffPodCounts={};
+  all.forEach(a=>{
+    if(a.pod&&a.pod!=='Scale')_aaPodCounts[a.pod]=(_aaPodCounts[a.pod]||0)+1;
+    const _csA=(_GP_OWNER_ALIAS[String(a.csRep||'').toLowerCase()]||a.csRep);
+    if(_csA==='Support iConnections')_aaPodCounts['Scale']=(_aaPodCounts['Scale']||0)+1;
+    const sub=_gpScaleSubPod(a);if(sub)_aaScaleSubCounts[sub]++;
+    if(_gpIsOffPod(a)){const cp=_gpSalesRepPod(a);if(cp)_aaOffPodCounts[cp]=(_aaOffPodCounts[cp]||0)+1;}
+  });
+  const aSel=_aaOwnerSel();
+  const _fmtItem=x=>{if(typeof x!=='string'||x.indexOf('POD:')!==0)return x;const v=x.slice(4);return v.endsWith(':OFF')?v.slice(0,-4)+' · off-pod':v;};
+  let curLbl;
+  if(aSel.mode==='ALL')curLbl=`All (${all.length})`;
+  else if(aSel.items.length===1)curLbl=_fmtItem(aSel.items[0]);
+  else curLbl=aSel.items.length+' selected';
+  const cb=on=>`<span class="owner-dd-cb">${on?'✓':''}</span>`;
+  let menu=`<div class="owner-dd-item${aSel.mode==='ALL'?' sel':''}" onclick="pickAAOwner('ALL')"><span>All CSMs &amp; Pods</span><span class="ct">${all.length} accts</span></div>`;
+  if(csmList.length){
+    menu+=`<div class="owner-dd-grp">CSMs</div>`;
+    menu+=csmList.map(c=>{
+      const on=_aaIsOwnerPickActive(c);
+      const ct=all.filter(a=>_gpDisplayCsRep(a.csRep)===c).length;
+      return `<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('${c.replace(/'/g,"\\'")}')"><span>${cb(on)}${c}</span><span class="ct">${ct} accts</span></div>`;
+    }).join('');
+  }
+  if(csmList.length&&podList.length){
+    menu+=`<div class="combo-toggle"><span class="lbl">Combine CSM × Pod</span><span class="seg"><button class="${_aaComboMode==='OR'?'on':''}" onclick="pickAACombo('OR')">OR</button><button class="${_aaComboMode==='AND'?'on':''}" onclick="pickAACombo('AND')">AND</button></span></div>`;
+  }
+  if(podList.length){
+    menu+=`<div class="owner-dd-grp">Pods · Engagement Tracker</div>`;
+    menu+=podList.map(p=>{
+      if(p==='Scale'){
+        const on=_aaIsOwnerPickActive('POD:Scale');
+        const _open=!!_goalsPodExpand['Scale'];
+        const _chev=`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 8px 0 2px;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();_toggleGoalsPodSub('Scale')" title="${_open?'Collapse':'Expand'} Scale sub-rows">${_open?'▾':'▸'}</span>`;
+        let _h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:Scale')"><span style="display:flex;align-items:center">${_chev}${cb(on)}Scale</span><span class="ct">${_aaPodCounts.Scale||0} accts</span></div>`;
+        if(_open){
+          ['Scale Europe','Scale Asia','Scale USA'].forEach(_sub=>{
+            const _ct=_aaScaleSubCounts[_sub]||0;
+            if(_ct===0)return;
+            const _subOn=_aaIsOwnerPickActive('POD:'+_sub);
+            const _csmHint=_sub==='Scale Europe'?'Phoebe Willoughby':_sub==='Scale Asia'?'Jovin Lee':'Bryan / Olivia / Mario / Luis / Connor';
+            _h+=`<div class="owner-dd-item owner-dd-sub${_subOn?' sel':''}" onclick="pickAAOwner('POD:${_sub.replace(/'/g,"\\'")}')" title="Scale accounts owned by ${_csmHint}"><span>${cb(_subOn)}↳ ${_sub}</span><span class="ct">${_ct} accts</span></div>`;
+          });
+        }
+        return _h;
+      }
+      const on=_aaIsOwnerPickActive('POD:'+p);
+      const offOn=_aaIsOwnerPickActive('POD:'+p+':OFF');
+      const _open=!!_goalsPodExpand[p];
+      const _chev=`<span style="color:#60a5fa;font-size:14px;font-weight:700;padding:0 8px 0 2px;cursor:pointer;user-select:none;display:inline-block;min-width:14px;text-align:center" onclick="event.stopPropagation();_toggleGoalsPodSub('${p.replace(/'/g,"\\'")}')" title="${_open?'Collapse':'Expand'} ${p} sub-rows">${_open?'▾':'▸'}</span>`;
+      let _h=`<div class="owner-dd-item${on?' sel':''}" onclick="pickAAOwner('POD:${p.replace(/'/g,"\\'")}')"><span style="display:flex;align-items:center">${_chev}${cb(on)}${p}</span><span class="ct">${_aaPodCounts[p]||0} accts</span></div>`;
+      if(_open){
+        const offCt=_aaOffPodCounts[p]||0;
+        if(offCt>0){
+          _h+=`<div class="owner-dd-item owner-dd-sub${offOn?' sel':''}" onclick="pickAAOwner('POD:${p.replace(/'/g,"\\'")}:OFF')" title="Accounts whose sales rep belongs to ${p} but the account itself is in a different pod"><span>${cb(offOn)}↳ Off-pod (${p})</span><span class="ct">${offCt} accts</span></div>`;
+        }
+      }
+      return _h;
+    }).join('');
+  }
+  const dropdown=`
+    <div class="owner-dd" style="position:relative">
+      <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);margin-right:6px">CSM / Pod</span>
+      <button id="aaOwnerDropBtn" type="button" class="owner-dd-btn${_AA_OWNER_DROP_OPEN?' op':''}" onclick="toggleAAOwnerDrop(event)">${curLbl} <span class="cr">▾</span></button>
+      <div id="aaOwnerDropMenu" class="owner-dd-menu" style="display:${_AA_OWNER_DROP_OPEN?'block':'none'}">${menu}</div>
+    </div>`;
+  // Per-quarter section. Empty quarters render a small "no accounts" line
+  // rather than hide entirely — gives a complete view of the year.
+  const stTd=`padding:7px 10px;font-size:11px;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+  const stTh=`padding:8px 10px;font-size:10px;font-weight:600;color:var(--dim);text-align:left;cursor:pointer;user-select:none;white-space:nowrap;background:var(--card);border-bottom:2px solid var(--borderL)`;
+  const qSection=(qLabel,qRows)=>{
+    if(!qRows.length){
+      return`<div class="card" style="margin-bottom:12px">
+        <h3 style="margin:0 0 4px 0;display:flex;align-items:center;gap:10px">${qLabel} <span style="font-size:11px;color:var(--dim);font-weight:500">· 0 accounts</span></h3>
+        <div style="font-size:11px;color:var(--dim);padding:10px 4px">No accounts in this quarter for the current filter.</div>
+      </div>`;
+    }
+    const totRev25=qRows.reduce((s,a)=>s+(a.rev||0),0);
+    const totRev26=qRows.reduce((s,a)=>s+(a.rev26||0),0);
+    const stageColor=s=>{
+      const w=new Set(['9. Invoice Sent','10. Paid']),c=new Set(['11. Churned']),d=new Set(['4a. Attempting again Q2']);
+      if(w.has(s))return'var(--green)';
+      if(c.has(s))return'var(--red)';
+      if(d.has(s))return'var(--orange)';
+      return'var(--muted)';
+    };
+    return`<div class="card" style="margin-bottom:12px">
+      <h3 style="margin:0 0 4px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${qLabel}
+        <span style="font-size:11px;color:var(--dim);font-weight:500">· ${qRows.length} accounts</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono)">· 2025 ${_offFmt$(totRev25)} → 2026 ${_offFmt$(totRev26)}</span>
+      </h3>
       <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead><tr style="border-bottom:1px solid var(--borderL)">
-            <th style="text-align:left;padding:8px 12px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('acct')">Account ${_t10Arr('acct')}</th>
-            <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('csm')">CSM ${_t10Arr('csm')}</th>
-            <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('ae')">Sales Rep ${_t10Arr('ae')}</th>
-            <th style="text-align:right;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('rev26')">2026 Rev ${_t10Arr('rev26')}</th>
-            <th style="text-align:right;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('rev25')">2025 Rev ${_t10Arr('rev25')}</th>
-            <th style="text-align:left;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('endISO')">Sub End ${_t10Arr('endISO')}</th>
-            <th style="text-align:center;padding:8px 10px;cursor:pointer;user-select:none;color:var(--dim);font-size:11px" onclick="_t10Sort('risk')">Risk ${_t10Arr('risk')}</th>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:880px">
+          <thead><tr>
+            <th style="${stTh};text-align:left" onclick="_offSort('n')">Account ${_offArr('n')}</th>
+            <th style="${stTh};text-align:left" onclick="_offSort('seRM')">Sub End ${_offArr('seRM')}</th>
+            <th style="${stTh};text-align:left" onclick="_offSort('csRep')">CSM ${_offArr('csRep')}</th>
+            <th style="${stTh};text-align:left" onclick="_offSort('ae')">Sales Owner ${_offArr('ae')}</th>
+            <th style="${stTh};text-align:left" onclick="_offSort('platformId')">Platform ID ${_offArr('platformId')}</th>
+            <th style="${stTh};text-align:right" onclick="_offSort('rev')">2025 Rev ${_offArr('rev')}</th>
+            <th style="${stTh};text-align:right" onclick="_offSort('rev26')">2026 Rev ${_offArr('rev26')}</th>
+            <th style="${stTh};text-align:left" onclick="_offSort('seg')">Segment ${_offArr('seg')}</th>
+            <th style="${stTh};text-align:left" onclick="_offSort('stage')">Stage ${_offArr('stage')}</th>
           </tr></thead>
           <tbody>
-          ${filtered.length?filtered.map((r,i)=>{
-            const key='t10_'+i+'_'+(r.acct||'').replace(/\W/g,'_');
-            const noteOpen=st.openNote===key;
-            const hasNotes=r.notes&&r.notes.trim();
-            return`<tr style="border-top:1px solid var(--border)">
-              <td style="padding:7px 12px">
-                <span style="${hasNotes?'cursor:pointer;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL)':'color:var(--text)'};font-weight:500" ${hasNotes?`onclick="_t10ToggleNote('${key}')"`:''}>${r.acct}</span>
-                ${hasNotes?`<span style="font-size:10px;color:var(--dim);margin-left:6px">${noteOpen?'▾':'▸'} note</span>`:''}
-              </td>
-              <td style="padding:7px 10px;color:var(--muted)">${r.csm||'—'}</td>
-              <td style="padding:7px 10px;color:var(--muted)">${r.ae||'—'}</td>
-              <td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--green)">${r.rev26?_t10Fmt$(r.rev26):'—'}</td>
-              <td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--dim)">${r.rev25?_t10Fmt$(r.rev25):'—'}</td>
-              <td style="padding:7px 10px;color:var(--muted);white-space:nowrap">${_t10FmtDate(r.endISO,r.endRaw)}</td>
-              <td style="padding:7px 10px;text-align:center">${r.risk?'<span style="color:var(--red);font-weight:700">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td>
-            </tr>
-            ${noteOpen&&hasNotes?`<tr><td colspan="7" style="padding:6px 16px 10px 28px;background:rgba(0,0,0,.2);font-size:12px;color:var(--muted);line-height:1.6;border-bottom:1px solid var(--border)"><div style="font-size:10px;color:var(--dim);margin-bottom:4px">NOTES (col I)</div>${r.notes}</td></tr>`:''}`;
-          }).join(''):`<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--dim)">No accounts match current filters.</td></tr>`}
+            ${qRows.map(a=>`<tr>
+              <td style="${stTd};color:var(--text);font-weight:500">${a.n||'—'}</td>
+              <td style="${stTd};color:var(--muted)">${_offFmtDate(a.seRM||a.se)}</td>
+              <td style="${stTd};color:var(--muted)">${a.csRep||'—'}</td>
+              <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
+              <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${a.platformId||'—'}</td>
+              <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--dim)">${_offFmt$(a.rev)}</td>
+              <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--green)">${_offFmt$(a.rev26)}</td>
+              <td style="${stTd};color:var(--muted)">${a.seg||'—'}</td>
+              <td style="${stTd};color:${stageColor(a.stage)}">${a.stage||'—'}</td>
+            </tr>`).join('')}
           </tbody>
         </table>
       </div>
     </div>`;
+  };
+  const _sfR=_sfSnapshot();
+  el.innerHTML=`
+    <div class="card" style="margin-bottom:12px">
+      <h3>Offers</h3>
+      <div class="sh">Every GP account in scope, broken down by renewal quarter. Sub end is from the Renewal Master; 2025 / 2026 revenue from RM (won = annualized 2026, otherwise offer price). Stage reflects the dashboard-normalized RM value. Pod / CSM filter is shared with the All Accounts tab.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+        ${dropdown}
+        <span style="margin-left:auto;color:var(--dim);font-size:11px">${rows.length} of ${all.length} accounts</span>
+      </div>
+    </div>
+    ${qSection('Q1',byQ.Q1)}
+    ${qSection('Q2',byQ.Q2)}
+    ${qSection('Q3',byQ.Q3)}
+    ${qSection('Q4',byQ.Q4)}
+    ${byQ.Undated.length?qSection('No Quarter (missing sub-end date)',byQ.Undated):''}
+  `;
   _sfR();
 }
-function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'top10s':rTop10s();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
+function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'offers':rOffers();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
 rOverview();
 </script>
 </body>
