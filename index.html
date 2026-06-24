@@ -11928,18 +11928,30 @@ function rOffers(){
     return `<tr><td colspan="10" style="padding:0;background:rgba(0,0,0,.18);border-left:3px solid var(--accent)"><div style="padding:6px 14px 10px 38px">${inner}</div></td></tr>`;
   };
   const tableHTML=`<div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:880px">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1180px;table-layout:fixed">
+      <colgroup>
+        <col style="width:28px">
+        <col style="width:200px">
+        <col style="width:100px">
+        <col style="width:140px">
+        <col style="width:140px">
+        <col style="width:74px">
+        <col style="width:80px">
+        <col style="width:110px">
+        <col style="width:90px">
+        <col style="width:200px">
+      </colgroup>
       <thead><tr>
-        <th style="${stTh};width:24px"></th>
+        <th style="${stTh}"></th>
         <th style="${stTh};text-align:left" onclick="_offSort('n')">Account ${_offArr('n')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('seRM')">Sub End ${_offArr('seRM')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('csRep')">CSM ${_offArr('csRep')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('ae')">Sales Owner ${_offArr('ae')}</th>
-        <th style="${stTh};text-align:left;width:74px" onclick="_offSort('platformId')">Platform ID ${_offArr('platformId')}</th>
+        <th style="${stTh};text-align:left" onclick="_offSort('platformId')">Platform ID ${_offArr('platformId')}</th>
         <th style="${stTh};text-align:right" onclick="_offSort('rev')">2025 Rev ${_offArr('rev')}</th>
         <th style="${stTh};text-align:right" onclick="_offSort('rev26')">2026 Offer (RM) ${_offArr('rev26')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('seg')">Segment ${_offArr('seg')}</th>
-        <th style="${stTh};text-align:left;min-width:200px;width:200px" onclick="_offSort('stage')">Stage ${_offArr('stage')}</th>
+        <th style="${stTh};text-align:left" onclick="_offSort('stage')">Stage ${_offArr('stage')}</th>
       </tr></thead>
       <tbody>
         ${rows.length?rows.map(a=>{
@@ -11956,11 +11968,11 @@ function rOffers(){
           <td style="${stTd};color:var(--muted)">${_offFmtDate(a.seRM||a.se)}</td>
           <td style="${stTd};color:var(--muted)">${a.csRep||'—'}</td>
           <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
-          <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px;width:74px">${a.platformId||'—'}</td>
+          <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${a.platformId||'—'}</td>
           <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--dim)">${_offFmt$(a.rev)}</td>
           <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--green)">${_offFmt$(a.rev26)}</td>
           <td style="${stTd};color:var(--muted)">${a.seg||'—'}</td>
-          <td style="${stTd};color:${stageColor(a.stage)};min-width:200px;width:200px">${a.stage||'—'}</td>
+          <td style="${stTd};color:${stageColor(a.stage)}">${a.stage||'—'}</td>
         </tr>${open?dealSubRow(pidK):''}`;
         }).join(''):`<tr><td colspan="10" style="padding:18px;text-align:center;color:var(--dim);font-size:11px">No accounts match the current filters.</td></tr>`}
       </tbody>
