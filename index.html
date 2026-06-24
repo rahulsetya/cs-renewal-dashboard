@@ -10625,6 +10625,10 @@ document.addEventListener('click',function(e){
 function rAllAccts(){
   const el=document.getElementById('tab-all_accounts');
   if(!el)return;
+  // Wipe any lingering Offers render — same dropdown ID collision risk in
+  // the other direction. See the comment in rOffers().
+  const _offEl=document.getElementById('tab-offers');
+  if(_offEl&&_offEl.innerHTML)_offEl.innerHTML='';
   const all=(ACCTS||[]).filter(a=>a.inEng);  // limit to engagement-tracker rows; orphan renewal-master rows lack the fields
 
   // Gather filter options
@@ -11500,7 +11504,9 @@ function rRCHistory(){
 // at a time (default = the live current quarter); search / segment / stage
 // dropdowns narrow within the selected quarter.
 function _offCurrentQ(){const m=(new Date()).getMonth();return'Q'+(Math.floor(m/3)+1);}
-let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:'',sortCol:'seRM',sortDir:'asc'};
+// stageFilter is an array (multi-select) — empty = no stage filter (all stages
+// visible). Other filters stay single-value.
+let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:[],sortCol:'seRM',sortDir:'asc'};
 function _offFmt$(n){if(!n)return'—';const sign=n<0?'-':'';const a=Math.abs(n);return sign+(a>=1e6?'$'+(a/1e6).toFixed(1)+'M':a>=1e3?'$'+(a/1e3).toFixed(0)+'K':'$'+Math.round(a));}
 function _offFmtDate(iso){
   if(!iso)return'—';
@@ -11512,10 +11518,25 @@ function _offSort(col){if(_offState.sortCol===col){_offState.sortDir=_offState.s
 function _offArr(col){if(_offState.sortCol!==col)return'<span style="color:var(--dim);opacity:.4">↕</span>';return _offState.sortDir==='desc'?'<span style="color:var(--accent)">▼</span>':'<span style="color:var(--accent)">▲</span>';}
 function _offSetQ(q){_offState.q=q;rOffers();}
 function _offSetF(k,v){_offState[k]=v;rOffers();}
-function _offClear(){_offState.search='';_offState.segFilter='';_offState.stageFilter='';rOffers();}
+// Multi-select stage toggle. Click a stage chip to add/remove it from the
+// _offState.stageFilter array. Empty array = no filter.
+function _offToggleStage(s){
+  const cur=Array.isArray(_offState.stageFilter)?_offState.stageFilter.slice():[];
+  const i=cur.indexOf(s);
+  if(i>=0)cur.splice(i,1);else cur.push(s);
+  _offState.stageFilter=cur;
+  rOffers();
+}
+function _offClear(){_offState.search='';_offState.segFilter='';_offState.stageFilter=[];rOffers();}
 function rOffers(){
   const el=document.getElementById('tab-offers');
   if(!el)return;
+  // Wipe any lingering All Accounts render — both tabs use the same
+  // aaOwnerDropBtn / aaOwnerDropMenu IDs, and once AA has been rendered the
+  // duplicate IDs make getElementById return the (hidden) AA copy instead
+  // of ours. Clearing it removes the ghost dropdown so our clicks land.
+  const _aaEl=document.getElementById('tab-all_accounts');
+  if(_aaEl&&_aaEl.innerHTML)_aaEl.innerHTML='';
   // Source = RM-matched accounts only (inRen=1). Matches GP Retention's
   // universe so the per-quarter count agrees with that tab. ET-only rows
   // and ET duplicates pointing at the same RM entry are excluded.
@@ -11571,9 +11592,10 @@ function rOffers(){
   const segOpts=[...new Set(qBase.map(a=>a.seg).filter(Boolean))].sort();
   const stageOpts=[...new Set(qBase.map(a=>a.stage).filter(Boolean))].sort();
   const searchQ=String(_offState.search||'').toLowerCase().trim();
+  const _stageSel=Array.isArray(_offState.stageFilter)?_offState.stageFilter:[];
   let rows=qBase.filter(a=>{
     if(_offState.segFilter&&a.seg!==_offState.segFilter)return false;
-    if(_offState.stageFilter&&a.stage!==_offState.stageFilter)return false;
+    if(_stageSel.length&&!_stageSel.includes(a.stage))return false;
     if(searchQ){
       const bag=(a.n+' '+(a.csRep||'')+' '+(a.ae||'')+' '+(a.platformId||'')+' '+(a.stage||'')+' '+(a.seg||'')).toLowerCase();
       if(!bag.includes(searchQ))return false;
@@ -11691,19 +11713,33 @@ function rOffers(){
   // visible when the count is being narrowed.
   const baseInp=`background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit`;
   const baseInpAct=`background:#1e3a5f;border:1px solid #3b82f6;color:#dbeafe;border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;font-weight:600`;
-  const anyInQuarterFilter=!!(_offState.search||_offState.segFilter||_offState.stageFilter);
+  const anyInQuarterFilter=!!(_offState.search||_offState.segFilter||_stageSel.length);
+  // Stage chips — click to toggle in/out of the selected set. Active chip =
+  // solid accent fill + white text; inactive chip = transparent + dim text +
+  // matching border. Empty selection = show all stages.
+  const stageChips=stageOpts.length?stageOpts.map(s=>{
+    const on=_stageSel.includes(s);
+    const bg=on?'var(--accent)':'transparent';
+    const col=on?'#fff':'var(--muted)';
+    const bd=on?'var(--accent)':'var(--border)';
+    const esc=String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `<button onclick="_offToggleStage('${esc}')" style="background:${bg};color:${col};border:1px solid ${bd};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:${on?'600':'500'};cursor:pointer;font-family:inherit;white-space:nowrap" title="Click to toggle. Multiple stages can be on at once.">${on?'✓ ':''}${s}</button>`;
+  }).join(''):'';
   const filterControls=`
     <input type="text" placeholder="Search account / CSM / Platform ID…" value="${(_offState.search||'').replace(/"/g,'&quot;')}" oninput="_offSetF('search',this.value)" style="${_offState.search?baseInpAct:baseInp};min-width:220px">
     <select onchange="_offSetF('segFilter',this.value)" style="${_offState.segFilter?baseInpAct:baseInp}">
       <option value="">All Segments</option>
       ${segOpts.map(s=>`<option value="${s.replace(/"/g,'&quot;')}"${_offState.segFilter===s?' selected':''}>${s}</option>`).join('')}
     </select>
-    <select onchange="_offSetF('stageFilter',this.value)" style="${_offState.stageFilter?baseInpAct:baseInp}">
-      <option value="">All Stages</option>
-      ${stageOpts.map(s=>`<option value="${s.replace(/"/g,'&quot;')}"${_offState.stageFilter===s?' selected':''}>${s}</option>`).join('')}
-    </select>
     ${anyInQuarterFilter?`<button onclick="_offClear()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear filters</button>`:''}
   `;
+  // Stage row sits below the main filter row so a long list of stage chips
+  // doesn't push the segment select off-screen.
+  const stageRow=stageChips?`
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
+      <span style="font-size:10px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-right:4px">Stages:</span>
+      ${stageChips}
+    </div>`:'';
   const tableHTML=`<div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:880px">
       <thead><tr>
@@ -11749,8 +11785,9 @@ function rOffers(){
         <span style="font-size:11px;color:var(--dim);font-weight:500">· ${rows.length} accounts</span>
         <span style="font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono)">· 2025 ${_offFmt$(totRev25)} → 2026 ${_offFmt$(totRev26)}</span>
       </h3>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 12px 0">${filterControls}</div>
-      ${tableHTML}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 0 0">${filterControls}</div>
+      ${stageRow}
+      <div style="margin-top:12px">${tableHTML}</div>
     </div>
   `;
   _sfR();
