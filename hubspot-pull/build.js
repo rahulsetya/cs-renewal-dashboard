@@ -16,11 +16,17 @@ for (let i = 0; i < args.length; i++) {
   if (!rawLabel) rawLabel = args[i];
 }
 const sanitize = s => String(s || '').trim().replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
-const suffix = sanitize(rawLabel) || (() => {
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-})();
+// Always prefix the suffix with today's YYYY-MM-DD so every file shows when
+// it was pulled. When a label is given, the label trails the date. When no
+// label is given, a HHMMSS time trails the date so multiple same-day runs
+// don't collide.
+const d = new Date();
+const pad = n => String(n).padStart(2, '0');
+const datePart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const labelPart = sanitize(rawLabel);
+const suffix = labelPart
+  ? `${datePart}_${labelPart}`
+  : `${datePart}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 
 const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 const { owners, stageLabels, companies, deals } = data;
