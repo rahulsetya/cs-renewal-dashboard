@@ -11693,49 +11693,67 @@ function _offExportQuarter(){
   const deals=(_offDealsByQ&&_offDealsByQ[q])||[];
   const dealsByPid={};
   deals.forEach(d=>{const k=String(d.pid||'').trim();if(k){if(!dealsByPid[k])dealsByPid[k]=[];dealsByPid[k].push(d);}});
-  // One row per ACCOUNT. Multi-deal accounts concatenate deal fields with
-  // newlines so Excel can wrap them in a single cell. Amount column sums
-  // across all deals for that account so the column is still numeric-usable
-  // (filter / sort / pivot). HubSpot Link cell is a real Excel hyperlink
-  // only when the account has exactly one deal; multi-deal accounts list
-  // every URL as text so users can copy them manually.
-  const headers=['Quarter','Platform Company ID','Company Name','CSM','Sales Owner','Segment','2025 Revenue','2026 Offer (RM)','Sub End Date','RM Stage','# Deals','Deal Name(s)','NEW Deal Type(s)','Total Amount','Currency','Deal Stage(s)','Event Attending','NEW Deal Terms','HubSpot Link(s)'];
+  // One row per ACCOUNT. For multi-deal accounts each deal lives in its own
+  // set of side-by-side columns (Deal 1 …, Deal 2 …, Deal 3 …) so the
+  // spreadsheet stays on a single visual row — no newline wrapping. The
+  // number of deal column groups expands to the max-deal count across all
+  // accounts in this quarter.
+  const maxDeals=qAccts.reduce((m,a)=>{const pid=String(a.platformId||'').trim();const ds=pid?(dealsByPid[pid]||[]):[];return Math.max(m,ds.length);},0);
+  const baseHeaders=['Quarter','Platform Company ID','Company Name','CSM','Sales Owner','Segment','2025 Revenue','2026 Offer (RM)','Sub End Date','RM Stage','# Deals'];
+  const headers=baseHeaders.slice();
+  for(let i=1;i<=maxDeals;i++){
+    headers.push(
+      `Deal ${i} Name`,
+      `Deal ${i} NEW Deal Type`,
+      `Deal ${i} Amount`,
+      `Deal ${i} Currency`,
+      `Deal ${i} Stage`,
+      `Deal ${i} Event Attending`,
+      `Deal ${i} NEW Deal Terms`,
+      `Deal ${i} HubSpot Link`
+    );
+  }
   const aoa=[headers];
-  // Track per-row deal count so we can apply a hyperlink only when there's
-  // exactly one deal to point at (and only when its URL is HTTP-ish).
-  const linkTargets=[];
-  qAccts.forEach(a=>{
+  // Track per-row hyperlink positions so we can attach a real Excel
+  // hyperlink on every populated "Deal i HubSpot Link" cell.
+  const linkRefs=[]; // [{row:1-based, col:'AA', target:'https://…'}]
+  qAccts.forEach((a,rowIdx)=>{
     const pid=String(a.platformId||'').trim();
     const ds=pid?(dealsByPid[pid]||[]):[];
-    const base=[q,pid,a.n||'',a.csRep||'',a.ae||'',a.seg||'',Number(a.rev)||0,Number(a.rev26)||0,a.seRM||'',a.stage||''];
-    if(ds.length){
-      const join=arr=>arr.filter(x=>x!=null&&String(x).length).join('\n');
-      const names=join(ds.map(d=>d.dealName||''));
-      const types=join(ds.map(d=>d.dealType||''));
-      const stages=join(ds.map(d=>d.stage||''));
-      const events=join(ds.map(d=>d.eventAttending||''));
-      const terms=join(ds.map(d=>d.dealTerms||''));
-      const links=join(ds.map(d=>d.link||''));
-      const total=ds.reduce((s,d)=>s+(Number(d.amount)||0),0);
-      const currency=ds.find(d=>d.currency)?.currency||'USD';
-      aoa.push(base.concat([ds.length,names,types,total,currency,stages,events,terms,links]));
-      linkTargets.push(ds.length===1&&ds[0].link&&/^https?:\/\//.test(ds[0].link)?ds[0].link:null);
-    } else {
-      aoa.push(base.concat([0,'','',0,'','','','','']));
-      linkTargets.push(null);
+    const row=[q,pid,a.n||'',a.csRep||'',a.ae||'',a.seg||'',Number(a.rev)||0,Number(a.rev26)||0,a.seRM||'',a.stage||'',ds.length];
+    for(let i=0;i<maxDeals;i++){
+      const d=ds[i];
+      if(d){
+        row.push(d.dealName||'',d.dealType||'',Number(d.amount)||0,d.currency||'USD',d.stage||'',d.eventAttending||'',d.dealTerms||'',d.link||'');
+        if(d.link&&/^https?:\/\//.test(d.link)){
+          // Column index (0-based) for Deal i HubSpot Link is baseHeaders.length + i*8 + 7
+          const colIdx=baseHeaders.length+i*8+7;
+          linkRefs.push({row:rowIdx+2,col:colIdx,target:d.link});
+        }
+      } else {
+        row.push('','',0,'','','','','');
+      }
     }
+    aoa.push(row);
   });
   const ws=XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols']=[{wch:6},{wch:14},{wch:42},{wch:22},{wch:22},{wch:12},{wch:13},{wch:14},{wch:12},{wch:26},{wch:7},{wch:46},{wch:20},{wch:13},{wch:8},{wch:32},{wch:36},{wch:60},{wch:60}];
-  // Currency format on the two revenue columns + Total Amount column.
-  // Wrap text on the multi-line deal columns so Excel renders newlines.
+  // Column widths: 11 base columns then a 8-wide pattern per deal block.
+  const baseW=[{wch:6},{wch:14},{wch:42},{wch:22},{wch:22},{wch:12},{wch:13},{wch:14},{wch:12},{wch:26},{wch:7}];
+  const dealW=[{wch:42},{wch:20},{wch:12},{wch:8},{wch:30},{wch:32},{wch:48},{wch:60}];
+  ws['!cols']=baseW.concat(...Array.from({length:maxDeals},()=>dealW));
+  // Currency format on the static revenue columns and on each "Deal i Amount".
+  // Amount column index for deal i (0-based) is baseHeaders.length + i*8 + 2.
+  const colLetter=idx=>{let s='';while(idx>=0){s=String.fromCharCode(65+(idx%26))+s;idx=Math.floor(idx/26)-1;}return s;};
   for(let r=2;r<=aoa.length;r++){
-    ['G','H','N'].forEach(col=>{const cell=ws[col+r];if(cell&&typeof cell.v==='number')cell.z='"$"#,##0';});
-    ['L','M','P','Q','R','S'].forEach(col=>{const cell=ws[col+r];if(cell){if(!cell.s)cell.s={};cell.s.alignment={wrapText:true,vertical:'top'};}});
-    // Hyperlink only for single-deal rows; col S = HubSpot Link(s).
-    const t=linkTargets[r-2];
-    if(t){const cell=ws['S'+r];if(cell)cell.l={Target:t,Tooltip:'Open deal in HubSpot'};}
+    [colLetter(6),colLetter(7)].forEach(col=>{const cell=ws[col+r];if(cell&&typeof cell.v==='number')cell.z='"$"#,##0';});
+    for(let i=0;i<maxDeals;i++){
+      const amtCol=colLetter(baseHeaders.length+i*8+2);
+      const cell=ws[amtCol+r];
+      if(cell&&typeof cell.v==='number')cell.z='"$"#,##0';
+    }
   }
+  // Real Excel hyperlinks on the per-deal Link cells.
+  linkRefs.forEach(ref=>{const ref2=colLetter(ref.col)+ref.row;const cell=ws[ref2];if(cell)cell.l={Target:ref.target,Tooltip:'Open deal in HubSpot'};});
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Offers '+q);
   const d=new Date();
