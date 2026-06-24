@@ -11521,9 +11521,25 @@ let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:[],sortCol:'s
 // Persisted to localStorage so an upload survives reloads. One upload per
 // quarter; uploading again for a quarter REPLACES that quarter's data.
 const _OFF_DEALS_KEY='cs_offers_deals_v1';
+const _OFF_UPLOADS_KEY='cs_offers_uploads_v1';
 const _OFF_DEALS_PASSWORD='rahulsetya';
 let _offDealsByQ={Q1:[],Q2:[],Q3:[],Q4:[]};
 try{const _r=localStorage.getItem(_OFF_DEALS_KEY);if(_r){const _p=JSON.parse(_r);if(_p&&typeof _p==='object')_offDealsByQ=Object.assign({Q1:[],Q2:[],Q3:[],Q4:[]},_p);}}catch(e){}
+// Per-quarter "last uploaded" timestamps (ISO strings). Persisted under a
+// separate localStorage key so the deal payload stays a clean array. Both
+// keys ride along in the published offers-deals.json so other team members
+// see the same upload times.
+let _offUploadsByQ={Q1:null,Q2:null,Q3:null,Q4:null};
+try{const _ru=localStorage.getItem(_OFF_UPLOADS_KEY);if(_ru){const _pu=JSON.parse(_ru);if(_pu&&typeof _pu==='object')_offUploadsByQ=Object.assign({Q1:null,Q2:null,Q3:null,Q4:null},_pu);}}catch(e){}
+function _offSaveUploads(){try{localStorage.setItem(_OFF_UPLOADS_KEY,JSON.stringify(_offUploadsByQ));}catch(e){}}
+// Format an ISO string as "Jun 24, 2026 5:30 PM" in the local timezone.
+// Returns '' for falsy input so callers can render conditionally.
+function _offFmtUpload(iso){
+  if(!iso)return'';
+  const d=new Date(iso);
+  if(isNaN(d))return'';
+  return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+}
 // Expanded-row state per platform ID; lives only in memory.
 let _offExpand={};
 let _OFF_UPLOAD_OPEN=false,_OFF_UPLOAD_STEP='pw',_OFF_UPLOAD_ERR='';
@@ -11544,7 +11560,12 @@ function _offToggleRow(pid){_offExpand[pid]=!_offExpand[pid];rOffers();}
 function _offClearQuarter(q){
   q=q||_offState.q;
   if(!confirm('Clear uploaded deals for '+q+'? This also publishes the empty state to the team.'))return;
-  _offDealsByQ[q]=[];_offSaveDeals();_offExpand={};rOffers();
+  _offDealsByQ[q]=[];
+  _offUploadsByQ[q]=null;
+  _offSaveDeals();
+  _offSaveUploads();
+  _offExpand={};
+  rOffers();
   _offPublishDeals().then(ok=>{if(ok)console.info('[offers] cleared',q,'and published');});
 }
 // Parse the .xlsx the user generated from HubSpot for ONE quarter. Expected
@@ -11581,7 +11602,9 @@ function _offHandleDealsFile(file,quarter){
         });
       }
       _offDealsByQ[q]=parsed;
+      _offUploadsByQ[q]=new Date().toISOString();
       _offSaveDeals();
+      _offSaveUploads();
       rOffers();
       // Fire-and-forget team publish so other browsers see this data on next refresh.
       _offPublishDeals().then(ok=>{if(ok)console.info('[offers] published',q,'with',parsed.length,'deals');});
@@ -11614,7 +11637,7 @@ async function _offPublishDeals(){
       return false;
     }
   }catch(e){}
-  const payload={publishedAt:new Date().toISOString(),quarters:_offDealsByQ};
+  const payload={publishedAt:new Date().toISOString(),quarters:_offDealsByQ,uploads:_offUploadsByQ};
   const body={message:'Update offers-deals.json',content:btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2)))),branch:'main'};
   if(sha)body.sha=sha;
   try{
@@ -11633,6 +11656,10 @@ async function _offHydrateFromTeam(){
     const j=await r.json();
     if(!j||typeof j!=='object'||!j.quarters)return;
     _offDealsByQ=Object.assign({Q1:[],Q2:[],Q3:[],Q4:[]},j.quarters);
+    if(j.uploads&&typeof j.uploads==='object'){
+      _offUploadsByQ=Object.assign({Q1:null,Q2:null,Q3:null,Q4:null},j.uploads);
+      _offSaveUploads();
+    }
     _offSaveDeals();
     if(typeof aTab!=='undefined'&&aTab==='offers')rOffers();
   }catch(e){}
@@ -11949,9 +11976,11 @@ function rOffers(){
   const _qTotals={Q1:(_offDealsByQ.Q1||[]).length,Q2:(_offDealsByQ.Q2||[]).length,Q3:(_offDealsByQ.Q3||[]).length,Q4:(_offDealsByQ.Q4||[]).length};
   const _qDealCt=_qTotals[selQ]||0;
   const _qAnyLoaded=_qTotals.Q1+_qTotals.Q2+_qTotals.Q3+_qTotals.Q4;
+  const _qUploadAt=_offUploadsByQ[selQ];
+  const _qUploadStr=_qUploadAt?_offFmtUpload(_qUploadAt):'';
   const uploadBar=`
     <button onclick="_offOpenUpload()" title="Upload HubSpot deal exports. Password protected. Once unlocked, drop a separate .xlsx into each quarter's box (or clear a quarter from there). Auto-publishes to the team." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload Deals${_qAnyLoaded?' ✓':''}</button>
-    ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} in ${selQ} · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched</span>`:_qAnyLoaded?`<span style="font-size:10px;color:var(--dim);font-weight:600">${_qAnyLoaded} deal${_qAnyLoaded===1?'':'s'} loaded across other quarters</span>`:''}
+    ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} in ${selQ} · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched${_qUploadStr?` · <span style="color:var(--dim);font-weight:500;font-family:var(--mono);font-size:9px">${selQ} uploaded ${_qUploadStr}</span>`:''}</span>`:_qAnyLoaded?`<span style="font-size:10px;color:var(--dim);font-weight:600">${_qAnyLoaded} deal${_qAnyLoaded===1?'':'s'} loaded across other quarters</span>`:''}
   `;
   // Password-gated upload modal. step='pw' shows password input; step='file'
   // shows FOUR drop zones (one per quarter) so a user can load any/all in a
@@ -11964,10 +11993,13 @@ function rOffers(){
     // propagation on the click so the surrounding drop-zone click doesn't
     // also fire the file picker.
     const clearBtn=ct?`<button onclick="event.stopPropagation();_offClearQuarter('${q}')" title="Clear ${q} deals (publishes the empty state)" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.35);color:var(--red);border:1px solid rgba(239,68,68,.4);padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.3px">✕ CLEAR</button>`:'';
+    const uploadedAt=_offUploadsByQ[q];
+    const tsLine=ct&&uploadedAt?`<div style="font-size:9px;color:var(--dim);margin-top:3px;font-family:var(--mono)">Uploaded ${_offFmtUpload(uploadedAt)}</div>`:'';
     return `<div ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='rgba(59,130,246,.08)'" ondragleave="this.style.borderColor=${ct?"'var(--green)'":"'var(--borderL)'"};this.style.background=${ct?"'rgba(16,185,129,.06)'":"'transparent'"}" ondrop="event.preventDefault();this.style.borderColor=${ct?"'var(--green)'":"'var(--borderL)'"};this.style.background=${ct?"'rgba(16,185,129,.06)'":"'transparent'"};const f=event.dataTransfer.files&&event.dataTransfer.files[0];if(f)_offHandleDealsFile(f,'${q}')" onclick="document.getElementById('offFileInput-${q}').click()" style="position:relative;border:2px dashed ${ct?'var(--green)':'var(--borderL)'};background:${ct?'rgba(16,185,129,.06)':'transparent'};border-radius:10px;padding:14px 14px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;flex:1;min-width:0">
       ${clearBtn}
       <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${q}</div>
       <div style="font-size:10px;color:${ct?'var(--green)':'var(--dim)'};line-height:1.4">${ct?'✓ '+ct+' deal'+(ct===1?'':'s')+' loaded':'Drop .xlsx here'}</div>
+      ${tsLine}
       <input id="offFileInput-${q}" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="const f=this.files&&this.files[0];if(f){_offHandleDealsFile(f,'${q}');this.value=''}">
     </div>`;
   };
