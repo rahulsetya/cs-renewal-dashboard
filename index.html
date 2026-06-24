@@ -11939,7 +11939,7 @@ function rOffers(){
         <th style="${stTh};text-align:right" onclick="_offSort('rev')">2025 Rev ${_offArr('rev')}</th>
         <th style="${stTh};text-align:right" onclick="_offSort('rev26')">2026 Offer (RM) ${_offArr('rev26')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('seg')">Segment ${_offArr('seg')}</th>
-        <th style="${stTh};text-align:left" onclick="_offSort('stage')">Stage ${_offArr('stage')}</th>
+        <th style="${stTh};text-align:left;min-width:180px;width:180px" onclick="_offSort('stage')">Stage ${_offArr('stage')}</th>
       </tr></thead>
       <tbody>
         ${rows.length?rows.map(a=>{
@@ -11960,7 +11960,7 @@ function rOffers(){
           <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--dim)">${_offFmt$(a.rev)}</td>
           <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--green)">${_offFmt$(a.rev26)}</td>
           <td style="${stTd};color:var(--muted)">${a.seg||'—'}</td>
-          <td style="${stTd};color:${stageColor(a.stage)};overflow:visible;text-overflow:clip">${a.stage||'—'}</td>
+          <td style="${stTd};color:${stageColor(a.stage)};min-width:180px;width:180px;overflow:visible;text-overflow:clip">${a.stage||'—'}</td>
         </tr>${open?dealSubRow(pidK):''}`;
         }).join(''):`<tr><td colspan="10" style="padding:18px;text-align:center;color:var(--dim);font-size:11px">No accounts match the current filters.</td></tr>`}
       </tbody>
