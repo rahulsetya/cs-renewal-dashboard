@@ -11492,13 +11492,15 @@ function rRCHistory(){
 
 // ── TOP 10s ─────────────────────────────────────────────
 // ── OFFERS TAB ───────────────────────────────────────────────────────────────
-// Renders all GP accounts grouped by quarter (Q1/Q2/Q3/Q4) with columns:
-// Sub End, CSM, Sales Owner, Platform ID, 2025 Revenue, 2026 Revenue,
-// Segment, Stage. Pod / CSM filter is SHARED with the All Accounts tab
-// (same _aaState.owner state) so picking a pod here also narrows that
-// tab, and vice versa — consistent filter across the goals dashboard.
-// Sort defaults to Sub End ASC within each quarter (soonest first).
-let _offState={sortCol:'seRM',sortDir:'asc'};
+// Renders GP renewal accounts (inRen=1, one row per RM entry — same universe
+// as GP Retention) with columns: Sub End, CSM, Sales Owner, Platform ID,
+// 2025 Revenue, 2026 Revenue, Segment, Stage. Pod / CSM filter is SHARED
+// with the All Accounts tab (same _aaState.owner state) so a filter set on
+// either tab applies to both. Quarter selector at the top shows one quarter
+// at a time (default = the live current quarter); search / segment / stage
+// dropdowns narrow within the selected quarter.
+function _offCurrentQ(){const m=(new Date()).getMonth();return'Q'+(Math.floor(m/3)+1);}
+let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:'',sortCol:'seRM',sortDir:'asc'};
 function _offFmt$(n){if(!n)return'—';const sign=n<0?'-':'';const a=Math.abs(n);return sign+(a>=1e6?'$'+(a/1e6).toFixed(1)+'M':a>=1e3?'$'+(a/1e3).toFixed(0)+'K':'$'+Math.round(a));}
 function _offFmtDate(iso){
   if(!iso)return'—';
@@ -11508,14 +11510,16 @@ function _offFmtDate(iso){
 }
 function _offSort(col){if(_offState.sortCol===col){_offState.sortDir=_offState.sortDir==='asc'?'desc':'asc';}else{_offState.sortCol=col;_offState.sortDir=(col==='n'||col==='csRep'||col==='ae'||col==='stage'||col==='seg')?'asc':(col==='seRM')?'asc':'desc';}rOffers();}
 function _offArr(col){if(_offState.sortCol!==col)return'<span style="color:var(--dim);opacity:.4">↕</span>';return _offState.sortDir==='desc'?'<span style="color:var(--accent)">▼</span>':'<span style="color:var(--accent)">▲</span>';}
+function _offSetQ(q){_offState.q=q;rOffers();}
+function _offSetF(k,v){_offState[k]=v;rOffers();}
+function _offClear(){_offState.search='';_offState.segFilter='';_offState.stageFilter='';rOffers();}
 function rOffers(){
   const el=document.getElementById('tab-offers');
   if(!el)return;
-  // Source = ACCTS limited to engagement-tracker rows AND RM-matched rows.
-  // The All Accounts tab uses `inEng` only; for Offers we also include RM-only
-  // rows (inRen=1, inEng=0) since those are real renewals that just don't have
-  // an ET row — relevant for the offer pipeline view.
-  const all=(ACCTS||[]).filter(a=>a.inEng||a.inRen);
+  // Source = RM-matched accounts only (inRen=1). Matches GP Retention's
+  // universe so the per-quarter count agrees with that tab. ET-only rows
+  // and ET duplicates pointing at the same RM entry are excluded.
+  const all=(ACCTS||[]).filter(a=>a.inRen);
   // Build the CSM/Pod options shown in the dropdown — pulled from the same
   // universe All Accounts uses so the two stay aligned.
   const csmList=[...new Set(all.map(a=>_gpDisplayCsRep(a.csRep)).filter(Boolean))].sort();
@@ -11543,10 +11547,40 @@ function rOffers(){
     });
     _aaState.owner=valid.length?valid:'ALL';
   }
-  // Apply the pod/CSM filter. Reuses the All Accounts matcher so behavior is
+  // Apply pod/CSM filter. Reuses the All Accounts matcher so behavior is
   // identical (handles plain CSM, POD:<pod>, POD:Scale <region>, POD:<pod>:OFF).
-  let rows=all.slice().filter(_aaMatchesOwnerFilter);
-  // Sort within each quarter. Comparator handles strings, numbers, dates.
+  let baseRows=all.slice().filter(_aaMatchesOwnerFilter);
+  // Per-quarter counts (after pod filter, before in-quarter filters) so the
+  // quarter buttons show how many accounts fall in each Q.
+  const qCounts={Q1:0,Q2:0,Q3:0,Q4:0,Undated:0};
+  baseRows.forEach(a=>{
+    const q=a.qRM||'';
+    if(q==='Q1'||q==='Q2'||q==='Q3'||q==='Q4')qCounts[q]++;
+    else qCounts.Undated++;
+  });
+  // Restrict to the selected quarter, then apply in-quarter filters (search,
+  // segment, stage).
+  const selQ=_offState.q;
+  const qBase=baseRows.filter(a=>{
+    const q=a.qRM||'';
+    if(selQ==='Undated')return q!=='Q1'&&q!=='Q2'&&q!=='Q3'&&q!=='Q4';
+    return q===selQ;
+  });
+  // Segment + stage option lists (from the unfiltered quarter base so options
+  // don't disappear when you narrow).
+  const segOpts=[...new Set(qBase.map(a=>a.seg).filter(Boolean))].sort();
+  const stageOpts=[...new Set(qBase.map(a=>a.stage).filter(Boolean))].sort();
+  const searchQ=String(_offState.search||'').toLowerCase().trim();
+  let rows=qBase.filter(a=>{
+    if(_offState.segFilter&&a.seg!==_offState.segFilter)return false;
+    if(_offState.stageFilter&&a.stage!==_offState.stageFilter)return false;
+    if(searchQ){
+      const bag=(a.n+' '+(a.csRep||'')+' '+(a.ae||'')+' '+(a.platformId||'')+' '+(a.stage||'')+' '+(a.seg||'')).toLowerCase();
+      if(!bag.includes(searchQ))return false;
+    }
+    return true;
+  });
+  // Sort the visible rows. Comparator handles strings, numbers, dates.
   const col=_offState.sortCol,dir=_offState.sortDir==='asc'?1:-1;
   rows.sort((a,b)=>{
     let va=a[col],vb=b[col];
@@ -11557,15 +11591,6 @@ function rOffers(){
     }else if(col==='rev'||col==='rev26'){va=va||0;vb=vb||0;}
     else{va=(va||'').toString().toLowerCase();vb=(vb||'').toString().toLowerCase();}
     if(va<vb)return -1*dir;if(va>vb)return 1*dir;return 0;
-  });
-  // Group by quarter. qRM is the RM-derived quarter; falls back to q (ET
-  // quarter) when RM has no date. Accounts with no quarter info land in
-  // "Undated".
-  const byQ={Q1:[],Q2:[],Q3:[],Q4:[],Undated:[]};
-  rows.forEach(a=>{
-    const q=a.qRM||a.q||'';
-    if(q==='Q1'||q==='Q2'||q==='Q3'||q==='Q4')byQ[q].push(a);
-    else byQ.Undated.push(a);
   });
   // Owner dropdown — reuse the All Accounts dropdown HTML. Same state so the
   // two tabs stay aligned. Counts reflect the Offers tab universe (inEng OR
@@ -11637,76 +11662,96 @@ function rOffers(){
       <button id="aaOwnerDropBtn" type="button" class="owner-dd-btn${_AA_OWNER_DROP_OPEN?' op':''}" onclick="toggleAAOwnerDrop(event)">${curLbl} <span class="cr">▾</span></button>
       <div id="aaOwnerDropMenu" class="owner-dd-menu" style="display:${_AA_OWNER_DROP_OPEN?'block':'none'}">${menu}</div>
     </div>`;
-  // Per-quarter section. Empty quarters render a small "no accounts" line
-  // rather than hide entirely — gives a complete view of the year.
+  // Build the table for the selected quarter. Reuses the same column / sort
+  // patterns from before but renders inside a single card.
   const stTd=`padding:7px 10px;font-size:11px;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
   const stTh=`padding:8px 10px;font-size:10px;font-weight:600;color:var(--dim);text-align:left;cursor:pointer;user-select:none;white-space:nowrap;background:var(--card);border-bottom:2px solid var(--borderL)`;
-  const qSection=(qLabel,qRows)=>{
-    if(!qRows.length){
-      return`<div class="card" style="margin-bottom:12px">
-        <h3 style="margin:0 0 4px 0;display:flex;align-items:center;gap:10px">${qLabel} <span style="font-size:11px;color:var(--dim);font-weight:500">· 0 accounts</span></h3>
-        <div style="font-size:11px;color:var(--dim);padding:10px 4px">No accounts in this quarter for the current filter.</div>
-      </div>`;
-    }
-    const totRev25=qRows.reduce((s,a)=>s+(a.rev||0),0);
-    const totRev26=qRows.reduce((s,a)=>s+(a.rev26||0),0);
-    const stageColor=s=>{
-      const w=new Set(['9. Invoice Sent','10. Paid']),c=new Set(['11. Churned']),d=new Set(['4a. Attempting again Q2']);
-      if(w.has(s))return'var(--green)';
-      if(c.has(s))return'var(--red)';
-      if(d.has(s))return'var(--orange)';
-      return'var(--muted)';
-    };
-    return`<div class="card" style="margin-bottom:12px">
-      <h3 style="margin:0 0 4px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${qLabel}
-        <span style="font-size:11px;color:var(--dim);font-weight:500">· ${qRows.length} accounts</span>
-        <span style="font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono)">· 2025 ${_offFmt$(totRev25)} → 2026 ${_offFmt$(totRev26)}</span>
-      </h3>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:880px">
-          <thead><tr>
-            <th style="${stTh};text-align:left" onclick="_offSort('n')">Account ${_offArr('n')}</th>
-            <th style="${stTh};text-align:left" onclick="_offSort('seRM')">Sub End ${_offArr('seRM')}</th>
-            <th style="${stTh};text-align:left" onclick="_offSort('csRep')">CSM ${_offArr('csRep')}</th>
-            <th style="${stTh};text-align:left" onclick="_offSort('ae')">Sales Owner ${_offArr('ae')}</th>
-            <th style="${stTh};text-align:left" onclick="_offSort('platformId')">Platform ID ${_offArr('platformId')}</th>
-            <th style="${stTh};text-align:right" onclick="_offSort('rev')">2025 Rev ${_offArr('rev')}</th>
-            <th style="${stTh};text-align:right" onclick="_offSort('rev26')">2026 Rev ${_offArr('rev26')}</th>
-            <th style="${stTh};text-align:left" onclick="_offSort('seg')">Segment ${_offArr('seg')}</th>
-            <th style="${stTh};text-align:left" onclick="_offSort('stage')">Stage ${_offArr('stage')}</th>
-          </tr></thead>
-          <tbody>
-            ${qRows.map(a=>`<tr>
-              <td style="${stTd};color:var(--text);font-weight:500">${a.n||'—'}</td>
-              <td style="${stTd};color:var(--muted)">${_offFmtDate(a.seRM||a.se)}</td>
-              <td style="${stTd};color:var(--muted)">${a.csRep||'—'}</td>
-              <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
-              <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${a.platformId||'—'}</td>
-              <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--dim)">${_offFmt$(a.rev)}</td>
-              <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--green)">${_offFmt$(a.rev26)}</td>
-              <td style="${stTd};color:var(--muted)">${a.seg||'—'}</td>
-              <td style="${stTd};color:${stageColor(a.stage)}">${a.stage||'—'}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
+  const stageColor=s=>{
+    const w=new Set(['9. Invoice Sent','10. Paid']),c=new Set(['11. Churned']),d=new Set(['4a. Attempting again Q2']);
+    if(w.has(s))return'var(--green)';
+    if(c.has(s))return'var(--red)';
+    if(d.has(s))return'var(--orange)';
+    return'var(--muted)';
   };
+  // Quarter buttons. Show Q1–Q4 always; "Undated" only when there are rows
+  // with no qRM (so the button doesn't appear when nothing's there).
+  const qBtn=(q,label)=>{
+    const ct=qCounts[q]||0;
+    const active=selQ===q;
+    return `<button onclick="_offSetQ('${q}')" class="qbtn${active?' active':''}" style="${active?'background:var(--accent);color:#fff;border:1px solid var(--accent)':'background:transparent;color:var(--dim);border:1px solid var(--border)'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${label} <span style="opacity:.75;font-weight:500">(${ct})</span></button>`;
+  };
+  const quarterBar=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    ${qBtn('Q1','Q1')}${qBtn('Q2','Q2')}${qBtn('Q3','Q3')}${qBtn('Q4','Q4')}
+    ${qCounts.Undated>0?qBtn('Undated','Undated'):''}
+  </div>`;
+  // Quarter totals (across the rows currently visible in the selected quarter).
+  const totRev25=rows.reduce((s,a)=>s+(a.rev||0),0);
+  const totRev26=rows.reduce((s,a)=>s+(a.rev26||0),0);
+  // In-quarter filter controls. Active filters get a subtle highlight so it's
+  // visible when the count is being narrowed.
+  const baseInp=`background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit`;
+  const baseInpAct=`background:#1e3a5f;border:1px solid #3b82f6;color:#dbeafe;border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;font-weight:600`;
+  const anyInQuarterFilter=!!(_offState.search||_offState.segFilter||_offState.stageFilter);
+  const filterControls=`
+    <input type="text" placeholder="Search account / CSM / Platform ID…" value="${(_offState.search||'').replace(/"/g,'&quot;')}" oninput="_offSetF('search',this.value)" style="${_offState.search?baseInpAct:baseInp};min-width:220px">
+    <select onchange="_offSetF('segFilter',this.value)" style="${_offState.segFilter?baseInpAct:baseInp}">
+      <option value="">All Segments</option>
+      ${segOpts.map(s=>`<option value="${s.replace(/"/g,'&quot;')}"${_offState.segFilter===s?' selected':''}>${s}</option>`).join('')}
+    </select>
+    <select onchange="_offSetF('stageFilter',this.value)" style="${_offState.stageFilter?baseInpAct:baseInp}">
+      <option value="">All Stages</option>
+      ${stageOpts.map(s=>`<option value="${s.replace(/"/g,'&quot;')}"${_offState.stageFilter===s?' selected':''}>${s}</option>`).join('')}
+    </select>
+    ${anyInQuarterFilter?`<button onclick="_offClear()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear filters</button>`:''}
+  `;
+  const tableHTML=`<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:880px">
+      <thead><tr>
+        <th style="${stTh};text-align:left" onclick="_offSort('n')">Account ${_offArr('n')}</th>
+        <th style="${stTh};text-align:left" onclick="_offSort('seRM')">Sub End ${_offArr('seRM')}</th>
+        <th style="${stTh};text-align:left" onclick="_offSort('csRep')">CSM ${_offArr('csRep')}</th>
+        <th style="${stTh};text-align:left" onclick="_offSort('ae')">Sales Owner ${_offArr('ae')}</th>
+        <th style="${stTh};text-align:left" onclick="_offSort('platformId')">Platform ID ${_offArr('platformId')}</th>
+        <th style="${stTh};text-align:right" onclick="_offSort('rev')">2025 Rev ${_offArr('rev')}</th>
+        <th style="${stTh};text-align:right" onclick="_offSort('rev26')">2026 Rev ${_offArr('rev26')}</th>
+        <th style="${stTh};text-align:left" onclick="_offSort('seg')">Segment ${_offArr('seg')}</th>
+        <th style="${stTh};text-align:left" onclick="_offSort('stage')">Stage ${_offArr('stage')}</th>
+      </tr></thead>
+      <tbody>
+        ${rows.length?rows.map(a=>`<tr>
+          <td style="${stTd};color:var(--text);font-weight:500">${a.n||'—'}</td>
+          <td style="${stTd};color:var(--muted)">${_offFmtDate(a.seRM||a.se)}</td>
+          <td style="${stTd};color:var(--muted)">${a.csRep||'—'}</td>
+          <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
+          <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${a.platformId||'—'}</td>
+          <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--dim)">${_offFmt$(a.rev)}</td>
+          <td style="${stTd};text-align:right;font-family:var(--mono);color:var(--green)">${_offFmt$(a.rev26)}</td>
+          <td style="${stTd};color:var(--muted)">${a.seg||'—'}</td>
+          <td style="${stTd};color:${stageColor(a.stage)}">${a.stage||'—'}</td>
+        </tr>`).join(''):`<tr><td colspan="9" style="padding:18px;text-align:center;color:var(--dim);font-size:11px">No accounts match the current filters.</td></tr>`}
+      </tbody>
+    </table>
+  </div>`;
   const _sfR=_sfSnapshot();
   el.innerHTML=`
     <div class="card" style="margin-bottom:12px">
       <h3>Offers</h3>
-      <div class="sh">Every GP account in scope, broken down by renewal quarter. Sub end is from the Renewal Master; 2025 / 2026 revenue from RM (won = annualized 2026, otherwise offer price). Stage reflects the dashboard-normalized RM value. Pod / CSM filter is shared with the All Accounts tab.</div>
+      <div class="sh">GP renewal accounts (one row per Renewal Master entry) for the selected quarter. Sub end is from the Renewal Master; 2025 / 2026 revenue from RM (won = annualized 2026, otherwise offer price). Stage reflects the dashboard-normalized RM value. Pod / CSM filter is shared with the All Accounts tab.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
         ${dropdown}
-        <span style="margin-left:auto;color:var(--dim);font-size:11px">${rows.length} of ${all.length} accounts</span>
+        <span style="margin-left:8px;color:var(--dim);font-size:11px">Quarter:</span>
+        ${quarterBar}
+        <span style="margin-left:auto;color:var(--dim);font-size:11px">${rows.length} of ${qCounts[selQ]||0} ${selQ} accounts · ${baseRows.length} total</span>
       </div>
     </div>
-    ${qSection('Q1',byQ.Q1)}
-    ${qSection('Q2',byQ.Q2)}
-    ${qSection('Q3',byQ.Q3)}
-    ${qSection('Q4',byQ.Q4)}
-    ${byQ.Undated.length?qSection('No Quarter (missing sub-end date)',byQ.Undated):''}
+    <div class="card">
+      <h3 style="margin:0 0 4px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${selQ} 2026
+        <span style="font-size:11px;color:var(--dim);font-weight:500">· ${rows.length} accounts</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono)">· 2025 ${_offFmt$(totRev25)} → 2026 ${_offFmt$(totRev26)}</span>
+      </h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 12px 0">${filterControls}</div>
+      ${tableHTML}
+    </div>
   `;
   _sfR();
 }
