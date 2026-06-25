@@ -8731,7 +8731,7 @@ function rOverview(){
     <div class="card"><h3>GP Logo Retention Trajectory</h3><div class="sh">Solid = current | Dashed = target | 2025 baseline: 50.05% → Q4 target: 72% → Path to 80%</div><div class="chart-wrap" style="height:250px"><canvas id="c2"></canvas></div><div id="c2_legend" class="chk-legend"></div></div>
     <div class="card"><h3>H1 '26 Variable Comp Structure</h3>
       <div class="grid3">
-        <div class="info-box"><div class="title" style="color:var(--accent)">Activity Gate · 50%</div><div class="desc">Meeting cadence % per CSM. Below floor = <strong>both components zero</strong>. Above floor = linear 0→100%.<br>Floor ramps: <span style="color:var(--amber)">Q2: 50% · Q3: 65% · Q4: 75%</span></div></div>
+        <div class="info-box"><div class="title" style="color:var(--accent)">Activity Gate · 50%</div><div class="desc">Meeting cadence % per CSM, measured against <strong>pool cadence</strong> (ENT+STRAT = monthly / Scale = bi-monthly / SPs = quarterly). 100% = full pool cadence hit. Below floor = <strong>both components zero</strong>. Above floor = linear 0→100%.<br>Floor ramps: <span style="color:var(--amber)">Q2: 50% · Q3: 65% · Q4: 75%</span> of full pool cadence</div></div>
         <div class="info-box"><div class="title" style="color:var(--green)">GP Retention · 50%</div><div class="desc">Team logo retention by pool. Floor→Full = linear 0→100%. Full→Accel = linear 100→125% cap.<br><span style="color:var(--amber)">Q1 CLOSED · Q2: 55%/62%/68%</span></div></div>
         <div class="info-box"><div class="title" style="color:var(--rose)">SP Retention · 50%</div><div class="desc">Separate SP pool. Emilie goaled independently. Same payout curve, different thresholds.<br><span style="color:var(--amber)">Q1 CLOSED · Q2: 45%/55%/65%</span></div></div>
       </div>
@@ -10960,7 +10960,14 @@ function rPayout(){
     const _vCols=(_cd&&_cd.cols||[]).filter(function(col){return(_qmLc[selPQ]||[]).some(function(m){return col.toLowerCase().includes(m);});});
     const _tot=Math.max(_cData.total||0,1);
     const _qTot=_vCols.reduce(function(s,m){return s+((_cData.months&&_cData.months[m]&&_cData.months[m].yes)||0);},0);
-    const cadPct=_vCols.length>0?Math.min(_qTot/_tot*100,100):null;
+    // Pool-aware monthly-cadence denominator. 100% = full pool cadence
+    // achieved (every account every month for ENT+STRAT, bi-monthly for
+    // Scale, quarterly for SPs). The Q2/Q3/Q4 floors (50/65/75%) are
+    // interpreted as "% of full pool cadence reached" so the gate is fair
+    // across segments instead of treating everyone as a quarterly target.
+    const _cadMult=(pool==='Enterprise'||pool==='Strategic')?3:(pool==='Scale')?2:1;
+    const _expected=_tot*_cadMult;
+    const cadPct=_vCols.length>0?Math.min(_qTot/_expected*100,100):null;
     const cadAvail=cadPct!==null;
     const ap=actPayout(cadAvail?cadPct:null,selPQ);
     const tp=cadAvail?totalPayout(cadPct,retR,selPQ,isSP):{totalPct:null};
