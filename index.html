@@ -12606,8 +12606,13 @@ function _cadHSAuditCompute(){
       if(!hs)return;
       months.forEach(([moAbbr,moKey])=>{
         const flagYes=_cadHSIsYes(hs[moKey]);
-        const meetingsList=_hsBucket(pid,moAbbr);
-        const hasMeeting=!!(meetingsList&&meetingsList.length);
+        // _hsBucket returns an OBJECT { count, lastIso, earliestIso,
+        // assignees:[], lastAssignee } — not an array. hasMeeting needs
+        // to read .count, not .length, or every audit comparison reads
+        // as "no meeting" and inflates unverified counts.
+        const b=_hsBucket(pid,moAbbr);
+        const cnt=(b&&typeof b.count==='number')?b.count:0;
+        const hasMeeting=cnt>0;
         let status='ok';
         if(flagYes){
           bucketCsm[moKey].markedY++;byMonth[moAbbr].markedY++;
@@ -12619,12 +12624,13 @@ function _cadHSAuditCompute(){
           status='forgot';
         }
         if(status==='unverified'||status==='forgot'){
+          const assigneesArr=(b&&Array.isArray(b.assignees))?b.assignees:[];
           rows.push({
             csm:csmName,acct:a.acct,pid,mo:moAbbr,status,
             flag:hs[moKey]||'',
-            meetingCount:hasMeeting?meetingsList.length:0,
-            assignees:hasMeeting?(meetingsList.map(m=>m.assignee).filter(Boolean)):[],
-            lastAssignee:hasMeeting&&meetingsList[0]?meetingsList[0].assignee:''
+            meetingCount:cnt,
+            assignees:assigneesArr,
+            lastAssignee:(b&&b.lastAssignee)||(assigneesArr[0]||'')
           });
         }
       });
@@ -12734,8 +12740,15 @@ function rCadenceHS(){
   // Audit data shared with the original Cadence tab. _cadAuditPromptImport
   // and _cadPublishToTeam are the same functions that tab uses, so importing
   // a HubSpot meeting export here populates the audit data everywhere.
+  // Wrapped in try/catch so a bug in audit aggregation can never blank the
+  // whole tab — the main cadence table still renders, the audit panel just
+  // disappears with a warning console log.
   const _auditLoaded=!!(_cadAuditData&&_cadAuditData.bucket);
-  const _hsAudit=_auditLoaded?_cadHSAuditCompute():null;
+  let _hsAudit=null;
+  if(_auditLoaded){
+    try{_hsAudit=_cadHSAuditCompute();}
+    catch(e){console.warn('Cadence HS audit compute failed:',e);_hsAudit=null;}
+  }
   // Source badge mirroring the original Cadence's LOCAL / PUBLISHED / BAKED
   // chip so the user knows whether they're looking at their own upload or
   // a team-published baseline.
