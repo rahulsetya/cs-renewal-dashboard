@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-26T17:29:22.226Z",
-  "syncedAt": "2026-06-26T17:29:22.226Z",
+  "publishedAt": "2026-06-26T17:45:41.046Z",
+  "syncedAt": "2026-06-26T17:45:41.046Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -3172,7 +3172,7 @@
       },
       {
         "pid": "6345",
-        "companyName": "Blue Orca Capital",
+        "companyName": "Blue Orca, LLC",
         "dealName": "Blue Orca Capital — Platform Subscription 2026",
         "dealType": "New Platform Subscription",
         "amount": 0,
@@ -3187,7 +3187,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T00:10:53.699Z"
+        "hsLastModified": "2026-06-26T17:38:27.709Z"
       },
       {
         "pid": "12615",
@@ -4519,7 +4519,7 @@
         "ownerId": "2073816592",
         "ownerName": "Ashley Moss",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:39:44.226Z"
+        "hsLastModified": "2026-06-26T17:39:41.499Z"
       },
       {
         "pid": "23128",
@@ -9102,7 +9102,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:31:44.392Z"
+        "hsLastModified": "2026-06-26T17:32:49.111Z"
       },
       {
         "pid": "15489",
@@ -9273,7 +9273,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T12:03:13.305Z"
+        "hsLastModified": "2026-06-26T17:36:34.949Z"
       },
       {
         "pid": "40987",
@@ -9881,7 +9881,7 @@
         "ownerId": "87408147",
         "ownerName": "Savannah Odom",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:31:43.753Z"
+        "hsLastModified": "2026-06-26T17:32:48.914Z"
       },
       {
         "pid": "16327",
@@ -10318,7 +10318,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:31:44.554Z"
+        "hsLastModified": "2026-06-26T17:32:50.110Z"
       },
       {
         "pid": "40957",
@@ -11097,7 +11097,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T15:43:07.098Z"
+        "hsLastModified": "2026-06-26T17:43:43.957Z"
       },
       {
         "pid": "398",
@@ -15488,7 +15488,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T17:12:37.900Z"
+        "hsLastModified": "2026-06-26T17:31:11.444Z"
       },
       {
         "pid": "946",
@@ -16823,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-26T17:29:22.226Z",
-    "Q2": "2026-06-26T17:29:22.226Z",
-    "Q3": "2026-06-26T17:29:22.226Z",
-    "Q4": "2026-06-26T17:29:22.226Z"
+    "Q1": "2026-06-26T17:45:41.046Z",
+    "Q2": "2026-06-26T17:45:41.046Z",
+    "Q3": "2026-06-26T17:45:41.046Z",
+    "Q4": "2026-06-26T17:45:41.046Z"
   },
   "owners": {
     "27231823": {
@@ -18943,15 +18943,15 @@
       "hsId": "23454039148",
       "segment": ""
     },
-    "Ultranative": {
-      "platformId": "22452",
-      "hsId": "33049315401",
-      "segment": "Scale"
-    },
     "Clear Street": {
       "platformId": "39579",
       "hsId": "32636983176",
       "segment": ""
+    },
+    "Ultranative": {
+      "platformId": "22452",
+      "hsId": "33049315401",
+      "segment": "Scale"
     },
     "Energy Innovation Capital (\"EIC\")": {
       "platformId": "43120",
@@ -19008,11 +19008,6 @@
       "hsId": "9431882022",
       "segment": "Scale"
     },
-    "Partners Group": {
-      "platformId": "9655",
-      "hsId": "46903783773",
-      "segment": ""
-    },
     "Object Edge": {
       "platformId": "18086",
       "hsId": "23478628675",
@@ -19046,6 +19041,11 @@
     "Atlas Card": {
       "platformId": "42793",
       "hsId": "36650830250",
+      "segment": ""
+    },
+    "Partners Group": {
+      "platformId": "9655",
+      "hsId": "46903783773",
       "segment": ""
     },
     "Broadridge": {
@@ -19613,11 +19613,6 @@
       "hsId": "37010488832",
       "segment": "Scale"
     },
-    "Anchin Block & Anchin": {
-      "platformId": "6832",
-      "hsId": "35016893963",
-      "segment": ""
-    },
     "Torchlight Investors": {
       "platformId": "40963",
       "hsId": "53211310684",
@@ -19666,6 +19661,11 @@
     "Repool": {
       "platformId": "17168",
       "hsId": "39256059918",
+      "segment": ""
+    },
+    "Anchin Block & Anchin": {
+      "platformId": "6832",
+      "hsId": "35016893963",
       "segment": ""
     },
     "KPMG (USA)": {
@@ -20218,11 +20218,6 @@
       "hsId": "29630474338",
       "segment": ""
     },
-    "Keyframe Capital": {
-      "platformId": "40762",
-      "hsId": "39730799946",
-      "segment": "Scale"
-    },
     "Proskauer Rose": {
       "platformId": "22816",
       "hsId": "55593963449",
@@ -20282,6 +20277,11 @@
       "platformId": "6176",
       "hsId": "4426952138",
       "segment": ""
+    },
+    "Keyframe Capital": {
+      "platformId": "40762",
+      "hsId": "39730799946",
+      "segment": "Scale"
     },
     "Jones Street": {
       "platformId": "44273",
@@ -21208,11 +21208,6 @@
       "hsId": "9834299226",
       "segment": ""
     },
-    "Blue Orca Capital": {
-      "platformId": "6345",
-      "hsId": "6806414491",
-      "segment": ""
-    },
     "Caius Capital": {
       "platformId": "14390",
       "hsId": "4426183093",
@@ -21396,6 +21391,11 @@
     "Laurel Lake Advisors": {
       "platformId": "44317",
       "hsId": "49527554840",
+      "segment": ""
+    },
+    "Blue Orca, LLC": {
+      "platformId": "6345",
+      "hsId": "6806414491",
       "segment": ""
     },
     "Ascenta Capital": {
@@ -21613,6 +21613,11 @@
       "hsId": "4999005590",
       "segment": ""
     },
+    "Vineyard Quant Capital": {
+      "platformId": "43968",
+      "hsId": "4950081026",
+      "segment": "Enterprise"
+    },
     "Centre Lane Partners LLC": {
       "platformId": "2409",
       "hsId": "30436765345",
@@ -21687,11 +21692,6 @@
       "platformId": "4073",
       "hsId": "8359570325",
       "segment": "Scale"
-    },
-    "Vineyard Quant Capital": {
-      "platformId": "43968",
-      "hsId": "4950081026",
-      "segment": "Enterprise"
     },
     " Revelio Labs, Inc.": {
       "platformId": "10580",
@@ -23750,7 +23750,7 @@
       "sep": ""
     },
     "6345": {
-      "name": "Blue Orca Capital",
+      "name": "Blue Orca, LLC",
       "accountManager": "",
       "segment": "",
       "jul": "",
