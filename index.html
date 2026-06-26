@@ -12532,6 +12532,64 @@ function _offBuildUploadModal(){
     </div>
   `;
 }
+// Cadence HS audit — compares each CSM's accounts' HubSpot call_complete
+// flag (truth) against the HubSpot meeting records uploaded via the audit
+// import (.xlsx). Same dichotomy as the original Cadence audit, but the
+// "self-reported Y" axis is the HS bool flag instead of the ET tracker col.
+//   flag=Yes + meeting     → ✅ confirmed
+//   flag=Yes + no meeting  → ❌ unconfirmed (flagged but no HS meeting logged)
+//   flag=No/blank + meeting → ⚠ forgot to flag (HS has meeting, flag not set)
+//   flag=No/blank + no meeting → skip (not interesting)
+// Returns { rows: [...], byMonth: {Jul:{verified,unverified,forgot,...}, ...},
+//           byCsm: {csmName: {jul:{...}, aug:{...}, sep:{...}, total:{...}}} }
+function _cadHSAuditCompute(){
+  if(!_cadAuditData||!_cadAuditData.bucket)return null;
+  const _cdLocal=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
+  if(!_cdLocal||!_cdLocal.csm)return null;
+  const months=[['Jul','jul'],['Aug','aug'],['Sep','sep']];
+  const rows=[];
+  const byMonth={Jul:{verified:0,unverified:0,forgot:0,markedY:0,hasMeeting:0},
+                 Aug:{verified:0,unverified:0,forgot:0,markedY:0,hasMeeting:0},
+                 Sep:{verified:0,unverified:0,forgot:0,markedY:0,hasMeeting:0}};
+  const byCsm={};
+  Object.entries(_cdLocal.csm).forEach(([csmName,csmData])=>{
+    const bucketCsm={jul:{verified:0,unverified:0,forgot:0,markedY:0,hasMeeting:0},
+                     aug:{verified:0,unverified:0,forgot:0,markedY:0,hasMeeting:0},
+                     sep:{verified:0,unverified:0,forgot:0,markedY:0,hasMeeting:0}};
+    (csmData.allAccts||[]).forEach(a=>{
+      const pid=String(a.platformId||'').trim();
+      if(!pid)return;
+      const hs=_offCadenceByPid[pid];
+      if(!hs)return;
+      months.forEach(([moAbbr,moKey])=>{
+        const flagYes=_cadHSIsYes(hs[moKey]);
+        const meetingsList=_hsBucket(pid,moAbbr);
+        const hasMeeting=!!(meetingsList&&meetingsList.length);
+        let status='ok';
+        if(flagYes){
+          bucketCsm[moKey].markedY++;byMonth[moAbbr].markedY++;
+          if(hasMeeting){bucketCsm[moKey].verified++;byMonth[moAbbr].verified++;status='verified';}
+          else{bucketCsm[moKey].unverified++;byMonth[moAbbr].unverified++;status='unverified';}
+        }else if(hasMeeting){
+          bucketCsm[moKey].hasMeeting++;byMonth[moAbbr].hasMeeting++;
+          bucketCsm[moKey].forgot++;byMonth[moAbbr].forgot++;
+          status='forgot';
+        }
+        if(status==='unverified'||status==='forgot'){
+          rows.push({
+            csm:csmName,acct:a.acct,pid,mo:moAbbr,status,
+            flag:hs[moKey]||'',
+            meetingCount:hasMeeting?meetingsList.length:0,
+            assignees:hasMeeting?(meetingsList.map(m=>m.assignee).filter(Boolean)):[],
+            lastAssignee:hasMeeting&&meetingsList[0]?meetingsList[0].assignee:''
+          });
+        }
+      });
+    });
+    byCsm[csmName]=bucketCsm;
+  });
+  return {rows,byMonth,byCsm};
+}
 // Cadence HS — HubSpot-sourced cadence tab. Same per-CSM × month shape as
 // the engagement-tracker Cadence tab, but Q3 cells (Jul/Aug/Sep) read from
 // HubSpot company properties (july/august/september_2026_call_complete) via
@@ -12616,10 +12674,30 @@ function rCadenceHS(){
   // Row roster — keep CSM order from CSM[]. Each row carries pool tag from c.seg.
   const _roster=(typeof CSM!=='undefined'&&CSM.length)?CSM:[];
   const _hasData=cd&&cd.cols&&cd.cols.length;
+  // Audit data shared with the original Cadence tab. _cadAuditPromptImport
+  // and _cadPublishToTeam are the same functions that tab uses, so importing
+  // a HubSpot meeting export here populates the audit data everywhere.
+  const _auditLoaded=!!(_cadAuditData&&_cadAuditData.bucket);
+  const _hsAudit=_auditLoaded?_cadHSAuditCompute():null;
+  // Source badge mirroring the original Cadence's LOCAL / PUBLISHED / BAKED
+  // chip so the user knows whether they're looking at their own upload or
+  // a team-published baseline.
+  const _srcBadge=(function(){
+    if(!_auditLoaded)return'';
+    if(typeof _cadAuditSource==='undefined')return'';
+    if(_cadAuditSource==='local')return`<span style="font-size:9px;background:rgba(59,130,246,.22);color:var(--accent);border:1px solid rgba(59,130,246,.45);padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">LOCAL IMPORT</span>`;
+    if(_cadAuditSource==='published')return`<span style="font-size:9px;background:rgba(16,185,129,.22);color:var(--green);border:1px solid rgba(16,185,129,.45);padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">TEAM-PUBLISHED</span>`;
+    if(_cadAuditSource==='baked')return`<span style="font-size:9px;background:rgba(16,185,129,.22);color:var(--green);border:1px solid rgba(16,185,129,.45);padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:.3px">BAKED</span>`;
+    return'';
+  })();
   el.innerHTML=`
     <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--dim)">Quarter:</span>
       ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="_setSelCadQ('${qq}');rT('cadence_hs')">${qq}</button>`).join('')}
+      <button onclick="_cadAuditPromptImport()" title="Import a HubSpot meeting export (.xlsx). Same import flow as the Cadence tab — once loaded, the verification panel below compares each company's call_complete flag against actual HubSpot meeting records." style="margin-left:14px;background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px">⬆ Import HubSpot${_auditLoaded?' ✓':''}</button>
+      ${_auditLoaded?`<button onclick="_cadPublishToTeam()" title="Commit the audit data to GitHub so everyone sees the same verification state — live in ~60 s." style="background:#10b981;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">📤 Publish to Team</button>`:''}
+      ${_auditLoaded?`<button onclick="_cadAuditClear()" title="Clear imported audit data from this browser." style="background:transparent;color:#f87171;border:1px solid #7f1d1d;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
+      ${_srcBadge}
       <span style="margin-left:auto;font-size:10px;color:var(--dim);font-weight:600;letter-spacing:.3px">
         ${hsRosterAvail?`<span style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.4);padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase;font-family:var(--mono)">⚡ HubSpot live</span>`:`<span style="color:var(--amber)">⚠ HubSpot data not loaded yet</span>`}
       </span>
@@ -12663,7 +12741,143 @@ function rCadenceHS(){
       </table>
       ${!_hasData&&selCadQ!=='Q3'?`<div style="margin-top:10px;font-size:11px;color:var(--amber);padding:8px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px">Engagement tracker not loaded yet — only Q3 (HubSpot) cells will populate. Q1/Q2 need the engagement tracker; refresh the dashboard or load the source.</div>`:''}
     </div>
+    ${_auditPanelHTML(_hsAudit,selCadQ)}
   `;
+}
+// Cadence HS audit panel — only renders when a HubSpot meeting export has
+// been imported. Compares each Q3 month's call_complete flag against the
+// uploaded meeting bucket and surfaces:
+//   • Per-month summary cards (overall accuracy + counts).
+//   • Per-CSM scorecard (accuracy across Jul/Aug/Sep).
+//   • Discrepancy list (Review & Resolve) — accounts flagged Yes without an
+//     HS meeting, or with an HS meeting but the flag isn't Yes.
+function _auditPanelHTML(audit,selQ){
+  if(!audit)return'';
+  // The audit only spans the Q3 HubSpot months. On other quarters the panel
+  // collapses to a hint — the call_complete properties only exist for Jul/
+  // Aug/Sep so there's nothing to compare against outside Q3.
+  if(selQ!=='Q3'){
+    return `<div class="card" style="margin-top:14px;border-color:rgba(59,130,246,.4)">
+      <div style="font-size:11px;color:var(--dim);font-weight:600">Audit panel only renders on <strong style="color:var(--accent)">Q3</strong> — the call_complete properties exist for Jul/Aug/Sep only.</div>
+    </div>`;
+  }
+  const months=[['Jul','jul'],['Aug','aug'],['Sep','sep']];
+  // Top-line totals across all 3 months.
+  let tMarkedY=0,tVer=0,tUnv=0,tFor=0;
+  months.forEach(([abbr])=>{
+    const m=audit.byMonth[abbr];
+    tMarkedY+=m.markedY;tVer+=m.verified;tUnv+=m.unverified;tFor+=m.forgot;
+  });
+  const overallRate=tMarkedY?Math.round(tVer/tMarkedY*100):0;
+  const _card=(label,val,sub,color,tip)=>`
+    <div style="background:${color}G;border:1px solid ${color};border-radius:8px;padding:10px 14px;flex:1;min-width:140px" title="${tip}">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600">${label}</div>
+      <div style="font-size:22px;font-weight:700;color:${color};font-family:var(--mono)">${val}</div>
+      <div style="font-size:10px;color:var(--muted)">${sub}</div>
+    </div>`;
+  // Color tokens. Using literal hex because var() inside the bg gradient
+  // expression below would need extra plumbing.
+  const _ac='var(--accent)',_gr='var(--green)',_rd='var(--red)',_am='var(--amber)';
+  const summary=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0">
+    <div style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);border-radius:8px;padding:10px 14px" title="Of all the months a CSM marked the call complete (flag = Yes), how many had a real HubSpot meeting that month?">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600">Flag Accuracy</div>
+      <div style="font-size:22px;font-weight:700;color:${overallRate>=80?'var(--green)':overallRate>=50?'var(--amber)':'var(--red)'};font-family:var(--mono)">${overallRate}%</div>
+      <div style="font-size:10px;color:var(--muted)">${tVer} of ${tMarkedY} flagged confirmed</div>
+    </div>
+    <div style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);border-radius:8px;padding:10px 14px" title="call_complete = Yes AND HubSpot has at least one meeting for that account/month.">
+      <div style="font-size:10px;color:var(--green);text-transform:uppercase;font-weight:600">✅ Confirmed</div>
+      <div style="font-size:22px;font-weight:700;color:var(--green);font-family:var(--mono)">${tVer}</div>
+      <div style="font-size:10px;color:var(--muted)">Flag Yes + HS meeting found</div>
+    </div>
+    <div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:10px 14px" title="call_complete = Yes but no HubSpot meeting found — possible over-reporting or off-platform meeting.">
+      <div style="font-size:10px;color:var(--red);text-transform:uppercase;font-weight:600">❌ Unconfirmed</div>
+      <div style="font-size:22px;font-weight:700;color:var(--red);font-family:var(--mono)">${tUnv}</div>
+      <div style="font-size:10px;color:var(--muted)">Flag Yes + no HS meeting</div>
+    </div>
+    <div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:10px 14px" title="HubSpot has a meeting but the call_complete flag isn't Yes — CSM forgot to flag.">
+      <div style="font-size:10px;color:var(--amber);text-transform:uppercase;font-weight:600">⚠ Forgot to Flag</div>
+      <div style="font-size:22px;font-weight:700;color:var(--amber);font-family:var(--mono)">${tFor}</div>
+      <div style="font-size:10px;color:var(--muted)">HS meeting + flag blank/No</div>
+    </div>
+  </div>`;
+  // Per-CSM scorecard table — sorted worst-accuracy first so the rows that
+  // most need attention float to the top.
+  const csmList=Object.entries(audit.byCsm).map(([name,b])=>{
+    const markedY=b.jul.markedY+b.aug.markedY+b.sep.markedY;
+    const ver=b.jul.verified+b.aug.verified+b.sep.verified;
+    const unv=b.jul.unverified+b.aug.unverified+b.sep.unverified;
+    const forg=b.jul.forgot+b.aug.forgot+b.sep.forgot;
+    return {name,markedY,ver,unv,forg,acc:markedY?Math.round(ver/markedY*100):null};
+  }).filter(x=>x.markedY||x.forg);
+  csmList.sort((a,b)=>{
+    if(a.acc==null&&b.acc==null)return 0;if(a.acc==null)return 1;if(b.acc==null)return -1;
+    return a.acc-b.acc;
+  });
+  const scorecard=csmList.length?`<div style="overflow-x:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px">
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Per-CSM Scorecard <span style="color:var(--muted);font-weight:400">(sorted worst-accuracy first)</span></div>
+    <table style="border-collapse:collapse;width:100%;min-width:600px">
+      <thead><tr style="border-bottom:2px solid var(--borderL);background:var(--card)">
+        <th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--muted)">CSM</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--muted)" title="How many months they marked call_complete = Yes across Jul/Aug/Sep.">Flagged Yes</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--green)" title="Flag Yes + HS meeting found.">Confirmed</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--red)" title="Flag Yes + no HS meeting.">Unconfirmed</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--amber)" title="HS meeting + flag blank/No.">Forgot</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--muted)" title="Confirmed ÷ Flagged Yes.">Accuracy</th>
+      </tr></thead>
+      <tbody>${csmList.map(x=>{
+        const accCol=x.acc==null?'var(--dim)':x.acc>=80?'var(--green)':x.acc>=50?'var(--amber)':'var(--red)';
+        return `<tr style="border-top:1px solid rgba(255,255,255,.05)">
+          <td style="padding:6px 12px;color:var(--text);font-weight:500">${x.name}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:var(--mono)">${x.markedY}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:var(--green)">${x.ver}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:${x.unv?'var(--red)':'var(--dim)'}">${x.unv}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:${x.forg?'var(--amber)':'var(--dim)'}">${x.forg}</td>
+          <td style="padding:6px 8px;text-align:center;font-family:var(--mono);font-weight:700;color:${accCol}">${x.acc==null?'—':x.acc+'%'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`:`<div style="padding:10px;color:var(--dim);font-size:11px">No flagged calls and no missing-flag meetings across Q3.</div>`;
+  // Review & Resolve — per-row discrepancy list. Sorted by status then CSM.
+  const discRows=audit.rows.slice().sort((a,b)=>{
+    if(a.status!==b.status)return a.status==='unverified'?-1:1;
+    return (a.csm||'').localeCompare(b.csm||'')||(a.acct||'').localeCompare(b.acct||'');
+  });
+  const statusChip=s=>{
+    if(s==='unverified')return`<span style="font-size:9px;font-weight:700;color:var(--red);background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);padding:2px 7px;border-radius:10px;letter-spacing:.3px">❌ UNCONFIRMED</span>`;
+    if(s==='forgot')return`<span style="font-size:9px;font-weight:700;color:var(--amber);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);padding:2px 7px;border-radius:10px;letter-spacing:.3px">⚠ FORGOT</span>`;
+    return s;
+  };
+  const _escA=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'\x26lt;','>':'\x26gt;','&':'\x26amp;','"':'\x26quot;'}[c]));
+  const reviewTable=discRows.length?`<div style="overflow-x:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px">
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Review &amp; Resolve <span style="color:var(--muted);font-weight:400">· ${discRows.length} discrepanc${discRows.length===1?'y':'ies'}</span></div>
+    <table style="border-collapse:collapse;width:100%;min-width:680px">
+      <thead><tr style="border-bottom:2px solid var(--borderL);background:var(--card)">
+        <th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--muted)">CSM</th>
+        <th style="text-align:left;padding:8px 8px;font-size:11px;color:var(--muted)">Account</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--muted);font-family:var(--mono)">Platform ID</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--muted)">Month</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--muted)">Status</th>
+        <th style="text-align:center;padding:8px 8px;font-size:11px;color:var(--muted)" title="Number of HubSpot meeting records that month.">HS Meetings</th>
+        <th style="text-align:left;padding:8px 8px;font-size:11px;color:var(--muted)" title="The CSM who logged the most recent HubSpot meeting (if any) for that account that month.">Logged By</th>
+      </tr></thead>
+      <tbody>${discRows.map(r=>`<tr style="border-top:1px solid rgba(255,255,255,.05)">
+        <td style="padding:6px 12px;color:var(--text);font-weight:500">${_escA(r.csm)}</td>
+        <td style="padding:6px 8px;color:var(--text)">${_escA(r.acct)}</td>
+        <td style="padding:6px 8px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim)">${_escA(r.pid)}</td>
+        <td style="padding:6px 8px;text-align:center;font-size:11px;color:var(--muted)">${_escA(r.mo)} 2026</td>
+        <td style="padding:6px 8px;text-align:center">${statusChip(r.status)}</td>
+        <td style="padding:6px 8px;text-align:center;font-family:var(--mono);color:${r.meetingCount?'var(--green)':'var(--dim)'}">${r.meetingCount||'—'}</td>
+        <td style="padding:6px 8px;font-size:11px;color:var(--muted)">${r.lastAssignee?_escA(r.lastAssignee):'<span style="color:var(--dim)">—</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`:`<div style="padding:10px;color:var(--dim);font-size:11px;margin-top:8px">✓ No discrepancies — every flagged call has a meeting and every meeting is flagged.</div>`;
+  return `<div class="card" style="margin-top:14px;border-color:rgba(59,130,246,.4);background:linear-gradient(180deg,rgba(59,130,246,.05),var(--card))">
+    <h3 style="display:flex;align-items:center;gap:8px">🔍 Cadence HS Audit <span style="font-size:11px;color:var(--dim);font-weight:400">flag vs. HubSpot meetings</span></h3>
+    <div class="sh">Match key: <strong>Platform ID × Month × 2026</strong>. Compares each company's <code style="color:var(--accent)">july/august/september_2026_call_complete</code> flag against the HubSpot meeting export uploaded above. ${_cadAuditData&&_cadAuditData.rowsParsed?`<span style="color:var(--dim);font-size:10px">· ${_cadAuditData.rowsParsed} HS meetings parsed</span>`:''}</div>
+    ${summary}
+    ${scorecard}
+    ${reviewTable}
+  </div>`;
 }
 function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'cadence_hs':rCadenceHS();break;case'offers':rOffers();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
 rOverview();
