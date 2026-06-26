@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-26T21:45:43.470Z",
-  "syncedAt": "2026-06-26T21:45:43.470Z",
+  "publishedAt": "2026-06-26T22:58:32.098Z",
+  "syncedAt": "2026-06-26T22:58:32.098Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,11 +20,11 @@
     ]
   },
   "counts": {
-    "deals": 1865,
+    "deals": 1864,
     "includedDeals": 884,
     "companies": 2805,
     "droppedNoCompany": 12,
-    "droppedNoPid": 969,
+    "droppedNoPid": 968,
     "perQuarter": {
       "Q1": 174,
       "Q2": 83,
@@ -11173,7 +11173,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T21:23:49.400Z"
+        "hsLastModified": "2026-06-26T22:24:53.301Z"
       },
       {
         "pid": "21546",
@@ -16842,10 +16842,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-26T21:45:43.470Z",
-    "Q2": "2026-06-26T21:45:43.470Z",
-    "Q3": "2026-06-26T21:45:43.470Z",
-    "Q4": "2026-06-26T21:45:43.470Z"
+    "Q1": "2026-06-26T22:58:32.098Z",
+    "Q2": "2026-06-26T22:58:32.098Z",
+    "Q3": "2026-06-26T22:58:32.098Z",
+    "Q4": "2026-06-26T22:58:32.098Z"
   },
   "owners": {
     "27231823": {
@@ -23237,6 +23237,11 @@
       "hsId": "17915290778",
       "segment": "Enterprise"
     },
+    "BIT Capital GmbH": {
+      "platformId": "44997",
+      "hsId": "4427006356",
+      "segment": "Enterprise"
+    },
     "Galaxy": {
       "platformId": "431",
       "hsId": "36936908974",
@@ -28524,7 +28529,7 @@
       "accountManager": "Andreas Santikos",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-06-30",
+      "subscriptionEndDate": "2027-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -31084,7 +31089,7 @@
       "accountManager": "Christina Chumak",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-06-30",
+      "subscriptionEndDate": "2027-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -31371,7 +31376,7 @@
     },
     "11106": {
       "name": "Arion Investment Management Limited",
-      "accountManager": "Joe Romanoff",
+      "accountManager": "Phoebe Willoughby",
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2027-06-30",
@@ -37674,7 +37679,7 @@
       "accountManager": "Juwan Pryce",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-06-15",
+      "subscriptionEndDate": "2027-05-30",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -39024,7 +39029,7 @@
       "accountManager": "Support iConnections",
       "segment": "Scale",
       "category": "Manager",
-      "subscriptionEndDate": "2028-01-31",
+      "subscriptionEndDate": "2028-01-30",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -39824,7 +39829,17 @@
       "accountManager": "Sunny Unger",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-07-31",
+      "subscriptionEndDate": "2027-07-30",
+      "jul": "",
+      "aug": "",
+      "sep": ""
+    },
+    "44997": {
+      "name": "BIT Capital GmbH",
+      "accountManager": "Juwan Pryce",
+      "segment": "Enterprise",
+      "category": "Manager",
+      "subscriptionEndDate": "2027-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
