@@ -8288,6 +8288,40 @@ function _cadAuditParseFile(file,opts){
 //   unverified — tracker says Y, HubSpot has 0 meetings   ❌
 //   forgot     — tracker says blank/N, HubSpot has ≥1     ⚠
 //   none       — both empty (silently dropped)
+// Per-(CSM, monthCol) audit counts — returns {unverified, forgot} for one
+// cell. Mirrors the logic in _cadAuditCompute but scoped to a single month
+// so the main Cadence table can render inline chips next to each cell.
+// Returns {unv:0, forg:0} when no audit data is loaded so callers can safely
+// render unconditionally.
+function _cadCellAuditCounts(csmName,monthCol){
+  if(!_cadAuditData||!_cadAuditData.bucket)return{unv:0,forg:0};
+  const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
+  if(!cd||!cd.csm||!cd.csm[csmName])return{unv:0,forg:0};
+  let unv=0,forg=0;
+  (cd.csm[csmName].allAccts||[]).forEach(a=>{
+    const v=String((a.calls&&a.calls[monthCol])||'').trim().toLowerCase();
+    const marked=v.startsWith('y');
+    const pid=String(a.platformId||'').trim();
+    if(!pid)return;
+    const b=_hsBucket(pid,monthCol);
+    const cnt=b?b.count:0;
+    const ovr=(typeof _getOvr==='function')?_getOvr(pid,monthCol):null;
+    if(marked&&cnt===0){
+      if(ovr&&ovr.status==='verified')return;
+      unv++;
+    }else if(!marked&&cnt>0){
+      // Same future-meeting guard as _cadAuditCompute — don't flag forgot
+      // if every meeting in the bucket is still upcoming.
+      const earliestIso=b.earliestIso||b.lastIso||'';
+      const today=new Date();
+      const todayIso=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+      if(earliestIso&&earliestIso>todayIso)return;
+      if(ovr&&ovr.status==='verified')return;
+      forg++;
+    }
+  });
+  return{unv,forg};
+}
 function _cadAuditCompute(){
   // Either GP or SP audit data is enough to compute — _hsBucket consults both.
   const _hasGP=_cadAuditData&&_cadAuditData.bucket;
@@ -10213,7 +10247,16 @@ function rCadence(){
                 // on the same line. LP only renders when LP data is loaded;
                 // otherwise the cell is GP-only and identical to pre-LP.
                 const lpInline=_cadLPData?`<span style="font-weight:500;font-size:11px;font-family:var(--mono);color:${lpCnt>0?'#fb923c':'var(--dim)'};opacity:${lpCnt>0?'.85':'.45'};margin-left:8px;letter-spacing:.2px">(${lpCnt})</span>`:'';
-                return `<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${lpInline}${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)" title="${_cadIncludeLP&&_cadLPData?'GP+LP / accts ('+effCnt+'/'+tot+')':'GP / accts ('+cnt+'/'+tot+')'}">${pv}</div>${gapBadge}</td>`;
+                // Audit chips per (CSM, month): ❌ unverified (tracker=Y but
+                // no HS meeting) and ⚠ forgot (HS meeting exists but tracker
+                // blank/N). Honor manual overrides via _cadCellAuditCounts.
+                // Chips only render when audit data is loaded and the count
+                // for this specific cell is > 0.
+                const _cellAud=_cadCellAuditCounts(c.n,m);
+                const _cellUnvChip=_cellAud.unv>0?`<span title="${_cellAud.unv} unconfirmed call${_cellAud.unv===1?'':'s'} in ${m} (tracker Y but no HubSpot meeting)" style="display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.4);font-family:var(--mono)">❌ ${_cellAud.unv}</span>`:'';
+                const _cellForChip=_cellAud.forg>0?`<span title="${_cellAud.forg} HubSpot meeting${_cellAud.forg===1?'':'s'} in ${m} not flagged in tracker" style="display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.4);font-family:var(--mono)">⚠ ${_cellAud.forg}</span>`:'';
+                const _cellChips=(_cellUnvChip||_cellForChip)?`<div style="display:flex;justify-content:center;gap:4px;margin-top:3px">${_cellUnvChip}${_cellForChip}</div>`:'';
+                return `<td style="text-align:center;padding:7px 10px"><span style="cursor:pointer;font-weight:700;font-size:15px;font-family:var(--mono);color:${cnt>0?'var(--green)':'var(--dim)'}" onclick="_cadOpen('${rid}','${c.n.replace(/'/g,"\\'")}','${m}')">${cnt}</span>${lpInline}${_rcCadD(c.n,m,cnt)}<div style="font-size:10px;color:var(--dim)" title="${_cadIncludeLP&&_cadLPData?'GP+LP / accts ('+effCnt+'/'+tot+')':'GP / accts ('+cnt+'/'+tot+')'}">${pv}</div>${gapBadge}${_cellChips}</td>`;
               }).join('')}
               ${(()=>{
                 const lpQTot=_cadLPData?visCols.reduce((s,m)=>s+_cadLPCount(c.n,m),0):0;
