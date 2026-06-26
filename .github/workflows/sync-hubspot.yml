@@ -40,10 +40,22 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain hubspot-deals.json)" ]; then
-            git add hubspot-deals.json
-            git commit -m "chore(sync): update hubspot-deals.json"
-            git push
-          else
+          if [ -z "$(git status --porcelain hubspot-deals.json)" ]; then
             echo "No changes — skipping commit."
+            exit 0
           fi
+          git add hubspot-deals.json
+          git commit -m "chore(sync): update hubspot-deals.json"
+          # Retry push with rebase if main moved while the sync was running
+          # (race between this workflow and any manual push). Up to 5 tries.
+          for i in 1 2 3 4 5; do
+            if git push; then
+              echo "Push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "Push attempt $i failed — rebasing onto fresh main and retrying…"
+            git fetch origin main
+            git rebase origin/main || { echo "Rebase failed — aborting."; git rebase --abort; exit 1; }
+          done
+          echo "All push attempts failed."
+          exit 1
