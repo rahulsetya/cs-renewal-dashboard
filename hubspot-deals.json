@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-26T17:45:41.046Z",
-  "syncedAt": "2026-06-26T17:45:41.046Z",
+  "publishedAt": "2026-06-26T17:56:46.894Z",
+  "syncedAt": "2026-06-26T17:56:46.894Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -3073,7 +3073,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T17:25:23.548Z"
+        "hsLastModified": "2026-06-26T17:46:10.014Z"
       },
       {
         "pid": "1383",
@@ -4025,7 +4025,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:37:31.813Z"
+        "hsLastModified": "2026-06-26T17:55:12.843Z"
       },
       {
         "pid": "6915",
@@ -11002,7 +11002,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T19:49:08.493Z"
+        "hsLastModified": "2026-06-26T17:52:10.555Z"
       },
       {
         "pid": "20039",
@@ -11097,7 +11097,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T17:43:43.957Z"
+        "hsLastModified": "2026-06-26T17:47:18.288Z"
       },
       {
         "pid": "398",
@@ -16823,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-26T17:45:41.046Z",
-    "Q2": "2026-06-26T17:45:41.046Z",
-    "Q3": "2026-06-26T17:45:41.046Z",
-    "Q4": "2026-06-26T17:45:41.046Z"
+    "Q1": "2026-06-26T17:56:46.894Z",
+    "Q2": "2026-06-26T17:56:46.894Z",
+    "Q3": "2026-06-26T17:56:46.894Z",
+    "Q4": "2026-06-26T17:56:46.894Z"
   },
   "owners": {
     "27231823": {
@@ -20243,6 +20243,11 @@
       "hsId": "30345728103",
       "segment": ""
     },
+    "Squadra Ventures": {
+      "platformId": "11156",
+      "hsId": "9589908876",
+      "segment": "Scale"
+    },
     "Kawa Capital Management": {
       "platformId": "626",
       "hsId": "4316191356",
@@ -20387,11 +20392,6 @@
       "platformId": "21743",
       "hsId": "30778997152",
       "segment": ""
-    },
-    "Squadra Ventures": {
-      "platformId": "11156",
-      "hsId": "9589908876",
-      "segment": "Scale"
     },
     "Bycoff Group": {
       "platformId": "23175",
@@ -20938,6 +20938,11 @@
       "hsId": "6631837495",
       "segment": ""
     },
+    "Carta": {
+      "platformId": "43700",
+      "hsId": "44200264266",
+      "segment": ""
+    },
     "Whitefort Capital": {
       "platformId": "19817",
       "hsId": "10954200723",
@@ -21061,11 +21066,6 @@
     "Brummer & Partners": {
       "platformId": "10296",
       "hsId": "31039173641",
-      "segment": ""
-    },
-    "Carta": {
-      "platformId": "43700",
-      "hsId": "44200264266",
       "segment": ""
     },
     "Ishara Investments": {
@@ -21613,11 +21613,6 @@
       "hsId": "4999005590",
       "segment": ""
     },
-    "Vineyard Quant Capital": {
-      "platformId": "43968",
-      "hsId": "4950081026",
-      "segment": "Enterprise"
-    },
     "Centre Lane Partners LLC": {
       "platformId": "2409",
       "hsId": "30436765345",
@@ -21767,6 +21762,11 @@
       "platformId": "8006",
       "hsId": "52447783544",
       "segment": ""
+    },
+    "Vineyard Quant Capital": {
+      "platformId": "43968",
+      "hsId": "4950081026",
+      "segment": "Enterprise"
     },
     "Transformation Capital": {
       "platformId": "40278",
