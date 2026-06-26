@@ -11899,7 +11899,12 @@ async function _offHydrateFromTeam(){
       _offCadenceByPid=(j.cadenceByPid&&typeof j.cadenceByPid==='object')?j.cadenceByPid:{};
       _offSource=j.source||s.label;
       _offSyncedAt=j.syncedAt||j.publishedAt||null;
-      if(typeof aTab!=='undefined'&&aTab==='offers')rOffers();
+      // Re-render whichever HubSpot-driven tab is active so the fresh data
+      // replaces the empty-state placeholder.
+      if(typeof aTab!=='undefined'){
+        if(aTab==='offers')rOffers();
+        else if(aTab==='cadence_hs'&&typeof rCadenceHS==='function')rCadenceHS();
+      }
       return;
     }catch(e){/* try next source */}
   }
@@ -12536,6 +12541,10 @@ function rCadenceHS(){
   const el=document.getElementById('tab-cadence_hs');
   if(!el)return;
   _liveSelCadQ();
+  // Pull hubspot-deals.json on first render of this tab. Same idempotent
+  // hydrate guard the Offers tab uses; re-renders after the fetch finishes
+  // via the aTab check inside _offHydrateFromTeam.
+  if(typeof _offHydrateFromTeam==='function')_offHydrateFromTeam();
   // Per-CSM Q3 aggregation from HubSpot. Matches by account_manager == c.n.
   // Returns {jul:{yes,total}, aug:{yes,total}, sep:{yes,total}} keyed by CSM name.
   const hsByCsm={};
