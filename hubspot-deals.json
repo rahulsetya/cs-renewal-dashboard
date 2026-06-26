@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-26T18:15:47.047Z",
-  "syncedAt": "2026-06-26T18:15:47.047Z",
+  "publishedAt": "2026-06-26T18:21:41.856Z",
+  "syncedAt": "2026-06-26T18:21:41.856Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -1762,7 +1762,7 @@
         "ownerId": "429309794",
         "ownerName": "Ian Rzeszowski",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T13:38:47.370Z"
+        "hsLastModified": "2026-06-26T18:19:22.955Z"
       },
       {
         "pid": "20784",
@@ -1914,7 +1914,7 @@
         "ownerId": "429309794",
         "ownerName": "Ian Rzeszowski",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T13:38:48.918Z"
+        "hsLastModified": "2026-06-26T18:19:20.441Z"
       },
       {
         "pid": "39712",
@@ -2028,7 +2028,7 @@
         "ownerId": "429309794",
         "ownerName": "Ian Rzeszowski",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T13:38:47.355Z"
+        "hsLastModified": "2026-06-26T18:19:23.511Z"
       },
       {
         "pid": "912",
@@ -4025,7 +4025,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T17:59:00.567Z"
+        "hsLastModified": "2026-06-26T18:16:59.655Z"
       },
       {
         "pid": "6915",
@@ -4509,8 +4509,8 @@
         "dealType": "Platform Renewal",
         "amount": 15500,
         "currency": "USD",
-        "stage": "Invoice sent/Verbal Commitment",
-        "stageId": "contractsent",
+        "stage": "Budget Approval (70% - 90%) ",
+        "stageId": "1144593315",
         "pipeline": "Manager",
         "pipelineId": "default",
         "eventAttending": "Global Alts EUR 2027",
@@ -4519,7 +4519,7 @@
         "ownerId": "2073816592",
         "ownerName": "Ashley Moss",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T17:39:41.499Z"
+        "hsLastModified": "2026-06-26T18:19:59.694Z"
       },
       {
         "pid": "23128",
@@ -9729,7 +9729,7 @@
         "ownerId": "886965083",
         "ownerName": "Phoebe Willoughby",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T17:16:54.586Z"
+        "hsLastModified": "2026-06-26T18:18:46.868Z"
       },
       {
         "pid": "14613",
@@ -16861,10 +16861,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-26T18:15:47.047Z",
-    "Q2": "2026-06-26T18:15:47.047Z",
-    "Q3": "2026-06-26T18:15:47.047Z",
-    "Q4": "2026-06-26T18:15:47.047Z"
+    "Q1": "2026-06-26T18:21:41.856Z",
+    "Q2": "2026-06-26T18:21:41.856Z",
+    "Q3": "2026-06-26T18:21:41.856Z",
+    "Q4": "2026-06-26T18:21:41.856Z"
   },
   "owners": {
     "27231823": {
@@ -18386,6 +18386,11 @@
       "hsId": "22512120680",
       "segment": ""
     },
+    "iconnections": {
+      "platformId": "1",
+      "hsId": "4310506310",
+      "segment": ""
+    },
     "AlTi Global": {
       "platformId": "20575",
       "hsId": "23475989529",
@@ -18654,11 +18659,6 @@
     "The Trump Group": {
       "platformId": "21266",
       "hsId": "23486966312",
-      "segment": ""
-    },
-    "iconnections": {
-      "platformId": "1",
-      "hsId": "4310506310",
       "segment": ""
     },
     "Patricof Co": {
@@ -20401,6 +20401,11 @@
       "hsId": "31833659780",
       "segment": "Scale"
     },
+    "Squadra Ventures": {
+      "platformId": "11156",
+      "hsId": "9589908876",
+      "segment": "Scale"
+    },
     "Sculptor Capital Management": {
       "platformId": "908",
       "hsId": "53883992465",
@@ -20461,19 +20466,9 @@
       "hsId": "30345728103",
       "segment": ""
     },
-    "Squadra Ventures": {
-      "platformId": "11156",
-      "hsId": "9589908876",
-      "segment": "Scale"
-    },
     "Stonepeak": {
       "platformId": "43743",
       "hsId": "16400039195",
-      "segment": "Enterprise"
-    },
-    "Spring Lake Asset Management": {
-      "platformId": "14237",
-      "hsId": "10160074885",
       "segment": "Enterprise"
     },
     "StepStone Group": {
@@ -20680,6 +20675,11 @@
       "platformId": "34623",
       "hsId": "9793728387",
       "segment": ""
+    },
+    "Spring Lake Asset Management": {
+      "platformId": "14237",
+      "hsId": "10160074885",
+      "segment": "Enterprise"
     },
     "Osage University Partners": {
       "platformId": "6000",
