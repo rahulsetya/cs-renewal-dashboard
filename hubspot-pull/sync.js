@@ -137,6 +137,34 @@ async function fetchCompanies(companyIds) {
   return out;
 }
 
+// 3b. Search every company that has an account_manager set, even if it has no
+// open deal in the included pipelines. The Cadence HS tab needs the full
+// managed-account roster (e.g. Corbin Capital, which is on a CSM's book but
+// has no open Manager/SP deal at sync time). HAS_PROPERTY catches anything
+// with a non-empty owner ID.
+async function fetchManagedCompanies() {
+  const out = [];
+  let after = null;
+  while (true) {
+    const body = {
+      filterGroups: [{
+        filters: [{ propertyName: 'account_manager', operator: 'HAS_PROPERTY' }]
+      }],
+      properties: COMPANY_PROPS,
+      limit: 100,
+      ...(after ? { after } : {})
+    };
+    const j = await hsFetch(`${HS_BASE}/crm/v3/objects/companies/search`, {
+      method: 'POST', body: JSON.stringify(body)
+    });
+    (j.results || []).forEach(c => out.push(c));
+    const nextAfter = j.paging && j.paging.next && j.paging.next.after;
+    if (!nextAfter) break;
+    after = nextAfter;
+  }
+  return out;
+}
+
 // 4. All owners (active + archived) so we can map IDs to display names.
 async function fetchOwners() {
   const out = [];
@@ -217,10 +245,25 @@ async function main() {
   const dealToCompanies = await fetchDealCompanyAssociations(dealIds);
 
   const uniqueCompanyIds = [...new Set(Object.values(dealToCompanies).flat())].filter(Boolean);
-  console.log(`  ${uniqueCompanyIds.length} unique companies`);
+  console.log(`  ${uniqueCompanyIds.length} unique companies (deal-associated)`);
 
-  console.log('Fetching company records…');
-  const companies = await fetchCompanies(uniqueCompanyIds);
+  console.log('Fetching deal-associated company records…');
+  const dealCompanies = await fetchCompanies(uniqueCompanyIds);
+
+  // Pull every company with an account_manager set, even if it has no open
+  // deal. This is what populates the Cadence HS tab — the cadence properties
+  // live on the company record, not the deal, so an unsold-this-quarter book
+  // still counts toward call-completion tracking.
+  console.log('Fetching managed companies (account_manager set)…');
+  const managedCompanies = await fetchManagedCompanies();
+  console.log(`  ${managedCompanies.length} managed companies`);
+
+  // Merge: deal-associated companies first (they already have full property
+  // sets), then add any managed companies not already in the set.
+  const seenIds = new Set(dealCompanies.map(c => c.id));
+  const companies = dealCompanies.slice();
+  managedCompanies.forEach(c => { if (!seenIds.has(c.id)) { companies.push(c); seenIds.add(c.id); } });
+  console.log(`  ${companies.length} companies total after merge`);
 
   console.log('Fetching owners…');
   const owners = await fetchOwners();
