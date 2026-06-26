@@ -1203,6 +1203,9 @@ function processSPData(raw){
   const cNotes=(()=>{const i=pick('iconnections notes','iconnections','notes','comment');return i>=0?i:7;})();
   const cStage=(()=>{const i=pick('stage for','stage');return i>=0?i:9;})();
   const cOffer=(()=>{const i=pick('offer price','offer');return i>=0?i:11;})();
+  // platform_companyid column. Matches a range of likely header spellings so
+  // the parser doesn't break if the sheet labels it slightly differently.
+  const cPid=pick('platform company id','platform companyid','platform_companyid','platform id','company id');
   const cR25=(()=>{const i=pick('2025 revenue','2025 rev');return i>=0?i:24;})();
   const cR26=(()=>{const i=pick('2026 revenue','2026 rev');return i>=0?i:25;})();
   // AE intentionally dropped for SPs — the new sheet has no separate AE column.
@@ -1242,9 +1245,10 @@ function processSPData(raw){
     const sub=cSub!=null?excelDateToJS(row[cSub]||''):'';
     const ae=String(cAE!=null&&cAE>=0?row[cAE]||'':'').trim();
     const notes=String(cNotes!=null&&cNotes>=0?row[cNotes]||'':'').trim();
+    const pid=String(cPid!=null&&cPid>=0?row[cPid]||'':'').trim();
     // `r` stays as the legacy single-revenue field for backwards compat with
     // anything still reading it (Forecast/Goals use r25 indirectly via r now)
-    data.push({n:acct,s:stage,r:r25||r26||offer,r25,r26,offer,o:owner,sub,ae,notes});
+    data.push({n:acct,s:stage,r:r25||r26||offer,r25,r26,offer,o:owner,sub,ae,notes,pid});
   }
   // Diagnostic: show date-parse success rate + skip reasons
   const sample=data.slice(0,5).map(r=>({n:r.n,sub:r.sub}));
@@ -3215,7 +3219,7 @@ function _buildLiveGoalsData(){
       // GP+SP renewed 2026 revenue across both cohorts with one field.
       // SP_RAW.r26 (col AA, 2026 Revenue) is intentionally NOT used here —
       // Offer Price is what represents the renewed-deal value.
-      spAccts.push({n:r.n,q:q||'none',owner,stage:r.s||'',status,rev,rev25:r.r25||0,rev26:r.offer||0,se,ae:r.ae||'',notes:r.notes||''});
+      spAccts.push({n:r.n,q:q||'none',owner,stage:r.s||'',status,rev,rev25:r.r25||0,rev26:r.offer||0,se,ae:r.ae||'',notes:r.notes||'',platformId:r.pid||''});
     });
     spAgg=spAggD;
     spOwn=Object.values(ownerMap).filter(o=>o.r>0).sort((a,b)=>b.r-a.r);
@@ -6900,6 +6904,8 @@ document.addEventListener('click',function(e){
 });
 // SP per-account drilldown table — mirrors _acctTableHTML for GP. Filtered
 // by quarter + owner-filter + month + status (won/churned/declined/all).
+// SP_ACCTS rows have no platformId (the SP source sheet is name-keyed), so
+// HubSpot-deal matching uses normalized lower-case account name instead.
 function _spAcctTableHTML(rid,q,owner,filt){
   const accts=(typeof SP_ACCTS!=='undefined'?SP_ACCTS:[]);
   let rows=accts.filter(a=>a.q===q&&(owner==='__ALL__'||a.owner===owner)&&_spMatchesOwnerFilter(a)&&(!selSPMonth||(a.se||'').substring(5,7)===selSPMonth));
@@ -6909,9 +6915,65 @@ function _spAcctTableHTML(rid,q,owner,filt){
   rows.sort((a,b)=>(b.rev||0)-(a.rev||0));
   const stColor=s=>s==='won'?'var(--green)':s==='churned'?'var(--red)':'var(--amber)';
   const stLabel=s=>s==='won'?'Won':s==='churned'?'Churned':'Open';
+  // Index Service Provider-pipeline deals for this quarter. We restrict to
+  // pipeline='Service Provider' so name collisions with Manager-pipeline
+  // deals don't leak in. Two indices: by platform ID (preferred — exact key
+  // from the SP source sheet) and by normalized name (fallback for SPs whose
+  // pid column is still blank). Each deal is added to BOTH where possible so
+  // either lookup path finds it.
+  const _spNorm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim();
+  const _dealsForQ=(typeof _offDealsByQ!=='undefined'&&_offDealsByQ[q])||[];
+  const _dealsByPid={},_dealsByName={};
+  _dealsForQ.forEach(d=>{
+    const p=String(d.pipeline||'').toLowerCase();
+    if(p&&p!=='service provider')return;
+    const pidK=String(d.pid||'').trim();
+    if(pidK){
+      if(!_dealsByPid[pidK])_dealsByPid[pidK]=[];
+      _dealsByPid[pidK].push(d);
+    }
+    const k=_spNorm(d.companyName);
+    if(k){
+      if(!_dealsByName[k])_dealsByName[k]=[];
+      _dealsByName[k].push(d);
+    }
+  });
+  const _esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'\x26lt;','>':'\x26gt;','&':'\x26amp;','"':'\x26quot;'}[c]));
+  const _fmtAmt=(n,c)=>{n=Number(n)||0;const sgn=n<0?'-':'';const a=Math.abs(n);const v=a>=1e6?'$'+(a/1e6).toFixed(2)+'M':a>=1e3?'$'+(a/1e3).toFixed(1)+'K':'$'+a.toFixed(0);return sgn+v+(c&&c!=='USD'?' '+c:'');};
+  const _colspan=9;
+  const _dealSubRow=(idx,deals)=>{
+    if(!deals||!deals.length)return'';
+    const subId='spd_'+rid+'_'+idx;
+    const inner=`<table style="width:100%;border-collapse:collapse;font-size:11px;margin:4px 0"><thead><tr style="background:rgba(244,63,94,.08)">`+
+      `<th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Deal Name</th>`+
+      `<th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">NEW Deal Type</th>`+
+      `<th style="padding:6px 10px;text-align:right;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Amount</th>`+
+      `<th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Stage</th>`+
+      `<th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Event Attending</th>`+
+      `<th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">NEW Deal Terms</th>`+
+      `</tr></thead><tbody>${deals.map(d=>`<tr style="border-top:1px solid rgba(244,63,94,.15)">`+
+        `<td style="padding:6px 10px;color:var(--text);font-weight:500">${d.link?`<a href="${_esc(d.link)}" target="_blank" rel="noopener" style="color:var(--rose);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(244,63,94,.4)">${_esc(d.dealName)||'(unnamed)'}</a>`:_esc(d.dealName)||'—'}</td>`+
+        `<td style="padding:6px 10px;color:var(--muted)">${_esc(d.dealType)||'—'}</td>`+
+        `<td style="padding:6px 10px;text-align:right;font-family:var(--mono);color:var(--green)">${_fmtAmt(d.amount,d.currency)}</td>`+
+        `<td style="padding:6px 10px;color:var(--rose)">${_esc(d.stage)||'—'}</td>`+
+        `<td style="padding:6px 10px;color:var(--dim);font-size:10px">${_esc(d.eventAttending)||'—'}</td>`+
+        `<td style="padding:6px 10px;color:var(--dim);font-size:10px;line-height:1.4">${_esc(d.dealTerms)||'—'}</td>`+
+      `</tr>`).join('')}</tbody></table>`;
+    return `<tr id="${subId}" style="display:none"><td colspan="${_colspan}" style="padding:0;background:rgba(0,0,0,.18);border-left:3px solid var(--rose)"><div style="padding:6px 14px 10px 38px">${inner}</div></td></tr>`;
+  };
+  // Resolver: prefer the platform ID from the SP source sheet (a.platformId).
+  // Fall back to the HubSpot company-directory lookup by name only when the
+  // sheet's pid column is blank for this account.
+  const _pidFor=a=>{
+    if(a&&a.platformId)return String(a.platformId).trim();
+    if(typeof _offLookupPid!=='function')return'';
+    return _offLookupPid(a&&a.n);
+  };
   return`<table style="width:100%;font-size:11px;border-collapse:collapse;margin:4px 0">
     <thead><tr style="background:rgba(255,255,255,.04)">
+      <th style="text-align:center;padding:5px 6px;color:var(--dim);width:36px"></th>
       <th style="text-align:left;padding:5px 16px;color:var(--dim)">Account</th>
+      <th style="text-align:left;padding:5px 8px;color:var(--dim)">Platform ID</th>
       <th style="text-align:left;padding:5px 8px;color:var(--dim)">Sales Owner</th>
       <th style="text-align:left;padding:5px 8px;color:var(--dim)">AE</th>
       <th style="text-align:right;padding:5px 8px;color:var(--dim)">2025 Rev</th>
@@ -6919,15 +6981,28 @@ function _spAcctTableHTML(rid,q,owner,filt){
       <th style="text-align:center;padding:5px 8px;color:var(--dim)">Status</th>
       <th style="text-align:left;padding:5px 8px;color:var(--dim)">Stage</th>
     </tr></thead>
-    <tbody>${rows.map(a=>`<tr style="border-top:1px solid rgba(255,255,255,.05)">
-      <td style="padding:4px 16px;color:var(--text);font-weight:500">${a.n}</td>
-      <td style="padding:4px 8px;color:var(--muted)">${a.owner||'—'}</td>
-      <td style="padding:4px 8px;color:var(--muted)">${a.ae||'—'}</td>
-      <td class="mono" style="padding:4px 8px;text-align:right">${fmt(a.rev||0)}</td>
-      <td style="padding:4px 8px;color:var(--dim)">${fmtSE(a.se)}</td>
-      <td style="padding:4px 8px;text-align:center;color:${stColor(a.status)};font-weight:600">${stLabel(a.status)}</td>
-      <td style="padding:4px 8px;color:var(--dim)">${a.stage||'—'}</td>
-    </tr>`).join('')}</tbody></table>`;
+    <tbody>${rows.map((a,idx)=>{
+      const subId='spd_'+rid+'_'+idx;
+      const pid=_pidFor(a);
+      // Prefer the platform-ID join when we have one; fall back to name match
+      // when this account doesn't carry a pid yet.
+      const dealsForRow=(pid&&_dealsByPid[pid])||_dealsByName[_spNorm(a.n)]||[];
+      const hasDeals=dealsForRow.length>0;
+      const dealChev=hasDeals
+        ?`<span onclick="(function(){var n=document.getElementById('${subId}');if(!n)return;n.style.display=n.style.display==='none'?'':'none';})()" title="${dealsForRow.length} HubSpot deal${dealsForRow.length===1?'':'s'} — click to expand" style="cursor:pointer;color:var(--rose);font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:3px;user-select:none"><span>▸</span><span style="font-size:9px;font-weight:600;background:rgba(244,63,94,.15);color:var(--rose);padding:1px 5px;border-radius:8px">${dealsForRow.length}</span></span>`
+        :'<span style="color:var(--dim);opacity:.35;font-size:11px">—</span>';
+      return`<tr style="border-top:1px solid rgba(255,255,255,.05)">
+        <td style="padding:4px 6px;text-align:center;width:36px">${dealChev}</td>
+        <td style="padding:4px 16px;color:var(--text);font-weight:500">${a.n}</td>
+        <td style="padding:4px 8px;color:var(--dim);font-family:var(--mono);font-size:10px">${pid||'<span style=\"opacity:.4\">—</span>'}</td>
+        <td style="padding:4px 8px;color:var(--muted)">${a.owner||'—'}</td>
+        <td style="padding:4px 8px;color:var(--muted)">${a.ae||'—'}</td>
+        <td class="mono" style="padding:4px 8px;text-align:right">${fmt(a.rev||0)}</td>
+        <td style="padding:4px 8px;color:var(--dim)">${fmtSE(a.se)}</td>
+        <td style="padding:4px 8px;text-align:center;color:${stColor(a.status)};font-weight:600">${stLabel(a.status)}</td>
+        <td style="padding:4px 8px;color:var(--dim)">${a.stage||'—'}</td>
+      </tr>${_dealSubRow(idx,dealsForRow)}`;
+    }).join('')}</tbody></table>`;
 }
 function _openSPPool(rid,q,owner,filt){
   const r=document.getElementById(rid);if(!r)return;
@@ -11553,7 +11628,10 @@ function rRCHistory(){
 function _offCurrentQ(){const m=(new Date()).getMonth();return'Q'+(Math.floor(m/3)+1);}
 // stageFilter is an array (multi-select) — empty = no stage filter (all stages
 // visible). Other filters stay single-value.
-let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:[],sortCol:'seRM',sortDir:'asc'};
+// pipelineMode: 'manager' (GP — ACCTS joined to Manager-pipeline deals by pid)
+// or 'sp' (Service Provider — SP_ACCTS joined to SP-pipeline deals by company
+// name, since the SP source sheet has no platformId).
+let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:[],sortCol:'seRM',sortDir:'asc',pipelineMode:'manager'};
 // ── Per-quarter HubSpot deals upload (password-gated) ──
 // Shape: _offDealsByQ = { Q1: [ {pid, dealName, dealType, amount, currency,
 //   stage, eventAttending, dealTerms, link} ], Q2: [...], ... }
@@ -11773,6 +11851,12 @@ let _offHydrated=false;
 // 'hubspot-auto-sync' (GitHub Actions every 30 min) or 'manual-upload'.
 let _offSource=null;
 let _offSyncedAt=null;
+// HubSpot company directory keyed by normalized name → {platformId, hsId, segment}.
+// Populated from hubspot-deals.json's `companies` block. Used to surface the
+// Platform Company ID on SP_ACCTS rows (the SP source sheet has no pid column).
+let _offCompaniesByName={};
+function _offNormName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim();}
+function _offLookupPid(name){return (_offCompaniesByName[_offNormName(name)]||{}).platformId||'';}
 async function _offHydrateFromTeam(){
   if(_offHydrated)return;
   _offHydrated=true;
@@ -11795,6 +11879,15 @@ async function _offHydrateFromTeam(){
         _offSaveUploads();
       }
       _offSaveDeals();
+      // Re-key HubSpot company directory by normalized name so SP lookups
+      // tolerate case / punctuation drift between HubSpot and the SP sheet.
+      _offCompaniesByName={};
+      if(j.companies&&typeof j.companies==='object'){
+        Object.entries(j.companies).forEach(([name,info])=>{
+          const k=_offNormName(name);
+          if(k)_offCompaniesByName[k]={...info,name};
+        });
+      }
       _offSource=j.source||s.label;
       _offSyncedAt=j.syncedAt||j.publishedAt||null;
       if(typeof aTab!=='undefined'&&aTab==='offers')rOffers();
@@ -11813,6 +11906,17 @@ function _offSort(col){if(_offState.sortCol===col){_offState.sortDir=_offState.s
 function _offArr(col){if(_offState.sortCol!==col)return'<span style="color:var(--dim);opacity:.4">↕</span>';return _offState.sortDir==='desc'?'<span style="color:var(--accent)">▼</span>':'<span style="color:var(--accent)">▲</span>';}
 function _offSetQ(q){_offState.q=q;rOffers();}
 function _offSetF(k,v){_offState[k]=v;rOffers();}
+// Mode = which pipeline's deals (and which account set) the Offers tab shows.
+// 'manager' (default) uses ACCTS + Manager-pipeline deals matched by pid.
+// 'sp' uses SP_ACCTS + Service Provider deals matched by normalized name.
+function _offSetMode(m){
+  if(_offState.pipelineMode===m)return;
+  _offState.pipelineMode=m;
+  // Reset in-quarter filters that mean different things across modes —
+  // segment/stage option sets differ between GP and SP rows.
+  _offState.search='';_offState.segFilter='';_offState.stageFilter=[];
+  rOffers();
+}
 // Multi-select stage toggle. Click a stage chip to add/remove it from the
 // _offState.stageFilter array. Empty array = no filter.
 function _offToggleStage(s){
@@ -11823,6 +11927,22 @@ function _offToggleStage(s){
   rOffers();
 }
 function _offClear(){_offState.search='';_offState.segFilter='';_offState.stageFilter=[];rOffers();}
+// Mode toggle bar — shared chrome rendered at the top of both GP and SP
+// branches. Highlights the active pipeline.
+function _offModeToggleHTML(){
+  const m=_offState.pipelineMode||'manager';
+  const _btn=(id,label,active)=>{
+    const bg=active?(id==='sp'?'#9d174d':'var(--accent)'):'transparent';
+    const col=active?'#fff':'var(--muted)';
+    const bd=active?(id==='sp'?'#9d174d':'var(--accent)'):'var(--border)';
+    return `<button onclick="_offSetMode('${id}')" style="background:${bg};color:${col};border:1px solid ${bd};padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.3px">${label}</button>`;
+  };
+  return `<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);margin-right:6px">Pipeline</span>
+    ${_btn('manager','Manager (GP)',m==='manager')}
+    ${_btn('sp','Service Provider',m==='sp')}
+  </div>`;
+}
 function rOffers(){
   const el=document.getElementById('tab-offers');
   if(!el)return;
@@ -11832,6 +11952,10 @@ function rOffers(){
   // of ours. Clearing it removes the ghost dropdown so our clicks land.
   const _aaEl=document.getElementById('tab-all_accounts');
   if(_aaEl&&_aaEl.innerHTML)_aaEl.innerHTML='';
+  // Trigger one-time team hydration here too so the SP branch (which returns
+  // before the GP-mode hydrate call below) still pulls in deals on first open.
+  if(typeof _offHydrateFromTeam==='function')_offHydrateFromTeam();
+  if(_offState.pipelineMode==='sp')return _rOffersSP(el);
   // Source = RM-matched accounts only (inRen=1). Matches GP Retention's
   // universe so the per-quarter count agrees with that tab. ET-only rows
   // and ET duplicates pointing at the same RM entry are excluded.
@@ -12142,16 +12266,221 @@ function rOffers(){
     <button onclick="_offExportQuarter()" title="Download a .xlsx with every ${selQ} account joined to its open HubSpot deals (one row per deal). HubSpot Link column is clickable inside Excel. Available to anyone — no password needed." style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↓ Export ${selQ}</button>
     ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} in ${selQ} · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched${_qUploadStr?` · <span style="color:var(--dim);font-weight:500;font-family:var(--mono);font-size:9px">${selQ} uploaded ${_qUploadStr}</span>`:''}</span>`:_qAnyLoaded?`<span style="font-size:10px;color:var(--dim);font-weight:600">${_qAnyLoaded} deal${_qAnyLoaded===1?'':'s'} loaded across other quarters</span>`:''}
   `;
-  // Password-gated upload modal. step='pw' shows password input; step='file'
-  // shows FOUR drop zones (one per quarter) so a user can load any/all in a
-  // single session. After each file parse the data auto-publishes to the
-  // team via offers-deals.json on main. Only rendered when _OFF_UPLOAD_OPEN.
+  // Password-gated upload modal. Built by the shared _offBuildUploadModal()
+  // so both GP and SP render paths show the same upload UI.
+  const uploadModal=_offBuildUploadModal();
+  el.innerHTML=`
+    ${_offModeToggleHTML()}
+    <div class="card" style="margin-bottom:12px">
+      <h3>Offers · Manager (GP)</h3>
+      <div class="sh">GP renewal accounts (one row per Renewal Master entry) for the selected quarter. Sub end is from the Renewal Master; 2025 / 2026 revenue from RM (won = annualized 2026, otherwise offer price). Stage reflects the dashboard-normalized RM value. Pod / CSM filter is shared with the All Accounts tab. Upload a HubSpot export (.xlsx) for each quarter to surface open deals per account.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+        ${dropdown}
+        <span style="margin-left:8px;color:var(--dim);font-size:11px">Quarter:</span>
+        ${quarterBar}
+        ${uploadBar}
+        <span style="margin-left:auto;color:var(--dim);font-size:11px">${rows.length} of ${qCounts[selQ]||0} ${selQ} accounts · ${baseRows.length} total</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 4px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${selQ} 2026
+        <span style="font-size:11px;color:var(--dim);font-weight:500">· ${rows.length} accounts</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono)">· 2025 ${_offFmt$(totRev25)} → 2026 ${_offFmt$(totRev26)}</span>
+      </h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 0 0">${filterControls}</div>
+      ${stageRow}
+      <div style="margin-top:12px">${tableHTML}</div>
+    </div>
+    ${uploadModal}
+  `;
+  _sfR();
+}
+// SP-mode render path. SP_ACCTS rows join to Service-Provider-pipeline deals
+// by normalized company name (SP source has no platform IDs). Columns mirror
+// the SP Retention drilldown.
+function _rOffersSP(el){
+  const _spNorm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim();
+  const SP=(typeof SP_ACCTS!=='undefined'&&Array.isArray(SP_ACCTS))?SP_ACCTS:[];
+  // Per-quarter SP account counts for the quarter selector.
+  const qCounts={Q1:0,Q2:0,Q3:0,Q4:0,Undated:0};
+  SP.forEach(a=>{const q=a.q;if(q==='Q1'||q==='Q2'||q==='Q3'||q==='Q4')qCounts[q]++;else qCounts.Undated++;});
+  const selQ=_offState.q;
+  const qBase=SP.filter(a=>{
+    if(selQ==='Undated')return!(a.q==='Q1'||a.q==='Q2'||a.q==='Q3'||a.q==='Q4');
+    return a.q===selQ;
+  });
+  // Apply search filter.
+  const searchQ=String(_offState.search||'').toLowerCase().trim();
+  let rows=qBase.filter(a=>{
+    if(!searchQ)return true;
+    const bag=(a.n+' '+(a.owner||'')+' '+(a.ae||'')+' '+(a.stage||'')).toLowerCase();
+    return bag.includes(searchQ);
+  });
+  // Sort by sub end ascending (soonest-first), blanks last.
+  rows.sort((a,b)=>{
+    const ea=!a.se,eb=!b.se;if(ea&&eb)return 0;if(ea)return 1;if(eb)return -1;
+    return(a.se||'').localeCompare(b.se||'');
+  });
+  // Index SP-pipeline deals for the quarter by both platform ID (preferred)
+  // and normalized company name (fallback). Each deal is registered in both
+  // indices so either lookup path finds it.
+  const _dealsForQ=(_offDealsByQ[selQ]||[]);
+  const _dealsByPid={},_dealsByName={};
+  _dealsForQ.forEach(d=>{
+    const p=String(d.pipeline||'').toLowerCase();
+    if(p&&p!=='service provider')return;
+    const pidK=String(d.pid||'').trim();
+    if(pidK){if(!_dealsByPid[pidK])_dealsByPid[pidK]=[];_dealsByPid[pidK].push(d);}
+    const k=_spNorm(d.companyName);
+    if(k){if(!_dealsByName[k])_dealsByName[k]=[];_dealsByName[k].push(d);}
+  });
+  // Same resolver as the SP retention drilldown.
+  const _pidFor=a=>{
+    if(a&&a.platformId)return String(a.platformId).trim();
+    if(typeof _offLookupPid!=='function')return'';
+    return _offLookupPid(a&&a.n);
+  };
+  // Deals total for the quarter (used by the upload-bar status). Counted from
+  // the pid index — every SP deal we registered has a pid (we put them all in
+  // both indices) so this avoids double-counting.
+  const _dealCt=_dealsForQ.filter(d=>{const p=String(d.pipeline||'').toLowerCase();return!p||p==='service provider';}).length;
+  const _matchedRows=rows.filter(r=>{const pid=_pidFor(r);return(pid&&_dealsByPid[pid])||_dealsByName[_spNorm(r.n)];}).length;
+  // Quarter button bar — same look as GP mode.
+  const qBtn=(q,label)=>{
+    const ct=qCounts[q]||0;
+    const active=selQ===q;
+    return `<button onclick="_offSetQ('${q}')" class="qbtn${active?' active':''}" style="${active?'background:var(--rose);color:#fff;border:1px solid var(--rose)':'background:transparent;color:var(--dim);border:1px solid var(--border)'};padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${label} <span style="opacity:.75;font-weight:500">(${ct})</span></button>`;
+  };
+  const quarterBar=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    ${qBtn('Q1','Q1')}${qBtn('Q2','Q2')}${qBtn('Q3','Q3')}${qBtn('Q4','Q4')}
+    ${qCounts.Undated>0?qBtn('Undated','Undated'):''}
+  </div>`;
+  // Source / upload bar — shared with GP mode (same data, same modal).
+  const _srcBadge=_offSource==='hubspot-auto-sync'
+    ?`<span title="Auto-synced from HubSpot every 30 minutes by GitHub Actions" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.4);padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)">⚡ HubSpot live${_offSyncedAt?` · ${_offFmtUpload(_offSyncedAt)}`:''}</span>`
+    :_offSource==='manual-upload'
+      ?`<span title="Loaded from offers-deals.json (manual upload — auto-sync is not running)" style="background:rgba(148,163,184,.15);color:#94a3b8;border:1px solid rgba(148,163,184,.35);padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)">Manual upload</span>`
+      :'';
+  const uploadBar=`
+    ${_srcBadge}
+    <button onclick="_offOpenUpload()" title="Upload HubSpot deal exports. Password protected." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload Deals</button>
+    <button onclick="_offExportQuarter()" title="Download a .xlsx with every ${selQ} account joined to its open HubSpot deals." style="background:#7f1d1d;color:#fee2e2;border:1px solid #ef4444;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↓ Export ${selQ}</button>
+    ${_dealCt?`<span style="font-size:10px;color:var(--rose);font-weight:600">${_dealCt} SP deal${_dealCt===1?'':'s'} in ${selQ} · ${_matchedRows} acct${_matchedRows===1?'':'s'} matched</span>`:''}
+  `;
+  // Modal — same shared builder as GP mode.
+  const uploadModal=_offBuildUploadModal();
+  // Filter input.
+  const baseInp=`background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit`;
+  const baseInpAct=`background:#3f1d2e;border:1px solid var(--rose);color:#fee2e2;border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;font-weight:600`;
+  const filterControls=`
+    <input type="text" placeholder="Search account / owner / stage…" value="${(_offState.search||'').replace(/"/g,'&quot;')}" oninput="_offSetF('search',this.value)" style="${_offState.search?baseInpAct:baseInp};min-width:260px">
+    ${_offState.search?`<button onclick="_offClear()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
+  `;
+  // Status / stage cell color helpers.
+  const stColor=s=>s==='won'?'var(--green)':s==='churned'?'var(--red)':'var(--amber)';
+  const stLabel=s=>s==='won'?'Won':s==='churned'?'Churned':'Open';
+  const _esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const _fmtAmt=(n,c)=>{n=Number(n)||0;const sgn=n<0?'-':'';const a=Math.abs(n);const v=a>=1e6?'$'+(a/1e6).toFixed(2)+'M':a>=1e3?'$'+(a/1e3).toFixed(1)+'K':'$'+a.toFixed(0);return sgn+v+(c&&c!=='USD'?' '+c:'');};
+  // Deal sub-row — same layout as GP, rose-tinted for SP. Emits a complete
+  // hidden <tr id="${subId}" ...> that the chevron's onclick toggles via
+  // display:none/'' — same pattern the GP retention drilldown uses.
+  // colspan matches the visible columns: chev + 8 data columns (Account,
+  // Platform ID, Sub End, Sales Owner, AE, 2025 Rev, Status, Stage).
+  const _colspan=9;
+  const dealSubRow=(subId,deals)=>{
+    if(!deals||!deals.length)return'';
+    const inner=`<table style="width:100%;border-collapse:collapse;font-size:11px;margin:4px 0">
+      <thead><tr style="background:rgba(244,63,94,.08)">
+        <th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Deal Name</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">NEW Deal Type</th>
+        <th style="padding:6px 10px;text-align:right;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Amount</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Stage</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">Event Attending</th>
+        <th style="padding:6px 10px;text-align:left;color:var(--rose);font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase">NEW Deal Terms</th>
+      </tr></thead>
+      <tbody>${deals.map(d=>`<tr style="border-top:1px solid rgba(244,63,94,.15)">
+        <td style="padding:6px 10px;color:var(--text);font-weight:500">${d.link?`<a href="${_esc(d.link)}" target="_blank" rel="noopener" style="color:var(--rose);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(244,63,94,.4)">${_esc(d.dealName)||'(unnamed)'}</a>`:_esc(d.dealName)||'—'}</td>
+        <td style="padding:6px 10px;color:var(--muted)">${_esc(d.dealType)||'—'}</td>
+        <td style="padding:6px 10px;text-align:right;font-family:var(--mono);color:var(--green)">${_fmtAmt(d.amount,d.currency)}</td>
+        <td style="padding:6px 10px;color:var(--rose)">${_esc(d.stage)||'—'}</td>
+        <td style="padding:6px 10px;color:var(--dim);font-size:10px">${_esc(d.eventAttending)||'—'}</td>
+        <td style="padding:6px 10px;color:var(--dim);font-size:10px;line-height:1.4">${_esc(d.dealTerms)||'—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+    return `<tr id="${subId}" style="display:none"><td colspan="${_colspan}" style="padding:0;background:rgba(0,0,0,.18);border-left:3px solid var(--rose)"><div style="padding:6px 14px 10px 38px">${inner}</div></td></tr>`;
+  };
+  const stTd=`padding:7px 10px;font-size:11px;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+  const stTh=`padding:8px 10px;font-size:10px;font-weight:600;color:var(--dim);text-align:left;white-space:nowrap;background:var(--card);border-bottom:2px solid var(--borderL)`;
+  const totRev=rows.reduce((s,a)=>s+(a.rev||0),0);
+  // Same colspan bump as the SP Retention drilldown (8 → 9) since we now
+  // surface Platform ID inline. The deal sub-row picks up the new value.
+  const tableHTML=rows.length?`<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:960px;table-layout:fixed">
+      <colgroup>
+        <col style="width:46px"><col style="width:230px"><col style="width:80px"><col style="width:120px"><col style="width:130px"><col style="width:110px"><col style="width:90px"><col style="width:80px"><col style="width:170px">
+      </colgroup>
+      <thead><tr>
+        <th style="${stTh}"></th>
+        <th style="${stTh}">Account</th>
+        <th style="${stTh}">Platform ID</th>
+        <th style="${stTh}">Sub End</th>
+        <th style="${stTh}">Sales Owner</th>
+        <th style="${stTh}">AE</th>
+        <th style="${stTh};text-align:right">2025 Rev</th>
+        <th style="${stTh};text-align:center">Status</th>
+        <th style="${stTh}">Stage</th>
+      </tr></thead>
+      <tbody>${rows.map((a,idx)=>{
+        const subId='spoff_'+selQ+'_'+idx;
+        const pid=_pidFor(a);
+        const ds=(pid&&_dealsByPid[pid])||_dealsByName[_spNorm(a.n)]||[];
+        const hasDeals=ds.length>0;
+        const chev=hasDeals
+          ?`<span onclick="(function(){var n=document.getElementById('${subId}');if(!n)return;n.style.display=n.style.display==='none'?'':'none';})()" title="${ds.length} HubSpot deal${ds.length===1?'':'s'} — click to expand" style="cursor:pointer;color:var(--rose);font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:4px;user-select:none;padding:0 2px"><span style="display:inline-block;min-width:10px;text-align:center">▸</span><span style="font-size:10px;font-weight:600;background:rgba(244,63,94,.15);color:var(--rose);padding:1px 6px;border-radius:8px">${ds.length}</span></span>`
+          :'<span style="color:var(--dim);opacity:.35">—</span>';
+        return`<tr>
+          <td style="${stTd};text-align:center;padding:5px 6px">${chev}</td>
+          <td style="${stTd};color:var(--text);font-weight:500">${a.n||'—'}</td>
+          <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${pid||'<span style=\"opacity:.4\">—</span>'}</td>
+          <td style="${stTd};color:var(--muted)">${_offFmtDate(a.se)}</td>
+          <td style="${stTd};color:var(--muted)">${a.owner||'—'}</td>
+          <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
+          <td style="${stTd};text-align:right;font-family:var(--mono)">${a.rev?fmt(a.rev):'—'}</td>
+          <td style="${stTd};text-align:center;color:${stColor(a.status)};font-weight:600">${stLabel(a.status)}</td>
+          <td style="${stTd};color:var(--dim)">${a.stage||'—'}</td>
+        </tr>${dealSubRow(subId,ds)}`;
+      }).join('')}</tbody></table>
+  </div>`:`<div style="padding:20px 16px;color:var(--dim);font-size:12px;text-align:center">No Service Provider accounts in ${selQ}.</div>`;
+  el.innerHTML=`
+    ${_offModeToggleHTML()}
+    <div class="card" style="margin-bottom:12px">
+      <h3>Offers · Service Provider</h3>
+      <div class="sh">Service Provider accounts (from the All SP Rev 25 &amp; 26 sheet) for the selected quarter, joined to open Service-Provider-pipeline HubSpot deals by company name. The same upload modal feeds both Manager (GP) and Service Provider deals — switching modes only re-filters what's already loaded.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+        <span style="color:var(--dim);font-size:11px">Quarter:</span>
+        ${quarterBar}
+        ${uploadBar}
+        <span style="margin-left:auto;color:var(--dim);font-size:11px">${rows.length} of ${qCounts[selQ]||0} ${selQ} accounts · ${SP.length} total</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 4px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${selQ} 2026 · Service Provider
+        <span style="font-size:11px;color:var(--dim);font-weight:500">· ${rows.length} accounts</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono)">· 2025 ${_offFmt$(totRev)}</span>
+      </h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 0 0">${filterControls}</div>
+      <div style="margin-top:12px">${tableHTML}</div>
+    </div>
+    ${uploadModal}
+  `;
+}
+// Shared upload modal builder — called from both GP and SP render paths so
+// flipping pipelineMode mid-upload doesn't lose the modal. The modal itself
+// is mode-agnostic: one drop zone per quarter, files auto-publish to the
+// team, deals flow into the same _offDealsByQ store regardless of pipeline.
+function _offBuildUploadModal(){
+  if(typeof _OFF_UPLOAD_OPEN==='undefined'||!_OFF_UPLOAD_OPEN)return'';
   const _qZone=(q)=>{
     const ct=(_offDealsByQ[q]||[]).length;
-    // Clear button only renders when the quarter has data. It sits INSIDE the
-    // password-unlocked modal so a casual visitor can't reach it. Stopping
-    // propagation on the click so the surrounding drop-zone click doesn't
-    // also fire the file picker.
     const clearBtn=ct?`<button onclick="event.stopPropagation();_offClearQuarter('${q}')" title="Clear ${q} deals (publishes the empty state)" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.35);color:var(--red);border:1px solid rgba(239,68,68,.4);padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.3px">✕ CLEAR</button>`:'';
     const uploadedAt=_offUploadsByQ[q];
     const tsLine=ct&&uploadedAt?`<div style="font-size:9px;color:var(--dim);margin-top:3px;font-family:var(--mono)">Uploaded ${_offFmtUpload(uploadedAt)}</div>`:'';
@@ -12163,7 +12492,7 @@ function rOffers(){
       <input id="offFileInput-${q}" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="const f=this.files&&this.files[0];if(f){_offHandleDealsFile(f,'${q}');this.value=''}">
     </div>`;
   };
-  const uploadModal=_OFF_UPLOAD_OPEN?`
+  return `
     <div style="position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)" onclick="if(event.target===this)_offCloseUpload()">
       <div style="background:var(--card);border:1px solid var(--borderL);border-radius:12px;padding:24px;max-width:680px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.6)">
         ${_OFF_UPLOAD_STEP==='pw'?`
@@ -12186,31 +12515,7 @@ function rOffers(){
         `}
       </div>
     </div>
-  `:'';
-  el.innerHTML=`
-    <div class="card" style="margin-bottom:12px">
-      <h3>Offers</h3>
-      <div class="sh">GP renewal accounts (one row per Renewal Master entry) for the selected quarter. Sub end is from the Renewal Master; 2025 / 2026 revenue from RM (won = annualized 2026, otherwise offer price). Stage reflects the dashboard-normalized RM value. Pod / CSM filter is shared with the All Accounts tab. Upload a HubSpot export (.xlsx) for each quarter to surface open deals per account.</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
-        ${dropdown}
-        <span style="margin-left:8px;color:var(--dim);font-size:11px">Quarter:</span>
-        ${quarterBar}
-        ${uploadBar}
-        <span style="margin-left:auto;color:var(--dim);font-size:11px">${rows.length} of ${qCounts[selQ]||0} ${selQ} accounts · ${baseRows.length} total</span>
-      </div>
-    </div>
-    <div class="card">
-      <h3 style="margin:0 0 4px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${selQ} 2026
-        <span style="font-size:11px;color:var(--dim);font-weight:500">· ${rows.length} accounts</span>
-        <span style="font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono)">· 2025 ${_offFmt$(totRev25)} → 2026 ${_offFmt$(totRev26)}</span>
-      </h3>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 0 0">${filterControls}</div>
-      ${stageRow}
-      <div style="margin-top:12px">${tableHTML}</div>
-    </div>
-    ${uploadModal}
   `;
-  _sfR();
 }
 function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'offers':rOffers();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
 rOverview();

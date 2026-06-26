@@ -255,6 +255,12 @@ async function main() {
   const droppedNoCompany = [];
   const droppedNoPid = [];
 
+  // Map pipeline ID → label so each deal item can carry its pipeline name
+  // (e.g. 'Manager', 'Service Provider'). The dashboard's Offers tab uses
+  // this to filter the GP/SP split.
+  const pipelineLabelById = {};
+  cfg.pipelineIds.forEach((id, i) => { pipelineLabelById[id] = cfg.pipelineLabels[i]; });
+
   deals.forEach(d => {
     const companyIds = dealToCompanies[d.id] || [];
     const primary = companyIds[0] ? companiesByHsId[companyIds[0]] : null;
@@ -264,15 +270,20 @@ async function main() {
     const q = quarterOf(primary.subscriptionEndDate);
     const ownerInfo = ownersMap[d.properties.hubspot_owner_id] || null;
     const stageLabel = stageLabels[d.properties.dealstage] || d.properties.dealstage || '';
+    const pipelineId = d.properties.pipeline || '';
+    const pipelineLabel = pipelineLabelById[pipelineId] || pipelineId;
 
     quarters[q].push({
       pid: primary.platformId,
+      companyName: primary.name,                            // Lets SP_ACCTS (no pid) match by name
       dealName: d.properties.dealname || '',
       dealType: d.properties.new_deal_type || '',
       amount: Number(d.properties.amount) || 0,
       currency: d.properties.deal_currency_code || 'USD',
       stage: stageLabel,                                    // Pre-resolved label
       stageId: d.properties.dealstage || '',                // Keep raw ID for reference
+      pipeline: pipelineLabel,                              // 'Manager' | 'Service Provider'
+      pipelineId,                                           // Raw HubSpot pipeline ID
       eventAttending: d.properties.event_attending || '',
       dealTerms: d.properties.new_deal_terms || '',
       link: `https://app.hubspot.com/contacts/${PORTAL_ID}/record/0-3/${d.id}`,
@@ -306,7 +317,21 @@ async function main() {
     quarters,
     uploads,
     owners: ownersMap,
-    stageLabels
+    stageLabels,
+    // Name → platform-ID lookup. The dashboard uses this for SP_ACCTS rows,
+    // which come from the "All SP Rev 25 & 26" sheet (no platform_companyid
+    // column) but need to surface the ID and join cleanly to deals. Keyed by
+    // the canonical company name from HubSpot; the dashboard normalizes
+    // lower-case + strips non-alphanumeric before lookup.
+    companies: (() => {
+      const idx = {};
+      companies.forEach(c => {
+        const name = c.properties.name || '';
+        const pid = c.properties.platform_companyid || '';
+        if (name && pid) idx[name] = { platformId: pid, hsId: c.id, segment: c.properties.account_segment || '' };
+      });
+      return idx;
+    })()
   };
 
   const outPath = path.resolve(__dirname, '..', 'hubspot-deals.json');
