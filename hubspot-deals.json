@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-26T18:58:50.196Z",
-  "syncedAt": "2026-06-26T18:58:50.196Z",
+  "publishedAt": "2026-06-26T20:15:34.902Z",
+  "syncedAt": "2026-06-26T20:15:34.902Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -2451,9 +2451,9 @@
       {
         "pid": "44513",
         "companyName": "Curex Capital Advisors",
-        "dealName": "Platform Renewal: Curex Capital Advisors",
+        "dealName": "Curex Capital Advisors - GA27 & NY27",
         "dealType": "Platform Renewal",
-        "amount": 15500,
+        "amount": 23500,
         "currency": "USD",
         "stage": "Prospect —> no demo",
         "stageId": "1101835123",
@@ -2465,7 +2465,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:07:28.610Z"
+        "hsLastModified": "2026-06-26T20:13:45.973Z"
       },
       {
         "pid": "12526",
@@ -2845,7 +2845,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-23T12:14:07.893Z"
+        "hsLastModified": "2026-06-26T19:25:44.507Z"
       },
       {
         "pid": "498",
@@ -3016,7 +3016,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T17:28:21.506Z"
+        "hsLastModified": "2026-06-26T19:04:00.991Z"
       },
       {
         "pid": "235",
@@ -3073,7 +3073,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:33:12.102Z"
+        "hsLastModified": "2026-06-26T19:21:40.287Z"
       },
       {
         "pid": "1383",
@@ -4025,7 +4025,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:16:59.655Z"
+        "hsLastModified": "2026-06-26T19:56:47.026Z"
       },
       {
         "pid": "6915",
@@ -4519,7 +4519,7 @@
         "ownerId": "2073816592",
         "ownerName": "Ashley Moss",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:33:12.821Z"
+        "hsLastModified": "2026-06-26T19:22:02.858Z"
       },
       {
         "pid": "23128",
@@ -4652,7 +4652,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T15:40:06.808Z"
+        "hsLastModified": "2026-06-26T20:13:26.746Z"
       },
       {
         "pid": "758",
@@ -4937,7 +4937,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:51:24.836Z"
+        "hsLastModified": "2026-06-26T19:04:37.776Z"
       }
     ],
     "Q3": [
@@ -6155,7 +6155,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T20:06:44.914Z"
+        "hsLastModified": "2026-06-26T19:09:43.183Z"
       },
       {
         "pid": "9919",
@@ -7048,7 +7048,7 @@
         "ownerId": "50981538",
         "ownerName": "Diana Arakelyan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T15:04:39.885Z"
+        "hsLastModified": "2026-06-26T20:07:00.642Z"
       },
       {
         "pid": "40035",
@@ -9102,7 +9102,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:36:07.588Z"
+        "hsLastModified": "2026-06-26T20:00:53.158Z"
       },
       {
         "pid": "43982",
@@ -9311,7 +9311,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T17:36:34.949Z"
+        "hsLastModified": "2026-06-26T19:26:21.704Z"
       },
       {
         "pid": "40987",
@@ -11135,7 +11135,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:02:47.056Z"
+        "hsLastModified": "2026-06-26T19:21:57.905Z"
       },
       {
         "pid": "398",
@@ -13725,7 +13725,7 @@
       },
       {
         "pid": "40951",
-        "companyName": "Star 51 Capital",
+        "companyName": "Star51 Capital",
         "dealName": "Star 51 Capital - Miami + NY",
         "dealType": "New Platform Subscription",
         "amount": 22000,
@@ -16799,7 +16799,7 @@
         "ownerId": "86263149",
         "ownerName": "Frank Greco",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T20:54:18.388Z"
+        "hsLastModified": "2026-06-26T19:56:55.467Z"
       },
       {
         "pid": "11190",
@@ -16880,10 +16880,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-26T18:58:50.196Z",
-    "Q2": "2026-06-26T18:58:50.196Z",
-    "Q3": "2026-06-26T18:58:50.196Z",
-    "Q4": "2026-06-26T18:58:50.196Z"
+    "Q1": "2026-06-26T20:15:34.902Z",
+    "Q2": "2026-06-26T20:15:34.902Z",
+    "Q3": "2026-06-26T20:15:34.902Z",
+    "Q4": "2026-06-26T20:15:34.902Z"
   },
   "owners": {
     "27231823": {
@@ -18075,6 +18075,11 @@
       "hsId": "23480738100",
       "segment": ""
     },
+    "NAV Fund Services": {
+      "platformId": "4279",
+      "hsId": "35013378826",
+      "segment": ""
+    },
     "Guardian Financial Partners, LLC": {
       "platformId": "20493",
       "hsId": "23486970017",
@@ -18328,11 +18333,6 @@
     "Accolade Partners": {
       "platformId": "39382",
       "hsId": "38086872700",
-      "segment": ""
-    },
-    "NAV Fund Services": {
-      "platformId": "4279",
-      "hsId": "35013378826",
       "segment": ""
     },
     "OP Asset Management": {
@@ -19065,11 +19065,6 @@
       "hsId": "5801782858",
       "segment": ""
     },
-    "Partners Group": {
-      "platformId": "9655",
-      "hsId": "46903783773",
-      "segment": ""
-    },
     "Alpha West Capital": {
       "platformId": "20715",
       "hsId": "18329048910",
@@ -19163,6 +19158,11 @@
     "Cole-Frieman & Mallon LLP": {
       "platformId": "6942",
       "hsId": "53155631711",
+      "segment": ""
+    },
+    "Partners Group": {
+      "platformId": "9655",
+      "hsId": "46903783773",
       "segment": ""
     },
     "Pythagoras Investment Management": {
@@ -19490,6 +19490,11 @@
       "hsId": "39256497502",
       "segment": ""
     },
+    "Morgan Stanley": {
+      "platformId": "468",
+      "hsId": "55461979749",
+      "segment": ""
+    },
     "Vixit Ventures SA": {
       "platformId": "44014",
       "hsId": "46665494273",
@@ -19603,11 +19608,6 @@
     "K&L GATES LLP": {
       "platformId": "1037",
       "hsId": "43697809520",
-      "segment": ""
-    },
-    "Morgan Stanley": {
-      "platformId": "468",
-      "hsId": "55461979749",
       "segment": ""
     },
     "Monroe Capital": {
@@ -19810,10 +19810,10 @@
       "hsId": "37647696518",
       "segment": ""
     },
-    "Lone Pine Capital": {
-      "platformId": "1191",
-      "hsId": "38656411763",
-      "segment": "Enterprise"
+    "Star51 Capital": {
+      "platformId": "40951",
+      "hsId": "56048400002",
+      "segment": ""
     },
     "WHG Asset Management": {
       "platformId": "22923",
@@ -19864,6 +19864,11 @@
       "platformId": "1926",
       "hsId": "31398991238",
       "segment": ""
+    },
+    "Lone Pine Capital": {
+      "platformId": "1191",
+      "hsId": "38656411763",
+      "segment": "Enterprise"
     },
     "Pana LCE": {
       "platformId": "1552",
@@ -19925,11 +19930,6 @@
       "hsId": "4314728901",
       "segment": ""
     },
-    "Star 51 Capital": {
-      "platformId": "40951",
-      "hsId": "56048400002",
-      "segment": ""
-    },
     "PAG": {
       "platformId": "11813",
       "hsId": "41135059204",
@@ -19989,11 +19989,6 @@
       "platformId": "20403",
       "hsId": "18234287716",
       "segment": "Enterprise"
-    },
-    "Cliffwater": {
-      "platformId": "4697",
-      "hsId": "23458593805",
-      "segment": ""
     },
     "Polsonelli": {
       "platformId": "22651",
@@ -20075,10 +20070,20 @@
       "hsId": "39540097608",
       "segment": "Enterprise"
     },
+    "Cliffwater": {
+      "platformId": "4697",
+      "hsId": "23458593805",
+      "segment": ""
+    },
     "Nebari Holdings": {
       "platformId": "6377",
       "hsId": "4772825122",
       "segment": "Enterprise"
+    },
+    "Options IT": {
+      "platformId": "10945",
+      "hsId": "41128057503",
+      "segment": ""
     },
     "Small World Capital": {
       "platformId": "44432",
@@ -20094,11 +20099,6 @@
       "platformId": "3034",
       "hsId": "37561376597",
       "segment": "Scale"
-    },
-    "Options IT": {
-      "platformId": "10945",
-      "hsId": "41128057503",
-      "segment": ""
     },
     "Buckley Capital Advisors LLC": {
       "platformId": "2748",
@@ -20145,11 +20145,6 @@
       "hsId": "4426953634",
       "segment": "Enterprise"
     },
-    "Curex Capital Advisors": {
-      "platformId": "44513",
-      "hsId": "49029650051",
-      "segment": "Scale"
-    },
     "Section Partners": {
       "platformId": "7188",
       "hsId": "7652045852",
@@ -20169,6 +20164,11 @@
       "platformId": "12500",
       "hsId": "9306046268",
       "segment": ""
+    },
+    "Curex Capital Advisors": {
+      "platformId": "44513",
+      "hsId": "49029650051",
+      "segment": "Scale"
     },
     "MSCI": {
       "platformId": "4448",
@@ -20300,6 +20300,11 @@
       "hsId": "7708416627",
       "segment": ""
     },
+    "Keyframe Capital": {
+      "platformId": "40762",
+      "hsId": "39730799946",
+      "segment": "Scale"
+    },
     "Dardanelles Capital": {
       "platformId": "39424",
       "hsId": "10580606826",
@@ -20314,11 +20319,6 @@
       "platformId": "3139",
       "hsId": "51090765126",
       "segment": ""
-    },
-    "Keyframe Capital": {
-      "platformId": "40762",
-      "hsId": "39730799946",
-      "segment": "Scale"
     },
     "StoneX": {
       "platformId": "21251",
@@ -20420,15 +20420,20 @@
       "hsId": "31833659780",
       "segment": "Scale"
     },
+    "Sculptor Capital Management": {
+      "platformId": "908",
+      "hsId": "53883992465",
+      "segment": "Enterprise"
+    },
     "Squadra Ventures": {
       "platformId": "11156",
       "hsId": "9589908876",
       "segment": "Scale"
     },
-    "Sculptor Capital Management": {
-      "platformId": "908",
-      "hsId": "53883992465",
-      "segment": "Enterprise"
+    "Proskauer Rose": {
+      "platformId": "22816",
+      "hsId": "55593963449",
+      "segment": ""
     },
     "iSAM": {
       "platformId": "6316",
@@ -20443,11 +20448,6 @@
     "AlphaSense": {
       "platformId": "4986",
       "hsId": "49184799629",
-      "segment": ""
-    },
-    "Proskauer Rose": {
-      "platformId": "22816",
-      "hsId": "55593963449",
       "segment": ""
     },
     "Andurand Capital": {
@@ -20525,11 +20525,6 @@
       "hsId": "54511252107",
       "segment": "Enterprise"
     },
-    "ClearSky": {
-      "platformId": "20599",
-      "hsId": "11057550694",
-      "segment": ""
-    },
     "Clocktower Ventures": {
       "platformId": "4933",
       "hsId": "5801928366",
@@ -20544,6 +20539,11 @@
       "platformId": "20808",
       "hsId": "18002593699",
       "segment": "Scale"
+    },
+    "ClearSky": {
+      "platformId": "20599",
+      "hsId": "11057550694",
+      "segment": ""
     },
     "Taproot Management": {
       "platformId": "42713",
@@ -20865,6 +20865,11 @@
       "hsId": "40650546290",
       "segment": ""
     },
+    "STANLIB": {
+      "platformId": "1426",
+      "hsId": "4409077114",
+      "segment": ""
+    },
     "Select Equity Group": {
       "platformId": "4134",
       "hsId": "37231671438",
@@ -20908,11 +20913,6 @@
     "Hondius Capital Management": {
       "platformId": "370",
       "hsId": "4231329623",
-      "segment": ""
-    },
-    "STANLIB": {
-      "platformId": "1426",
-      "hsId": "4409077114",
       "segment": ""
     },
     "ITE Management": {
@@ -20975,6 +20975,11 @@
       "hsId": "37746532915",
       "segment": ""
     },
+    "Skematic": {
+      "platformId": "41895",
+      "hsId": "55592628262",
+      "segment": ""
+    },
     "Metropolitan Partners Group": {
       "platformId": "41937",
       "hsId": "7692537345",
@@ -20983,11 +20988,6 @@
     "Dynamo Software": {
       "platformId": "2329",
       "hsId": "54004292674",
-      "segment": ""
-    },
-    "Skematic": {
-      "platformId": "41895",
-      "hsId": "55592628262",
       "segment": ""
     },
     "Talaria Capital": {
@@ -21038,6 +21038,11 @@
     "Invesco": {
       "platformId": "21094",
       "hsId": "4426878334",
+      "segment": ""
+    },
+    "Carta": {
+      "platformId": "43700",
+      "hsId": "44200264266",
       "segment": ""
     },
     "Mesarete Capital LLP": {
@@ -21153,11 +21158,6 @@
     "Bayforest Capital Limited": {
       "platformId": "39342",
       "hsId": "54803299856",
-      "segment": ""
-    },
-    "Carta": {
-      "platformId": "43700",
-      "hsId": "44200264266",
       "segment": ""
     },
     "IceCap Group": {
@@ -21605,11 +21605,6 @@
       "hsId": "23468725433",
       "segment": ""
     },
-    "Goodman Capital": {
-      "platformId": "43930",
-      "hsId": "4426919797",
-      "segment": "Enterprise"
-    },
     "New Mountain Capital": {
       "platformId": "292",
       "hsId": "8975724306",
@@ -21619,6 +21614,11 @@
       "platformId": "19889",
       "hsId": "17772577945",
       "segment": ""
+    },
+    "Goodman Capital": {
+      "platformId": "43930",
+      "hsId": "4426919797",
+      "segment": "Enterprise"
     },
     "SRO Capital": {
       "platformId": "20274",
@@ -21720,11 +21720,6 @@
       "hsId": "34988420693",
       "segment": ""
     },
-    "Incline Investment Management": {
-      "platformId": "9212",
-      "hsId": "4316188488",
-      "segment": "Scale"
-    },
     "Joele Frank": {
       "platformId": "19177",
       "hsId": "50095545218",
@@ -21775,11 +21770,6 @@
       "hsId": "7310932384",
       "segment": "Enterprise"
     },
-    "Steadview Capital Management": {
-      "platformId": "14415",
-      "hsId": "9306137990",
-      "segment": ""
-    },
     "Kyma Capital Limited": {
       "platformId": "6157",
       "hsId": "33702351977",
@@ -21788,6 +21778,11 @@
     "Millburn": {
       "platformId": "6354",
       "hsId": "55605095806",
+      "segment": "Enterprise"
+    },
+    "Artisan Partners": {
+      "platformId": "1549",
+      "hsId": "36417251591",
       "segment": "Enterprise"
     },
     "Harraden Circle Investments, LLC": {
@@ -21830,6 +21825,11 @@
       "hsId": "16209735999",
       "segment": "Scale"
     },
+    "Steadview Capital Management": {
+      "platformId": "14415",
+      "hsId": "9306137990",
+      "segment": ""
+    },
     "MFA (Managed Funds Association)": {
       "platformId": "23246",
       "hsId": "39777232249",
@@ -21840,6 +21840,11 @@
       "hsId": "19716076582",
       "segment": "Scale"
     },
+    "Vineyard Quant Capital": {
+      "platformId": "43968",
+      "hsId": "4950081026",
+      "segment": "Enterprise"
+    },
     "Centurion Asset Management Inc.": {
       "platformId": "1468",
       "hsId": "54662937353",
@@ -21849,6 +21854,11 @@
       "platformId": "18848",
       "hsId": "39162812073",
       "segment": ""
+    },
+    "Incline Investment Management": {
+      "platformId": "9212",
+      "hsId": "4316188488",
+      "segment": "Scale"
     },
     "Silver 8 Capital": {
       "platformId": "10673",
@@ -21890,19 +21900,9 @@
       "hsId": "54350660468",
       "segment": ""
     },
-    "Vineyard Quant Capital": {
-      "platformId": "43968",
-      "hsId": "4950081026",
-      "segment": "Enterprise"
-    },
     "TerraCapital": {
       "platformId": "3276",
       "hsId": "5741501952",
-      "segment": "Enterprise"
-    },
-    "Artisan Partners": {
-      "platformId": "1549",
-      "hsId": "36417251591",
       "segment": "Enterprise"
     },
     "Alpha Compute Capital": {
@@ -34317,7 +34317,7 @@
       "accountManager": "Andreas Santikos",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-08-31",
+      "subscriptionEndDate": "2027-08-30",
       "jul": "",
       "aug": "",
       "sep": ""
