@@ -43,8 +43,15 @@ const COMPANY_PROPS = [
   'subscription_end_date'
 ];
 
-// HubSpot Manager-pipeline stage IDs that mean "don't include in pipeline view"
-const EXCLUDED_STAGES = ['closedwon', 'closedlost', '1133741707']; // Won / Lost / Deal Cold
+// Pipelines to include, matched by LABEL (case-insensitive). Resolved to IDs
+// at runtime by hitting /crm/v3/pipelines/deals — that way the script doesn't
+// break if HubSpot recreates a pipeline and the internal ID changes.
+const INCLUDED_PIPELINE_LABEL_PATTERNS = [/^manager$/i, /^service\s*provider/i];
+
+// Stage labels that should be dropped from pipeline view even when HubSpot
+// marks them as "open" (e.g. Deal Cold = abandoned but technically not closed).
+// Closed-won / closed-lost are detected automatically via stage.metadata.isClosed.
+const EXTRA_EXCLUDED_STAGE_LABEL_PATTERNS = [/deal\s*cold/i];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -68,16 +75,16 @@ async function hsFetch(url, init = {}, retries = 3) {
   throw lastErr || new Error('HubSpot fetch failed after retries: ' + url);
 }
 
-// 1. Fetch every open Manager-pipeline deal (paginated).
-async function fetchOpenDeals() {
+// 1. Fetch every open deal in the included pipelines (paginated).
+async function fetchOpenDeals(pipelineIds, excludedStageIds) {
   const out = [];
   let after = null;
   while (true) {
     const body = {
       filterGroups: [{
         filters: [
-          { propertyName: 'pipeline', operator: 'EQ', value: 'default' },
-          { propertyName: 'dealstage', operator: 'NOT_IN', values: EXCLUDED_STAGES }
+          { propertyName: 'pipeline', operator: 'IN', values: pipelineIds },
+          { propertyName: 'dealstage', operator: 'NOT_IN', values: excludedStageIds }
         ]
       }],
       properties: DEAL_PROPS,
@@ -147,14 +154,41 @@ async function fetchOwners() {
   return out;
 }
 
-// 5. Dealstage option labels so the dashboard can show "Renewal" instead of
-// "12534077". We pull the property definition; its options array carries
-// {value, label} for every stage in every pipeline this portal has.
-async function fetchDealStageLabels() {
-  const j = await hsFetch(`${HS_BASE}/crm/v3/properties/deals/dealstage`);
-  const map = {};
-  (j.options || []).forEach(o => { map[o.value] = o.label; });
-  return map;
+// 5. Resolve which pipelines we're syncing from, plus the stage metadata we
+// need from them. One HubSpot call drives three things:
+//   - pipelineIds: the IDs the deal-search filter uses
+//   - stageLabels: id → human label, for the dashboard's Stage column
+//   - excludedStages: closed-won / closed-lost (detected via metadata.isClosed)
+//     and any stages whose label matches EXTRA_EXCLUDED_STAGE_LABEL_PATTERNS.
+async function resolvePipelineConfig() {
+  const j = await hsFetch(`${HS_BASE}/crm/v3/pipelines/deals`);
+  const all = j.results || [];
+  const wanted = all.filter(p => INCLUDED_PIPELINE_LABEL_PATTERNS.some(re => re.test(p.label)));
+  if (!wanted.length) {
+    const avail = all.map(p => `${p.label}(${p.id})`).join(' | ');
+    throw new Error(`No pipelines matched include patterns. Available: ${avail}`);
+  }
+  console.log('Pipelines included:', wanted.map(p => `${p.label}(${p.id})`).join(', '));
+
+  const stageLabels = {};
+  const excluded = new Set();
+  wanted.forEach(p => {
+    (p.stages || []).forEach(s => {
+      stageLabels[s.id] = s.label;
+      // HubSpot serializes metadata.isClosed as the string "true"/"false"
+      const closed = s.metadata && (s.metadata.isClosed === 'true' || s.metadata.isClosed === true);
+      if (closed) excluded.add(s.id);
+      if (EXTRA_EXCLUDED_STAGE_LABEL_PATTERNS.some(re => re.test(s.label))) excluded.add(s.id);
+    });
+  });
+  console.log('Excluded stages (closed + extras):', [...excluded].length);
+
+  return {
+    pipelineIds: wanted.map(p => p.id),
+    pipelineLabels: wanted.map(p => p.label),
+    stageLabels,
+    excludedStages: [...excluded]
+  };
 }
 
 function quarterOf(isoDate) {
@@ -169,8 +203,11 @@ function quarterOf(isoDate) {
 }
 
 async function main() {
-  console.log('Fetching open Manager-pipeline deals…');
-  const deals = await fetchOpenDeals();
+  console.log('Resolving pipeline config…');
+  const cfg = await resolvePipelineConfig();
+
+  console.log('Fetching open deals across included pipelines…');
+  const deals = await fetchOpenDeals(cfg.pipelineIds, cfg.excludedStages);
   console.log(`  ${deals.length} deals`);
 
   const dealIds = deals.map(d => d.id);
@@ -187,8 +224,7 @@ async function main() {
   const owners = await fetchOwners();
   console.log(`  ${owners.length} owners`);
 
-  console.log('Fetching dealstage labels…');
-  const stageLabels = await fetchDealStageLabels();
+  const stageLabels = cfg.stageLabels;
 
   // Build owner ID → {name, isActive} map.
   const ownersMap = {};
@@ -255,9 +291,9 @@ async function main() {
     syncedAt: now,
     source: 'hubspot-auto-sync',
     filters: {
-      pipeline: 'default',
-      pipelineLabel: 'Manager',
-      dealstageExcludes: EXCLUDED_STAGES
+      pipelineIds: cfg.pipelineIds,
+      pipelineLabels: cfg.pipelineLabels,
+      dealstageExcludes: cfg.excludedStages
     },
     counts: {
       deals: deals.length,
