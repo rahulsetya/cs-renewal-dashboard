@@ -1,0 +1,49 @@
+name: Sync HubSpot deals
+
+# Pulls every open Manager-pipeline deal from HubSpot and writes
+# hubspot-deals.json at the repo root. The Offers tab on the live dashboard
+# hydrates from that file so the team sees up-to-date deal data without
+# anyone uploading a spreadsheet.
+
+on:
+  schedule:
+    # Every 30 minutes. HubSpot Private App reads are well under any rate limit
+    # at this cadence; bump down to */15 if the team needs fresher data.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:   # Lets us trigger a manual run from the Actions tab
+
+permissions:
+  contents: write      # Required so the job can commit hubspot-deals.json back
+
+concurrency:
+  group: sync-hubspot
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run HubSpot sync
+        env:
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+        run: node hubspot-pull/sync.js
+
+      - name: Commit hubspot-deals.json if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain hubspot-deals.json)" ]; then
+            git add hubspot-deals.json
+            git commit -m "chore(sync): update hubspot-deals.json"
+            git push
+          else
+            echo "No changes — skipping commit."
+          fi

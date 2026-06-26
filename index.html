@@ -11769,23 +11769,38 @@ function _offExportQuarter(){
   XLSX.writeFile(wb,fname);
 }
 let _offHydrated=false;
+// _offSource is exposed so the Offers UI can show where the deals came from:
+// 'hubspot-auto-sync' (GitHub Actions every 30 min) or 'manual-upload'.
+let _offSource=null;
+let _offSyncedAt=null;
 async function _offHydrateFromTeam(){
   if(_offHydrated)return;
   _offHydrated=true;
-  try{
-    // Cache-bust so refreshes pick up the latest publish.
-    const r=await fetch('offers-deals.json?_='+Date.now(),{cache:'no-store'});
-    if(!r.ok)return;
-    const j=await r.json();
-    if(!j||typeof j!=='object'||!j.quarters)return;
-    _offDealsByQ=Object.assign({Q1:[],Q2:[],Q3:[],Q4:[]},j.quarters);
-    if(j.uploads&&typeof j.uploads==='object'){
-      _offUploadsByQ=Object.assign({Q1:null,Q2:null,Q3:null,Q4:null},j.uploads);
-      _offSaveUploads();
-    }
-    _offSaveDeals();
-    if(typeof aTab!=='undefined'&&aTab==='offers')rOffers();
-  }catch(e){}
+  // Try the auto-synced file first; fall back to the manual-upload file if
+  // hubspot-deals.json doesn't exist yet (e.g. the workflow hasn't run, or
+  // it's been disabled and the team is using the spreadsheet path again).
+  const sources=[
+    {url:'hubspot-deals.json',label:'hubspot-auto-sync'},
+    {url:'offers-deals.json',label:'manual-upload'}
+  ];
+  for(const s of sources){
+    try{
+      const r=await fetch(s.url+'?_='+Date.now(),{cache:'no-store'});
+      if(!r.ok)continue;
+      const j=await r.json();
+      if(!j||typeof j!=='object'||!j.quarters)continue;
+      _offDealsByQ=Object.assign({Q1:[],Q2:[],Q3:[],Q4:[]},j.quarters);
+      if(j.uploads&&typeof j.uploads==='object'){
+        _offUploadsByQ=Object.assign({Q1:null,Q2:null,Q3:null,Q4:null},j.uploads);
+        _offSaveUploads();
+      }
+      _offSaveDeals();
+      _offSource=j.source||s.label;
+      _offSyncedAt=j.syncedAt||j.publishedAt||null;
+      if(typeof aTab!=='undefined'&&aTab==='offers')rOffers();
+      return;
+    }catch(e){/* try next source */}
+  }
 }
 function _offFmt$(n){if(!n)return'—';const sign=n<0?'-':'';const a=Math.abs(n);return sign+(a>=1e6?'$'+(a/1e6).toFixed(1)+'M':a>=1e3?'$'+(a/1e3).toFixed(0)+'K':'$'+Math.round(a));}
 function _offFmtDate(iso){
@@ -12113,7 +12128,16 @@ function rOffers(){
   const _qAnyLoaded=_qTotals.Q1+_qTotals.Q2+_qTotals.Q3+_qTotals.Q4;
   const _qUploadAt=_offUploadsByQ[selQ];
   const _qUploadStr=_qUploadAt?_offFmtUpload(_qUploadAt):'';
+  // Source badge: amber pill for the auto-synced path so anyone glancing at
+  // the tab knows the data is being pulled live from HubSpot (vs. uploaded
+  // manually from a spreadsheet).
+  const _srcBadge=_offSource==='hubspot-auto-sync'
+    ?`<span title="Auto-synced from HubSpot every 30 minutes by GitHub Actions" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.4);padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)">⚡ HubSpot live${_offSyncedAt?` · ${_offFmtUpload(_offSyncedAt)}`:''}</span>`
+    :_offSource==='manual-upload'
+      ?`<span title="Loaded from offers-deals.json (manual upload — auto-sync is not running)" style="background:rgba(148,163,184,.15);color:#94a3b8;border:1px solid rgba(148,163,184,.35);padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)">Manual upload</span>`
+      :'';
   const uploadBar=`
+    ${_srcBadge}
     <button onclick="_offOpenUpload()" title="Upload HubSpot deal exports. Password protected. Once unlocked, drop a separate .xlsx into each quarter's box (or clear a quarter from there). Auto-publishes to the team." style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↑ Upload Deals${_qAnyLoaded?' ✓':''}</button>
     <button onclick="_offExportQuarter()" title="Download a .xlsx with every ${selQ} account joined to its open HubSpot deals (one row per deal). HubSpot Link column is clickable inside Excel. Available to anyone — no password needed." style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">↓ Export ${selQ}</button>
     ${_qDealCt?`<span style="font-size:10px;color:var(--green);font-weight:600">${_qDealCt} deal${_qDealCt===1?'':'s'} in ${selQ} · ${_dealMatchedRows} acct${_dealMatchedRows===1?'':'s'} matched${_qUploadStr?` · <span style="color:var(--dim);font-weight:500;font-family:var(--mono);font-size:9px">${selQ} uploaded ${_qUploadStr}</span>`:''}</span>`:_qAnyLoaded?`<span style="font-size:10px;color:var(--dim);font-weight:600">${_qAnyLoaded} deal${_qAnyLoaded===1?'':'s'} loaded across other quarters</span>`:''}
