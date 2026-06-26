@@ -40,7 +40,9 @@ const DEAL_PROPS = [
 
 const COMPANY_PROPS = [
   'name', 'platform_companyid', 'account_manager', 'account_segment',
-  'subscription_end_date'
+  'subscription_end_date',
+  // Q3 cadence flags (Yes/No per month). Drive the Cadence HS tab.
+  'july_2026_call_complete', 'august_2026_call_complete', 'september_2026_call_complete'
 ];
 
 // Pipelines to include, matched by LABEL (case-insensitive). Resolved to IDs
@@ -234,16 +236,24 @@ async function main() {
     ownersMap[o.id] = { name, isActive: !o.archived };
   });
 
-  // Build company ID → record map.
+  // Build company ID → record map. accountManagerName resolves the owner ID
+  // through ownersMap so the dashboard can group cadence by CSM without
+  // re-fetching owners.
   const companiesByHsId = {};
   companies.forEach(c => {
+    const amId = c.properties.account_manager || '';
+    const amInfo = ownersMap[amId];
     companiesByHsId[c.id] = {
       hsId: c.id,
       platformId: c.properties.platform_companyid || '',
       name: c.properties.name || '',
-      accountManager: c.properties.account_manager || '',
+      accountManager: amId,
+      accountManagerName: amInfo ? amInfo.name : '',
       accountSegment: c.properties.account_segment || '',
-      subscriptionEndDate: c.properties.subscription_end_date || ''
+      subscriptionEndDate: c.properties.subscription_end_date || '',
+      jul: c.properties.july_2026_call_complete || '',
+      aug: c.properties.august_2026_call_complete || '',
+      sep: c.properties.september_2026_call_complete || ''
     };
   });
 
@@ -329,6 +339,27 @@ async function main() {
         const name = c.properties.name || '';
         const pid = c.properties.platform_companyid || '';
         if (name && pid) idx[name] = { platformId: pid, hsId: c.id, segment: c.properties.account_segment || '' };
+      });
+      return idx;
+    })(),
+    // Q3 cadence-by-platform-ID lookup. Drives the Cadence HS tab — keyed by
+    // platform_companyid so the dashboard can join SP_ACCTS / ACCTS to each
+    // company's Jul/Aug/Sep "call complete" flags without re-querying HubSpot.
+    // accountManager is resolved to a display name; jul/aug/sep carry the raw
+    // HubSpot value ('Yes' / 'No' / '' typically) so the dashboard can decide
+    // how to interpret blank vs explicit No.
+    cadenceByPid: (() => {
+      const idx = {};
+      Object.values(companiesByHsId).forEach(c => {
+        if (!c.platformId) return;
+        idx[c.platformId] = {
+          name: c.name,
+          accountManager: c.accountManagerName,
+          segment: c.accountSegment,
+          jul: c.jul,
+          aug: c.aug,
+          sep: c.sep
+        };
       });
       return idx;
     })()

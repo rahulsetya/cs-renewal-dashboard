@@ -6341,6 +6341,7 @@ body.light .scenario-slider::-moz-range-track{background:#bccedd}
   <div id="tab-gp_grr" class="tab-content"></div>
   <div id="tab-sp_grr" class="tab-content"></div>
   <div id="tab-cadence" class="tab-content"></div>
+  <div id="tab-cadence_hs" class="tab-content"></div>
   <div id="tab-offers" class="tab-content"></div>
   <div id="tab-all_accounts" class="tab-content"></div>
   <div id="tab-payout" class="tab-content"></div>
@@ -6562,7 +6563,7 @@ function poolCard(pool,d,target,gifted){
 function legend4(){return`<div class="legend-row">${[{l:"Won (renewed)",c:"var(--green)"},{l:"Open (in progress)",c:"var(--amber)"},{l:"Declined Early (re-engageable)",c:"var(--orange)"},{l:"Churned (confirmed lost)",c:"var(--red)"}].map(x=>`<span><span class="legend-dot" style="background:${x.c}"></span>${x.l}</span>`).join('')}</div>`}
 
 // ── TAB SYSTEM ──────────────────────────────────────
-const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"offers",l:"Offers"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
+const tabDefs=[{id:"overview",l:"Overview"},{id:"gp_grr",l:"GP Retention"},{id:"sp_grr",l:"SP Retention",ac:1},{id:"cadence",l:"Cadence"},{id:"cadence_hs",l:"Cadence HS"},{id:"offers",l:"Offers"},{id:"all_accounts",l:"All Accounts"},{id:"payout",l:"Comp Projection"},{id:"targets",l:"Targets"},{id:"risk",l:"Risk Register"},{id:"rules",l:"Comp Rules"},{id:"rc_history",l:"📸 Snap History"}];
 var aTab="overview",selGPCSM=null,selGPMonth=[],selGPPod=null;
 // Per-pod expand state shared by the Goals iframe's owner dropdowns
 // (GP Retention + All Accounts). Keyed by pod name. Defaults collapsed —
@@ -11857,6 +11858,12 @@ let _offSyncedAt=null;
 let _offCompaniesByName={};
 function _offNormName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim();}
 function _offLookupPid(name){return (_offCompaniesByName[_offNormName(name)]||{}).platformId||'';}
+// Cadence-by-platform-ID lookup powering the Cadence HS tab. Keyed by
+// company's platform_companyid → {name, accountManager, segment, jul, aug, sep}.
+// jul/aug/sep are raw HubSpot enum values — 'Yes' counts as completed; blank
+// or any other value (incl. 'No') counts as not completed.
+let _offCadenceByPid={};
+function _cadHSIsYes(v){return String(v||'').trim().toLowerCase()==='yes';}
 async function _offHydrateFromTeam(){
   if(_offHydrated)return;
   _offHydrated=true;
@@ -11888,6 +11895,8 @@ async function _offHydrateFromTeam(){
           if(k)_offCompaniesByName[k]={...info,name};
         });
       }
+      // Cadence HS: per-company Jul/Aug/Sep call-complete flags from HubSpot.
+      _offCadenceByPid=(j.cadenceByPid&&typeof j.cadenceByPid==='object')?j.cadenceByPid:{};
       _offSource=j.source||s.label;
       _offSyncedAt=j.syncedAt||j.publishedAt||null;
       if(typeof aTab!=='undefined'&&aTab==='offers')rOffers();
@@ -12517,7 +12526,126 @@ function _offBuildUploadModal(){
     </div>
   `;
 }
-function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'offers':rOffers();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
+// Cadence HS — HubSpot-sourced cadence tab. Same per-CSM × month shape as
+// the engagement-tracker Cadence tab, but Q3 cells (Jul/Aug/Sep) read from
+// HubSpot company properties (july/august/september_2026_call_complete) via
+// the auto-synced hubspot-deals.json `cadenceByPid` block. Q1/Q2 still pull
+// from CADENCE_DATA so historical months stay unchanged. Q4 columns are
+// blank until those HubSpot properties exist.
+function rCadenceHS(){
+  const el=document.getElementById('tab-cadence_hs');
+  if(!el)return;
+  _liveSelCadQ();
+  // Per-CSM Q3 aggregation from HubSpot. Matches by account_manager == c.n.
+  // Returns {jul:{yes,total}, aug:{yes,total}, sep:{yes,total}} keyed by CSM name.
+  const hsByCsm={};
+  Object.values(_offCadenceByPid||{}).forEach(c=>{
+    const k=String(c.accountManager||'').trim();
+    if(!k)return;
+    if(!hsByCsm[k])hsByCsm[k]={jul:{yes:0,total:0},aug:{yes:0,total:0},sep:{yes:0,total:0},pids:[]};
+    hsByCsm[k].pids.push(c);
+    ['jul','aug','sep'].forEach(m=>{
+      hsByCsm[k][m].total++;
+      if(_cadHSIsYes(c[m]))hsByCsm[k][m].yes++;
+    });
+  });
+  const hsRosterAvail=Object.keys(hsByCsm).length>0;
+  // Selected quarter → which monthly columns to render. Reuses _QM_LC so the
+  // header labels stay consistent with the original Cadence tab.
+  const qMonths={Q1:['Jan','Feb','Mar'],Q2:['Apr','May','Jun'],Q3:['Jul','Aug','Sep'],Q4:['Oct','Nov','Dec']};
+  const monthsForQ=qMonths[selCadQ]||[];
+  // CADENCE_DATA fallback for Q1/Q2 — find the cd.cols column whose label
+  // matches a given month abbreviation. Returns null if engagement tracker
+  // isn't loaded or the column isn't there.
+  const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
+  const _cdColFor=mo=>{
+    if(!cd||!cd.cols)return null;
+    const m=String(mo||'').toLowerCase();
+    return cd.cols.find(c=>String(c||'').toLowerCase().includes(m))||null;
+  };
+  // Cell value for one (csm, month). Q3 → HubSpot; everything else → CADENCE_DATA.
+  const cellFor=(csmName,mo)=>{
+    const moK=mo.toLowerCase();
+    if(moK==='jul'||moK==='aug'||moK==='sep'){
+      const bucket=hsByCsm[csmName];
+      if(!bucket)return{yes:0,total:0,src:'hs',missing:!hsRosterAvail};
+      const sub=bucket[moK];
+      return{yes:sub.yes,total:sub.total,src:'hs'};
+    }
+    const col=_cdColFor(mo);
+    if(!col||!cd||!cd.csm||!cd.csm[csmName])return{yes:0,total:0,src:'cd',missing:true};
+    const mData=cd.csm[csmName].months&&cd.csm[csmName].months[col];
+    return{yes:(mData&&mData.yes)||0,total:(cd.csm[csmName].total)||0,src:'cd'};
+  };
+  // Row renderer.
+  const _pct=(y,t)=>t>0?Math.round(y/t*1000)/10:0;
+  const _cellHTML=v=>{
+    if(v.missing){
+      return `<td style="text-align:center;padding:6px 10px;color:var(--dim);font-size:11px;opacity:.5">—</td>`;
+    }
+    const p=_pct(v.yes,v.total);
+    const col=p>=80?'var(--green)':p>=50?'var(--amber)':p>0?'var(--text)':'var(--dim)';
+    const srcTag=v.src==='hs'
+      ?`<span style="font-size:8px;font-weight:700;letter-spacing:.4px;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);padding:0 4px;border-radius:6px;margin-left:4px;vertical-align:middle">HS</span>`
+      :'';
+    return `<td style="text-align:center;padding:6px 10px;font-family:var(--mono)">
+      <div style="font-size:14px;font-weight:700;color:${col}">${v.yes}<span style="color:var(--dim);font-weight:500"> / ${v.total}</span></div>
+      <div style="font-size:9px;color:var(--dim);margin-top:2px">${p}%${srcTag}</div>
+    </td>`;
+  };
+  // Row roster — keep CSM order from CSM[]. Each row carries pool tag from c.seg.
+  const _roster=(typeof CSM!=='undefined'&&CSM.length)?CSM:[];
+  const _hasData=cd&&cd.cols&&cd.cols.length;
+  el.innerHTML=`
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--dim)">Quarter:</span>
+      ${["Q1","Q2","Q3","Q4"].map(qq=>`<button class="qbtn ${qq===selCadQ?'active':''}" onclick="_setSelCadQ('${qq}');rT('cadence_hs')">${qq}</button>`).join('')}
+      <span style="margin-left:auto;font-size:10px;color:var(--dim);font-weight:600;letter-spacing:.3px">
+        ${hsRosterAvail?`<span style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.4);padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase;font-family:var(--mono)">⚡ HubSpot live</span>`:`<span style="color:var(--amber)">⚠ HubSpot data not loaded yet</span>`}
+      </span>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <h3>Meeting Cadence by CSM · HubSpot</h3>
+      <div class="sh">Q3 (Jul/Aug/Sep) reads each company's <code style="color:var(--accent)">july_2026_call_complete</code> / <code style="color:var(--accent)">august_2026_call_complete</code> / <code style="color:var(--accent)">september_2026_call_complete</code> from HubSpot, grouped by <code style="color:var(--accent)">account_manager</code>. Q1/Q2 pull from the engagement tracker (same source as the original Cadence tab). Q4 cells stay blank until those HubSpot properties exist. Cells show <span style="font-family:var(--mono)">yes / total</span> with % below; the <span style="font-size:8px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);padding:0 4px;border-radius:6px">HS</span> badge marks HubSpot-sourced cells.</div>
+      <table style="border-collapse:collapse;width:100%;min-width:560px;margin-top:10px">
+        <thead><tr style="border-bottom:1px solid var(--borderL)">
+          <th style="text-align:left;padding:8px 12px;font-size:11px;color:var(--dim);font-weight:600">CSM</th>
+          <th style="text-align:left;padding:8px 8px;font-size:11px;color:var(--dim);font-weight:600">Pool</th>
+          ${monthsForQ.map(m=>`<th style="text-align:center;padding:8px 10px;font-size:11px;color:var(--dim);font-weight:600;white-space:nowrap">${m} 2026</th>`).join('')}
+          <th style="text-align:center;padding:8px 10px;font-size:11px;color:var(--dim);font-weight:600;white-space:nowrap">${selCadQ} Total</th>
+        </tr></thead>
+        <tbody>
+          ${_roster.map(c=>{
+            const cells=monthsForQ.map(m=>cellFor(c.n,m));
+            const totYes=cells.reduce((s,v)=>s+(v.missing?0:v.yes),0);
+            const denom=(()=>{
+              // Prefer the HubSpot-derived total for Q3; otherwise prefer
+              // CADENCE_DATA total. Each month within a quarter has the same
+              // denominator (the CSM's book), so we just take the first cell.
+              const first=cells.find(v=>!v.missing);
+              if(!first)return 0;
+              if(first.src==='hs')return first.total*monthsForQ.length;
+              return first.total*monthsForQ.length;
+            })();
+            const qPct=denom>0?Math.round(totYes/denom*1000)/10:0;
+            const qCol=qPct>=80?'var(--green)':qPct>=50?'var(--amber)':qPct>0?'var(--text)':'var(--dim)';
+            return `<tr style="border-top:1px solid rgba(255,255,255,.05)">
+              <td style="padding:7px 12px;color:var(--text);font-weight:500">${c.n}</td>
+              <td style="padding:7px 8px;color:var(--dim);font-size:11px">${c.seg||'—'}</td>
+              ${cells.map(_cellHTML).join('')}
+              <td style="text-align:center;padding:7px 10px;font-family:var(--mono)">
+                <div style="font-size:14px;font-weight:700;color:${qCol}">${totYes}<span style="color:var(--dim);font-weight:500"> / ${denom}</span></div>
+                <div style="font-size:9px;color:var(--dim);margin-top:2px">${qPct}%</div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      ${!_hasData&&selCadQ!=='Q3'?`<div style="margin-top:10px;font-size:11px;color:var(--amber);padding:8px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px">Engagement tracker not loaded yet — only Q3 (HubSpot) cells will populate. Q1/Q2 need the engagement tracker; refresh the dashboard or load the source.</div>`:''}
+    </div>
+  `;
+}
+function rT(id){switch(id){case'overview':rOverview();break;case'gp_grr':rGP();break;case'sp_grr':rSP();break;case'cadence':rCadence();break;case'cadence_hs':rCadenceHS();break;case'offers':rOffers();break;case'all_accounts':rAllAccts();break;case'payout':rPayout();break;case'targets':rTargets();break;case'risk':rRisk();break;case'rules':rRules();break;case'rc_history':rRCHistory();break}}
 rOverview();
 </script>
 </body>
