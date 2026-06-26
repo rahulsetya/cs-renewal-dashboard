@@ -12642,21 +12642,34 @@ function rCadenceHS(){
     return cd.cols.find(c=>String(c||'').toLowerCase().includes(m))||null;
   };
   // Cell value for one (csm, month). Q3 → HubSpot; everything else → CADENCE_DATA.
+  // Adds audit-aware counters when _cadAuditData is loaded so the cell can
+  // surface red-X (unverified) and yellow-⚠ (forgot) markers inline.
+  const _auditByCsm=(_hsAudit&&_hsAudit.byCsm)||null;
   const cellFor=(csmName,mo)=>{
     const moK=mo.toLowerCase();
     if(moK==='jul'||moK==='aug'||moK==='sep'){
       const bucket=hsByCsm[csmName];
-      if(!bucket)return{yes:0,total:0,src:'hs',missing:!hsRosterAvail};
+      if(!bucket)return{yes:0,total:0,src:'hs',missing:!hsRosterAvail,unv:0,forg:0};
       const sub=bucket[moK];
-      return{yes:sub.yes,total:sub.total,src:'hs'};
+      const auditSub=_auditByCsm&&_auditByCsm[csmName]?_auditByCsm[csmName][moK]:null;
+      return{yes:sub.yes,total:sub.total,src:'hs',unv:auditSub?auditSub.unverified:0,forg:auditSub?auditSub.forgot:0};
     }
     const col=_cdColFor(mo);
-    if(!col||!cd||!cd.csm||!cd.csm[csmName])return{yes:0,total:0,src:'cd',missing:true};
+    if(!col||!cd||!cd.csm||!cd.csm[csmName])return{yes:0,total:0,src:'cd',missing:true,unv:0,forg:0};
     const mData=cd.csm[csmName].months&&cd.csm[csmName].months[col];
-    return{yes:(mData&&mData.yes)||0,total:(cd.csm[csmName].total)||0,src:'cd'};
+    return{yes:(mData&&mData.yes)||0,total:(cd.csm[csmName].total)||0,src:'cd',unv:0,forg:0};
   };
   // Row renderer.
   const _pct=(y,t)=>t>0?Math.round(y/t*1000)/10:0;
+  // Inline audit markers: ❌ count of flag-Yes-but-no-HS-meeting, and
+  // ⚠ count of HS-meeting-but-flag-not-Yes. Hidden when audit data isn't
+  // loaded or counts are zero.
+  const _auditChips=v=>{
+    if(!v||(!v.unv&&!v.forg))return'';
+    const unvChip=v.unv?`<span title="${v.unv} flagged Yes but no HubSpot meeting found" style="font-size:9px;font-weight:700;color:var(--red);background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);padding:1px 5px;border-radius:6px">❌ ${v.unv}</span>`:'';
+    const forChip=v.forg?`<span title="${v.forg} HubSpot meetings without a Yes flag" style="font-size:9px;font-weight:700;color:var(--amber);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);padding:1px 5px;border-radius:6px">⚠ ${v.forg}</span>`:'';
+    return `<div style="display:flex;justify-content:center;gap:4px;margin-top:3px">${unvChip}${forChip}</div>`;
+  };
   const _cellHTML=v=>{
     if(v.missing){
       return `<td style="text-align:center;padding:6px 10px;color:var(--dim);font-size:11px;opacity:.5">—</td>`;
@@ -12669,6 +12682,7 @@ function rCadenceHS(){
     return `<td style="text-align:center;padding:6px 10px;font-family:var(--mono)">
       <div style="font-size:14px;font-weight:700;color:${col}">${v.yes}<span style="color:var(--dim);font-weight:500"> / ${v.total}</span></div>
       <div style="font-size:9px;color:var(--dim);margin-top:2px">${p}%${srcTag}</div>
+      ${_auditChips(v)}
     </td>`;
   };
   // Row roster — keep CSM order from CSM[]. Each row carries pool tag from c.seg.
@@ -12713,30 +12727,75 @@ function rCadenceHS(){
           <th style="text-align:center;padding:8px 10px;font-size:11px;color:var(--dim);font-weight:600;white-space:nowrap">${selCadQ} Total</th>
         </tr></thead>
         <tbody>
-          ${_roster.map(c=>{
-            const cells=monthsForQ.map(m=>cellFor(c.n,m));
-            const totYes=cells.reduce((s,v)=>s+(v.missing?0:v.yes),0);
-            const denom=(()=>{
-              // Prefer the HubSpot-derived total for Q3; otherwise prefer
-              // CADENCE_DATA total. Each month within a quarter has the same
-              // denominator (the CSM's book), so we just take the first cell.
-              const first=cells.find(v=>!v.missing);
-              if(!first)return 0;
-              if(first.src==='hs')return first.total*monthsForQ.length;
-              return first.total*monthsForQ.length;
-            })();
-            const qPct=denom>0?Math.round(totYes/denom*1000)/10:0;
-            const qCol=qPct>=80?'var(--green)':qPct>=50?'var(--amber)':qPct>0?'var(--text)':'var(--dim)';
-            return `<tr style="border-top:1px solid rgba(255,255,255,.05)">
-              <td style="padding:7px 12px;color:var(--text);font-weight:500">${c.n}</td>
-              <td style="padding:7px 8px;color:var(--dim);font-size:11px">${c.seg||'—'}</td>
-              ${cells.map(_cellHTML).join('')}
-              <td style="text-align:center;padding:7px 10px;font-family:var(--mono)">
-                <div style="font-size:14px;font-weight:700;color:${qCol}">${totYes}<span style="color:var(--dim);font-weight:500"> / ${denom}</span></div>
-                <div style="font-size:9px;color:var(--dim);margin-top:2px">${qPct}%</div>
-              </td>
-            </tr>`;
-          }).join('')}
+          ${(function(){
+            // Group CSMs by pool so subtotals can render between sections.
+            const _poolOrder=['Enterprise','Strategic','Scale','Service Provider'];
+            const _byPool={};
+            _roster.forEach(c=>{const p=c.seg||'Other';(_byPool[p]=_byPool[p]||[]).push(c);});
+            const _orderedPools=_poolOrder.filter(p=>_byPool[p]&&_byPool[p].length);
+            // Any unknown pools (e.g. future tier) appended after the canonical four.
+            Object.keys(_byPool).forEach(p=>{if(!_orderedPools.includes(p))_orderedPools.push(p);});
+            // Helper to render a subtotal/total row from a list of CSM cell arrays.
+            // type='subtotal' uses a subtle accent border, 'grand' uses a thick rose
+            // border so the very-bottom row stands apart.
+            const _aggRowHTML=(label,subLabel,perCSM,type)=>{
+              // Sum cells column-by-column.
+              const cells=monthsForQ.map((m,i)=>{
+                let yes=0,total=0,unv=0,forg=0,missingAll=true,src='hs';
+                perCSM.forEach(cells=>{
+                  const v=cells[i];if(!v)return;
+                  if(!v.missing){missingAll=false;yes+=v.yes;total+=v.total;}
+                  unv+=v.unv||0;forg+=v.forg||0;
+                  if(v.src)src=v.src;
+                });
+                return{yes,total,src,missing:missingAll&&total===0&&unv===0&&forg===0,unv,forg};
+              });
+              const totYes=cells.reduce((s,v)=>s+(v.missing?0:v.yes),0);
+              const denom=cells.reduce((s,v)=>s+(v.missing?0:v.total),0);
+              const qPct=denom>0?Math.round(totYes/denom*1000)/10:0;
+              const qCol=qPct>=80?'var(--green)':qPct>=50?'var(--amber)':qPct>0?'var(--text)':'var(--dim)';
+              const bg=type==='grand'?'rgba(244,63,94,.08)':'rgba(96,165,250,.08)';
+              const borderTop=type==='grand'?'2px solid var(--rose)':'2px solid var(--accent)';
+              const labelColor=type==='grand'?'var(--rose)':'var(--accent)';
+              return `<tr style="border-top:${borderTop};background:${bg};font-weight:700">
+                <td style="padding:9px 12px;font-size:13px;color:var(--text)">${label}${subLabel?` <span style="font-size:10px;color:var(--dim);font-weight:500">${subLabel}</span>`:''}</td>
+                <td style="padding:9px 8px;font-size:10px;color:${labelColor};letter-spacing:.5px;text-transform:uppercase;font-weight:700">${type==='grand'?'TOTAL':'subtotal'}</td>
+                ${cells.map(_cellHTML).join('')}
+                <td style="text-align:center;padding:9px 10px;font-family:var(--mono)">
+                  <div style="font-size:15px;font-weight:700;color:${qCol}">${totYes}<span style="color:var(--dim);font-weight:500"> / ${denom}</span></div>
+                  <div style="font-size:9px;color:var(--dim);margin-top:2px">${qPct}%</div>
+                </td>
+              </tr>`;
+            };
+            // Build all rows: pool by pool, with a subtotal at the end of each.
+            const _allCellsPerCSM=[];
+            const groups=_orderedPools.map(pool=>{
+              const csms=_byPool[pool];
+              const perCSMCells=csms.map(c=>monthsForQ.map(m=>cellFor(c.n,m)));
+              perCSMCells.forEach(arr=>_allCellsPerCSM.push(arr));
+              const csmRows=csms.map((c,idx)=>{
+                const cells=perCSMCells[idx];
+                const totYes=cells.reduce((s,v)=>s+(v.missing?0:v.yes),0);
+                const first=cells.find(v=>!v.missing);
+                const denom=first?first.total*monthsForQ.length:0;
+                const qPct=denom>0?Math.round(totYes/denom*1000)/10:0;
+                const qCol=qPct>=80?'var(--green)':qPct>=50?'var(--amber)':qPct>0?'var(--text)':'var(--dim)';
+                return `<tr style="border-top:1px solid rgba(255,255,255,.05)">
+                  <td style="padding:7px 12px;color:var(--text);font-weight:500">${c.n}</td>
+                  <td style="padding:7px 8px;color:var(--dim);font-size:11px">${c.seg||'—'}</td>
+                  ${cells.map(_cellHTML).join('')}
+                  <td style="text-align:center;padding:7px 10px;font-family:var(--mono)">
+                    <div style="font-size:14px;font-weight:700;color:${qCol}">${totYes}<span style="color:var(--dim);font-weight:500"> / ${denom}</span></div>
+                    <div style="font-size:9px;color:var(--dim);margin-top:2px">${qPct}%</div>
+                  </td>
+                </tr>`;
+              }).join('');
+              const sub=_aggRowHTML(pool,`(${csms.length} CSM${csms.length===1?'':'s'})`,perCSMCells,'subtotal');
+              return csmRows+sub;
+            }).join('');
+            const grand=_aggRowHTML('Grand Total',`(${_roster.length} CSM${_roster.length===1?'':'s'})`,_allCellsPerCSM,'grand');
+            return groups+grand;
+          })()}
         </tbody>
       </table>
       ${!_hasData&&selCadQ!=='Q3'?`<div style="margin-top:10px;font-size:11px;color:var(--amber);padding:8px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:6px">Engagement tracker not loaded yet — only Q3 (HubSpot) cells will populate. Q1/Q2 need the engagement tracker; refresh the dashboard or load the source.</div>`:''}
