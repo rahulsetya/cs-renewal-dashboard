@@ -45,10 +45,11 @@ const COMPANY_PROPS = [
   'july_2026_call_complete', 'august_2026_call_complete', 'september_2026_call_complete'
 ];
 
-// Cadence HS-eligible categories. Matched case-insensitively against the
-// HubSpot `category` property when picking which companies make it into
-// cadenceByPid.
-const CADENCE_HS_CATEGORIES = new Set(['fund manager', 'service provider']);
+// Cadence HS-eligible categories. The HubSpot `category` enumeration uses
+// internal values that differ from display labels — confirmed via
+// get_properties: "Fund Manager" is stored as internal value "Manager".
+// Matched case-insensitively against the raw `category` value from the API.
+const CADENCE_HS_CATEGORIES = new Set(['manager', 'service provider']);
 
 // Pipelines to include, matched by LABEL (case-insensitive). Resolved to IDs
 // at runtime by hitting /crm/v3/pipelines/deals — that way the script doesn't
@@ -158,7 +159,10 @@ async function fetchManagedCompanies() {
   while (true) {
     const body = {
       filterGroups: [
-        { filters: [{ propertyName: 'category', operator: 'EQ', value: 'Fund Manager' }, ...sharedFilters] },
+        // Internal enum values from HubSpot category property:
+        //   "Manager" → display label "Fund Manager"
+        //   "Service Provider" → display label "Service Provider"
+        { filters: [{ propertyName: 'category', operator: 'EQ', value: 'Manager' }, ...sharedFilters] },
         { filters: [{ propertyName: 'category', operator: 'EQ', value: 'Service Provider' }, ...sharedFilters] }
       ],
       properties: COMPANY_PROPS,

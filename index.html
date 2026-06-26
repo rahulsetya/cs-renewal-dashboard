@@ -11860,10 +11860,11 @@ function _offNormName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/
 function _offLookupPid(name){return (_offCompaniesByName[_offNormName(name)]||{}).platformId||'';}
 // Cadence-by-platform-ID lookup powering the Cadence HS tab. Keyed by
 // company's platform_companyid → {name, accountManager, segment, jul, aug, sep}.
-// jul/aug/sep are raw HubSpot enum values — 'Yes' counts as completed; blank
-// or any other value (incl. 'No') counts as not completed.
+// HubSpot returns "true" / "false" for boolean checkbox properties even when
+// the UI displays them as "Yes" / "No"; the matcher accepts both so a future
+// switch from bool → enum doesn't silently break the rollup.
 let _offCadenceByPid={};
-function _cadHSIsYes(v){return String(v||'').trim().toLowerCase()==='yes';}
+function _cadHSIsYes(v){const s=String(v||'').trim().toLowerCase();return s==='true'||s==='yes';}
 async function _offHydrateFromTeam(){
   if(_offHydrated)return;
   _offHydrated=true;
