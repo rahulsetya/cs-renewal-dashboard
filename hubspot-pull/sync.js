@@ -40,10 +40,15 @@ const DEAL_PROPS = [
 
 const COMPANY_PROPS = [
   'name', 'platform_companyid', 'account_manager', 'account_segment',
-  'subscription_end_date',
+  'subscription_end_date', 'category',
   // Q3 cadence flags (Yes/No per month). Drive the Cadence HS tab.
   'july_2026_call_complete', 'august_2026_call_complete', 'september_2026_call_complete'
 ];
+
+// Cadence HS-eligible categories. Matched case-insensitively against the
+// HubSpot `category` property when picking which companies make it into
+// cadenceByPid.
+const CADENCE_HS_CATEGORIES = new Set(['fund manager', 'service provider']);
 
 // Pipelines to include, matched by LABEL (case-insensitive). Resolved to IDs
 // at runtime by hitting /crm/v3/pipelines/deals — that way the script doesn't
@@ -137,19 +142,25 @@ async function fetchCompanies(companyIds) {
   return out;
 }
 
-// 3b. Search every company that has an account_manager set, even if it has no
-// open deal in the included pipelines. The Cadence HS tab needs the full
-// managed-account roster (e.g. Corbin Capital, which is on a CSM's book but
-// has no open Manager/SP deal at sync time). HAS_PROPERTY catches anything
-// with a non-empty owner ID.
+// 3b. Search every cadence-eligible company: category in {Fund Manager,
+// Service Provider} AND platform_companyid set AND subscription end date in
+// the future. HubSpot's filterGroups are OR'd at the top level, so each
+// category gets its own group with the shared platform-id + future-sub
+// filters duplicated inside.
 async function fetchManagedCompanies() {
   const out = [];
   let after = null;
+  const futureDateMs = Date.now();
+  const sharedFilters = [
+    { propertyName: 'platform_companyid', operator: 'HAS_PROPERTY' },
+    { propertyName: 'subscription_end_date', operator: 'GTE', value: futureDateMs }
+  ];
   while (true) {
     const body = {
-      filterGroups: [{
-        filters: [{ propertyName: 'account_manager', operator: 'HAS_PROPERTY' }]
-      }],
+      filterGroups: [
+        { filters: [{ propertyName: 'category', operator: 'EQ', value: 'Fund Manager' }, ...sharedFilters] },
+        { filters: [{ propertyName: 'category', operator: 'EQ', value: 'Service Provider' }, ...sharedFilters] }
+      ],
       properties: COMPANY_PROPS,
       limit: 100,
       ...(after ? { after } : {})
@@ -293,12 +304,28 @@ async function main() {
       accountManager: amId,
       accountManagerName: amInfo ? amInfo.name : '',
       accountSegment: c.properties.account_segment || '',
+      category: c.properties.category || '',
       subscriptionEndDate: c.properties.subscription_end_date || '',
       jul: c.properties.july_2026_call_complete || '',
       aug: c.properties.august_2026_call_complete || '',
       sep: c.properties.september_2026_call_complete || ''
     };
   });
+  // Cadence HS eligibility test — same shape as the HubSpot search filter so
+  // any deal-associated company that didn't come through fetchManagedCompanies
+  // still has to clear the bar before landing in cadenceByPid.
+  const _todayMs = Date.now();
+  const _isCadenceEligible = c => {
+    if (!c.platformId) return false;
+    if (!CADENCE_HS_CATEGORIES.has(String(c.category || '').toLowerCase())) return false;
+    const sub = c.subscriptionEndDate;
+    if (!sub) return false;
+    // HubSpot date properties serialize as either ISO YYYY-MM-DD or a numeric
+    // string of ms-since-epoch. Handle both.
+    const subMs = /^\d+$/.test(String(sub)) ? Number(sub) : Date.parse(String(sub));
+    if (!subMs || isNaN(subMs)) return false;
+    return subMs >= _todayMs;
+  };
 
   // Bucket deals by quarter (using the primary associated company's
   // subscription_end_date). The dashboard's Offers tab reads {quarters: {Q1,…}}
@@ -388,17 +415,19 @@ async function main() {
     // Q3 cadence-by-platform-ID lookup. Drives the Cadence HS tab — keyed by
     // platform_companyid so the dashboard can join SP_ACCTS / ACCTS to each
     // company's Jul/Aug/Sep "call complete" flags without re-querying HubSpot.
-    // accountManager is resolved to a display name; jul/aug/sep carry the raw
-    // HubSpot value ('Yes' / 'No' / '' typically) so the dashboard can decide
-    // how to interpret blank vs explicit No.
+    // Only companies that pass _isCadenceEligible (category in Fund Manager /
+    // Service Provider, has platform_companyid, subscription_end_date in the
+    // future) make it in.
     cadenceByPid: (() => {
       const idx = {};
       Object.values(companiesByHsId).forEach(c => {
-        if (!c.platformId) return;
+        if (!_isCadenceEligible(c)) return;
         idx[c.platformId] = {
           name: c.name,
           accountManager: c.accountManagerName,
           segment: c.accountSegment,
+          category: c.category,
+          subscriptionEndDate: c.subscriptionEndDate,
           jul: c.jul,
           aug: c.aug,
           sep: c.sep
