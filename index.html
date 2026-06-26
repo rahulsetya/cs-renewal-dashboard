@@ -12546,20 +12546,30 @@ function rCadenceHS(){
   // hydrate guard the Offers tab uses; re-renders after the fetch finishes
   // via the aTab check inside _offHydrateFromTeam.
   if(typeof _offHydrateFromTeam==='function')_offHydrateFromTeam();
-  // Per-CSM Q3 aggregation from HubSpot. Matches by account_manager == c.n.
-  // Returns {jul:{yes,total}, aug:{yes,total}, sep:{yes,total}} keyed by CSM name.
+  // Per-CSM Q3 aggregation. We iterate each CSM's ENGAGEMENT-TRACKER book
+  // (cd.csm[name].allAccts) and look up each account's platformId in the
+  // HubSpot cadence map. This sidesteps HubSpot's account_manager value
+  // (which doesn't reliably match the ET CSM display name).
+  const _cdLocal=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
   const hsByCsm={};
-  Object.values(_offCadenceByPid||{}).forEach(c=>{
-    const k=String(c.accountManager||'').trim();
-    if(!k)return;
-    if(!hsByCsm[k])hsByCsm[k]={jul:{yes:0,total:0},aug:{yes:0,total:0},sep:{yes:0,total:0},pids:[]};
-    hsByCsm[k].pids.push(c);
-    ['jul','aug','sep'].forEach(m=>{
-      hsByCsm[k][m].total++;
-      if(_cadHSIsYes(c[m]))hsByCsm[k][m].yes++;
+  if(_cdLocal&&_cdLocal.csm){
+    Object.entries(_cdLocal.csm).forEach(([csmName,csmData])=>{
+      const bucket={jul:{yes:0,total:0},aug:{yes:0,total:0},sep:{yes:0,total:0},pidsUsed:0,pidsMissing:0};
+      (csmData.allAccts||[]).forEach(a=>{
+        const pid=String(a.platformId||'').trim();
+        if(!pid){bucket.pidsMissing++;return;}
+        const hs=_offCadenceByPid[pid];
+        if(!hs){bucket.pidsMissing++;return;}
+        bucket.pidsUsed++;
+        ['jul','aug','sep'].forEach(m=>{
+          bucket[m].total++;
+          if(_cadHSIsYes(hs[m]))bucket[m].yes++;
+        });
+      });
+      hsByCsm[csmName]=bucket;
     });
-  });
-  const hsRosterAvail=Object.keys(hsByCsm).length>0;
+  }
+  const hsRosterAvail=Object.keys(_offCadenceByPid||{}).length>0;
   // Selected quarter → which monthly columns to render. Reuses _QM_LC so the
   // header labels stay consistent with the original Cadence tab.
   const qMonths={Q1:['Jan','Feb','Mar'],Q2:['Apr','May','Jun'],Q3:['Jul','Aug','Sep'],Q4:['Oct','Nov','Dec']};
