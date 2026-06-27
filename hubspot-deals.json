@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-27T19:02:06.164Z",
-  "syncedAt": "2026-06-27T19:02:06.164Z",
+  "publishedAt": "2026-06-27T20:36:01.606Z",
+  "syncedAt": "2026-06-27T20:36:01.606Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -6763,7 +6763,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T00:10:53.699Z"
+        "hsLastModified": "2026-06-27T19:20:47.077Z"
       },
       {
         "pid": "43537",
@@ -8532,7 +8532,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:59.608Z"
+        "hsLastModified": "2026-06-27T19:21:09.026Z"
       },
       {
         "pid": "2024",
@@ -9311,7 +9311,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T19:26:21.704Z"
+        "hsLastModified": "2026-06-27T19:22:25.172Z"
       },
       {
         "pid": "40987",
@@ -10128,7 +10128,7 @@
         "ownerId": "88047280",
         "ownerName": "Olivia Juliano",
         "ownerActive": true,
-        "hsLastModified": "2026-06-12T16:53:06.007Z"
+        "hsLastModified": "2026-06-27T19:21:21.099Z"
       },
       {
         "pid": "21235",
@@ -14025,7 +14025,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-17T10:03:55.929Z"
+        "hsLastModified": "2026-06-27T19:22:24.558Z"
       },
       {
         "pid": "42878",
@@ -14633,7 +14633,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:39.728Z"
+        "hsLastModified": "2026-06-27T19:22:07.852Z"
       },
       {
         "pid": "14748",
@@ -14994,7 +14994,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T11:05:54.312Z"
+        "hsLastModified": "2026-06-27T19:18:53.963Z"
       },
       {
         "pid": "42297",
@@ -16842,10 +16842,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-27T19:02:06.164Z",
-    "Q2": "2026-06-27T19:02:06.164Z",
-    "Q3": "2026-06-27T19:02:06.164Z",
-    "Q4": "2026-06-27T19:02:06.164Z"
+    "Q1": "2026-06-27T20:36:01.606Z",
+    "Q2": "2026-06-27T20:36:01.606Z",
+    "Q3": "2026-06-27T20:36:01.606Z",
+    "Q4": "2026-06-27T20:36:01.606Z"
   },
   "owners": {
     "27231823": {
