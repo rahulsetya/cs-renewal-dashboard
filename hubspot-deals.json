@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-27T00:04:32.907Z",
-  "syncedAt": "2026-06-27T00:04:32.907Z",
+  "publishedAt": "2026-06-27T04:31:43.466Z",
+  "syncedAt": "2026-06-27T04:31:43.466Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,14 +20,14 @@
     ]
   },
   "counts": {
-    "deals": 1864,
-    "includedDeals": 884,
+    "deals": 1865,
+    "includedDeals": 885,
     "companies": 2804,
     "droppedNoCompany": 12,
     "droppedNoPid": 968,
     "perQuarter": {
       "Q1": 174,
-      "Q2": 83,
+      "Q2": 84,
       "Q3": 119,
       "Q4": 218,
       "Undated": 290
@@ -2446,7 +2446,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T21:23:41.858Z"
+        "hsLastModified": "2026-06-27T00:38:15.508Z"
       },
       {
         "pid": "12526",
@@ -4386,7 +4386,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T17:41:51.262Z"
+        "hsLastModified": "2026-06-27T00:33:54.533Z"
       },
       {
         "pid": "44842",
@@ -4880,7 +4880,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T21:24:12.389Z"
+        "hsLastModified": "2026-06-27T00:33:54.906Z"
       },
       {
         "pid": "6103",
@@ -4919,6 +4919,25 @@
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
         "hsLastModified": "2026-06-26T21:22:37.382Z"
+      },
+      {
+        "pid": "3607",
+        "companyName": "Monaco Asset Management",
+        "dealName": "Monaco Asset Management - EU27/GA28",
+        "dealType": "Platform Renewal",
+        "amount": 38500,
+        "currency": "USD",
+        "stage": "Proposal Negotiation (40% - 70%)",
+        "stageId": "1144568138",
+        "pipeline": "Manager",
+        "pipelineId": "default",
+        "eventAttending": "Global Alts EUR 2027;Global Alts Miami 2028",
+        "dealTerms": "Terms: 1-Year Deal;Booth Type: Standard;EUR 2 passes (standard)",
+        "link": "https://app.hubspot.com/contacts/8013348/record/0-3/61624668064",
+        "ownerId": "147600024",
+        "ownerName": "Sebastian Tanner",
+        "ownerActive": true,
+        "hsLastModified": "2026-06-27T00:50:20.171Z"
       }
     ],
     "Q3": [
@@ -11173,7 +11192,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T22:24:53.301Z"
+        "hsLastModified": "2026-06-27T00:33:19.848Z"
       },
       {
         "pid": "21546",
@@ -16837,15 +16856,15 @@
         "ownerId": "87562914",
         "ownerName": "Shelby Allen",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T20:15:30.882Z"
+        "hsLastModified": "2026-06-27T00:02:27.495Z"
       }
     ]
   },
   "uploads": {
-    "Q1": "2026-06-27T00:04:32.907Z",
-    "Q2": "2026-06-27T00:04:32.907Z",
-    "Q3": "2026-06-27T00:04:32.907Z",
-    "Q4": "2026-06-27T00:04:32.907Z"
+    "Q1": "2026-06-27T04:31:43.466Z",
+    "Q2": "2026-06-27T04:31:43.466Z",
+    "Q3": "2026-06-27T04:31:43.466Z",
+    "Q4": "2026-06-27T04:31:43.466Z"
   },
   "owners": {
     "27231823": {
@@ -20057,6 +20076,11 @@
       "hsId": "37561376597",
       "segment": "Scale"
     },
+    "Curex Capital Advisors": {
+      "platformId": "44513",
+      "hsId": "49029650051",
+      "segment": "Scale"
+    },
     "Buckley Capital Advisors LLC": {
       "platformId": "2748",
       "hsId": "4426928037",
@@ -20066,11 +20090,6 @@
       "platformId": "41169",
       "hsId": "46904294934",
       "segment": ""
-    },
-    "Curex Capital Advisors": {
-      "platformId": "44513",
-      "hsId": "49029650051",
-      "segment": "Scale"
     },
     "RevTek Capital": {
       "platformId": "31306",
@@ -20977,11 +20996,6 @@
       "hsId": "12008514087",
       "segment": "Scale"
     },
-    "Sundance Bay": {
-      "platformId": "14461",
-      "hsId": "4426972410",
-      "segment": "Enterprise"
-    },
     "Leucadia Asset Management": {
       "platformId": "6938",
       "hsId": "50593091462",
@@ -20991,6 +21005,11 @@
       "platformId": "19476",
       "hsId": "15761327231",
       "segment": "Scale"
+    },
+    "Sundance Bay": {
+      "platformId": "14461",
+      "hsId": "4426972410",
+      "segment": "Enterprise"
     },
     "Arrow Capital": {
       "platformId": "42645",
@@ -21672,11 +21691,6 @@
       "hsId": "23485266945",
       "segment": ""
     },
-    "Isabella Capital Management": {
-      "platformId": "40919",
-      "hsId": "26326882305",
-      "segment": "Enterprise"
-    },
     "NewVest": {
       "platformId": "16265",
       "hsId": "10130522651",
@@ -21686,6 +21700,11 @@
       "platformId": "2496",
       "hsId": "34988420693",
       "segment": ""
+    },
+    "Isabella Capital Management": {
+      "platformId": "40919",
+      "hsId": "26326882305",
+      "segment": "Enterprise"
     },
     "Vesey Ventures": {
       "platformId": "16963",
@@ -21976,6 +21995,11 @@
       "platformId": "23297",
       "hsId": "31645250323",
       "segment": ""
+    },
+    "Monaco Asset Management": {
+      "platformId": "3607",
+      "hsId": "5991845983",
+      "segment": "Enterprise"
     },
     "Watchtower Advisors": {
       "platformId": "42777",
@@ -23765,11 +23789,6 @@
     "North Peak Capital Management": {
       "platformId": "2697",
       "hsId": "5960487704",
-      "segment": "Enterprise"
-    },
-    "Monaco Asset Management": {
-      "platformId": "3607",
-      "hsId": "5991845983",
       "segment": "Enterprise"
     },
     "Springfield Capital Management LLC": {
