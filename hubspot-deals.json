@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-27T14:22:27.362Z",
-  "syncedAt": "2026-06-27T14:22:27.362Z",
+  "publishedAt": "2026-06-27T15:45:51.309Z",
+  "syncedAt": "2026-06-27T15:45:51.309Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,8 +20,8 @@
     ]
   },
   "counts": {
-    "deals": 1865,
-    "includedDeals": 885,
+    "deals": 1864,
+    "includedDeals": 884,
     "companies": 2804,
     "droppedNoCompany": 12,
     "droppedNoPid": 968,
@@ -29,7 +29,7 @@
       "Q1": 174,
       "Q2": 84,
       "Q3": 119,
-      "Q4": 218,
+      "Q4": 217,
       "Undated": 290
     }
   },
@@ -11176,25 +11176,6 @@
         "hsLastModified": "2026-06-24T21:56:49.596Z"
       },
       {
-        "pid": "40919",
-        "companyName": "Isabella Capital Management",
-        "dealName": "Isabella Capital Management - GA27",
-        "dealType": "Platform Renewal",
-        "amount": 26000,
-        "currency": "USD",
-        "stage": "Prospect —> no demo",
-        "stageId": "1101835123",
-        "pipeline": "Manager",
-        "pipelineId": "default",
-        "eventAttending": "Global Alts Miami '27",
-        "dealTerms": "Terms: 1-Year Deal;Booth Type: Standard",
-        "link": "https://app.hubspot.com/contacts/8013348/record/0-3/61049796369",
-        "ownerId": "147600024",
-        "ownerName": "Sebastian Tanner",
-        "ownerActive": true,
-        "hsLastModified": "2026-06-27T00:33:19.848Z"
-      },
-      {
         "pid": "21546",
         "companyName": "GlassBead Capital Management",
         "dealName": "GlassBead Capital Management - New Deal",
@@ -16861,10 +16842,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-27T14:22:27.362Z",
-    "Q2": "2026-06-27T14:22:27.362Z",
-    "Q3": "2026-06-27T14:22:27.362Z",
-    "Q4": "2026-06-27T14:22:27.362Z"
+    "Q1": "2026-06-27T15:45:51.309Z",
+    "Q2": "2026-06-27T15:45:51.309Z",
+    "Q3": "2026-06-27T15:45:51.309Z",
+    "Q4": "2026-06-27T15:45:51.309Z"
   },
   "owners": {
     "27231823": {
@@ -21701,11 +21682,6 @@
       "hsId": "34988420693",
       "segment": ""
     },
-    "Isabella Capital Management": {
-      "platformId": "40919",
-      "hsId": "26326882305",
-      "segment": "Enterprise"
-    },
     "Vesey Ventures": {
       "platformId": "16963",
       "hsId": "35141270439",
@@ -26004,6 +25980,11 @@
     "Parabellum Capital": {
       "platformId": "40750",
       "hsId": "33773659452",
+      "segment": "Enterprise"
+    },
+    "Isabella Capital Management": {
+      "platformId": "40919",
+      "hsId": "26326882305",
       "segment": "Enterprise"
     },
     "United Beren Energy": {
@@ -35133,7 +35114,7 @@
       "accountManager": "Helen Ramsay",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2026-12-29",
+      "subscriptionEndDate": "2027-12-31",
       "jul": "",
       "aug": "",
       "sep": ""
