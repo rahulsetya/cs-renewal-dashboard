@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-27T21:52:48.652Z",
-  "syncedAt": "2026-06-27T21:52:48.652Z",
+  "publishedAt": "2026-06-27T22:52:48.833Z",
+  "syncedAt": "2026-06-27T22:52:48.833Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -4481,7 +4481,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T16:28:22.122Z"
+        "hsLastModified": "2026-06-27T21:53:00.521Z"
       },
       {
         "pid": "101987 ",
@@ -16096,7 +16096,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T18:56:39.257Z"
+        "hsLastModified": "2026-06-27T21:53:00.521Z"
       },
       {
         "pid": "6065",
@@ -16286,7 +16286,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T14:34:37.367Z"
+        "hsLastModified": "2026-06-27T21:53:00.521Z"
       },
       {
         "pid": "17921",
@@ -16590,7 +16590,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-19T00:04:33.887Z"
+        "hsLastModified": "2026-06-27T21:53:00.521Z"
       },
       {
         "pid": "19306",
@@ -16842,10 +16842,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-27T21:52:48.652Z",
-    "Q2": "2026-06-27T21:52:48.652Z",
-    "Q3": "2026-06-27T21:52:48.652Z",
-    "Q4": "2026-06-27T21:52:48.652Z"
+    "Q1": "2026-06-27T22:52:48.833Z",
+    "Q2": "2026-06-27T22:52:48.833Z",
+    "Q3": "2026-06-27T22:52:48.833Z",
+    "Q4": "2026-06-27T22:52:48.833Z"
   },
   "owners": {
     "27231823": {
