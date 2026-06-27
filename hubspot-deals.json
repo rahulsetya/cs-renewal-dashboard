@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-27T11:19:30.901Z",
-  "syncedAt": "2026-06-27T11:19:30.901Z",
+  "publishedAt": "2026-06-27T12:48:51.640Z",
+  "syncedAt": "2026-06-27T12:48:51.640Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -9634,7 +9634,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T12:10:41.071Z"
+        "hsLastModified": "2026-06-27T12:06:32.310Z"
       },
       {
         "pid": "40327",
@@ -16861,10 +16861,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-27T11:19:30.901Z",
-    "Q2": "2026-06-27T11:19:30.901Z",
-    "Q3": "2026-06-27T11:19:30.901Z",
-    "Q4": "2026-06-27T11:19:30.901Z"
+    "Q1": "2026-06-27T12:48:51.640Z",
+    "Q2": "2026-06-27T12:48:51.640Z",
+    "Q3": "2026-06-27T12:48:51.640Z",
+    "Q4": "2026-06-27T12:48:51.640Z"
   },
   "owners": {
     "27231823": {
@@ -18456,11 +18456,6 @@
       "hsId": "4311185523",
       "segment": ""
     },
-    "One Rock Capital Partners": {
-      "platformId": "16245",
-      "hsId": "33707736696",
-      "segment": ""
-    },
     "BTIG LLC": {
       "platformId": "80",
       "hsId": "50251185846",
@@ -18649,6 +18644,11 @@
     "GoalVest Advisory": {
       "platformId": "20637",
       "hsId": "23485732753",
+      "segment": ""
+    },
+    "One Rock Capital Partners": {
+      "platformId": "16245",
+      "hsId": "33707736696",
       "segment": ""
     },
     "Stone Family Office": {
@@ -20306,11 +20306,6 @@
       "hsId": "35410814051",
       "segment": ""
     },
-    "XYSTON Capital Management": {
-      "platformId": "43975",
-      "hsId": "39445852318",
-      "segment": "Enterprise"
-    },
     "Runway Growth Capital": {
       "platformId": "87",
       "hsId": "29630474338",
@@ -20350,6 +20345,11 @@
       "platformId": "40327",
       "hsId": "39552905019",
       "segment": ""
+    },
+    "XYSTON Capital Management": {
+      "platformId": "43975",
+      "hsId": "39445852318",
+      "segment": "Enterprise"
     },
     "Satori Capital": {
       "platformId": "9420",
