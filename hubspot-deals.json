@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-26T22:58:32.098Z",
-  "syncedAt": "2026-06-26T22:58:32.098Z",
+  "publishedAt": "2026-06-27T00:04:32.907Z",
+  "syncedAt": "2026-06-27T00:04:32.907Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -22,7 +22,7 @@
   "counts": {
     "deals": 1864,
     "includedDeals": 884,
-    "companies": 2805,
+    "companies": 2804,
     "droppedNoCompany": 12,
     "droppedNoPid": 968,
     "perQuarter": {
@@ -10204,7 +10204,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:59.471Z"
+        "hsLastModified": "2026-06-27T00:02:27.495Z"
       },
       {
         "pid": "19243",
@@ -16842,10 +16842,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-26T22:58:32.098Z",
-    "Q2": "2026-06-26T22:58:32.098Z",
-    "Q3": "2026-06-26T22:58:32.098Z",
-    "Q4": "2026-06-26T22:58:32.098Z"
+    "Q1": "2026-06-27T00:04:32.907Z",
+    "Q2": "2026-06-27T00:04:32.907Z",
+    "Q3": "2026-06-27T00:04:32.907Z",
+    "Q4": "2026-06-27T00:04:32.907Z"
   },
   "owners": {
     "27231823": {
@@ -22480,11 +22480,6 @@
     "Alpine Associates Management": {
       "platformId": "43698",
       "hsId": "4316188521",
-      "segment": "Enterprise"
-    },
-    "Altum Capital Management, LLC": {
-      "platformId": "3731",
-      "hsId": "4426969059",
       "segment": "Enterprise"
     },
     "Altimeter": {
@@ -29180,16 +29175,6 @@
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2026-08-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "3731": {
-      "name": "Altum Capital Management, LLC",
-      "accountManager": "Christina Chumak",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-27",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -37519,7 +37504,7 @@
       "accountManager": "Support iConnections",
       "segment": "Scale",
       "category": "Manager",
-      "subscriptionEndDate": "2027-11-30",
+      "subscriptionEndDate": "2027-11-28",
       "jul": "",
       "aug": "",
       "sep": ""
