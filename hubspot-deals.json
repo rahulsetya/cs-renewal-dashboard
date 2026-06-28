@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-28T19:00:22.678Z",
-  "syncedAt": "2026-06-28T19:00:22.678Z",
+  "publishedAt": "2026-06-28T20:39:34.600Z",
+  "syncedAt": "2026-06-28T20:39:34.600Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -3149,7 +3149,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-16T18:55:53.606Z"
+        "hsLastModified": "2026-06-28T19:27:28.734Z"
       },
       {
         "pid": "6345",
@@ -6687,7 +6687,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-19T00:04:12.109Z"
+        "hsLastModified": "2026-06-28T19:22:19.339Z"
       },
       {
         "pid": "42576",
@@ -10660,7 +10660,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T00:06:24.002Z"
+        "hsLastModified": "2026-06-28T19:23:10.374Z"
       },
       {
         "pid": "620",
@@ -13379,7 +13379,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T13:15:18.948Z"
+        "hsLastModified": "2026-06-28T19:27:38.260Z"
       },
       {
         "pid": "17168",
@@ -16324,7 +16324,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:42.250Z"
+        "hsLastModified": "2026-06-28T19:27:39.127Z"
       },
       {
         "pid": "2693",
@@ -16552,7 +16552,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-21T15:55:47.623Z"
+        "hsLastModified": "2026-06-28T19:25:38.003Z"
       },
       {
         "pid": "22431",
@@ -16823,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-28T19:00:22.678Z",
-    "Q2": "2026-06-28T19:00:22.678Z",
-    "Q3": "2026-06-28T19:00:22.678Z",
-    "Q4": "2026-06-28T19:00:22.678Z"
+    "Q1": "2026-06-28T20:39:34.600Z",
+    "Q2": "2026-06-28T20:39:34.600Z",
+    "Q3": "2026-06-28T20:39:34.600Z",
+    "Q4": "2026-06-28T20:39:34.600Z"
   },
   "owners": {
     "27231823": {
