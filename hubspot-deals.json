@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-28T11:40:23.614Z",
-  "syncedAt": "2026-06-28T11:40:23.614Z",
+  "publishedAt": "2026-06-28T13:11:41.227Z",
+  "syncedAt": "2026-06-28T13:11:41.227Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -9634,7 +9634,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T12:06:32.310Z"
+        "hsLastModified": "2026-06-28T12:03:22.753Z"
       },
       {
         "pid": "40327",
@@ -16823,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-28T11:40:23.614Z",
-    "Q2": "2026-06-28T11:40:23.614Z",
-    "Q3": "2026-06-28T11:40:23.614Z",
-    "Q4": "2026-06-28T11:40:23.614Z"
+    "Q1": "2026-06-28T13:11:41.227Z",
+    "Q2": "2026-06-28T13:11:41.227Z",
+    "Q3": "2026-06-28T13:11:41.227Z",
+    "Q4": "2026-06-28T13:11:41.227Z"
   },
   "owners": {
     "27231823": {
@@ -18483,6 +18483,11 @@
       "hsId": "47568049445",
       "segment": ""
     },
+    "iconnections": {
+      "platformId": "1",
+      "hsId": "4310506310",
+      "segment": ""
+    },
     "ER Family Holdings": {
       "platformId": "20539",
       "hsId": "39659138178",
@@ -18556,11 +18561,6 @@
     "Mitsui & Co": {
       "platformId": "18386",
       "hsId": "47342942099",
-      "segment": ""
-    },
-    "iconnections": {
-      "platformId": "1",
-      "hsId": "4310506310",
       "segment": ""
     },
     "HS Group": {
@@ -20308,11 +20308,6 @@
       "hsId": "39552905019",
       "segment": ""
     },
-    "XYSTON Capital Management": {
-      "platformId": "43975",
-      "hsId": "39445852318",
-      "segment": "Enterprise"
-    },
     "Satori Capital": {
       "platformId": "9420",
       "hsId": "5130339697",
@@ -20402,6 +20397,11 @@
       "platformId": "20224",
       "hsId": "9306229373",
       "segment": ""
+    },
+    "XYSTON Capital Management": {
+      "platformId": "43975",
+      "hsId": "39445852318",
+      "segment": "Enterprise"
     },
     "U.S. Bank Global Fund Services": {
       "platformId": "41176",
