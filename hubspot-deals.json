@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-28T02:13:48.872Z",
-  "syncedAt": "2026-06-28T02:13:48.872Z",
+  "publishedAt": "2026-06-28T06:40:49.995Z",
+  "syncedAt": "2026-06-28T06:40:49.995Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,17 +20,17 @@
     ]
   },
   "counts": {
-    "deals": 1864,
-    "includedDeals": 884,
-    "companies": 2801,
+    "deals": 1862,
+    "includedDeals": 883,
+    "companies": 2799,
     "droppedNoCompany": 12,
-    "droppedNoPid": 968,
+    "droppedNoPid": 967,
     "perQuarter": {
       "Q1": 174,
       "Q2": 84,
       "Q3": 119,
       "Q4": 217,
-      "Undated": 290
+      "Undated": 289
     }
   },
   "quarters": {
@@ -2769,7 +2769,7 @@
         "ownerId": "1172082275",
         "ownerName": "Lauren Sharabi",
         "ownerActive": false,
-        "hsLastModified": "2026-06-17T19:34:47.229Z"
+        "hsLastModified": "2026-06-28T04:58:08.485Z"
       },
       {
         "pid": "908",
@@ -4120,7 +4120,7 @@
         "ownerId": "886965083",
         "ownerName": "Phoebe Willoughby",
         "ownerActive": true,
-        "hsLastModified": "2026-06-12T16:32:39.534Z"
+        "hsLastModified": "2026-06-28T04:56:41.173Z"
       },
       {
         "pid": "760",
@@ -5775,7 +5775,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-17T19:36:05.840Z"
+        "hsLastModified": "2026-06-28T04:59:26.725Z"
       },
       {
         "pid": "4697",
@@ -5965,7 +5965,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-17T22:32:55.076Z"
+        "hsLastModified": "2026-06-28T04:59:06.752Z"
       },
       {
         "pid": "43120",
@@ -6288,7 +6288,7 @@
         "ownerId": "88047280",
         "ownerName": "Olivia Juliano",
         "ownerActive": true,
-        "hsLastModified": "2026-06-16T15:07:32.189Z"
+        "hsLastModified": "2026-06-28T04:59:37.573Z"
       },
       {
         "pid": "38901",
@@ -6839,7 +6839,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T00:03:40.085Z"
+        "hsLastModified": "2026-06-28T04:59:47.959Z"
       },
       {
         "pid": "494",
@@ -10869,7 +10869,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:58.869Z"
+        "hsLastModified": "2026-06-28T04:59:25.451Z"
       },
       {
         "pid": "1582",
@@ -13322,26 +13322,7 @@
         "ownerId": "1172082275",
         "ownerName": "Lauren Sharabi",
         "ownerActive": false,
-        "hsLastModified": "2026-06-11T14:51:32.429Z"
-      },
-      {
-        "pid": "42965",
-        "companyName": "Ridgeline",
-        "dealName": "Ridgeline - New Deal",
-        "dealType": "New Platform Subscription",
-        "amount": 20000,
-        "currency": "USD",
-        "stage": "Prospect —> no demo",
-        "stageId": "1101835123",
-        "pipeline": "Manager",
-        "pipelineId": "default",
-        "eventAttending": "Global Alts 2026",
-        "dealTerms": "Terms: 1-Year Deal",
-        "link": "https://app.hubspot.com/contacts/8013348/record/0-3/52931683465",
-        "ownerId": "938914620",
-        "ownerName": "David Xuereb",
-        "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:32.944Z"
+        "hsLastModified": "2026-06-28T05:01:17.043Z"
       },
       {
         "pid": "5163",
@@ -13968,7 +13949,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-21T03:18:01.247Z"
+        "hsLastModified": "2026-06-28T04:58:15.648Z"
       },
       {
         "pid": "1926",
@@ -14462,7 +14443,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-22T05:29:58.613Z"
+        "hsLastModified": "2026-06-28T04:58:17.445Z"
       },
       {
         "pid": "44907",
@@ -15811,7 +15792,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T00:03:40.085Z"
+        "hsLastModified": "2026-06-28T04:56:39.407Z"
       },
       {
         "pid": "19084",
@@ -16609,7 +16590,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-15T21:05:04.243Z"
+        "hsLastModified": "2026-06-28T04:59:20.488Z"
       },
       {
         "pid": "18848",
@@ -16842,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-28T02:13:48.872Z",
-    "Q2": "2026-06-28T02:13:48.872Z",
-    "Q3": "2026-06-28T02:13:48.872Z",
-    "Q4": "2026-06-28T02:13:48.872Z"
+    "Q1": "2026-06-28T06:40:49.995Z",
+    "Q2": "2026-06-28T06:40:49.995Z",
+    "Q3": "2026-06-28T06:40:49.995Z",
+    "Q4": "2026-06-28T06:40:49.995Z"
   },
   "owners": {
     "27231823": {
@@ -18512,6 +18493,11 @@
       "hsId": "55463403073",
       "segment": "Enterprise"
     },
+    "CIGP": {
+      "platformId": "22182",
+      "hsId": "23475527299",
+      "segment": ""
+    },
     "Nordwand Capital": {
       "platformId": "20926",
       "hsId": "23459983952",
@@ -18710,11 +18696,6 @@
     "Baml": {
       "platformId": "20507",
       "hsId": "47061756683",
-      "segment": ""
-    },
-    "CIGP": {
-      "platformId": "22182",
-      "hsId": "23475527299",
       "segment": ""
     },
     "JFG Family Office": {
@@ -19722,11 +19703,6 @@
       "hsId": "4426927971",
       "segment": "Enterprise"
     },
-    "Ridgeline": {
-      "platformId": "42965",
-      "hsId": "37647696560",
-      "segment": ""
-    },
     "Triton": {
       "platformId": "21675",
       "hsId": "39616932633",
@@ -19825,6 +19801,11 @@
     "American Century Investments": {
       "platformId": "1926",
       "hsId": "31398991238",
+      "segment": ""
+    },
+    "CME Group": {
+      "platformId": "1157",
+      "hsId": "38737702149",
       "segment": ""
     },
     "Lone Pine Capital": {
@@ -19957,11 +19938,6 @@
       "hsId": "50471138415",
       "segment": ""
     },
-    "CME Group": {
-      "platformId": "1157",
-      "hsId": "38737702149",
-      "segment": ""
-    },
     "Delta Accumulation, LLC": {
       "platformId": "42401",
       "hsId": "20103983441",
@@ -20000,6 +19976,11 @@
     "Cardano Foundation": {
       "platformId": "7791",
       "hsId": "48759662080",
+      "segment": ""
+    },
+    "ShoreVest Partners": {
+      "platformId": "982",
+      "hsId": "5091112195",
       "segment": ""
     },
     "Calibrate Partners": {
@@ -20177,11 +20158,6 @@
       "hsId": "38842647188",
       "segment": ""
     },
-    "ShoreVest Partners": {
-      "platformId": "982",
-      "hsId": "5091112195",
-      "segment": ""
-    },
     "17Capital": {
       "platformId": "6953",
       "hsId": "53724399877",
@@ -20241,6 +20217,11 @@
       "platformId": "42779",
       "hsId": "4426973327",
       "segment": "Scale"
+    },
+    "LMCG Investments, LLC": {
+      "platformId": "488",
+      "hsId": "4231344043",
+      "segment": "Enterprise"
     },
     "Algoz Technologies Ltd.": {
       "platformId": "14438",
@@ -20472,11 +20453,6 @@
       "hsId": "6259483743",
       "segment": ""
     },
-    "LMCG Investments, LLC": {
-      "platformId": "488",
-      "hsId": "4231344043",
-      "segment": "Enterprise"
-    },
     "M Science LLC": {
       "platformId": "4437",
       "hsId": "48896595548",
@@ -20636,6 +20612,11 @@
       "platformId": "44165",
       "hsId": "46853396022",
       "segment": "Scale"
+    },
+    "ITE Management": {
+      "platformId": "14222",
+      "hsId": "4316137173",
+      "segment": "Enterprise"
     },
     "SWS Partners": {
       "platformId": "37493",
@@ -20876,11 +20857,6 @@
       "platformId": "370",
       "hsId": "4231329623",
       "segment": ""
-    },
-    "ITE Management": {
-      "platformId": "14222",
-      "hsId": "4316137173",
-      "segment": "Enterprise"
     },
     "G Squared": {
       "platformId": "40883",
@@ -21182,6 +21158,11 @@
       "hsId": "54711830662",
       "segment": ""
     },
+    "Viewpoint Ventures": {
+      "platformId": "21955",
+      "hsId": "18452604468",
+      "segment": "Scale"
+    },
     "BEX Capital": {
       "platformId": "32951",
       "hsId": "9807220906",
@@ -21457,11 +21438,6 @@
       "hsId": "4999005590",
       "segment": ""
     },
-    "Viewpoint Ventures": {
-      "platformId": "21955",
-      "hsId": "18452604468",
-      "segment": "Scale"
-    },
     "Pacific Way Capital Management LLC": {
       "platformId": "44060",
       "hsId": "47334296321",
@@ -21555,6 +21531,11 @@
     "Growth Curve Capital": {
       "platformId": "18661",
       "hsId": "29859611812",
+      "segment": ""
+    },
+    "MFA (Managed Funds Association)": {
+      "platformId": "23246",
+      "hsId": "39777232249",
       "segment": ""
     },
     "Sturbridge Capital": {
@@ -21712,6 +21693,11 @@
       "hsId": "8359570325",
       "segment": "Scale"
     },
+    "Duro Capital": {
+      "platformId": "520",
+      "hsId": "36966490980",
+      "segment": "Enterprise"
+    },
     "Golub Capital": {
       "platformId": "67",
       "hsId": "4231344036",
@@ -21795,11 +21781,6 @@
     "Steadview Capital Management": {
       "platformId": "14415",
       "hsId": "9306137990",
-      "segment": ""
-    },
-    "MFA (Managed Funds Association)": {
-      "platformId": "23246",
-      "hsId": "39777232249",
       "segment": ""
     },
     "GlassBead Capital Management": {
@@ -21950,11 +21931,6 @@
     "III Capital Management": {
       "platformId": "31305",
       "hsId": "4316188611",
-      "segment": "Enterprise"
-    },
-    "Duro Capital": {
-      "platformId": "520",
-      "hsId": "36966490980",
       "segment": "Enterprise"
     },
     "Brookfield": {
