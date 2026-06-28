@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-28T20:39:34.600Z",
-  "syncedAt": "2026-06-28T20:39:34.600Z",
+  "publishedAt": "2026-06-28T21:52:52.516Z",
+  "syncedAt": "2026-06-28T21:52:52.516Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -2655,7 +2655,7 @@
         "ownerId": "87562914",
         "ownerName": "Shelby Allen",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:11:27.981Z"
+        "hsLastModified": "2026-06-28T21:45:40.958Z"
       },
       {
         "pid": "4260",
@@ -7200,7 +7200,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:12:42.465Z"
+        "hsLastModified": "2026-06-28T21:45:40.958Z"
       }
     ],
     "Q4": [
@@ -16096,7 +16096,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T23:55:49.039Z"
+        "hsLastModified": "2026-06-28T21:45:40.958Z"
       },
       {
         "pid": "15052",
@@ -16823,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-28T20:39:34.600Z",
-    "Q2": "2026-06-28T20:39:34.600Z",
-    "Q3": "2026-06-28T20:39:34.600Z",
-    "Q4": "2026-06-28T20:39:34.600Z"
+    "Q1": "2026-06-28T21:52:52.516Z",
+    "Q2": "2026-06-28T21:52:52.516Z",
+    "Q3": "2026-06-28T21:52:52.516Z",
+    "Q4": "2026-06-28T21:52:52.516Z"
   },
   "owners": {
     "27231823": {
