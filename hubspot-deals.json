@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-28T17:41:31.981Z",
-  "syncedAt": "2026-06-28T17:41:31.981Z",
+  "publishedAt": "2026-06-28T19:00:22.678Z",
+  "syncedAt": "2026-06-28T19:00:22.678Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -1990,7 +1990,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:42:06.270Z"
+        "hsLastModified": "2026-06-28T18:11:35.940Z"
       },
       {
         "pid": "40747",
@@ -2446,7 +2446,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:37:04.464Z"
+        "hsLastModified": "2026-06-28T18:13:33.264Z"
       },
       {
         "pid": "12526",
@@ -2655,7 +2655,7 @@
         "ownerId": "87562914",
         "ownerName": "Shelby Allen",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T17:22:38.404Z"
+        "hsLastModified": "2026-06-28T18:11:27.981Z"
       },
       {
         "pid": "4260",
@@ -3968,7 +3968,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T08:14:33.696Z"
+        "hsLastModified": "2026-06-28T18:13:49.704Z"
       },
       {
         "pid": "593",
@@ -4785,7 +4785,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:30:10.693Z"
+        "hsLastModified": "2026-06-28T18:12:55.827Z"
       },
       {
         "pid": "22200",
@@ -4842,7 +4842,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:54:54.692Z"
+        "hsLastModified": "2026-06-28T18:11:35.790Z"
       },
       {
         "pid": "9214",
@@ -4937,7 +4937,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T00:50:20.171Z"
+        "hsLastModified": "2026-06-28T18:10:43.015Z"
       }
     ],
     "Q3": [
@@ -5414,7 +5414,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:55:00.970Z"
+        "hsLastModified": "2026-06-28T18:11:31.288Z"
       },
       {
         "pid": "8285",
@@ -5870,7 +5870,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T15:05:11.165Z"
+        "hsLastModified": "2026-06-28T18:11:36.692Z"
       },
       {
         "pid": "43326",
@@ -6041,7 +6041,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T18:55:27.659Z"
+        "hsLastModified": "2026-06-28T18:11:18.639Z"
       },
       {
         "pid": "9420",
@@ -6155,7 +6155,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T21:23:09.099Z"
+        "hsLastModified": "2026-06-28T18:12:50.156Z"
       },
       {
         "pid": "9919",
@@ -6174,7 +6174,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T18:49:44.615Z"
+        "hsLastModified": "2026-06-28T18:10:34.401Z"
       },
       {
         "pid": "31296",
@@ -6459,7 +6459,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T13:09:41.154Z"
+        "hsLastModified": "2026-06-28T18:10:39.020Z"
       },
       {
         "pid": "816",
@@ -6877,7 +6877,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:33:12.442Z"
+        "hsLastModified": "2026-06-28T18:13:09.439Z"
       },
       {
         "pid": "22908",
@@ -7048,7 +7048,7 @@
         "ownerId": "50981538",
         "ownerName": "Diana Arakelyan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:37:00.473Z"
+        "hsLastModified": "2026-06-28T18:10:47.353Z"
       },
       {
         "pid": "40035",
@@ -7200,7 +7200,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T20:15:40.185Z"
+        "hsLastModified": "2026-06-28T18:12:42.465Z"
       }
     ],
     "Q4": [
@@ -8475,7 +8475,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:54:50.861Z"
+        "hsLastModified": "2026-06-28T18:13:00.436Z"
       },
       {
         "pid": "3972",
@@ -9273,7 +9273,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:55:10.678Z"
+        "hsLastModified": "2026-06-28T18:14:07.506Z"
       },
       {
         "pid": "43836",
@@ -9729,7 +9729,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T09:49:48.897Z"
+        "hsLastModified": "2026-06-28T18:13:56.980Z"
       },
       {
         "pid": "14237",
@@ -10033,7 +10033,7 @@
         "ownerId": "88047280",
         "ownerName": "Olivia Juliano",
         "ownerActive": true,
-        "hsLastModified": "2026-06-21T18:07:36.178Z"
+        "hsLastModified": "2026-06-28T18:10:44.134Z"
       },
       {
         "pid": "2714",
@@ -10755,7 +10755,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:59.853Z"
+        "hsLastModified": "2026-06-28T18:12:53.154Z"
       },
       {
         "pid": "43930",
@@ -10888,7 +10888,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T15:46:10.730Z"
+        "hsLastModified": "2026-06-28T18:12:56.790Z"
       },
       {
         "pid": "6822",
@@ -10945,7 +10945,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T00:07:46.825Z"
+        "hsLastModified": "2026-06-28T18:14:00.613Z"
       },
       {
         "pid": "14599",
@@ -10964,7 +10964,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T12:12:33.603Z"
+        "hsLastModified": "2026-06-28T18:10:45.236Z"
       },
       {
         "pid": "40327",
@@ -10983,7 +10983,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T18:49:31.346Z"
+        "hsLastModified": "2026-06-28T18:12:52.511Z"
       },
       {
         "pid": "14727",
@@ -11306,7 +11306,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:37:00.123Z"
+        "hsLastModified": "2026-06-28T18:14:03.083Z"
       },
       {
         "pid": "6180",
@@ -11325,7 +11325,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:36:21.416Z"
+        "hsLastModified": "2026-06-28T18:10:44.622Z"
       }
     ],
     "Undated": [
@@ -11821,7 +11821,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T11:30:33.081Z"
+        "hsLastModified": "2026-06-28T18:10:49.008Z"
       },
       {
         "pid": "11220",
@@ -11897,7 +11897,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T15:12:46.294Z"
+        "hsLastModified": "2026-06-28T18:12:45.023Z"
       },
       {
         "pid": "11175",
@@ -12847,7 +12847,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:56:33.800Z"
+        "hsLastModified": "2026-06-28T18:12:49.634Z"
       },
       {
         "pid": "39795",
@@ -14215,7 +14215,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:03:40.199Z"
+        "hsLastModified": "2026-06-28T18:14:04.388Z"
       },
       {
         "pid": "17775",
@@ -14747,7 +14747,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-23T15:13:00.609Z"
+        "hsLastModified": "2026-06-28T18:10:37.463Z"
       },
       {
         "pid": "19786",
@@ -14956,7 +14956,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T18:50:49.629Z"
+        "hsLastModified": "2026-06-28T18:13:01.843Z"
       },
       {
         "pid": "34623",
@@ -15678,7 +15678,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T18:38:33.662Z"
+        "hsLastModified": "2026-06-28T18:10:34.175Z"
       },
       {
         "pid": "39354",
@@ -16628,7 +16628,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T15:31:07.137Z"
+        "hsLastModified": "2026-06-28T18:13:40.337Z"
       },
       {
         "pid": "10580",
@@ -16742,7 +16742,7 @@
         "ownerId": "86263149",
         "ownerName": "Frank Greco",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T19:56:55.467Z"
+        "hsLastModified": "2026-06-28T18:12:55.568Z"
       },
       {
         "pid": "11190",
@@ -16818,15 +16818,15 @@
         "ownerId": "87562914",
         "ownerName": "Shelby Allen",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T00:02:27.495Z"
+        "hsLastModified": "2026-06-28T18:13:59.469Z"
       }
     ]
   },
   "uploads": {
-    "Q1": "2026-06-28T17:41:31.981Z",
-    "Q2": "2026-06-28T17:41:31.981Z",
-    "Q3": "2026-06-28T17:41:31.981Z",
-    "Q4": "2026-06-28T17:41:31.981Z"
+    "Q1": "2026-06-28T19:00:22.678Z",
+    "Q2": "2026-06-28T19:00:22.678Z",
+    "Q3": "2026-06-28T19:00:22.678Z",
+    "Q4": "2026-06-28T19:00:22.678Z"
   },
   "owners": {
     "27231823": {
