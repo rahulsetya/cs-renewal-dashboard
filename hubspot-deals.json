@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-28T21:52:52.516Z",
-  "syncedAt": "2026-06-28T21:52:52.516Z",
+  "publishedAt": "2026-06-28T22:53:16.005Z",
+  "syncedAt": "2026-06-28T22:53:16.005Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -16823,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-28T21:52:52.516Z",
-    "Q2": "2026-06-28T21:52:52.516Z",
-    "Q3": "2026-06-28T21:52:52.516Z",
-    "Q4": "2026-06-28T21:52:52.516Z"
+    "Q1": "2026-06-28T22:53:16.005Z",
+    "Q2": "2026-06-28T22:53:16.005Z",
+    "Q3": "2026-06-28T22:53:16.005Z",
+    "Q4": "2026-06-28T22:53:16.005Z"
   },
   "owners": {
     "27231823": {
@@ -21218,11 +21218,6 @@
       "hsId": "23458751363",
       "segment": ""
     },
-    "Alliant Insurance Services": {
-      "platformId": "21011",
-      "hsId": "54711517028",
-      "segment": ""
-    },
     "Challenger Solutions": {
       "platformId": "43537",
       "hsId": "39289464198",
@@ -21361,6 +21356,11 @@
     "Stylus Capital": {
       "platformId": "23131",
       "hsId": "9305991793",
+      "segment": ""
+    },
+    "Alliant Insurance Services": {
+      "platformId": "21011",
+      "hsId": "54711517028",
       "segment": ""
     },
     "Springs Capital (Hong Kong) Ltd": {
