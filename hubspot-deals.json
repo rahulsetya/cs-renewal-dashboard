@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-27T23:52:31.825Z",
-  "syncedAt": "2026-06-27T23:52:31.825Z",
+  "publishedAt": "2026-06-28T02:13:48.872Z",
+  "syncedAt": "2026-06-28T02:13:48.872Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -22,7 +22,7 @@
   "counts": {
     "deals": 1864,
     "includedDeals": 884,
-    "companies": 2804,
+    "companies": 2801,
     "droppedNoCompany": 12,
     "droppedNoPid": 968,
     "perQuarter": {
@@ -2275,7 +2275,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-17T14:49:47.383Z"
+        "hsLastModified": "2026-06-28T00:12:04.055Z"
       },
       {
         "pid": "2559",
@@ -3263,7 +3263,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T16:48:39.341Z"
+        "hsLastModified": "2026-06-28T00:11:02.439Z"
       },
       {
         "pid": "44490",
@@ -4709,7 +4709,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T15:04:51.340Z"
+        "hsLastModified": "2026-06-28T00:31:57.276Z"
       },
       {
         "pid": "44810",
@@ -13284,7 +13284,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-19T02:22:22.061Z"
+        "hsLastModified": "2026-06-28T00:09:13.455Z"
       },
       {
         "pid": "44024",
@@ -16842,10 +16842,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-27T23:52:31.825Z",
-    "Q2": "2026-06-27T23:52:31.825Z",
-    "Q3": "2026-06-27T23:52:31.825Z",
-    "Q4": "2026-06-27T23:52:31.825Z"
+    "Q1": "2026-06-28T02:13:48.872Z",
+    "Q2": "2026-06-28T02:13:48.872Z",
+    "Q3": "2026-06-28T02:13:48.872Z",
+    "Q4": "2026-06-28T02:13:48.872Z"
   },
   "owners": {
     "27231823": {
@@ -22022,11 +22022,6 @@
       "hsId": "29626819721",
       "segment": "Scale"
     },
-    "Ascender Capital": {
-      "platformId": "22976",
-      "hsId": "9306046236",
-      "segment": "Scale"
-    },
     "Avante Capital Partners": {
       "platformId": "314",
       "hsId": "30290868386",
@@ -22615,11 +22610,6 @@
     "EcoR1 Capital": {
       "platformId": "19220",
       "hsId": "4316341575",
-      "segment": "Enterprise"
-    },
-    "Eminence Capital": {
-      "platformId": "6905",
-      "hsId": "7320189696",
       "segment": "Enterprise"
     },
     "Ferro Capital": {
@@ -24540,11 +24530,6 @@
     "Alpha Longevity Management": {
       "platformId": "44860",
       "hsId": "9306218107",
-      "segment": "Enterprise"
-    },
-    "Atreides Management": {
-      "platformId": "16235",
-      "hsId": "9305950507",
       "segment": "Enterprise"
     },
     "Pharo Management": {
@@ -30379,16 +30364,6 @@
       "aug": "",
       "sep": ""
     },
-    "6905": {
-      "name": "Eminence Capital",
-      "accountManager": "Lucy Garber",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-28",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "6911": {
       "name": "Berkshire Partners: Berkshire Private Equity & Stockbridge",
       "accountManager": "Lucy Garber",
@@ -30915,16 +30890,6 @@
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2027-12-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "9180": {
-      "name": "Matterhorn Capital Partners",
-      "accountManager": "Joe Romanoff",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-28",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -32255,16 +32220,6 @@
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2026-10-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "16235": {
-      "name": "Atreides Management",
-      "accountManager": "Kristan Hester",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-28",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -34075,16 +34030,6 @@
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2026-08-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "22976": {
-      "name": "Ascender Capital",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-28",
       "jul": "",
       "aug": "",
       "sep": ""
