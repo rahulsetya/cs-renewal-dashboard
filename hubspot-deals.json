@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-28T13:11:41.227Z",
-  "syncedAt": "2026-06-28T13:11:41.227Z",
+  "publishedAt": "2026-06-28T15:00:22.419Z",
+  "syncedAt": "2026-06-28T15:00:22.419Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -2009,7 +2009,7 @@
         "ownerId": "2073816592",
         "ownerName": "Ashley Moss",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T17:15:58.449Z"
+        "hsLastModified": "2026-06-28T14:37:12.916Z"
       },
       {
         "pid": "1",
@@ -4234,7 +4234,7 @@
         "ownerId": "88047280",
         "ownerName": "Olivia Juliano",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:39.576Z"
+        "hsLastModified": "2026-06-28T14:39:06.271Z"
       },
       {
         "pid": "9127",
@@ -6592,7 +6592,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:58.440Z"
+        "hsLastModified": "2026-06-28T14:38:51.730Z"
       },
       {
         "pid": "9012",
@@ -8076,7 +8076,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:16.639Z"
+        "hsLastModified": "2026-06-28T14:34:38.732Z"
       },
       {
         "pid": "625",
@@ -10356,7 +10356,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:39.530Z"
+        "hsLastModified": "2026-06-28T14:33:44.007Z"
       },
       {
         "pid": "23292",
@@ -10831,7 +10831,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-16T18:24:48.956Z"
+        "hsLastModified": "2026-06-28T14:34:47.342Z"
       },
       {
         "pid": "3990",
@@ -11116,7 +11116,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T20:25:58.310Z"
+        "hsLastModified": "2026-06-28T13:33:30.724Z"
       },
       {
         "pid": "398",
@@ -13702,7 +13702,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-21T11:43:17.050Z"
+        "hsLastModified": "2026-06-28T14:36:12.904Z"
       },
       {
         "pid": "42966",
@@ -16115,7 +16115,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-21T21:45:29.663Z"
+        "hsLastModified": "2026-06-28T14:35:27.068Z"
       },
       {
         "pid": "458",
@@ -16823,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-28T13:11:41.227Z",
-    "Q2": "2026-06-28T13:11:41.227Z",
-    "Q3": "2026-06-28T13:11:41.227Z",
-    "Q4": "2026-06-28T13:11:41.227Z"
+    "Q1": "2026-06-28T15:00:22.419Z",
+    "Q2": "2026-06-28T15:00:22.419Z",
+    "Q3": "2026-06-28T15:00:22.419Z",
+    "Q4": "2026-06-28T15:00:22.419Z"
   },
   "owners": {
     "27231823": {
@@ -21718,6 +21718,11 @@
       "hsId": "17383999633",
       "segment": "Enterprise"
     },
+    "Vineyard Quant Capital": {
+      "platformId": "43968",
+      "hsId": "4950081026",
+      "segment": "Enterprise"
+    },
     "ION Fund Management Ltd. ": {
       "platformId": "6836",
       "hsId": "7310932384",
@@ -21787,11 +21792,6 @@
       "platformId": "21546",
       "hsId": "19716076582",
       "segment": "Scale"
-    },
-    "Vineyard Quant Capital": {
-      "platformId": "43968",
-      "hsId": "4950081026",
-      "segment": "Enterprise"
     },
     "Centurion Asset Management Inc.": {
       "platformId": "1468",
