@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-29T20:51:15.629Z",
-  "syncedAt": "2026-06-29T20:51:15.629Z",
+  "publishedAt": "2026-06-29T22:03:49.115Z",
+  "syncedAt": "2026-06-29T22:03:49.115Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,11 +20,11 @@
     ]
   },
   "counts": {
-    "deals": 1857,
+    "deals": 1858,
     "includedDeals": 878,
-    "companies": 9150,
+    "companies": 9151,
     "droppedNoCompany": 12,
-    "droppedNoPid": 967,
+    "droppedNoPid": 968,
     "perQuarter": {
       "Q1": 173,
       "Q2": 82,
@@ -2066,7 +2066,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T21:53:20.573Z"
+        "hsLastModified": "2026-06-29T21:53:26.764Z"
       },
       {
         "pid": "21263",
@@ -4424,7 +4424,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T20:18:36.985Z"
+        "hsLastModified": "2026-06-29T21:14:33.476Z"
       },
       {
         "pid": "5598",
@@ -5813,7 +5813,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T20:22:37.972Z"
+        "hsLastModified": "2026-06-29T21:00:33.115Z"
       },
       {
         "pid": "43326",
@@ -7200,7 +7200,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T18:00:16.632Z"
+        "hsLastModified": "2026-06-29T21:20:24.782Z"
       }
     ],
     "Q4": [
@@ -8646,7 +8646,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T12:21:36.125Z"
+        "hsLastModified": "2026-06-29T21:46:18.643Z"
       },
       {
         "pid": "3255",
@@ -10223,7 +10223,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T18:41:41.854Z"
+        "hsLastModified": "2026-06-29T21:29:38.788Z"
       },
       {
         "pid": "19243",
@@ -10318,7 +10318,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T13:56:43.935Z"
+        "hsLastModified": "2026-06-29T21:03:57.132Z"
       },
       {
         "pid": "39579",
@@ -16704,7 +16704,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:59:01.088Z"
+        "hsLastModified": "2026-06-29T21:45:38.513Z"
       },
       {
         "pid": "19606",
@@ -16728,10 +16728,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-29T20:51:15.629Z",
-    "Q2": "2026-06-29T20:51:15.629Z",
-    "Q3": "2026-06-29T20:51:15.629Z",
-    "Q4": "2026-06-29T20:51:15.629Z"
+    "Q1": "2026-06-29T22:03:49.115Z",
+    "Q2": "2026-06-29T22:03:49.115Z",
+    "Q3": "2026-06-29T22:03:49.115Z",
+    "Q4": "2026-06-29T22:03:49.115Z"
   },
   "owners": {
     "27231823": {
@@ -18936,6 +18936,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Polar Capital": {
+      "platformId": "6150",
+      "hsId": "5801782542",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Pemberton Asset Management": {
       "platformId": "14727",
       "hsId": "37229414266",
@@ -18946,12 +18952,6 @@
       "platformId": "3456",
       "hsId": "37010515793",
       "segment": "Scale",
-      "csmNotes": ""
-    },
-    "Polar Capital": {
-      "platformId": "6150",
-      "hsId": "5801782542",
-      "segment": "",
       "csmNotes": ""
     },
     "JGB Management": {
@@ -19188,12 +19188,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Gemcorp Capital Management Limited": {
-      "platformId": "1960",
-      "hsId": "30484851462",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Gaingels": {
       "platformId": "10705",
       "hsId": "23486966180",
@@ -19203,6 +19197,12 @@
     "Nipun Capital, L.P.": {
       "platformId": "18",
       "hsId": "4426970020",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Gemcorp Capital Management Limited": {
+      "platformId": "1960",
+      "hsId": "30484851462",
       "segment": "",
       "csmNotes": ""
     },
@@ -19860,6 +19860,12 @@
       "segment": "Enterprise",
       "csmNotes": "Called to discuss RS meeting booked and recently added LPs 5/14"
     },
+    "Jive Investments": {
+      "platformId": "19969",
+      "hsId": "17379685017",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Meanwhile": {
       "platformId": "20557",
       "hsId": "18539092799",
@@ -19971,12 +19977,6 @@
     "Anchin Block & Anchin": {
       "platformId": "6832",
       "hsId": "35016893963",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Jive Investments": {
-      "platformId": "19969",
-      "hsId": "17379685017",
       "segment": "",
       "csmNotes": ""
     },
@@ -20406,12 +20406,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Axonic Capital": {
-      "platformId": "6089",
-      "hsId": "36964554346",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "17Capital": {
       "platformId": "21808",
       "hsId": "37295677302",
@@ -20490,6 +20484,18 @@
       "segment": "Scale",
       "csmNotes": "Followed up 3/5, 3/24, 5/12, and 5/18 - No Response. Chosen For Roadshow week on 5/11"
     },
+    "UG Investment Advisers Ltd": {
+      "platformId": "12500",
+      "hsId": "9306046268",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Axonic Capital": {
+      "platformId": "6089",
+      "hsId": "36964554346",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "Radcliffe Capital Management LP": {
       "platformId": "3034",
       "hsId": "37561376597",
@@ -20548,12 +20554,6 @@
       "platformId": "40994",
       "hsId": "25697443744",
       "segment": "Enterprise",
-      "csmNotes": ""
-    },
-    "UG Investment Advisers Ltd": {
-      "platformId": "12500",
-      "hsId": "9306046268",
-      "segment": "",
       "csmNotes": ""
     },
     "U.S. Bank Global Fund Services": {
@@ -20868,12 +20868,6 @@
       "segment": "Scale",
       "csmNotes": ""
     },
-    "Privium Fund Management": {
-      "platformId": "8834",
-      "hsId": "4366854982",
-      "segment": "",
-      "csmNotes": ""
-    },
     "BTG Pactual": {
       "platformId": "41803",
       "hsId": "31209893243",
@@ -20926,6 +20920,12 @@
       "platformId": "9919",
       "hsId": "7643770153",
       "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Privium Fund Management": {
+      "platformId": "8834",
+      "hsId": "4366854982",
+      "segment": "",
       "csmNotes": ""
     },
     "Bowie Capital Management": {
@@ -21246,6 +21246,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Arini": {
+      "platformId": "6462",
+      "hsId": "34742929217",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "CBRE Investment Management": {
       "platformId": "20312",
       "hsId": "32787378576",
@@ -21370,12 +21376,6 @@
       "platformId": "14680",
       "hsId": "32119786096",
       "segment": "",
-      "csmNotes": ""
-    },
-    "Arini": {
-      "platformId": "6462",
-      "hsId": "34742929217",
-      "segment": "Enterprise",
       "csmNotes": ""
     },
     "Karl Kapital": {
@@ -21534,6 +21534,12 @@
       "segment": "Scale",
       "csmNotes": ""
     },
+    "Leucadia Asset Management": {
+      "platformId": "1811",
+      "hsId": "54373926526",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Dynamo Software": {
       "platformId": "2329",
       "hsId": "54004292674",
@@ -21618,12 +21624,6 @@
       "segment": "Scale",
       "csmNotes": ""
     },
-    "Leucadia Asset Management": {
-      "platformId": "1811",
-      "hsId": "54373926526",
-      "segment": "",
-      "csmNotes": ""
-    },
     "East X LLP": {
       "platformId": "7377",
       "hsId": "6631837495",
@@ -21706,6 +21706,12 @@
       "platformId": "6922",
       "hsId": "7300590244",
       "segment": "Scale",
+      "csmNotes": ""
+    },
+    "Carbon Direct Capital": {
+      "platformId": "16377",
+      "hsId": "10071156000",
+      "segment": "",
       "csmNotes": ""
     },
     "Rogers Investment Advisors": {
@@ -21942,9 +21948,9 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Carbon Direct Capital": {
-      "platformId": "16377",
-      "hsId": "10071156000",
+    "H2O Asset Management": {
+      "platformId": "749",
+      "hsId": "19715989075",
       "segment": "",
       "csmNotes": ""
     },
@@ -21964,12 +21970,6 @@
       "platformId": "22212",
       "hsId": "26686726274",
       "segment": "Scale",
-      "csmNotes": ""
-    },
-    "H2O Asset Management": {
-      "platformId": "749",
-      "hsId": "19715989075",
-      "segment": "",
       "csmNotes": ""
     },
     "Cooper Creek Partners": {
@@ -22398,12 +22398,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "Capital Fund Management": {
-      "platformId": "438",
-      "hsId": "53957377428",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "B Capital": {
       "platformId": "15124",
       "hsId": "38351022645",
@@ -22438,6 +22432,12 @@
       "platformId": "19306",
       "hsId": "34991720866",
       "segment": "",
+      "csmNotes": ""
+    },
+    "Capital Fund Management": {
+      "platformId": "438",
+      "hsId": "53957377428",
+      "segment": "Enterprise",
       "csmNotes": ""
     },
     "ION Crossover Partners, Ltd.": {
@@ -22566,6 +22566,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "CapVest": {
+      "platformId": "23297",
+      "hsId": "31645250323",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Dilation Capital": {
       "platformId": "4529",
       "hsId": "6108688755",
@@ -22575,24 +22581,6 @@
     "Watchtower Advisors": {
       "platformId": "42777",
       "hsId": "37228714302",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Thornburg": {
-      "platformId": "2383",
-      "hsId": "31407620175",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
-    "Serengeti Asset Management": {
-      "platformId": "14551",
-      "hsId": "4426956717",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
-    "Fincity.Tokyo": {
-      "platformId": "6788",
-      "hsId": "39659883630",
       "segment": "",
       "csmNotes": ""
     },
@@ -22620,22 +22608,10 @@
       "segment": "Enterprise",
       "csmNotes": "CC had a call 05/04 - sponsor for Miami. Good grasp on the platfrom. Will do a follow up call post NY, already scheduled"
     },
-    "Coinbase Asset Management": {
-      "platformId": "524",
-      "hsId": "4426960268",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "Informatic Capital": {
       "platformId": "22868",
       "hsId": "46499481913",
       "segment": "Scale",
-      "csmNotes": ""
-    },
-    "Brookfield": {
-      "platformId": "19694",
-      "hsId": "52832017426",
-      "segment": "Enterprise",
       "csmNotes": ""
     },
     "Espresso Capital": {
@@ -22644,23 +22620,47 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "CoreCommodity Management": {
-      "platformId": "6103",
-      "hsId": "6631822671",
-      "segment": "Enterprise",
-      "csmNotes": "Been unresponsive to jake and i. plan is to break for a few weeks and attack in june"
-    },
     "Tealrock Asset Management LLC": {
       "platformId": "41283",
       "hsId": "17099709761",
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "CapVest": {
-      "platformId": "23297",
-      "hsId": "31645250323",
+    "Thornburg": {
+      "platformId": "2383",
+      "hsId": "31407620175",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Serengeti Asset Management": {
+      "platformId": "14551",
+      "hsId": "4426956717",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Fincity.Tokyo": {
+      "platformId": "6788",
+      "hsId": "39659883630",
       "segment": "",
       "csmNotes": ""
+    },
+    "Coinbase Asset Management": {
+      "platformId": "524",
+      "hsId": "4426960268",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Brookfield": {
+      "platformId": "19694",
+      "hsId": "52832017426",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "CoreCommodity Management": {
+      "platformId": "6103",
+      "hsId": "6631822671",
+      "segment": "Enterprise",
+      "csmNotes": "Been unresponsive to jake and i. plan is to break for a few weeks and attack in june"
     },
     "Candelo Capital": {
       "platformId": "6180",
@@ -67514,7 +67514,7 @@
       "accountManager": "Helen Ramsay",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2028-05-31",
+      "subscriptionEndDate": "2028-05-30",
       "jul": "",
       "aug": "",
       "sep": "",
@@ -73274,7 +73274,7 @@
       "accountManager": "Andreas Santikos",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-06-30",
+      "subscriptionEndDate": "2027-06-29",
       "jul": "",
       "aug": "",
       "sep": "",
@@ -74294,7 +74294,7 @@
       "accountManager": "Courtney Krieg",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-11-30",
+      "subscriptionEndDate": "2027-11-29",
       "jul": "",
       "aug": "",
       "sep": "",
