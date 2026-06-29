@@ -6993,7 +6993,7 @@ function _spAcctTableHTML(rid,q,owner,filt){
         :'<span style="color:var(--dim);opacity:.35;font-size:11px">—</span>';
       return`<tr style="border-top:1px solid rgba(255,255,255,.05)">
         <td style="padding:4px 6px;text-align:center;width:36px">${dealChev}</td>
-        <td style="padding:4px 16px;color:var(--text);font-weight:500">${a.n}</td>
+        <td style="padding:4px 16px;color:var(--text);font-weight:500">${_hsAcctLink(pid,a.n,a.n)}</td>
         <td style="padding:4px 8px;color:var(--dim);font-family:var(--mono);font-size:10px">${pid||'<span style=\"opacity:.4\">—</span>'}</td>
         <td style="padding:4px 8px;color:var(--muted)">${a.owner||'—'}</td>
         <td style="padding:4px 8px;color:var(--muted)">${a.ae||'—'}</td>
