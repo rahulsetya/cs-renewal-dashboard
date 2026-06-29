@@ -9922,7 +9922,21 @@ function _cadBodyHTML(rid,csmName){
     accts=month?(cData.months[month]?.accts||[]):[...(cData.allAccts||[])];
   }
   const sort=_cadSort[rid]||{col:'se',dir:1};
-  const isYCall=(a,c)=>String((a.calls&&a.calls[c])||'').trim().toLowerCase().startsWith('y');
+  // "Y for this (account, month)" — true if EITHER the ET tracker cell starts
+  // with Y OR (this is an HS-eligible month AND the company's HubSpot
+  // call_complete bool flag is true). Lets the drilldown row cells light up
+  // green/red for Q3 even when the ET tracker is blank, because we now treat
+  // HubSpot as the source of truth for Jul/Aug/Sep 2026.
+  const isYCall=(a,c)=>{
+    const v=String((a.calls&&a.calls[c])||'').trim().toLowerCase();
+    if(v.startsWith('y'))return true;
+    const hsKey=_cadHSMonthKey(c);
+    if(!hsKey||!_cadHSReady())return false;
+    const pid=String(a.platformId||'').trim();
+    if(!pid)return false;
+    const hs=_offCadenceByPid[pid];
+    return !!(hs&&_cadHSIsYes(hs[hsKey]));
+  };
   // HubSpot lookup — returns null when no audit data is loaded so the cell
   // falls back to the original ✓/— rendering. When loaded, returns the
   // meeting count for that (account, month) so we can flag verified /
