@@ -9173,7 +9173,7 @@ function _acctTableHTML(rid,q,pool){
       `</tr>`).join('')}</tbody></table>`;
     return `<tr id="${dealRowId}" style="display:none"><td colspan="${_colspan}" style="padding:0;background:rgba(0,0,0,.18);border-left:3px solid var(--accent)"><div style="padding:6px 14px 10px 38px">${inner}</div></td></tr>`;
   };
-  return _slackBar+`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:center;padding:5px 6px;color:var(--dim);font-weight:500;width:36px"></th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th class="acr-ae" style="display:${_aeDisp};text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sales Rep</th>${_allPools?`<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','','pool')">Pool ${sa('pool')}</th>`:''}<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">2025 Revenue ${sa('rev')}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="Renewal Master Offer Price (Total Contract Value). Won deals use Annualized 2026 Renewal Revenue instead." onclick="_sortAcct('${rid}','${q}','${pool}','rev26')">2026 Offer (RM) ${sa('rev26')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const dealRowId='gpd_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();const pidK=String(a.platformId||'').trim();const dealsForRow=pidK?(_dealsByPid[pidK]||[]):[];const hasDeals=dealsForRow.length>0;const dealChev=hasDeals?`<span onclick="(function(){var n=document.getElementById('${dealRowId}');if(!n)return;n.style.display=n.style.display==='none'?'':'none';})()" title="${dealsForRow.length} HubSpot deal${dealsForRow.length===1?'':'s'} — click to expand" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:3px;user-select:none"><span>▸</span><span style="font-size:9px;font-weight:600;background:rgba(59,130,246,.15);color:var(--accent);padding:1px 5px;border-radius:8px">${dealsForRow.length}</span></span>`:'<span style="color:var(--dim);opacity:.35;font-size:11px">—</span>';return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 6px;text-align:center;width:36px">${dealChev}</td><td style="padding:3px 8px;color:var(--text)">${a.n}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td class="acr-ae" style="display:${_aeDisp};padding:3px 8px;color:var(--dim)">${a.ae||'—'}</td>${_allPools?`<td style="padding:3px 8px;color:var(--dim);white-space:nowrap">${_poolDot(a.pool)}${a.pool||'—'}</td>`:''}<td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;text-align:right;color:var(--green)">${a.rev26?fmt(a.rev26):'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${_colspan}" style="padding:3px 8px 8px 38px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}${_dealSubRow(rid,idx,dealsForRow)}`}).join('')}</tbody></table>`;
+  return _slackBar+`<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:rgba(255,255,255,.04)"><th style="text-align:center;padding:5px 6px;color:var(--dim);font-weight:500;width:36px"></th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Account</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">CSM</th><th class="acr-ae" style="display:${_aeDisp};text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Sales Rep</th>${_allPools?`<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','','pool')">Pool ${sa('pool')}</th>`:''}<th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500"><span style="cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','stage')">Stage ${sa('stage')}</span>${rows.length!==_poolUnfiltered?` <span style="font-size:10px;color:var(--dim);margin-left:6px">${rows.length} of ${_poolUnfiltered} shown</span>`:''}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none" onclick="_sortAcct('${rid}','${q}','${pool}','rev')">2025 Revenue ${sa('rev')}</th><th style="text-align:right;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="Renewal Master Offer Price (Total Contract Value). Won deals use Annualized 2026 Renewal Revenue instead." onclick="_sortAcct('${rid}','${q}','${pool}','rev26')">2026 Offer (RM) ${sa('rev26')}</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500;cursor:pointer;user-select:none;white-space:nowrap" title="this is the sub end date from the renewal master that shows when their 2026 sub ends." onclick="_sortAcct('${rid}','${q}','${pool}','seRM')">Sub End (RM) ${sa('seRM')}</th><th style="text-align:center;padding:5px 8px;color:var(--dim);font-weight:500">Risk</th><th style="text-align:left;padding:5px 8px;color:var(--dim);font-weight:500">Notes</th></tr></thead><tbody>${rows.map((a,idx)=>{const noteId='gpn_'+rid+'_'+idx;const dealRowId='gpd_'+rid+'_'+idx;const hasNote=a.notes&&a.notes.trim();const pidK=String(a.platformId||'').trim();const dealsForRow=pidK?(_dealsByPid[pidK]||[]):[];const hasDeals=dealsForRow.length>0;const dealChev=hasDeals?`<span onclick="(function(){var n=document.getElementById('${dealRowId}');if(!n)return;n.style.display=n.style.display==='none'?'':'none';})()" title="${dealsForRow.length} HubSpot deal${dealsForRow.length===1?'':'s'} — click to expand" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:3px;user-select:none"><span>▸</span><span style="font-size:9px;font-weight:600;background:rgba(59,130,246,.15);color:var(--accent);padding:1px 5px;border-radius:8px">${dealsForRow.length}</span></span>`:'<span style="color:var(--dim);opacity:.35;font-size:11px">—</span>';return`<tr style="border-top:1px solid rgba(255,255,255,.05)"><td style="padding:3px 6px;text-align:center;width:36px">${dealChev}</td><td style="padding:3px 8px;color:var(--text)">${_hsAcctLink(a.platformId,a.n,a.n)}</td><td style="padding:3px 8px;color:var(--dim)">${a.csRep||'—'}</td><td class="acr-ae" style="display:${_aeDisp};padding:3px 8px;color:var(--dim)">${a.ae||'—'}</td>${_allPools?`<td style="padding:3px 8px;color:var(--dim);white-space:nowrap">${_poolDot(a.pool)}${a.pool||'—'}</td>`:''}<td style="padding:3px 8px;color:${sc(a)}">${(a.stage||'').replace(/^\d+\.\s*/,'')}</td><td style="padding:3px 8px;text-align:right">${a.rev?fmt(a.rev):'—'}</td><td style="padding:3px 8px;text-align:right;color:var(--green)">${a.rev26?fmt(a.rev26):'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px;color:var(--dim);font-size:11px;white-space:nowrap">${a.seRM?fmtSE(a.seRM):'<span style="opacity:.5">—</span>'}</td><td style="text-align:center;padding:3px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td><td style="padding:3px 8px">${hasNote?`<span style="cursor:pointer;color:var(--accent);font-size:11px" onclick="(function(){var n=document.getElementById('${noteId}');n.style.display=n.style.display===''?'none':''})()">▸ note</span>`:'<span style="color:var(--dim)">—</span>'}</td></tr>${hasNote?`<tr id="${noteId}" style="display:none"><td colspan="${_colspan}" style="padding:3px 8px 8px 38px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.2);line-height:1.6">${a.notes}</td></tr>`:''}${_dealSubRow(rid,idx,dealsForRow)}`}).join('')}</tbody></table>`;
 }
 function _rAcctTable(rid,q,pool){const c=document.getElementById(rid+'_acct');if(c)c.innerHTML=_acctTableHTML(rid,q,pool);}
 // Export current drilldown table as a Slack-friendly monospace code block.
@@ -12009,8 +12009,32 @@ let _offSyncedAt=null;
 // Populated from hubspot-deals.json's `companies` block. Used to surface the
 // Platform Company ID on SP_ACCTS rows (the SP source sheet has no pid column).
 let _offCompaniesByName={};
+// Parallel index keyed by platform_companyid. Same payload as
+// _offCompaniesByName; built at hydrate time so account-name renders can
+// resolve hsId by pid in O(1) without iterating the directory each call.
+let _offCompaniesByPid={};
 function _offNormName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'').trim();}
 function _offLookupPid(name){return (_offCompaniesByName[_offNormName(name)]||{}).platformId||'';}
+// Resolve (platformId, displayName) to a HubSpot company deep-link, falling
+// back to plain text if no record matches. Looks up via the pid index first
+// (built from j.companies), then the cadence directory (j.cadenceByPid),
+// then a normalized-name match. Returns inline HTML to drop straight into
+// a <td>. displayHTML is the already-built text/markup for the cell (so
+// the caller can keep its existing formatting/sub-elements intact).
+function _hsAcctLink(platformId,name,displayHTML){
+  const pid=String(platformId||'').trim();
+  let hsId='';
+  if(pid){
+    if(_offCompaniesByPid[pid]&&_offCompaniesByPid[pid].hsId)hsId=_offCompaniesByPid[pid].hsId;
+    if(!hsId&&typeof _offCadenceByPid!=='undefined'&&_offCadenceByPid[pid]&&_offCadenceByPid[pid].hsId)hsId=_offCadenceByPid[pid].hsId;
+  }
+  if(!hsId){
+    const lookup=_offCompaniesByName[_offNormName(name||'')];
+    if(lookup&&lookup.hsId)hsId=lookup.hsId;
+  }
+  if(!hsId)return displayHTML;
+  return `<a href="https://app.hubspot.com/contacts/8013348/record/0-2/${hsId}" target="_blank" rel="noopener" title="Open ${String(name||'').replace(/"/g,'&quot;')} in HubSpot" style="color:inherit;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(59,130,246,.5)">${displayHTML}</a>`;
+}
 // Cadence-by-platform-ID lookup powering the Cadence tab's Q3 cells (Jul/
 // Aug/Sep 2026). Keyed by company's platform_companyid → {name,
 // accountManager, segment, jul, aug, sep}. HubSpot returns "true" / "false"
@@ -12043,11 +12067,18 @@ async function _offHydrateFromTeam(){
       _offSaveDeals();
       // Re-key HubSpot company directory by normalized name so SP lookups
       // tolerate case / punctuation drift between HubSpot and the SP sheet.
+      // Also build the parallel pid index so account-name renders (GP
+      // Retention drilldown, Offers tab) can resolve hsId by platform ID
+      // in one map lookup.
       _offCompaniesByName={};
+      _offCompaniesByPid={};
       if(j.companies&&typeof j.companies==='object'){
         Object.entries(j.companies).forEach(([name,info])=>{
           const k=_offNormName(name);
-          if(k)_offCompaniesByName[k]={...info,name};
+          const rec={...info,name};
+          if(k)_offCompaniesByName[k]=rec;
+          const pid=String((info&&info.platformId)||'').trim();
+          if(pid)_offCompaniesByPid[pid]=rec;
         });
       }
       // Cadence Q3 source: per-company Jul/Aug/Sep call-complete flags from HubSpot.
@@ -12396,7 +12427,7 @@ function rOffers(){
             :'<span style="color:var(--dim);opacity:.35">—</span>';
           return`<tr>
           <td style="${stTd};text-align:center;padding:5px 6px">${chev}</td>
-          <td style="${stTd};color:var(--text);font-weight:500">${a.n||'—'}</td>
+          <td style="${stTd};color:var(--text);font-weight:500">${_hsAcctLink(a.platformId,a.n,a.n||'—')}</td>
           <td style="${stTd};color:var(--muted)">${_offFmtDate(a.seRM||a.se)}</td>
           <td style="${stTd};color:var(--muted)">${a.csRep||'—'}</td>
           <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
@@ -12609,7 +12640,7 @@ function _rOffersSP(el){
           :'<span style="color:var(--dim);opacity:.35">—</span>';
         return`<tr>
           <td style="${stTd};text-align:center;padding:5px 6px">${chev}</td>
-          <td style="${stTd};color:var(--text);font-weight:500">${a.n||'—'}</td>
+          <td style="${stTd};color:var(--text);font-weight:500">${_hsAcctLink(pid,a.n,a.n||'—')}</td>
           <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${pid||'<span style=\"opacity:.4\">—</span>'}</td>
           <td style="${stTd};color:var(--muted)">${_offFmtDate(a.se)}</td>
           <td style="${stTd};color:var(--muted)">${a.owner||'—'}</td>
