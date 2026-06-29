@@ -143,18 +143,16 @@ async function fetchCompanies(companyIds) {
   return out;
 }
 
-// 3b. Search every cadence-eligible company: category in {Fund Manager,
-// Service Provider} AND platform_companyid set AND subscription end date in
-// the future. HubSpot's filterGroups are OR'd at the top level, so each
-// category gets its own group with the shared platform-id + future-sub
-// filters duplicated inside.
+// 3b. Search every Manager / Service Provider company that has a
+// platform_companyid set, regardless of subscription end date. Broader than
+// just cadence-eligible so the dashboard's hsId lookup covers past-sub-end
+// accounts too (e.g. Q2 GP-retention churn rows). The cadenceByPid output
+// further narrows to future sub ends via _isCadenceEligible at emit time.
 async function fetchManagedCompanies() {
   const out = [];
   let after = null;
-  const futureDateMs = Date.now();
   const sharedFilters = [
-    { propertyName: 'platform_companyid', operator: 'HAS_PROPERTY' },
-    { propertyName: 'subscription_end_date', operator: 'GTE', value: futureDateMs }
+    { propertyName: 'platform_companyid', operator: 'HAS_PROPERTY' }
   ];
   while (true) {
     const body = {

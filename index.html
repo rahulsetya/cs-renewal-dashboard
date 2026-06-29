@@ -9322,6 +9322,9 @@ function _openPool(rid,q,pool,filt){
 // ── GP RETENTION ────────────────────────────────────
 function rGP(){
   const el=document.getElementById('tab-gp_grr');const q=_liveSelQ();
+  // Pull hubspot-deals.json on first render so account-name HubSpot links
+  // resolve via the pid → hsId directory. Idempotent — second call no-ops.
+  if(typeof _offHydrateFromTeam==='function')_offHydrateFromTeam();
   const tKey=q;const tgt=GP_T[tKey]?.full||63;
   const pools=["Enterprise","Strategic","Scale"];
 
@@ -9687,6 +9690,9 @@ function updateScenario(q,val,tOpen,tWon,tLogos){
 // ── SP RETENTION ────────────────────────────────────
 function rSP(){
   const el=document.getElementById('tab-sp_grr');const q=_liveSelQ();
+  // Same hydrate trigger as GP — populates _offCompaniesByPid so the SP
+  // drilldown's account-name links resolve to HubSpot company records.
+  if(typeof _offHydrateFromTeam==='function')_offHydrateFromTeam();
   const tgt=SP_T[q]?.full||55;
   const QML={Q1:[['01','Jan'],['02','Feb'],['03','Mar']],Q2:[['04','Apr'],['05','May'],['06','Jun']],Q3:[['07','Jul'],['08','Aug'],['09','Sep']],Q4:[['10','Oct'],['11','Nov'],['12','Dec']]};
 
@@ -12086,11 +12092,13 @@ async function _offHydrateFromTeam(){
       _offSource=j.source||s.label;
       _offSyncedAt=j.syncedAt||j.publishedAt||null;
       // Re-render whichever HubSpot-driven tab is active so the fresh data
-      // replaces the empty-state placeholder. Cadence tab now sources Q3
-      // months from HubSpot, so it gets the same re-render trigger.
+      // replaces the empty-state placeholder. Cadence sources Q3 from HS;
+      // GP / SP retention use HS for account-name → company-record links.
       if(typeof aTab!=='undefined'){
         if(aTab==='offers')rOffers();
         else if(aTab==='cadence'&&typeof rCadence==='function')rCadence();
+        else if(aTab==='gp_grr'&&typeof rGP==='function')rGP();
+        else if(aTab==='sp_grr'&&typeof rSP==='function')rSP();
       }
       return;
     }catch(e){/* try next source */}
