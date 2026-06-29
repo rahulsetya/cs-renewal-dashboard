@@ -41,8 +41,10 @@ const DEAL_PROPS = [
 const COMPANY_PROPS = [
   'name', 'platform_companyid', 'account_manager', 'account_segment',
   'subscription_end_date', 'category',
-  // Q3 cadence flags (Yes/No per month). Drive the Cadence HS tab.
-  'july_2026_call_complete', 'august_2026_call_complete', 'september_2026_call_complete'
+  // Q3 cadence flags (Yes/No per month). Drive the Cadence tab's Q3 column.
+  'july_2026_call_complete', 'august_2026_call_complete', 'september_2026_call_complete',
+  // Free-text notes logged alongside each Q3 touchpoint.
+  'july_2026_call_notes', 'august_2026_call_notes', 'september_2026_call_notes'
 ];
 
 // Cadence HS-eligible categories. The HubSpot `category` enumeration uses
@@ -310,7 +312,10 @@ async function main() {
       subscriptionEndDate: c.properties.subscription_end_date || '',
       jul: c.properties.july_2026_call_complete || '',
       aug: c.properties.august_2026_call_complete || '',
-      sep: c.properties.september_2026_call_complete || ''
+      sep: c.properties.september_2026_call_complete || '',
+      julNote: c.properties.july_2026_call_notes || '',
+      augNote: c.properties.august_2026_call_notes || '',
+      sepNote: c.properties.september_2026_call_notes || ''
     };
   });
   // Cadence HS eligibility test — same shape as the HubSpot search filter so
@@ -433,7 +438,10 @@ async function main() {
           subscriptionEndDate: c.subscriptionEndDate,
           jul: c.jul,
           aug: c.aug,
-          sep: c.sep
+          sep: c.sep,
+          julNote: c.julNote,
+          augNote: c.augNote,
+          sepNote: c.sepNote
         };
       });
       return idx;

@@ -10080,7 +10080,26 @@ function _cadBodyHTML(rid,csmName){
                 }
               }
             }
-            return`<td style="text-align:left;padding:4px 8px;white-space:nowrap" title="${title}">${cellHTML}</td>`;
+            // HubSpot per-month note (julNote / augNote / sepNote on the
+            // cadenceByPid entry). Renders a 📝 indicator + a truncated
+            // preview below the ✓ when present. Hovering surfaces the full
+            // note. Only fires for HS-eligible months.
+            let hsNoteHTML='';
+            (function(){
+              const hsKey=_cadHSMonthKey(c);
+              if(!hsKey||!_cadHSReady())return;
+              const pid=String(a.platformId||'').trim();
+              if(!pid)return;
+              const hs=_offCadenceByPid[pid];
+              const note=hs?(hs[hsKey+'Note']||''):'';
+              if(!note)return;
+              const cleaned=String(note).replace(/\s+/g,' ').trim();
+              const titleNote=cleaned.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+              const preview=cleaned.length>40?cleaned.slice(0,38)+'…':cleaned;
+              const previewEsc=preview.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              hsNoteHTML=` <span title="${titleNote}" style="color:var(--accent);font-size:11px;opacity:.85;margin-left:4px">📝</span><div title="${titleNote}" style="font-size:10px;color:var(--dim);font-weight:400;margin-top:2px;max-width:240px;white-space:normal;line-height:1.3">${previewEsc}</div>`;
+            })();
+            return`<td style="text-align:left;padding:4px 8px;white-space:nowrap" title="${title}">${cellHTML}${hsNoteHTML}</td>`;
           }).join('')}
           <td style="padding:4px 8px;color:var(--dim);font-size:10px">${fmtSE(a.se)}</td>
           <td style="text-align:center;padding:4px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td>
