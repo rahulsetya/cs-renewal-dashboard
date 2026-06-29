@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-29T15:49:48.499Z",
-  "syncedAt": "2026-06-29T15:49:48.499Z",
+  "publishedAt": "2026-06-29T16:34:12.715Z",
+  "syncedAt": "2026-06-29T16:34:12.715Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -22,7 +22,7 @@
   "counts": {
     "deals": 1865,
     "includedDeals": 885,
-    "companies": 9150,
+    "companies": 9151,
     "droppedNoCompany": 12,
     "droppedNoPid": 968,
     "perQuarter": {
@@ -1762,7 +1762,7 @@
         "ownerId": "429309794",
         "ownerName": "Ian Rzeszowski",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:19:22.955Z"
+        "hsLastModified": "2026-06-29T16:31:06.748Z"
       },
       {
         "pid": "20784",
@@ -1914,7 +1914,7 @@
         "ownerId": "429309794",
         "ownerName": "Ian Rzeszowski",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:19:20.441Z"
+        "hsLastModified": "2026-06-29T16:31:07.065Z"
       },
       {
         "pid": "39712",
@@ -2028,7 +2028,7 @@
         "ownerId": "429309794",
         "ownerName": "Ian Rzeszowski",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:19:23.511Z"
+        "hsLastModified": "2026-06-29T16:31:07.182Z"
       },
       {
         "pid": "912",
@@ -2788,7 +2788,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T13:51:26.694Z"
+        "hsLastModified": "2026-06-29T16:33:23.781Z"
       },
       {
         "pid": "11581",
@@ -3054,7 +3054,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T13:27:56.892Z"
+        "hsLastModified": "2026-06-29T16:00:07.878Z"
       },
       {
         "pid": "1383",
@@ -4804,7 +4804,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T15:03:51.850Z"
+        "hsLastModified": "2026-06-29T16:02:54.793Z"
       },
       {
         "pid": "952",
@@ -5851,7 +5851,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T15:38:10.424Z"
+        "hsLastModified": "2026-06-29T16:01:48.250Z"
       },
       {
         "pid": "43326",
@@ -5889,7 +5889,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T15:45:58.306Z"
+        "hsLastModified": "2026-06-29T16:11:47.282Z"
       },
       {
         "pid": "3034",
@@ -6136,7 +6136,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T14:52:42.350Z"
+        "hsLastModified": "2026-06-29T15:53:43.013Z"
       },
       {
         "pid": "9919",
@@ -6288,7 +6288,7 @@
         "ownerId": "87079434",
         "ownerName": "Luis Pedro Veliz del Valle",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:18:00.107Z"
+        "hsLastModified": "2026-06-29T16:22:35.460Z"
       },
       {
         "pid": "19358",
@@ -7010,7 +7010,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:55:05.318Z"
+        "hsLastModified": "2026-06-29T16:23:20.362Z"
       },
       {
         "pid": "42709",
@@ -7067,7 +7067,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T18:57:33.426Z"
+        "hsLastModified": "2026-06-29T16:18:31.176Z"
       },
       {
         "pid": "31305",
@@ -10299,7 +10299,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:59.348Z"
+        "hsLastModified": "2026-06-29T16:19:06.319Z"
       },
       {
         "pid": "6938",
@@ -11040,7 +11040,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-22T04:27:48.484Z"
+        "hsLastModified": "2026-06-29T16:21:12.247Z"
       },
       {
         "pid": "44149",
@@ -11059,7 +11059,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T15:36:13.094Z"
+        "hsLastModified": "2026-06-29T16:24:42.412Z"
       },
       {
         "pid": "11157",
@@ -16723,7 +16723,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:36:27.349Z"
+        "hsLastModified": "2026-06-29T15:53:47.146Z"
       },
       {
         "pid": "67",
@@ -16861,10 +16861,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-29T15:49:48.499Z",
-    "Q2": "2026-06-29T15:49:48.499Z",
-    "Q3": "2026-06-29T15:49:48.499Z",
-    "Q4": "2026-06-29T15:49:48.499Z"
+    "Q1": "2026-06-29T16:34:12.715Z",
+    "Q2": "2026-06-29T16:34:12.715Z",
+    "Q3": "2026-06-29T16:34:12.715Z",
+    "Q4": "2026-06-29T16:34:12.715Z"
   },
   "owners": {
     "27231823": {
@@ -17946,104 +17946,14 @@
       "hsId": "31399765128",
       "segment": "Enterprise"
     },
-    "Glide Capital": {
-      "platformId": "6933",
-      "hsId": "47330735225",
-      "segment": ""
-    },
-    "Ludwig Institute for Cancer Research": {
-      "platformId": "808",
-      "hsId": "23484696497",
-      "segment": ""
-    },
-    "Gavekal": {
-      "platformId": "9610",
-      "hsId": "31888318834",
-      "segment": ""
-    },
-    "Welight Capital": {
-      "platformId": "20314",
-      "hsId": "23480738100",
-      "segment": ""
-    },
-    "Brightwood Capital Advisors": {
-      "platformId": "14207",
-      "hsId": "39730798649",
-      "segment": "Enterprise"
-    },
-    "Trian Fund Management": {
-      "platformId": "22702",
-      "hsId": "4426964922",
-      "segment": ""
-    },
-    "K1x, Inc.": {
-      "platformId": "12329",
-      "hsId": "36417232290",
-      "segment": ""
-    },
-    "Quadrant Capital Advisors": {
-      "platformId": "20499",
-      "hsId": "39659138148",
-      "segment": ""
-    },
-    "Preserver Partners": {
-      "platformId": "20447",
-      "hsId": "47585916684",
-      "segment": ""
-    },
-    "Thayer Street Partners": {
-      "platformId": "738",
-      "hsId": "7214196485",
-      "segment": ""
-    },
-    "Accolade Partners": {
-      "platformId": "39382",
-      "hsId": "38086872700",
-      "segment": ""
-    },
-    "VS Partners": {
-      "platformId": "20420",
-      "hsId": "49405072743",
-      "segment": ""
-    },
-    "Guardian Financial Partners, LLC": {
-      "platformId": "20493",
-      "hsId": "23486970017",
-      "segment": ""
-    },
-    "Tangency Capital": {
-      "platformId": "2447",
-      "hsId": "39480388989",
+    "Prytania Asset Management": {
+      "platformId": "12626",
+      "hsId": "4426960238",
       "segment": "Scale"
-    },
-    "Kaplan Group of Companies": {
-      "platformId": "21191",
-      "hsId": "23469190952",
-      "segment": ""
-    },
-    "Mother Cabrini Health Foundation": {
-      "platformId": "35856",
-      "hsId": "47578146340",
-      "segment": ""
-    },
-    "GWM Group": {
-      "platformId": "5230",
-      "hsId": "6632962050",
-      "segment": ""
     },
     "Granby Capital Management": {
       "platformId": "2646",
       "hsId": "5226551116",
-      "segment": ""
-    },
-    "Singapore Management University": {
-      "platformId": "20446",
-      "hsId": "23470258511",
-      "segment": ""
-    },
-    "W.K. Kellogg Foundation (WKKF)": {
-      "platformId": "1004",
-      "hsId": "39777356646",
       "segment": ""
     },
     "University System of Maryland Foundation, Inc.": {
@@ -18051,49 +17961,14 @@
       "hsId": "39777233464",
       "segment": ""
     },
-    "River Delta Wealth Management": {
-      "platformId": "20608",
-      "hsId": "23448399008",
-      "segment": ""
-    },
-    "Heard Capital": {
-      "platformId": "461",
-      "hsId": "4230698486",
-      "segment": ""
-    },
-    "New Form Capital": {
-      "platformId": "7757",
-      "hsId": "39337881906",
-      "segment": ""
-    },
-    "CVS Health": {
-      "platformId": "20419",
-      "hsId": "23475527314",
-      "segment": ""
-    },
     "Deer Park Road Management Company": {
       "platformId": "6391",
       "hsId": "4426950864",
       "segment": "Scale"
     },
-    "Citrin Cooperman & Company LLP": {
-      "platformId": "18669",
-      "hsId": "39900985384",
-      "segment": ""
-    },
-    "NewYork-Presbyterian Hospital": {
-      "platformId": "3924",
-      "hsId": "23486038569",
-      "segment": ""
-    },
-    "Zurich Alternative Asset Management": {
-      "platformId": "20880",
-      "hsId": "22513298018",
-      "segment": ""
-    },
-    "U.S. Capital Advisors": {
-      "platformId": "34175",
-      "hsId": "55509313599",
+    "Highmore": {
+      "platformId": "558",
+      "hsId": "5801772938",
       "segment": ""
     },
     "Arisaig Partners": {
@@ -18101,119 +17976,14 @@
       "hsId": "9306178600",
       "segment": ""
     },
-    "ORIX Corporate Capital": {
-      "platformId": "33551",
-      "hsId": "4426960287",
-      "segment": ""
-    },
-    "Hilbert Capital": {
-      "platformId": "9918",
-      "hsId": "9062576755",
-      "segment": "Scale"
-    },
-    "OP Asset Management": {
-      "platformId": "20438",
-      "hsId": "23478628532",
-      "segment": ""
-    },
-    "Diamond Family Office": {
-      "platformId": "5295",
-      "hsId": "39616949111",
-      "segment": ""
-    },
-    "TPG NEXT": {
-      "platformId": "20418",
-      "hsId": "23486966375",
-      "segment": ""
-    },
-    "KStone Partners": {
-      "platformId": "6921",
-      "hsId": "47330318339",
-      "segment": ""
-    },
-    "Richardson Wealth Private Family Office": {
-      "platformId": "1323",
-      "hsId": "23448399134",
-      "segment": ""
-    },
-    "NAV Fund Services": {
-      "platformId": "39430",
-      "hsId": "38342839883",
-      "segment": ""
-    },
-    "Talisman Global": {
-      "platformId": "20422",
-      "hsId": "23486660646",
-      "segment": ""
-    },
-    "Greenway Wealth Management": {
-      "platformId": "3779",
-      "hsId": "6192630367",
-      "segment": ""
-    },
-    "NovaQuest Capital Management": {
-      "platformId": "11626",
-      "hsId": "7394445110",
-      "segment": "Enterprise"
-    },
-    "Relm Insurance": {
-      "platformId": "8646",
-      "hsId": "53392368726",
-      "segment": ""
-    },
-    "Archive Capital": {
-      "platformId": "20444",
-      "hsId": "23483465138",
-      "segment": ""
-    },
-    "Coinshares": {
-      "platformId": "2597",
-      "hsId": "8601594270",
-      "segment": ""
-    },
-    "Rubenstein": {
-      "platformId": "6245",
-      "hsId": "47547531088",
-      "segment": ""
-    },
-    "ISV": {
-      "platformId": "4217",
-      "hsId": "6661978771",
-      "segment": "Enterprise"
-    },
-    "Brown Advisory": {
-      "platformId": "390",
-      "hsId": "37821272392",
-      "segment": ""
-    },
-    "Homium": {
-      "platformId": "19189",
-      "hsId": "16793655677",
-      "segment": ""
-    },
-    "Talpion Fund Management": {
-      "platformId": "11414",
-      "hsId": "34809896102",
-      "segment": ""
-    },
-    "Theia Blockchain": {
-      "platformId": "9573",
-      "hsId": "9177073768",
-      "segment": ""
-    },
-    "Colter Lewis Investment Partners": {
-      "platformId": "5940",
-      "hsId": "23437041973",
-      "segment": ""
-    },
-    "Stellantis": {
-      "platformId": "9503",
-      "hsId": "23469951316",
-      "segment": ""
-    },
     "Faes & Co": {
       "platformId": "17484",
       "hsId": "23471432584",
+      "segment": ""
+    },
+    "ORIX Corporate Capital": {
+      "platformId": "33551",
+      "hsId": "4426960287",
       "segment": ""
     },
     "Vitra Capital": {
@@ -18221,54 +17991,29 @@
       "hsId": "23475186690",
       "segment": ""
     },
-    "Highmore": {
-      "platformId": "558",
-      "hsId": "5801772938",
+    "W.K. Kellogg Foundation (WKKF)": {
+      "platformId": "1004",
+      "hsId": "39777356646",
       "segment": ""
     },
-    "Walleye Capital": {
-      "platformId": "9123",
-      "hsId": "39198985351",
+    "Singapore Management University": {
+      "platformId": "20446",
+      "hsId": "23470258511",
       "segment": ""
     },
-    "Black Lotus Capital": {
-      "platformId": "9821",
-      "hsId": "9190603351",
+    "Heard Capital": {
+      "platformId": "461",
+      "hsId": "4230698486",
       "segment": ""
     },
-    "Blue Torch Capital LP": {
-      "platformId": "20615",
-      "hsId": "41066055558",
-      "segment": ""
+    "ISV": {
+      "platformId": "4217",
+      "hsId": "6661978771",
+      "segment": "Enterprise"
     },
-    "M2A Family Office": {
-      "platformId": "20424",
-      "hsId": "23461991510",
-      "segment": ""
-    },
-    "multiply": {
-      "platformId": "5",
-      "hsId": "30918831638",
-      "segment": ""
-    },
-    "Jindalee LLC": {
-      "platformId": "20421",
-      "hsId": "39659199748",
-      "segment": ""
-    },
-    "Reciprocal Ventures": {
-      "platformId": "3499",
-      "hsId": "53848247978",
-      "segment": "Scale"
-    },
-    "Prytania Asset Management": {
-      "platformId": "12626",
-      "hsId": "4426960238",
-      "segment": "Scale"
-    },
-    "Korea Investment Corporation": {
-      "platformId": "2229",
-      "hsId": "4427005235",
+    "River Delta Wealth Management": {
+      "platformId": "20608",
+      "hsId": "23448399008",
       "segment": ""
     },
     "R. G. Niederhoffer Capital Management": {
@@ -18281,49 +18026,74 @@
       "hsId": "23486814545",
       "segment": ""
     },
-    "Prime Quadrant": {
-      "platformId": "11716",
-      "hsId": "38982875933",
+    "Blue Torch Capital LP": {
+      "platformId": "20615",
+      "hsId": "41066055558",
       "segment": ""
     },
-    "Legeis Capital": {
-      "platformId": "20465",
-      "hsId": "23474412437",
+    "TPG NEXT": {
+      "platformId": "20418",
+      "hsId": "23486966375",
       "segment": ""
     },
-    "Bench Walk Advisors": {
-      "platformId": "20522",
-      "hsId": "18383516066",
-      "segment": "Enterprise"
-    },
-    "Cary Street Partners": {
-      "platformId": "1856",
-      "hsId": "23471430927",
+    "Zurich Alternative Asset Management": {
+      "platformId": "20880",
+      "hsId": "22513298018",
       "segment": ""
     },
-    "Aument Capital Partners": {
-      "platformId": "22255",
-      "hsId": "19607375941",
+    "U.S. Capital Advisors": {
+      "platformId": "34175",
+      "hsId": "55509313599",
       "segment": ""
     },
-    "Tolleson Wealth Management": {
-      "platformId": "4604",
-      "hsId": "54349730304",
+    "VS Partners": {
+      "platformId": "20420",
+      "hsId": "49405072743",
       "segment": ""
     },
-    "Wilson Sonsini Goodrich & Rosati": {
-      "platformId": "39766",
-      "hsId": "23524955808",
+    "Ludwig Institute for Cancer Research": {
+      "platformId": "808",
+      "hsId": "23484696497",
       "segment": ""
     },
-    "City of Southfield": {
-      "platformId": "20492",
-      "hsId": "23462612627",
+    "Welight Capital": {
+      "platformId": "20314",
+      "hsId": "23480738100",
       "segment": ""
     },
-    "Crystal Mountain Group, Inc.": {
-      "platformId": "2227",
-      "hsId": "23467491076",
+    "Tangency Capital": {
+      "platformId": "2447",
+      "hsId": "39480388989",
+      "segment": "Scale"
+    },
+    "NAV Fund Services": {
+      "platformId": "39430",
+      "hsId": "38342839883",
+      "segment": ""
+    },
+    "Guardian Financial Partners, LLC": {
+      "platformId": "20493",
+      "hsId": "23486970017",
+      "segment": ""
+    },
+    "Relm Insurance": {
+      "platformId": "8646",
+      "hsId": "53392368726",
+      "segment": ""
+    },
+    "Citrin Cooperman & Company LLP": {
+      "platformId": "18669",
+      "hsId": "39900985384",
+      "segment": ""
+    },
+    "GWM Group": {
+      "platformId": "5230",
+      "hsId": "6632962050",
+      "segment": ""
+    },
+    "Colter Lewis Investment Partners": {
+      "platformId": "5940",
+      "hsId": "23437041973",
       "segment": ""
     },
     "Polus Capital Management": {
@@ -18331,9 +18101,129 @@
       "hsId": "16180361228",
       "segment": "Enterprise"
     },
-    "FourWorld Capital Management": {
-      "platformId": "20356",
-      "hsId": "23481661566",
+    "Brightwood Capital Advisors": {
+      "platformId": "14207",
+      "hsId": "39730798649",
+      "segment": "Enterprise"
+    },
+    "NewYork-Presbyterian Hospital": {
+      "platformId": "3924",
+      "hsId": "23486038569",
+      "segment": ""
+    },
+    "Trian Fund Management": {
+      "platformId": "22702",
+      "hsId": "4426964922",
+      "segment": ""
+    },
+    "New Form Capital": {
+      "platformId": "7757",
+      "hsId": "39337881906",
+      "segment": ""
+    },
+    "Gavekal": {
+      "platformId": "9610",
+      "hsId": "31888318834",
+      "segment": ""
+    },
+    "CVS Health": {
+      "platformId": "20419",
+      "hsId": "23475527314",
+      "segment": ""
+    },
+    "Aument Capital Partners": {
+      "platformId": "22255",
+      "hsId": "19607375941",
+      "segment": ""
+    },
+    "Rubenstein": {
+      "platformId": "6245",
+      "hsId": "47547531088",
+      "segment": ""
+    },
+    "Homium": {
+      "platformId": "19189",
+      "hsId": "16793655677",
+      "segment": ""
+    },
+    "Hilbert Capital": {
+      "platformId": "9918",
+      "hsId": "9062576755",
+      "segment": "Scale"
+    },
+    "Legeis Capital": {
+      "platformId": "20465",
+      "hsId": "23474412437",
+      "segment": ""
+    },
+    "Talpion Fund Management": {
+      "platformId": "11414",
+      "hsId": "34809896102",
+      "segment": ""
+    },
+    "Coinshares": {
+      "platformId": "2597",
+      "hsId": "8601594270",
+      "segment": ""
+    },
+    "Wilson Sonsini Goodrich & Rosati": {
+      "platformId": "39766",
+      "hsId": "23524955808",
+      "segment": ""
+    },
+    "Diamond Family Office": {
+      "platformId": "5295",
+      "hsId": "39616949111",
+      "segment": ""
+    },
+    "Thayer Street Partners": {
+      "platformId": "738",
+      "hsId": "7214196485",
+      "segment": ""
+    },
+    "Reciprocal Ventures": {
+      "platformId": "3499",
+      "hsId": "53848247978",
+      "segment": "Scale"
+    },
+    "Talisman Global": {
+      "platformId": "20422",
+      "hsId": "23486660646",
+      "segment": ""
+    },
+    "Richardson Wealth Private Family Office": {
+      "platformId": "1323",
+      "hsId": "23448399134",
+      "segment": ""
+    },
+    "Greenway Wealth Management": {
+      "platformId": "3779",
+      "hsId": "6192630367",
+      "segment": ""
+    },
+    "City of Southfield": {
+      "platformId": "20492",
+      "hsId": "23462612627",
+      "segment": ""
+    },
+    "NovaQuest Capital Management": {
+      "platformId": "11626",
+      "hsId": "7394445110",
+      "segment": "Enterprise"
+    },
+    "Tolleson Wealth Management": {
+      "platformId": "4604",
+      "hsId": "54349730304",
+      "segment": ""
+    },
+    "Bench Walk Advisors": {
+      "platformId": "20522",
+      "hsId": "18383516066",
+      "segment": "Enterprise"
+    },
+    "Crystal Mountain Group, Inc.": {
+      "platformId": "2227",
+      "hsId": "23467491076",
       "segment": ""
     },
     "City of Philadelphia": {
@@ -18341,24 +18231,169 @@
       "hsId": "47332116793",
       "segment": ""
     },
-    "Wade & Company": {
-      "platformId": "20689",
-      "hsId": "23484852536",
+    "FourWorld Capital Management": {
+      "platformId": "20356",
+      "hsId": "23481661566",
       "segment": ""
     },
-    "Performance Equity Management": {
-      "platformId": "20692",
-      "hsId": "23482104629",
+    "Theia Blockchain": {
+      "platformId": "9573",
+      "hsId": "9177073768",
       "segment": ""
     },
-    "Pearl Manor Capital": {
-      "platformId": "14334",
-      "hsId": "9452752245",
-      "segment": "Scale"
+    "multiply": {
+      "platformId": "5",
+      "hsId": "30918831638",
+      "segment": ""
     },
-    "Pension Protection Fund": {
-      "platformId": "19790",
-      "hsId": "39747786012",
+    "Black Lotus Capital": {
+      "platformId": "9821",
+      "hsId": "9190603351",
+      "segment": ""
+    },
+    "Jindalee LLC": {
+      "platformId": "20421",
+      "hsId": "39659199748",
+      "segment": ""
+    },
+    "Mother Cabrini Health Foundation": {
+      "platformId": "35856",
+      "hsId": "47578146340",
+      "segment": ""
+    },
+    "Kaplan Group of Companies": {
+      "platformId": "21191",
+      "hsId": "23469190952",
+      "segment": ""
+    },
+    "Brown Advisory": {
+      "platformId": "390",
+      "hsId": "37821272392",
+      "segment": ""
+    },
+    "Walleye Capital": {
+      "platformId": "9123",
+      "hsId": "39198985351",
+      "segment": ""
+    },
+    "Archive Capital": {
+      "platformId": "20444",
+      "hsId": "23483465138",
+      "segment": ""
+    },
+    "Stellantis": {
+      "platformId": "9503",
+      "hsId": "23469951316",
+      "segment": ""
+    },
+    "Glide Capital": {
+      "platformId": "6933",
+      "hsId": "47330735225",
+      "segment": ""
+    },
+    "K1x, Inc.": {
+      "platformId": "12329",
+      "hsId": "36417232290",
+      "segment": ""
+    },
+    "Cary Street Partners": {
+      "platformId": "1856",
+      "hsId": "23471430927",
+      "segment": ""
+    },
+    "Korea Investment Corporation": {
+      "platformId": "2229",
+      "hsId": "4427005235",
+      "segment": ""
+    },
+    "M2A Family Office": {
+      "platformId": "20424",
+      "hsId": "23461991510",
+      "segment": ""
+    },
+    "Quadrant Capital Advisors": {
+      "platformId": "20499",
+      "hsId": "39659138148",
+      "segment": ""
+    },
+    "Accolade Partners": {
+      "platformId": "39382",
+      "hsId": "38086872700",
+      "segment": ""
+    },
+    "OP Asset Management": {
+      "platformId": "20438",
+      "hsId": "23478628532",
+      "segment": ""
+    },
+    "Prime Quadrant": {
+      "platformId": "11716",
+      "hsId": "38982875933",
+      "segment": ""
+    },
+    "Preserver Partners": {
+      "platformId": "20447",
+      "hsId": "47585916684",
+      "segment": ""
+    },
+    "KStone Partners": {
+      "platformId": "6921",
+      "hsId": "47330318339",
+      "segment": ""
+    },
+    "Bloomberg L.P.": {
+      "platformId": "2470",
+      "hsId": "34993163557",
+      "segment": ""
+    },
+    "National Geographic Society": {
+      "platformId": "16262",
+      "hsId": "23486347634",
+      "segment": ""
+    },
+    "Dragon AI": {
+      "platformId": "21372",
+      "hsId": "39659200348",
+      "segment": ""
+    },
+    "Optima Fund Management": {
+      "platformId": "3713",
+      "hsId": "28823793318",
+      "segment": ""
+    },
+    "Cara": {
+      "platformId": "20582",
+      "hsId": "23479300242",
+      "segment": ""
+    },
+    "Newlight Partners": {
+      "platformId": "16244",
+      "hsId": "30484498493",
+      "segment": ""
+    },
+    "HSD Holdings": {
+      "platformId": "20537",
+      "hsId": "4427012881",
+      "segment": ""
+    },
+    "Fifth Avenue Family Office": {
+      "platformId": "20710",
+      "hsId": "23479615288",
+      "segment": ""
+    },
+    "Wealth Enhancement Group": {
+      "platformId": "5310",
+      "hsId": "22512143726",
+      "segment": ""
+    },
+    "Greenlight Masters": {
+      "platformId": "3487",
+      "hsId": "22512120680",
+      "segment": ""
+    },
+    "AlTi Global": {
+      "platformId": "20575",
+      "hsId": "23475989529",
       "segment": ""
     },
     "Rice Management Company": {
@@ -18371,84 +18406,9 @@
       "hsId": "23470719754",
       "segment": ""
     },
-    "Birchwood Capital Management LLC": {
-      "platformId": "20756",
-      "hsId": "47073098670",
-      "segment": ""
-    },
-    "JFG Family Office": {
-      "platformId": "5554",
-      "hsId": "49489261145",
-      "segment": ""
-    },
-    "Kenetic": {
-      "platformId": "10985",
-      "hsId": "47339417933",
-      "segment": ""
-    },
-    "Oaktree Capital Management": {
-      "platformId": "7189",
-      "hsId": "55463403073",
-      "segment": "Enterprise"
-    },
-    "HSD Holdings": {
-      "platformId": "20537",
-      "hsId": "4427012881",
-      "segment": ""
-    },
-    "Mission Capital": {
-      "platformId": "20530",
-      "hsId": "18541690703",
-      "segment": ""
-    },
-    "AlphaCore Wealth Advisory": {
-      "platformId": "20666",
-      "hsId": "40650608237",
-      "segment": ""
-    },
-    "Dragon AI": {
-      "platformId": "21372",
-      "hsId": "39659200348",
-      "segment": ""
-    },
-    "ACIM": {
-      "platformId": "20772",
-      "hsId": "23450043683",
-      "segment": ""
-    },
-    "Fifth Avenue Family Office": {
-      "platformId": "20710",
-      "hsId": "23479615288",
-      "segment": ""
-    },
-    "Ayon Capital": {
-      "platformId": "10784",
-      "hsId": "39614831738",
-      "segment": ""
-    },
-    "Verdi Capital": {
-      "platformId": "20551",
-      "hsId": "23459988048",
-      "segment": ""
-    },
-    "Mindoro Capital Partners": {
-      "platformId": "20500",
-      "hsId": "33649059387",
-      "segment": ""
-    },
-    "brahman": {
-      "platformId": "21370",
-      "hsId": "23458595344",
-      "segment": ""
-    },
-    "Meketa Capital, a subsidiary of Meketa Investment Group": {
-      "platformId": "20526",
-      "hsId": "23486347611",
-      "segment": ""
-    },
-    "CIGP": {
-      "platformId": "22182",
-      "hsId": "23475527299",
+    "Stenham Asset Management": {
+      "platformId": "745",
+      "hsId": "4426872953",
       "segment": ""
     },
     "Pomifer Capital": {
@@ -18456,54 +18416,24 @@
       "hsId": "37965245763",
       "segment": ""
     },
-    "Crest Capital": {
-      "platformId": "16700",
-      "hsId": "23473031575",
-      "segment": ""
-    },
-    "Newlight Partners": {
-      "platformId": "16244",
-      "hsId": "30484498493",
-      "segment": ""
-    },
-    "National Geographic Society": {
-      "platformId": "16262",
-      "hsId": "23486347634",
-      "segment": ""
-    },
-    "Optima Fund Management": {
-      "platformId": "3713",
-      "hsId": "28823793318",
-      "segment": ""
-    },
-    "TIme Family Office": {
-      "platformId": "21816",
-      "hsId": "6235692690",
-      "segment": ""
-    },
-    "Bloomberg L.P.": {
-      "platformId": "2470",
-      "hsId": "34993163557",
-      "segment": ""
-    },
     "Phillips Exeter Academy": {
       "platformId": "11351",
       "hsId": "55462165308",
       "segment": ""
     },
-    "Nordwand Capital": {
-      "platformId": "20926",
-      "hsId": "23459983952",
+    "brahman": {
+      "platformId": "21370",
+      "hsId": "23458595344",
       "segment": ""
     },
-    "Valera Capital": {
-      "platformId": "20248",
-      "hsId": "10476267793",
+    "Lafayette College Endowment": {
+      "platformId": "31822",
+      "hsId": "55534905630",
       "segment": ""
     },
-    "kennetherichards-familyoffice.com": {
-      "platformId": "20667",
-      "hsId": "23468727067",
+    "Kenetic": {
+      "platformId": "10985",
+      "hsId": "47339417933",
       "segment": ""
     },
     "Taurus Wealth Advisors": {
@@ -18511,24 +18441,39 @@
       "hsId": "43697750793",
       "segment": ""
     },
-    "Certis Capital Management": {
-      "platformId": "2724",
-      "hsId": "4426278784",
+    "AlphaCore Wealth Advisory": {
+      "platformId": "20666",
+      "hsId": "40650608237",
       "segment": ""
     },
-    "Jefferies": {
-      "platformId": "912",
-      "hsId": "50788017450",
+    "Mission Capital": {
+      "platformId": "20530",
+      "hsId": "18541690703",
       "segment": ""
     },
-    "AlTi Global": {
-      "platformId": "20575",
-      "hsId": "23475989529",
+    "Valera Capital": {
+      "platformId": "20248",
+      "hsId": "10476267793",
       "segment": ""
     },
-    "Wealth Enhancement Group": {
-      "platformId": "5310",
-      "hsId": "22512143726",
+    "TD Securities": {
+      "platformId": "12304",
+      "hsId": "23473033328",
+      "segment": ""
+    },
+    "kennetherichards-familyoffice.com": {
+      "platformId": "20667",
+      "hsId": "23468727067",
+      "segment": ""
+    },
+    "Star Strong Capital LLC": {
+      "platformId": "320",
+      "hsId": "31718288689",
+      "segment": "Enterprise"
+    },
+    "Ayon Capital": {
+      "platformId": "10784",
+      "hsId": "39614831738",
       "segment": ""
     },
     "Standard Crypto": {
@@ -18541,129 +18486,9 @@
       "hsId": "4316342876",
       "segment": "Scale"
     },
-    "Itau Private Bank": {
-      "platformId": "20494",
-      "hsId": "4366856853",
-      "segment": ""
-    },
-    "BTIG LLC": {
-      "platformId": "80",
-      "hsId": "50251185846",
-      "segment": ""
-    },
-    "HS Group": {
-      "platformId": "1474",
-      "hsId": "36679768502",
-      "segment": ""
-    },
-    "ER Family Holdings": {
-      "platformId": "20539",
-      "hsId": "39659138178",
-      "segment": ""
-    },
-    "Kiln": {
-      "platformId": "39712",
-      "hsId": "10256184341",
-      "segment": ""
-    },
-    "Patricof Co": {
-      "platformId": "16856",
-      "hsId": "15718885971",
-      "segment": ""
-    },
-    "e360 Power": {
-      "platformId": "3935",
-      "hsId": "4316200221",
-      "segment": "Scale"
-    },
-    "Aequim Alternative Investments": {
-      "platformId": "19265",
-      "hsId": "5801914380",
-      "segment": ""
-    },
-    "TD Securities": {
-      "platformId": "12304",
-      "hsId": "23473033328",
-      "segment": ""
-    },
-    "Cinctive Capital": {
-      "platformId": "797",
-      "hsId": "35834554741",
-      "segment": "Enterprise"
-    },
-    "Nickel Digital": {
-      "platformId": "14762",
-      "hsId": "23459983922",
-      "segment": ""
-    },
-    "One Rock Capital Partners": {
-      "platformId": "16245",
-      "hsId": "33707736696",
-      "segment": ""
-    },
-    "Anchor Capital Advisors": {
-      "platformId": "1955",
-      "hsId": "23483465103",
-      "segment": ""
-    },
-    "Feri Capital": {
-      "platformId": "21960",
-      "hsId": "23468419992",
-      "segment": ""
-    },
-    "Flexible Plan Investments": {
-      "platformId": "20538",
-      "hsId": "23480230048",
-      "segment": ""
-    },
-    "Star Strong Capital LLC": {
-      "platformId": "320",
-      "hsId": "31718288689",
-      "segment": "Enterprise"
-    },
-    "The Trump Group": {
-      "platformId": "21266",
-      "hsId": "23486966312",
-      "segment": ""
-    },
-    "Holden Family Offices": {
-      "platformId": "20668",
-      "hsId": "18658129456",
-      "segment": ""
-    },
-    "Garda Capital Partners LP": {
-      "platformId": "14358",
-      "hsId": "4314867414",
-      "segment": ""
-    },
-    "AmTrust Financial Services": {
-      "platformId": "33856",
-      "hsId": "47568049445",
-      "segment": ""
-    },
-    "Talisman Group": {
-      "platformId": "21089",
-      "hsId": "47335906952",
-      "segment": ""
-    },
-    "Stone Family Office": {
-      "platformId": "20624",
-      "hsId": "18467659578",
-      "segment": ""
-    },
-    "Tallwoods Partners": {
-      "platformId": "3979",
-      "hsId": "39614708080",
-      "segment": ""
-    },
-    "Hyla Fund Management": {
-      "platformId": "22391",
-      "hsId": "39555798638",
-      "segment": ""
-    },
-    "Mitsui & Co": {
-      "platformId": "18386",
-      "hsId": "47342942099",
+    "TIme Family Office": {
+      "platformId": "21816",
+      "hsId": "6235692690",
       "segment": ""
     },
     "Brahman Capital": {
@@ -18671,64 +18496,59 @@
       "hsId": "7184649096",
       "segment": ""
     },
-    "Fitpart": {
-      "platformId": "20711",
-      "hsId": "23479615323",
+    "Cinctive Capital": {
+      "platformId": "797",
+      "hsId": "35834554741",
+      "segment": "Enterprise"
+    },
+    "Meketa Capital, a subsidiary of Meketa Investment Group": {
+      "platformId": "20526",
+      "hsId": "23486347611",
       "segment": ""
     },
-    "LAB Quantitative Strategies, LLC": {
-      "platformId": "20591",
-      "hsId": "23474412463",
+    "Tallwoods Partners": {
+      "platformId": "3979",
+      "hsId": "39614708080",
       "segment": ""
     },
-    "Ron Clark Academy": {
-      "platformId": "21378",
-      "hsId": "23470722462",
+    "AmTrust Financial Services": {
+      "platformId": "33856",
+      "hsId": "47568049445",
       "segment": ""
     },
-    "Truist": {
-      "platformId": "5058",
-      "hsId": "6904069205",
+    "ER Family Holdings": {
+      "platformId": "20539",
+      "hsId": "39659138178",
       "segment": ""
     },
-    "CML Ltd": {
-      "platformId": "20786",
-      "hsId": "23481811806",
+    "Oaktree Capital Management": {
+      "platformId": "7189",
+      "hsId": "55463403073",
+      "segment": "Enterprise"
+    },
+    "BTIG LLC": {
+      "platformId": "80",
+      "hsId": "50251185846",
       "segment": ""
     },
-    "CAIS Group": {
-      "platformId": "5404",
-      "hsId": "54373926532",
+    "CIGP": {
+      "platformId": "22182",
+      "hsId": "23475527299",
       "segment": ""
     },
-    "Baml": {
-      "platformId": "20507",
-      "hsId": "47061756683",
+    "Nordwand Capital": {
+      "platformId": "20926",
+      "hsId": "23459983952",
       "segment": ""
     },
-    "Cara": {
-      "platformId": "20582",
-      "hsId": "23479300242",
+    "Garda Capital Partners LP": {
+      "platformId": "14358",
+      "hsId": "4314867414",
       "segment": ""
     },
-    "Stenham Asset Management": {
-      "platformId": "745",
-      "hsId": "4426872953",
-      "segment": ""
-    },
-    "Lafayette College Endowment": {
-      "platformId": "31822",
-      "hsId": "55534905630",
-      "segment": ""
-    },
-    "GIODELL": {
-      "platformId": "20791",
-      "hsId": "18323509084",
-      "segment": ""
-    },
-    "PFR Ventures": {
-      "platformId": "20909",
-      "hsId": "22513275408",
+    "Crest Capital": {
+      "platformId": "16700",
+      "hsId": "23473031575",
       "segment": ""
     },
     "Steadfast Capital Management": {
@@ -18736,34 +18556,19 @@
       "hsId": "4426909679",
       "segment": ""
     },
-    "HealthX Ventures": {
-      "platformId": "21946",
-      "hsId": "16208838520",
+    "Talisman Group": {
+      "platformId": "21089",
+      "hsId": "47335906952",
       "segment": ""
     },
-    "Hunting Hill Global Capital, LLC": {
-      "platformId": "14417",
-      "hsId": "4426956725",
-      "segment": "Scale"
-    },
-    "Riva Capital": {
-      "platformId": "20304",
-      "hsId": "39404658524",
+    "Certis Capital Management": {
+      "platformId": "2724",
+      "hsId": "4426278784",
       "segment": ""
     },
-    "iconnections": {
-      "platformId": "1",
-      "hsId": "4310506310",
-      "segment": ""
-    },
-    "BCR Family Office": {
-      "platformId": "4723",
-      "hsId": "23468570970",
-      "segment": ""
-    },
-    "GoalVest Advisory": {
-      "platformId": "20637",
-      "hsId": "23485732753",
+    "Fitpart": {
+      "platformId": "20711",
+      "hsId": "23479615323",
       "segment": ""
     },
     "Reshape Wealth": {
@@ -18771,9 +18576,34 @@
       "hsId": "23448399023",
       "segment": ""
     },
-    "NextEra": {
-      "platformId": "20700",
-      "hsId": "23481964651",
+    "Truist": {
+      "platformId": "5058",
+      "hsId": "6904069205",
+      "segment": ""
+    },
+    "Hyla Fund Management": {
+      "platformId": "22391",
+      "hsId": "39555798638",
+      "segment": ""
+    },
+    "Jefferies": {
+      "platformId": "912",
+      "hsId": "50788017450",
+      "segment": ""
+    },
+    "LAB Quantitative Strategies, LLC": {
+      "platformId": "20591",
+      "hsId": "23474412463",
+      "segment": ""
+    },
+    "Mitsui & Co": {
+      "platformId": "18386",
+      "hsId": "47342942099",
+      "segment": ""
+    },
+    "HS Group": {
+      "platformId": "1474",
+      "hsId": "36679768502",
       "segment": ""
     },
     "The Mannsion Group": {
@@ -18781,59 +18611,184 @@
       "hsId": "28965483777",
       "segment": ""
     },
+    "Aequim Alternative Investments": {
+      "platformId": "19265",
+      "hsId": "5801914380",
+      "segment": ""
+    },
+    "Kiln": {
+      "platformId": "39712",
+      "hsId": "10256184341",
+      "segment": ""
+    },
+    "PFR Ventures": {
+      "platformId": "20909",
+      "hsId": "22513275408",
+      "segment": ""
+    },
+    "HealthX Ventures": {
+      "platformId": "21946",
+      "hsId": "16208838520",
+      "segment": ""
+    },
+    "Mindoro Capital Partners": {
+      "platformId": "20500",
+      "hsId": "33649059387",
+      "segment": ""
+    },
+    "GIODELL": {
+      "platformId": "20791",
+      "hsId": "18323509084",
+      "segment": ""
+    },
+    "Feri Capital": {
+      "platformId": "21960",
+      "hsId": "23468419992",
+      "segment": ""
+    },
+    "GoalVest Advisory": {
+      "platformId": "20637",
+      "hsId": "23485732753",
+      "segment": ""
+    },
+    "One Rock Capital Partners": {
+      "platformId": "16245",
+      "hsId": "33707736696",
+      "segment": ""
+    },
+    "Stone Family Office": {
+      "platformId": "20624",
+      "hsId": "18467659578",
+      "segment": ""
+    },
+    "The Trump Group": {
+      "platformId": "21266",
+      "hsId": "23486966312",
+      "segment": ""
+    },
+    "Patricof Co": {
+      "platformId": "16856",
+      "hsId": "15718885971",
+      "segment": ""
+    },
+    "ACIM": {
+      "platformId": "20772",
+      "hsId": "23450043683",
+      "segment": ""
+    },
+    "NextEra": {
+      "platformId": "20700",
+      "hsId": "23481964651",
+      "segment": ""
+    },
     "The Hartford": {
       "platformId": "20496",
       "hsId": "5801790365",
       "segment": ""
     },
-    "Greenlight Masters": {
-      "platformId": "3487",
-      "hsId": "22512120680",
+    "Pearl Manor Capital": {
+      "platformId": "14334",
+      "hsId": "9452752245",
+      "segment": "Scale"
+    },
+    "Holden Family Offices": {
+      "platformId": "20668",
+      "hsId": "18658129456",
       "segment": ""
     },
-    "Ardsley Partners": {
-      "platformId": "3628",
-      "hsId": "9306035889",
+    "Verdi Capital": {
+      "platformId": "20551",
+      "hsId": "23459988048",
       "segment": ""
     },
-    "Francisco Partners": {
-      "platformId": "12460",
-      "hsId": "9266855453",
+    "iconnections": {
+      "platformId": "1",
+      "hsId": "4310506310",
       "segment": ""
     },
-    "Nasdaq eVestment": {
-      "platformId": "41024",
-      "hsId": "27119609604",
+    "CML Ltd": {
+      "platformId": "20786",
+      "hsId": "23481811806",
       "segment": ""
     },
-    "Serone Capital Management": {
-      "platformId": "1103",
-      "hsId": "4426955765",
-      "segment": "Enterprise"
+    "e360 Power": {
+      "platformId": "3935",
+      "hsId": "4316200221",
+      "segment": "Scale"
     },
-    "Barclays": {
-      "platformId": "2300",
-      "hsId": "4426972389",
+    "Ron Clark Academy": {
+      "platformId": "21378",
+      "hsId": "23470722462",
       "segment": ""
     },
-    "Ap3x Capital": {
-      "platformId": "42519",
-      "hsId": "34272752133",
-      "segment": "Enterprise"
-    },
-    "Quartus Capital Partners LLC": {
-      "platformId": "16662",
-      "hsId": "4426956619",
-      "segment": "Enterprise"
-    },
-    "Telesto": {
-      "platformId": "22368",
-      "hsId": "23486660529",
+    "Itau Private Bank": {
+      "platformId": "20494",
+      "hsId": "4366856853",
       "segment": ""
     },
-    "Clear Street": {
-      "platformId": "39579",
-      "hsId": "32636983176",
+    "Performance Equity Management": {
+      "platformId": "20692",
+      "hsId": "23482104629",
+      "segment": ""
+    },
+    "Pension Protection Fund": {
+      "platformId": "19790",
+      "hsId": "39747786012",
+      "segment": ""
+    },
+    "Baml": {
+      "platformId": "20507",
+      "hsId": "47061756683",
+      "segment": ""
+    },
+    "JFG Family Office": {
+      "platformId": "5554",
+      "hsId": "49489261145",
+      "segment": ""
+    },
+    "Hunting Hill Global Capital, LLC": {
+      "platformId": "14417",
+      "hsId": "4426956725",
+      "segment": "Scale"
+    },
+    "Birchwood Capital Management LLC": {
+      "platformId": "20756",
+      "hsId": "47073098670",
+      "segment": ""
+    },
+    "BCR Family Office": {
+      "platformId": "4723",
+      "hsId": "23468570970",
+      "segment": ""
+    },
+    "Anchor Capital Advisors": {
+      "platformId": "1955",
+      "hsId": "23483465103",
+      "segment": ""
+    },
+    "Riva Capital": {
+      "platformId": "20304",
+      "hsId": "39404658524",
+      "segment": ""
+    },
+    "CAIS Group": {
+      "platformId": "5404",
+      "hsId": "54373926532",
+      "segment": ""
+    },
+    "Wade & Company": {
+      "platformId": "20689",
+      "hsId": "23484852536",
+      "segment": ""
+    },
+    "Nickel Digital": {
+      "platformId": "14762",
+      "hsId": "23459983922",
+      "segment": ""
+    },
+    "Flexible Plan Investments": {
+      "platformId": "20538",
+      "hsId": "23480230048",
       "segment": ""
     },
     "GoldenTree Asset Management": {
@@ -18841,10 +18796,30 @@
       "hsId": "36407792723",
       "segment": "Enterprise"
     },
+    "Telesto": {
+      "platformId": "22368",
+      "hsId": "23486660529",
+      "segment": ""
+    },
+    "Sandglass Capital Advisors LLC": {
+      "platformId": "6332",
+      "hsId": "4316254334",
+      "segment": "Enterprise"
+    },
+    "Janus Henderson Investors": {
+      "platformId": "14355",
+      "hsId": "37321269018",
+      "segment": "Enterprise"
+    },
     "Gemini": {
       "platformId": "22394",
       "hsId": "39555798650",
       "segment": ""
+    },
+    "Energy Innovation Capital (\"EIC\")": {
+      "platformId": "43120",
+      "hsId": "41663676703",
+      "segment": "Scale"
     },
     "DF Capital Management": {
       "platformId": "40809",
@@ -18856,44 +18831,59 @@
       "hsId": "23454039148",
       "segment": ""
     },
-    "Allocator Training Institute": {
-      "platformId": "31313",
-      "hsId": "35642523964",
-      "segment": ""
-    },
-    "VI Asset Management": {
-      "platformId": "3456",
-      "hsId": "37010515793",
+    "Ultranative": {
+      "platformId": "22452",
+      "hsId": "33049315401",
       "segment": "Scale"
     },
-    "Harpoon": {
-      "platformId": "11220",
-      "hsId": "32173472277",
+    "RD Legal Funding, LLC": {
+      "platformId": "14896",
+      "hsId": "4426970052",
+      "segment": "Enterprise"
+    },
+    "Linklaters": {
+      "platformId": "1210",
+      "hsId": "38702401628",
       "segment": ""
     },
-    "Wallace Hart": {
-      "platformId": "18342",
-      "hsId": "15687268608",
-      "segment": "Scale"
+    "Spectrum Value Management": {
+      "platformId": "4861",
+      "hsId": "47346914859",
+      "segment": ""
     },
     "Polar Capital": {
       "platformId": "6150",
       "hsId": "5801782542",
       "segment": ""
     },
-    "Janus Henderson Investors": {
-      "platformId": "14355",
-      "hsId": "37321269018",
-      "segment": "Enterprise"
-    },
-    "Energy Innovation Capital (\"EIC\")": {
-      "platformId": "43120",
-      "hsId": "41663676703",
-      "segment": "Scale"
-    },
     "Gen II Fund Services": {
       "platformId": "2425",
       "hsId": "36370812514",
+      "segment": ""
+    },
+    "Pine River Capital Management": {
+      "platformId": "622",
+      "hsId": "4231342359",
+      "segment": "Enterprise"
+    },
+    "Laird Group LP": {
+      "platformId": "41639",
+      "hsId": "31604177261",
+      "segment": ""
+    },
+    "Allocator Training Institute": {
+      "platformId": "31313",
+      "hsId": "35642523964",
+      "segment": ""
+    },
+    "Nasdaq eVestment": {
+      "platformId": "41024",
+      "hsId": "27119609604",
+      "segment": ""
+    },
+    "Harpoon": {
+      "platformId": "11220",
+      "hsId": "32173472277",
       "segment": ""
     },
     "JGB Management": {
@@ -18906,59 +18896,14 @@
       "hsId": "6392989048",
       "segment": "Enterprise"
     },
-    "Edwall Management, LP": {
-      "platformId": "6538",
-      "hsId": "23484852394",
+    "Ardsley Partners": {
+      "platformId": "3628",
+      "hsId": "9306035889",
       "segment": ""
     },
-    "Ultranative": {
-      "platformId": "22452",
-      "hsId": "33049315401",
-      "segment": "Scale"
-    },
-    "Pine River Capital Management": {
-      "platformId": "622",
-      "hsId": "4231342359",
-      "segment": "Enterprise"
-    },
-    "NYDIG": {
-      "platformId": "4453",
-      "hsId": "39517706151",
-      "segment": ""
-    },
-    "Monarch Alternative Capital LP": {
-      "platformId": "41579",
-      "hsId": "38331736885",
-      "segment": ""
-    },
-    "Bitstamp": {
-      "platformId": "22339",
-      "hsId": "31194635149",
-      "segment": ""
-    },
-    "Glassnode": {
-      "platformId": "7898",
-      "hsId": "49166047358",
-      "segment": ""
-    },
-    "Blk Grvty": {
-      "platformId": "21031",
-      "hsId": "32119789672",
-      "segment": ""
-    },
-    "Pzena Investment Management": {
-      "platformId": "10552",
-      "hsId": "30364493697",
-      "segment": "Enterprise"
-    },
-    "Symbiotic Capital Management Co, LLC": {
-      "platformId": "19388",
-      "hsId": "17394918300",
-      "segment": "Enterprise"
-    },
-    "Lazard Asset Management": {
-      "platformId": "16331",
-      "hsId": "23445860635",
+    "Ansa": {
+      "platformId": "11175",
+      "hsId": "39777550921",
       "segment": ""
     },
     "Princeville Capital": {
@@ -18966,79 +18911,29 @@
       "hsId": "31378415879",
       "segment": ""
     },
-    "Rock Springs Capital": {
-      "platformId": "21802",
-      "hsId": "36615804688",
-      "segment": "Enterprise"
-    },
-    "Ansa": {
-      "platformId": "11175",
-      "hsId": "39777550921",
+    "Clear Street": {
+      "platformId": "39579",
+      "hsId": "32636983176",
       "segment": ""
     },
-    "Second Horizon Capital": {
-      "platformId": "40747",
-      "hsId": "26134951340",
+    "Glassnode": {
+      "platformId": "7898",
+      "hsId": "49166047358",
+      "segment": ""
+    },
+    "Wallace Hart": {
+      "platformId": "18342",
+      "hsId": "15687268608",
       "segment": "Scale"
-    },
-    "Sandglass Capital Advisors LLC": {
-      "platformId": "6332",
-      "hsId": "4316254334",
-      "segment": "Enterprise"
-    },
-    "Laird Group LP": {
-      "platformId": "41639",
-      "hsId": "31604177261",
-      "segment": ""
     },
     "Algoquant.io": {
       "platformId": "22431",
       "hsId": "49186902046",
       "segment": ""
     },
-    "RD Legal Funding, LLC": {
-      "platformId": "14896",
-      "hsId": "4426970052",
-      "segment": "Enterprise"
-    },
-    "Chicago Park Pension": {
-      "platformId": "22641",
-      "hsId": "23471430840",
-      "segment": ""
-    },
-    "Spectrum Value Management": {
-      "platformId": "4861",
-      "hsId": "47346914859",
-      "segment": ""
-    },
-    "Sentosa Capital": {
-      "platformId": "22403",
-      "hsId": "9306157938",
-      "segment": "Scale"
-    },
-    "Linklaters": {
-      "platformId": "1210",
-      "hsId": "38702401628",
-      "segment": ""
-    },
-    "Sabal Investment Holdings, LLC": {
-      "platformId": "625",
-      "hsId": "4231324859",
-      "segment": "Enterprise"
-    },
     "Oliver Wyman": {
       "platformId": "17680",
       "hsId": "33558528560",
-      "segment": ""
-    },
-    "Pemberton Asset Management": {
-      "platformId": "14727",
-      "hsId": "37229414266",
-      "segment": "Enterprise"
-    },
-    "Scotiabank": {
-      "platformId": "41727",
-      "hsId": "30761170968",
       "segment": ""
     },
     "Fidelity Investments": {
@@ -19046,94 +18941,124 @@
       "hsId": "40694126386",
       "segment": ""
     },
-    "Ares Management": {
-      "platformId": "3537",
-      "hsId": "40121941858",
+    "Sabal Investment Holdings, LLC": {
+      "platformId": "625",
+      "hsId": "4231324859",
+      "segment": "Enterprise"
+    },
+    "Pemberton Asset Management": {
+      "platformId": "14727",
+      "hsId": "37229414266",
+      "segment": "Enterprise"
+    },
+    "Rock Springs Capital": {
+      "platformId": "21802",
+      "hsId": "36615804688",
+      "segment": "Enterprise"
+    },
+    "Edwall Management, LP": {
+      "platformId": "6538",
+      "hsId": "23484852394",
       "segment": ""
     },
-    "Pearlstone Alternative": {
-      "platformId": "4191",
-      "hsId": "6749865572",
+    "Quartus Capital Partners LLC": {
+      "platformId": "16662",
+      "hsId": "4426956619",
+      "segment": "Enterprise"
+    },
+    "Monarch Alternative Capital LP": {
+      "platformId": "41579",
+      "hsId": "38331736885",
       "segment": ""
     },
-    "Cole-Frieman & Mallon LLP": {
-      "platformId": "19135",
-      "hsId": "38364877442",
+    "NYDIG": {
+      "platformId": "4453",
+      "hsId": "39517706151",
       "segment": ""
     },
-    "Asian Development Bank": {
-      "platformId": "18504",
-      "hsId": "47100128435",
+    "VI Asset Management": {
+      "platformId": "3456",
+      "hsId": "37010515793",
+      "segment": "Scale"
+    },
+    "Lazard Asset Management": {
+      "platformId": "16331",
+      "hsId": "23445860635",
       "segment": ""
     },
-    "Ocorian": {
-      "platformId": "40522",
-      "hsId": "29802769281",
+    "Ap3x Capital": {
+      "platformId": "42519",
+      "hsId": "34272752133",
+      "segment": "Enterprise"
+    },
+    "Symbiotic Capital Management Co, LLC": {
+      "platformId": "19388",
+      "hsId": "17394918300",
+      "segment": "Enterprise"
+    },
+    "Pzena Investment Management": {
+      "platformId": "10552",
+      "hsId": "30364493697",
+      "segment": "Enterprise"
+    },
+    "Barclays": {
+      "platformId": "2300",
+      "hsId": "4426972389",
       "segment": ""
     },
-    "Twinstake": {
-      "platformId": "39717",
-      "hsId": "39480360239",
+    "Bitstamp": {
+      "platformId": "22339",
+      "hsId": "31194635149",
       "segment": ""
+    },
+    "Scotiabank": {
+      "platformId": "41727",
+      "hsId": "30761170968",
+      "segment": ""
+    },
+    "Blk Grvty": {
+      "platformId": "21031",
+      "hsId": "32119789672",
+      "segment": ""
+    },
+    "Chicago Park Pension": {
+      "platformId": "22641",
+      "hsId": "23471430840",
+      "segment": ""
+    },
+    "Second Horizon Capital": {
+      "platformId": "40747",
+      "hsId": "26134951340",
+      "segment": "Scale"
+    },
+    "Francisco Partners": {
+      "platformId": "12460",
+      "hsId": "9266855453",
+      "segment": ""
+    },
+    "Sentosa Capital": {
+      "platformId": "22403",
+      "hsId": "9306157938",
+      "segment": "Scale"
+    },
+    "Serone Capital Management": {
+      "platformId": "1103",
+      "hsId": "4426955765",
+      "segment": "Enterprise"
     },
     "Astignes Capital": {
       "platformId": "11554",
       "hsId": "5801782858",
       "segment": ""
     },
-    "Cohen & Company Asset Management": {
-      "platformId": "9031",
-      "hsId": "23437041930",
-      "segment": ""
-    },
-    "Prolific Capital Markets": {
-      "platformId": "39611",
-      "hsId": "4426950872",
+    "Alpha West Capital": {
+      "platformId": "20715",
+      "hsId": "18329048910",
       "segment": "Scale"
     },
-    "3Spoke Capital": {
-      "platformId": "14228",
-      "hsId": "9431882022",
-      "segment": "Scale"
-    },
-    "LANSDOWNE PARTNERS": {
-      "platformId": "2832",
-      "hsId": "53157666216",
-      "segment": ""
-    },
-    "EnTrust Global": {
-      "platformId": "17220",
-      "hsId": "23470724182",
-      "segment": ""
-    },
-    "Uniswap Labs": {
-      "platformId": "7750",
-      "hsId": "36407779345",
-      "segment": ""
-    },
-    "Fasanara Capital": {
-      "platformId": "19669",
-      "hsId": "4922321781",
-      "segment": "Enterprise"
-    },
-    "Nipun Capital, L.P.": {
-      "platformId": "18",
-      "hsId": "4426970020",
-      "segment": ""
-    },
-    "Norrsken22": {
-      "platformId": "5995",
-      "hsId": "6942280233",
-      "segment": ""
-    },
-    "o15 Capital Partners": {
-      "platformId": "9233",
-      "hsId": "9059916306",
-      "segment": ""
-    },
-    "Atlas Card": {
-      "platformId": "42793",
-      "hsId": "36650830250",
+    "Maxim Group": {
+      "platformId": "21488",
+      "hsId": "42137238672",
       "segment": ""
     },
     "Ventura Capital": {
@@ -19141,50 +19066,65 @@
       "hsId": "37010503529",
       "segment": ""
     },
-    "Partners Group": {
-      "platformId": "9655",
-      "hsId": "46903783773",
+    "EnTrust Global": {
+      "platformId": "17220",
+      "hsId": "23470724182",
       "segment": ""
     },
-    "Kroll": {
-      "platformId": "7416",
-      "hsId": "7794100601",
+    "Cohen & Company Asset Management": {
+      "platformId": "9031",
+      "hsId": "23437041930",
       "segment": ""
     },
-    "Beyond Capital Ventures": {
-      "platformId": "1964",
-      "hsId": "4646161896",
+    "Greenstone Equity Partners": {
+      "platformId": "14903",
+      "hsId": "29769513759",
+      "segment": ""
+    },
+    "Prolific Capital Markets": {
+      "platformId": "39611",
+      "hsId": "4426950872",
+      "segment": "Scale"
+    },
+    "Fasanara Capital": {
+      "platformId": "19669",
+      "hsId": "4922321781",
       "segment": "Enterprise"
     },
-    "Elliott Management Corporation": {
-      "platformId": "19216",
-      "hsId": "39162810158",
+    "LANSDOWNE PARTNERS": {
+      "platformId": "2832",
+      "hsId": "53157666216",
       "segment": ""
-    },
-    "General Atlantic": {
-      "platformId": "42152",
-      "hsId": "33218464639",
-      "segment": ""
-    },
-    "CIBC ": {
-      "platformId": "12130",
-      "hsId": "4426278773",
-      "segment": ""
-    },
-    "Pythagoras Investment Management": {
-      "platformId": "4577",
-      "hsId": "8576477051",
-      "segment": "Scale"
     },
     "Gemcorp Capital Management Limited": {
       "platformId": "1960",
       "hsId": "30484851462",
       "segment": ""
     },
-    "Advanced Portfolio Management": {
-      "platformId": "23174",
-      "hsId": "4314728956",
+    "Ocorian": {
+      "platformId": "40522",
+      "hsId": "29802769281",
+      "segment": ""
+    },
+    "Shrewsbury River Capital": {
+      "platformId": "42176",
+      "hsId": "32698866313",
       "segment": "Enterprise"
+    },
+    "Uniswap Labs": {
+      "platformId": "7750",
+      "hsId": "36407779345",
+      "segment": ""
+    },
+    "Ares Management": {
+      "platformId": "3537",
+      "hsId": "40121941858",
+      "segment": ""
+    },
+    "Norrsken22": {
+      "platformId": "5995",
+      "hsId": "6942280233",
+      "segment": ""
     },
     "Object Edge": {
       "platformId": "18086",
@@ -19196,54 +19136,44 @@
       "hsId": "39090549037",
       "segment": ""
     },
+    "Elliott Management Corporation": {
+      "platformId": "19216",
+      "hsId": "39162810158",
+      "segment": ""
+    },
+    "Asian Development Bank": {
+      "platformId": "18504",
+      "hsId": "47100128435",
+      "segment": ""
+    },
+    "Cole-Frieman & Mallon LLP": {
+      "platformId": "19135",
+      "hsId": "38364877442",
+      "segment": ""
+    },
+    "Partners Group": {
+      "platformId": "9655",
+      "hsId": "46903783773",
+      "segment": ""
+    },
+    "Pythagoras Investment Management": {
+      "platformId": "4577",
+      "hsId": "8576477051",
+      "segment": "Scale"
+    },
+    "Atlas Card": {
+      "platformId": "42793",
+      "hsId": "36650830250",
+      "segment": ""
+    },
+    "o15 Capital Partners": {
+      "platformId": "9233",
+      "hsId": "9059916306",
+      "segment": ""
+    },
     "Houlihan Lokey": {
       "platformId": "18753",
       "hsId": "37965258095",
-      "segment": ""
-    },
-    "Grand Alliance Asset Management Limited": {
-      "platformId": "1996",
-      "hsId": "41915222294",
-      "segment": ""
-    },
-    "Maxim Group": {
-      "platformId": "21488",
-      "hsId": "42137238672",
-      "segment": ""
-    },
-    "Machina Capital": {
-      "platformId": "12387",
-      "hsId": "35042141309",
-      "segment": ""
-    },
-    "Shrewsbury River Capital": {
-      "platformId": "42176",
-      "hsId": "32698866313",
-      "segment": "Enterprise"
-    },
-    "Paradigm": {
-      "platformId": "40235",
-      "hsId": "23894347889",
-      "segment": ""
-    },
-    "Alpha West Capital": {
-      "platformId": "20715",
-      "hsId": "18329048910",
-      "segment": "Scale"
-    },
-    "Gaingels": {
-      "platformId": "10705",
-      "hsId": "23486966180",
-      "segment": ""
-    },
-    "Greenstone Equity Partners": {
-      "platformId": "14903",
-      "hsId": "29769513759",
-      "segment": ""
-    },
-    "Lombard Odier": {
-      "platformId": "6497",
-      "hsId": "4366743574",
       "segment": ""
     },
     "Broadridge": {
@@ -19251,24 +19181,94 @@
       "hsId": "23466607278",
       "segment": ""
     },
-    "Shadmoor Advisors": {
-      "platformId": "6283",
-      "hsId": "23477219413",
+    "CIBC ": {
+      "platformId": "12130",
+      "hsId": "4426278773",
       "segment": ""
     },
-    "Coromandel Capital": {
-      "platformId": "14673",
-      "hsId": "42791127565",
+    "Machina Capital": {
+      "platformId": "12387",
+      "hsId": "35042141309",
+      "segment": ""
+    },
+    "Nipun Capital, L.P.": {
+      "platformId": "18",
+      "hsId": "4426970020",
+      "segment": ""
+    },
+    "Beyond Capital Ventures": {
+      "platformId": "1964",
+      "hsId": "4646161896",
       "segment": "Enterprise"
+    },
+    "3Spoke Capital": {
+      "platformId": "14228",
+      "hsId": "9431882022",
+      "segment": "Scale"
+    },
+    "General Atlantic": {
+      "platformId": "42152",
+      "hsId": "33218464639",
+      "segment": ""
+    },
+    "Lombard Odier": {
+      "platformId": "6497",
+      "hsId": "4366743574",
+      "segment": ""
+    },
+    "Advanced Portfolio Management": {
+      "platformId": "23174",
+      "hsId": "4314728956",
+      "segment": "Enterprise"
+    },
+    "Paradigm": {
+      "platformId": "40235",
+      "hsId": "23894347889",
+      "segment": ""
+    },
+    "Twinstake": {
+      "platformId": "39717",
+      "hsId": "39480360239",
+      "segment": ""
+    },
+    "Gaingels": {
+      "platformId": "10705",
+      "hsId": "23486966180",
+      "segment": ""
+    },
+    "Kroll": {
+      "platformId": "7416",
+      "hsId": "7794100601",
+      "segment": ""
+    },
+    "Pearlstone Alternative": {
+      "platformId": "4191",
+      "hsId": "6749865572",
+      "segment": ""
+    },
+    "Grand Alliance Asset Management Limited": {
+      "platformId": "1996",
+      "hsId": "41915222294",
+      "segment": ""
+    },
+    "Private Liquidity Partners": {
+      "platformId": "42957",
+      "hsId": "37673114923",
+      "segment": ""
     },
     "Further Capital": {
       "platformId": "12201",
       "hsId": "39555798640",
       "segment": ""
     },
-    "FactSet": {
-      "platformId": "17158",
-      "hsId": "39404663410",
+    "Freshfields": {
+      "platformId": "40692",
+      "hsId": "41647830628",
+      "segment": ""
+    },
+    "Shadmoor Advisors": {
+      "platformId": "6283",
+      "hsId": "23477219413",
       "segment": ""
     },
     "Future Value Capital LLP": {
@@ -19276,9 +19276,24 @@
       "hsId": "9991851949",
       "segment": "Scale"
     },
-    "Stonehaven": {
-      "platformId": "4478",
-      "hsId": "5801893795",
+    "WithumSmith+Brown": {
+      "platformId": "2463",
+      "hsId": "34993777810",
+      "segment": ""
+    },
+    "Lhava": {
+      "platformId": "43731",
+      "hsId": "42145627668",
+      "segment": ""
+    },
+    "Coromandel Capital": {
+      "platformId": "14673",
+      "hsId": "42791127565",
+      "segment": "Enterprise"
+    },
+    "FactSet": {
+      "platformId": "17158",
+      "hsId": "39404663410",
       "segment": ""
     },
     "Romspen": {
@@ -19286,25 +19301,15 @@
       "hsId": "4426919815",
       "segment": "Enterprise"
     },
-    "Campbell Lutyens & Co. Inc.": {
-      "platformId": "41324",
-      "hsId": "37392949893",
-      "segment": ""
-    },
-    "Sigmoid Capital": {
-      "platformId": "11870",
-      "hsId": "6709850481",
-      "segment": ""
+    "Schonfeld Strategic Advisors LLC": {
+      "platformId": "5576",
+      "hsId": "5801790491",
+      "segment": "Enterprise"
     },
     "Susten": {
       "platformId": "9079",
       "hsId": "39370799184",
       "segment": ""
-    },
-    "Schonfeld Strategic Advisors LLC": {
-      "platformId": "5576",
-      "hsId": "5801790491",
-      "segment": "Enterprise"
     },
     "Pantera Capital": {
       "platformId": "5032",
@@ -19316,24 +19321,14 @@
       "hsId": "45264112728",
       "segment": "Scale"
     },
-    "Kraken": {
-      "platformId": "20559",
-      "hsId": "40865311090",
+    "MIAX": {
+      "platformId": "4441",
+      "hsId": "35872409146",
       "segment": ""
     },
-    "Panagram": {
-      "platformId": "9611",
-      "hsId": "9011814694",
-      "segment": "Enterprise"
-    },
-    "The New Amsterdam Group": {
-      "platformId": "40687",
-      "hsId": "39659509292",
-      "segment": ""
-    },
-    "Quent Capital": {
-      "platformId": "43141",
-      "hsId": "41799029156",
+    "Campbell Lutyens & Co. Inc.": {
+      "platformId": "41324",
+      "hsId": "37392949893",
       "segment": ""
     },
     "Sound Ventures": {
@@ -19341,14 +19336,9 @@
       "hsId": "39900920429",
       "segment": "Enterprise"
     },
-    "Bank of America Merrill Lynch": {
-      "platformId": "2101",
-      "hsId": "47585515848",
-      "segment": ""
-    },
-    "Paul Hastings LLP": {
-      "platformId": "11523",
-      "hsId": "39253379328",
+    "Quent Capital": {
+      "platformId": "43141",
+      "hsId": "41799029156",
       "segment": ""
     },
     "T. Rowe Price": {
@@ -19356,14 +19346,14 @@
       "hsId": "23468725517",
       "segment": ""
     },
-    "Arootah, LLC": {
-      "platformId": "14490",
-      "hsId": "54223030664",
+    "Kraken": {
+      "platformId": "20559",
+      "hsId": "40865311090",
       "segment": ""
     },
-    "MIAX": {
-      "platformId": "4441",
-      "hsId": "35872409146",
+    "AllianceBernstein": {
+      "platformId": "1123",
+      "hsId": "47575514449",
       "segment": ""
     },
     "T. Rowe Price Associates, Inc.": {
@@ -19371,15 +19361,25 @@
       "hsId": "41550197509",
       "segment": ""
     },
+    "Arootah, LLC": {
+      "platformId": "14490",
+      "hsId": "54223030664",
+      "segment": ""
+    },
+    "Bicycle Capital": {
+      "platformId": "22412",
+      "hsId": "39555798610",
+      "segment": ""
+    },
     "Kbit": {
       "platformId": "20362",
       "hsId": "18396083858",
       "segment": "Scale"
     },
-    "EDELWEISS": {
-      "platformId": "1408",
-      "hsId": "46664580169",
-      "segment": ""
+    "Panagram": {
+      "platformId": "9611",
+      "hsId": "9011814694",
+      "segment": "Enterprise"
     },
     "Activant Capital Group": {
       "platformId": "39400",
@@ -19391,9 +19391,9 @@
       "hsId": "54759706475",
       "segment": "Enterprise"
     },
-    "Private Liquidity Partners": {
-      "platformId": "42957",
-      "hsId": "37673114923",
+    "Amicorp Wealth Services": {
+      "platformId": "37277",
+      "hsId": "39614826051",
       "segment": ""
     },
     "Texas Capital Direct Lending Fund": {
@@ -19401,34 +19401,14 @@
       "hsId": "30424132735",
       "segment": ""
     },
-    "Freshfields": {
-      "platformId": "40692",
-      "hsId": "41647830628",
+    "Sigmoid Capital": {
+      "platformId": "11870",
+      "hsId": "6709850481",
       "segment": ""
     },
-    "Lhava": {
-      "platformId": "43731",
-      "hsId": "42145627668",
-      "segment": ""
-    },
-    "AllianceBernstein": {
-      "platformId": "1123",
-      "hsId": "47575514449",
-      "segment": ""
-    },
-    "WithumSmith+Brown": {
-      "platformId": "2463",
-      "hsId": "34993777810",
-      "segment": ""
-    },
-    "State Street Corp": {
-      "platformId": "12688",
-      "hsId": "23518988577",
-      "segment": ""
-    },
-    "Amicorp Wealth Services": {
-      "platformId": "37277",
-      "hsId": "39614826051",
+    "Paul Hastings LLP": {
+      "platformId": "11523",
+      "hsId": "39253379328",
       "segment": ""
     },
     "TresVista": {
@@ -19436,99 +19416,29 @@
       "hsId": "40240624953",
       "segment": ""
     },
-    "Bicycle Capital": {
-      "platformId": "22412",
-      "hsId": "39555798610",
+    "Stonehaven": {
+      "platformId": "4478",
+      "hsId": "5801893795",
       "segment": ""
     },
-    "Arkview Capital": {
-      "platformId": "8916",
-      "hsId": "47024932458",
+    "EDELWEISS": {
+      "platformId": "1408",
+      "hsId": "46664580169",
       "segment": ""
     },
-    "Kilgour Williams Capital": {
-      "platformId": "11951",
-      "hsId": "9753527558",
-      "segment": "Scale"
-    },
-    "Polytrade Finance": {
-      "platformId": "15004",
-      "hsId": "41568784220",
+    "The New Amsterdam Group": {
+      "platformId": "40687",
+      "hsId": "39659509292",
       "segment": ""
     },
-    "WICapital": {
-      "platformId": "43338",
-      "hsId": "16209820458",
-      "segment": "Scale"
-    },
-    "Marlowe Partners LP": {
-      "platformId": "2694",
-      "hsId": "4316254599",
-      "segment": "Scale"
-    },
-    "Vixit Ventures SA": {
-      "platformId": "44014",
-      "hsId": "46665494273",
-      "segment": "Scale"
-    },
-    "EisnerAmper": {
-      "platformId": "2858",
-      "hsId": "39256497502",
+    "State Street Corp": {
+      "platformId": "12688",
+      "hsId": "23518988577",
       "segment": ""
     },
-    "FalconX": {
-      "platformId": "5164",
-      "hsId": "46684729661",
-      "segment": ""
-    },
-    "Simpson Thacher & Bartlett": {
-      "platformId": "43725",
-      "hsId": "49121591112",
-      "segment": ""
-    },
-    "Lowenstein Sandler LLP": {
-      "platformId": "8870",
-      "hsId": "53213602879",
-      "segment": ""
-    },
-    "Finbourne": {
-      "platformId": "19104",
-      "hsId": "41135134604",
-      "segment": ""
-    },
-    "Quantitative Brokers": {
-      "platformId": "40447",
-      "hsId": "39089928243",
-      "segment": ""
-    },
-    "SCS Financial": {
-      "platformId": "89",
-      "hsId": "55509201982",
-      "segment": ""
-    },
-    "TriNet": {
-      "platformId": "2479",
-      "hsId": "53119759400",
-      "segment": ""
-    },
-    "Newmarket Capital": {
-      "platformId": "3255",
-      "hsId": "4372681340",
-      "segment": ""
-    },
-    "Hedgefacts": {
-      "platformId": "6349",
-      "hsId": "6569356123",
-      "segment": ""
-    },
-    "Chicago Atlantic Advisers, LLC": {
-      "platformId": "3972",
-      "hsId": "4426972356",
-      "segment": "Enterprise"
-    },
-    "Leon Capital": {
-      "platformId": "39795",
-      "hsId": "34534837312",
+    "Bank of America Merrill Lynch": {
+      "platformId": "2101",
+      "hsId": "47585515848",
       "segment": ""
     },
     "Monroe Capital": {
@@ -19536,59 +19446,9 @@
       "hsId": "36765181238",
       "segment": "Enterprise"
     },
-    "Untitled Investments": {
-      "platformId": "10140",
-      "hsId": "23477743146",
-      "segment": ""
-    },
-    "ACA Group": {
-      "platformId": "3122",
-      "hsId": "43833636221",
-      "segment": ""
-    },
-    "K&L GATES LLP": {
-      "platformId": "1037",
-      "hsId": "43697809520",
-      "segment": ""
-    },
-    "Latham & Watkins": {
-      "platformId": "43190",
-      "hsId": "55461756302",
-      "segment": ""
-    },
-    "Covenant": {
-      "platformId": "11113",
-      "hsId": "44533967890",
-      "segment": ""
-    },
-    "Lazard": {
-      "platformId": "40478",
-      "hsId": "25516527541",
-      "segment": ""
-    },
-    "Dechert LLP": {
-      "platformId": "1050",
-      "hsId": "39215958936",
-      "segment": ""
-    },
-    "Altium Capital": {
-      "platformId": "40685",
-      "hsId": "39740241437",
-      "segment": "Scale"
-    },
-    "Deutsche Bank": {
-      "platformId": "12315",
-      "hsId": "23486812760",
-      "segment": ""
-    },
-    "Verdis Investment Management": {
-      "platformId": "1589",
-      "hsId": "47323477590",
-      "segment": ""
-    },
-    "ISF": {
-      "platformId": "10431",
-      "hsId": "9452046905",
+    "FalconX": {
+      "platformId": "5164",
+      "hsId": "46684729661",
       "segment": ""
     },
     "Morgan Stanley": {
@@ -19596,24 +19456,69 @@
       "hsId": "31416247330",
       "segment": ""
     },
+    "Kilgour Williams Capital": {
+      "platformId": "11951",
+      "hsId": "9753527558",
+      "segment": "Scale"
+    },
     "Lexington Capital Management LP": {
       "platformId": "6878",
       "hsId": "4426909636",
       "segment": "Scale"
     },
-    "Concise Capital Management, LP": {
-      "platformId": "7370",
-      "hsId": "36417246559",
+    "Vixit Ventures SA": {
+      "platformId": "44014",
+      "hsId": "46665494273",
+      "segment": "Scale"
+    },
+    "TriNet": {
+      "platformId": "2479",
+      "hsId": "53119759400",
       "segment": ""
     },
-    "FundFire": {
-      "platformId": "2917",
-      "hsId": "48898750569",
+    "Dechert LLP": {
+      "platformId": "1050",
+      "hsId": "39215958936",
       "segment": ""
     },
-    "BestEx Research": {
-      "platformId": "41241",
-      "hsId": "43296427854",
+    "Hedgefacts": {
+      "platformId": "6349",
+      "hsId": "6569356123",
+      "segment": ""
+    },
+    "EisnerAmper": {
+      "platformId": "2858",
+      "hsId": "39256497502",
+      "segment": ""
+    },
+    "Chicago Atlantic Advisers, LLC": {
+      "platformId": "3972",
+      "hsId": "4426972356",
+      "segment": "Enterprise"
+    },
+    "Quantitative Brokers": {
+      "platformId": "40447",
+      "hsId": "39089928243",
+      "segment": ""
+    },
+    "Covenant": {
+      "platformId": "11113",
+      "hsId": "44533967890",
+      "segment": ""
+    },
+    "Newmarket Capital": {
+      "platformId": "3255",
+      "hsId": "4372681340",
+      "segment": ""
+    },
+    "Latham & Watkins": {
+      "platformId": "43190",
+      "hsId": "55461756302",
+      "segment": ""
+    },
+    "Finbourne": {
+      "platformId": "19104",
+      "hsId": "41135134604",
       "segment": ""
     },
     "Hogan Lovells": {
@@ -19621,19 +19526,139 @@
       "hsId": "25310501815",
       "segment": ""
     },
+    "FundFire": {
+      "platformId": "2917",
+      "hsId": "48898750569",
+      "segment": ""
+    },
+    "Deutsche Bank": {
+      "platformId": "12315",
+      "hsId": "23486812760",
+      "segment": ""
+    },
+    "Altium Capital": {
+      "platformId": "40685",
+      "hsId": "39740241437",
+      "segment": "Scale"
+    },
+    "Lazard": {
+      "platformId": "40478",
+      "hsId": "25516527541",
+      "segment": ""
+    },
+    "Leon Capital": {
+      "platformId": "39795",
+      "hsId": "34534837312",
+      "segment": ""
+    },
+    "Lowenstein Sandler LLP": {
+      "platformId": "8870",
+      "hsId": "53213602879",
+      "segment": ""
+    },
+    "WICapital": {
+      "platformId": "43338",
+      "hsId": "16209820458",
+      "segment": "Scale"
+    },
+    "Concise Capital Management, LP": {
+      "platformId": "7370",
+      "hsId": "36417246559",
+      "segment": ""
+    },
+    "Verdis Investment Management": {
+      "platformId": "1589",
+      "hsId": "47323477590",
+      "segment": ""
+    },
+    "Simpson Thacher & Bartlett": {
+      "platformId": "43725",
+      "hsId": "49121591112",
+      "segment": ""
+    },
+    "SCS Financial": {
+      "platformId": "89",
+      "hsId": "55509201982",
+      "segment": ""
+    },
+    "Untitled Investments": {
+      "platformId": "10140",
+      "hsId": "23477743146",
+      "segment": ""
+    },
+    "K&L GATES LLP": {
+      "platformId": "1037",
+      "hsId": "43697809520",
+      "segment": ""
+    },
+    "Arkview Capital": {
+      "platformId": "8916",
+      "hsId": "47024932458",
+      "segment": ""
+    },
     "Lighthouse Partners": {
       "platformId": "40167",
       "hsId": "46904266799",
       "segment": "Enterprise"
     },
+    "ISF": {
+      "platformId": "10431",
+      "hsId": "9452046905",
+      "segment": ""
+    },
+    "BestEx Research": {
+      "platformId": "41241",
+      "hsId": "43296427854",
+      "segment": ""
+    },
+    "Polytrade Finance": {
+      "platformId": "15004",
+      "hsId": "41568784220",
+      "segment": ""
+    },
+    "ACA Group": {
+      "platformId": "3122",
+      "hsId": "43833636221",
+      "segment": ""
+    },
+    "Marlowe Partners LP": {
+      "platformId": "2694",
+      "hsId": "4316254599",
+      "segment": "Scale"
+    },
+    "Overbay Capital Partners": {
+      "platformId": "35035",
+      "hsId": "19715936364",
+      "segment": ""
+    },
+    "Capital + Safi S.A.": {
+      "platformId": "44024",
+      "hsId": "46766332765",
+      "segment": ""
+    },
+    "Harneys Fiduciary": {
+      "platformId": "43652",
+      "hsId": "44534472869",
+      "segment": ""
+    },
+    "Advaita Capital": {
+      "platformId": "11126",
+      "hsId": "23481811736",
+      "segment": ""
+    },
+    "Copper": {
+      "platformId": "9206",
+      "hsId": "23479613468",
+      "segment": ""
+    },
+    "Repool": {
+      "platformId": "17168",
+      "hsId": "39256059918",
+      "segment": ""
+    },
     "Carne": {
       "platformId": "20656",
       "hsId": "38389417504",
-      "segment": ""
-    },
-    "Triton": {
-      "platformId": "21675",
-      "hsId": "39616932633",
       "segment": ""
     },
     "Tribeca Investment Partners": {
@@ -19641,14 +19666,29 @@
       "hsId": "35525472675",
       "segment": "Enterprise"
     },
+    "HarbourView Equity Partners": {
+      "platformId": "11525",
+      "hsId": "36964783981",
+      "segment": ""
+    },
+    "ShoreBridge Capital": {
+      "platformId": "6529",
+      "hsId": "6916727903",
+      "segment": "Scale"
+    },
+    "Sfumato Holdings": {
+      "platformId": "41122",
+      "hsId": "27377493307",
+      "segment": "Scale"
+    },
+    "BNP Paribas Asset Management Alts": {
+      "platformId": "20310",
+      "hsId": "53465913868",
+      "segment": "Enterprise"
+    },
     "Augusta Capital Partners": {
       "platformId": "40724",
       "hsId": "26134951449",
-      "segment": ""
-    },
-    "Anchin Block & Anchin": {
-      "platformId": "6832",
-      "hsId": "35016893963",
       "segment": ""
     },
     "Healthier Capital": {
@@ -19661,9 +19701,9 @@
       "hsId": "37010488832",
       "segment": "Scale"
     },
-    "Catalur Capital Managment,LP": {
-      "platformId": "389",
-      "hsId": "4230815954",
+    "KPMG (USA)": {
+      "platformId": "1349",
+      "hsId": "35016001193",
       "segment": ""
     },
     "Torchlight Investors": {
@@ -19676,14 +19716,9 @@
       "hsId": "17379685017",
       "segment": ""
     },
-    "Capital + Safi S.A.": {
-      "platformId": "44024",
-      "hsId": "46766332765",
-      "segment": ""
-    },
-    "Repool": {
-      "platformId": "17168",
-      "hsId": "39256059918",
+    "Anchin Block & Anchin": {
+      "platformId": "6832",
+      "hsId": "35016893963",
       "segment": ""
     },
     "Mondrian Investment Partners": {
@@ -19691,39 +19726,14 @@
       "hsId": "8001219364",
       "segment": "Enterprise"
     },
-    "Sfumato Holdings": {
-      "platformId": "41122",
-      "hsId": "27377493307",
-      "segment": "Scale"
-    },
-    "Old City Investment Partners": {
-      "platformId": "5684",
-      "hsId": "54349576478",
+    "Catalur Capital Managment,LP": {
+      "platformId": "389",
+      "hsId": "4230815954",
       "segment": ""
-    },
-    "Copper": {
-      "platformId": "9206",
-      "hsId": "23479613468",
-      "segment": ""
-    },
-    "KPMG (USA)": {
-      "platformId": "1349",
-      "hsId": "35016001193",
-      "segment": ""
-    },
-    "ShoreBridge Capital": {
-      "platformId": "6529",
-      "hsId": "6916727903",
-      "segment": "Scale"
     },
     "Tower Research Capital Europe": {
       "platformId": "21963",
       "hsId": "7448931665",
-      "segment": ""
-    },
-    "Harneys Fiduciary": {
-      "platformId": "43652",
-      "hsId": "44534472869",
       "segment": ""
     },
     "Alger": {
@@ -19731,9 +19741,14 @@
       "hsId": "4426927971",
       "segment": "Enterprise"
     },
-    "Overbay Capital Partners": {
-      "platformId": "35035",
-      "hsId": "19715936364",
+    "Old City Investment Partners": {
+      "platformId": "5684",
+      "hsId": "54349576478",
+      "segment": ""
+    },
+    "Triton": {
+      "platformId": "21675",
+      "hsId": "39616932633",
       "segment": ""
     },
     "Meanwhile": {
@@ -19741,89 +19756,14 @@
       "hsId": "18539092799",
       "segment": ""
     },
-    "BNP Paribas Asset Management Alts": {
-      "platformId": "20310",
-      "hsId": "53465913868",
-      "segment": "Enterprise"
-    },
-    "HarbourView Equity Partners": {
-      "platformId": "11525",
-      "hsId": "36964783981",
-      "segment": ""
-    },
-    "Advaita Capital": {
-      "platformId": "11126",
-      "hsId": "23481811736",
-      "segment": ""
-    },
-    "WHG Asset Management": {
-      "platformId": "22923",
-      "hsId": "18395499662",
-      "segment": ""
-    },
-    "Star51 Capital": {
-      "platformId": "40951",
-      "hsId": "56048400002",
-      "segment": ""
-    },
-    "Bruin Capital": {
-      "platformId": "41095",
-      "hsId": "27549874024",
-      "segment": "Scale"
-    },
-    "Langham Hall": {
-      "platformId": "41790",
-      "hsId": "37182941776",
-      "segment": ""
-    },
-    "Stifel Venture Bank": {
-      "platformId": "40646",
-      "hsId": "50163334303",
-      "segment": ""
-    },
-    "CME Group": {
-      "platformId": "1157",
-      "hsId": "38737702149",
-      "segment": ""
-    },
-    "SRF Capital & Impact": {
-      "platformId": "42769",
-      "hsId": "39825480073",
-      "segment": ""
-    },
-    "PenderFund Capital Management": {
-      "platformId": "43042",
-      "hsId": "38346694763",
-      "segment": ""
-    },
     "Arena Investors, LP": {
       "platformId": "290",
       "hsId": "23445860724",
       "segment": ""
     },
-    "PAG": {
-      "platformId": "11813",
-      "hsId": "41135059204",
-      "segment": ""
-    },
-    "Plum Alley": {
-      "platformId": "2009",
-      "hsId": "4330687875",
-      "segment": ""
-    },
-    "Trading Technologies": {
-      "platformId": "6903",
-      "hsId": "31399610946",
-      "segment": ""
-    },
-    "SALI Fund Services": {
-      "platformId": "2553",
-      "hsId": "5066635643",
-      "segment": ""
-    },
-    "American Century Investments": {
-      "platformId": "1926",
-      "hsId": "31398991238",
+    "Permira": {
+      "platformId": "12374",
+      "hsId": "9266371224",
       "segment": ""
     },
     "Techstars": {
@@ -19831,84 +19771,19 @@
       "hsId": "8914268481",
       "segment": "Enterprise"
     },
-    "Bravo Property Trust": {
-      "platformId": "43774",
-      "hsId": "33405413457",
-      "segment": "Enterprise"
-    },
-    "Permira": {
-      "platformId": "12374",
-      "hsId": "9266371224",
-      "segment": ""
+    "Maune Fund Management": {
+      "platformId": "43875",
+      "hsId": "39878978997",
+      "segment": "Scale"
     },
     "Preston Capital": {
       "platformId": "18821",
       "hsId": "16880408140",
       "segment": "Enterprise"
     },
-    "Lone Pine Capital": {
-      "platformId": "22087",
-      "hsId": "54349730196",
-      "segment": ""
-    },
-    "Golden Eagle Strategies": {
-      "platformId": "2559",
-      "hsId": "28880304719",
-      "segment": ""
-    },
-    "Prime Movers Lab": {
-      "platformId": "2863",
-      "hsId": "37563929517",
-      "segment": ""
-    },
-    "SR One Capital Management, LP": {
-      "platformId": "41992",
-      "hsId": "38746678438",
-      "segment": ""
-    },
-    "Pana LCE": {
-      "platformId": "1552",
-      "hsId": "49961483658",
-      "segment": ""
-    },
-    "Milbank": {
-      "platformId": "41913",
-      "hsId": "45779140678",
-      "segment": ""
-    },
-    "Cendana Capital": {
-      "platformId": "239",
-      "hsId": "31209300573",
-      "segment": ""
-    },
-    "HIG Capital": {
-      "platformId": "20203",
-      "hsId": "4314728901",
-      "segment": ""
-    },
-    "Broad Sky Partners": {
-      "platformId": "42848",
-      "hsId": "49055876647",
-      "segment": ""
-    },
-    "Caspian Capital LP": {
-      "platformId": "10410",
-      "hsId": "7806528672",
-      "segment": ""
-    },
-    "Standard Chartered Bank": {
-      "platformId": "6501",
-      "hsId": "49265271475",
-      "segment": ""
-    },
-    "BlackBarn Capital Partners": {
-      "platformId": "18665",
-      "hsId": "10404155711",
-      "segment": "Enterprise"
-    },
-    "Juniper Square": {
-      "platformId": "6988",
-      "hsId": "7536739717",
+    "Bailard": {
+      "platformId": "19363",
+      "hsId": "49166050446",
       "segment": ""
     },
     "Square Nine Capital": {
@@ -19916,24 +19791,99 @@
       "hsId": "34959590192",
       "segment": ""
     },
+    "Rio Capital Investments": {
+      "platformId": "42966",
+      "hsId": "37647696518",
+      "segment": ""
+    },
+    "Star51 Capital": {
+      "platformId": "40951",
+      "hsId": "56048400002",
+      "segment": ""
+    },
+    "WHG Asset Management": {
+      "platformId": "22923",
+      "hsId": "18395499662",
+      "segment": ""
+    },
+    "Standard Chartered Bank": {
+      "platformId": "6501",
+      "hsId": "49265271475",
+      "segment": ""
+    },
+    "Bruin Capital": {
+      "platformId": "41095",
+      "hsId": "27549874024",
+      "segment": "Scale"
+    },
+    "Stifel Venture Bank": {
+      "platformId": "40646",
+      "hsId": "50163334303",
+      "segment": ""
+    },
+    "Bravo Property Trust": {
+      "platformId": "43774",
+      "hsId": "33405413457",
+      "segment": "Enterprise"
+    },
+    "SALI Fund Services": {
+      "platformId": "2553",
+      "hsId": "5066635643",
+      "segment": ""
+    },
+    "Trading Technologies": {
+      "platformId": "6903",
+      "hsId": "31399610946",
+      "segment": ""
+    },
+    "Golden Eagle Strategies": {
+      "platformId": "2559",
+      "hsId": "28880304719",
+      "segment": ""
+    },
+    "American Century Investments": {
+      "platformId": "1926",
+      "hsId": "31398991238",
+      "segment": ""
+    },
+    "CME Group": {
+      "platformId": "1157",
+      "hsId": "38737702149",
+      "segment": ""
+    },
+    "Pana LCE": {
+      "platformId": "1552",
+      "hsId": "49961483658",
+      "segment": ""
+    },
+    "Plum Alley": {
+      "platformId": "2009",
+      "hsId": "4330687875",
+      "segment": ""
+    },
+    "Lone Pine Capital": {
+      "platformId": "22087",
+      "hsId": "54349730196",
+      "segment": ""
+    },
+    "SR One Capital Management, LP": {
+      "platformId": "41992",
+      "hsId": "38746678438",
+      "segment": ""
+    },
+    "SRF Capital & Impact": {
+      "platformId": "42769",
+      "hsId": "39825480073",
+      "segment": ""
+    },
     "MPEP Luxembourg Management": {
       "platformId": "33476",
       "hsId": "35642524987",
       "segment": ""
     },
-    "Bailard": {
-      "platformId": "19363",
-      "hsId": "49166050446",
-      "segment": ""
-    },
-    "Maune Fund Management": {
-      "platformId": "43875",
-      "hsId": "39878978997",
-      "segment": "Scale"
-    },
-    "Rio Capital Investments": {
-      "platformId": "42966",
-      "hsId": "37647696518",
+    "Cendana Capital": {
+      "platformId": "239",
+      "hsId": "31209300573",
       "segment": ""
     },
     "Grant Thornton LLP": {
@@ -19941,40 +19891,85 @@
       "hsId": "50776041352",
       "segment": ""
     },
+    "PenderFund Capital Management": {
+      "platformId": "43042",
+      "hsId": "38346694763",
+      "segment": ""
+    },
     "Aries Media Ventures": {
       "platformId": "42829",
       "hsId": "37647696549",
       "segment": ""
     },
-    "Calibrate Partners": {
-      "platformId": "17200",
-      "hsId": "6568829242",
+    "Juniper Square": {
+      "platformId": "6988",
+      "hsId": "7536739717",
       "segment": ""
     },
-    "Altura Capital": {
-      "platformId": "12011",
-      "hsId": "43402833013",
-      "segment": "Scale"
-    },
-    "Middle Street Partners": {
-      "platformId": "2384",
-      "hsId": "50524195999",
+    "Caspian Capital LP": {
+      "platformId": "10410",
+      "hsId": "7806528672",
       "segment": ""
     },
-    "Delta Accumulation, LLC": {
-      "platformId": "42401",
-      "hsId": "20103983441",
+    "HIG Capital": {
+      "platformId": "20203",
+      "hsId": "4314728901",
+      "segment": ""
+    },
+    "PAG": {
+      "platformId": "11813",
+      "hsId": "41135059204",
+      "segment": ""
+    },
+    "Broad Sky Partners": {
+      "platformId": "42848",
+      "hsId": "49055876647",
+      "segment": ""
+    },
+    "Langham Hall": {
+      "platformId": "41790",
+      "hsId": "37182941776",
+      "segment": ""
+    },
+    "Prime Movers Lab": {
+      "platformId": "2863",
+      "hsId": "37563929517",
+      "segment": ""
+    },
+    "Milbank": {
+      "platformId": "41913",
+      "hsId": "45779140678",
+      "segment": ""
+    },
+    "BlackBarn Capital Partners": {
+      "platformId": "18665",
+      "hsId": "10404155711",
       "segment": "Enterprise"
     },
-    "Burnt Island Ventures": {
-      "platformId": "43084",
-      "hsId": "18255397430",
+    "Blue Jasper Capital": {
+      "platformId": "44327",
+      "hsId": "49138211598",
+      "segment": "Scale"
+    },
+    "Bifrost": {
+      "platformId": "43326",
+      "hsId": "39540097608",
+      "segment": "Enterprise"
+    },
+    "Fremen Capital": {
+      "platformId": "43228",
+      "hsId": "39352239638",
       "segment": "Scale"
     },
     "PL Capital": {
       "platformId": "43425",
       "hsId": "49745186662",
       "segment": ""
+    },
+    "Altura Capital": {
+      "platformId": "12011",
+      "hsId": "43402833013",
+      "segment": "Scale"
     },
     "Impact Growth Capital": {
       "platformId": "41384",
@@ -19986,44 +19981,19 @@
       "hsId": "18234287716",
       "segment": "Enterprise"
     },
-    "Polar Asset Management Partners": {
-      "platformId": "43717",
-      "hsId": "42049140603",
-      "segment": ""
+    "Burnt Island Ventures": {
+      "platformId": "43084",
+      "hsId": "18255397430",
+      "segment": "Scale"
     },
     "Polsonelli": {
       "platformId": "22651",
       "hsId": "50471138415",
       "segment": ""
     },
-    "Dure Investment Group": {
-      "platformId": "42878",
-      "hsId": "37673114809",
-      "segment": ""
-    },
-    "Cardano Foundation": {
-      "platformId": "7791",
-      "hsId": "48759662080",
-      "segment": ""
-    },
-    "ARKHOUSE": {
-      "platformId": "20435",
-      "hsId": "49664398409",
-      "segment": "Scale"
-    },
-    "Abbey Capital LTD": {
-      "platformId": "10241",
-      "hsId": "46919412815",
-      "segment": ""
-    },
-    "ShoreVest Partners": {
-      "platformId": "982",
-      "hsId": "5091112195",
-      "segment": ""
-    },
-    "Cliffwater": {
-      "platformId": "4697",
-      "hsId": "23458593805",
+    "Middle Street Partners": {
+      "platformId": "2384",
+      "hsId": "50524195999",
       "segment": ""
     },
     "Principal Asset Management": {
@@ -20036,84 +20006,64 @@
       "hsId": "10912295307",
       "segment": "Scale"
     },
-    "PREQIN": {
-      "platformId": "3126",
-      "hsId": "49664398238",
+    "Cliffwater": {
+      "platformId": "4697",
+      "hsId": "23458593805",
       "segment": ""
     },
-    "Fremen Capital": {
-      "platformId": "43228",
-      "hsId": "39352239638",
-      "segment": "Scale"
+    "Polar Asset Management Partners": {
+      "platformId": "43717",
+      "hsId": "42049140603",
+      "segment": ""
     },
-    "Bifrost": {
-      "platformId": "43326",
-      "hsId": "39540097608",
+    "Dure Investment Group": {
+      "platformId": "42878",
+      "hsId": "37673114809",
+      "segment": ""
+    },
+    "Delta Accumulation, LLC": {
+      "platformId": "42401",
+      "hsId": "20103983441",
       "segment": "Enterprise"
     },
-    "Blue Jasper Capital": {
-      "platformId": "44327",
-      "hsId": "49138211598",
+    "Cardano Foundation": {
+      "platformId": "7791",
+      "hsId": "48759662080",
+      "segment": ""
+    },
+    "ShoreVest Partners": {
+      "platformId": "982",
+      "hsId": "5091112195",
+      "segment": ""
+    },
+    "ARKHOUSE": {
+      "platformId": "20435",
+      "hsId": "49664398409",
       "segment": "Scale"
+    },
+    "Calibrate Partners": {
+      "platformId": "17200",
+      "hsId": "6568829242",
+      "segment": ""
     },
     "ALTUS Private Capital": {
       "platformId": "41381",
       "hsId": "28635736653",
       "segment": "Scale"
     },
-    "Astia": {
-      "platformId": "4506",
-      "hsId": "5392407937",
+    "Abbey Capital LTD": {
+      "platformId": "10241",
+      "hsId": "46919412815",
       "segment": ""
     },
-    "Ultimus": {
-      "platformId": "6398",
-      "hsId": "47355785030",
+    "PREQIN": {
+      "platformId": "3126",
+      "hsId": "49664398238",
       "segment": ""
     },
-    "Curex Capital Advisors": {
-      "platformId": "44513",
-      "hsId": "49029650051",
-      "segment": "Scale"
-    },
-    "Buckley Capital Advisors LLC": {
-      "platformId": "2748",
-      "hsId": "4426928037",
-      "segment": "Enterprise"
-    },
-    "Perast Capital Management": {
-      "platformId": "14235",
-      "hsId": "9928269953",
-      "segment": "Scale"
-    },
-    "Options IT": {
-      "platformId": "10945",
-      "hsId": "41128057503",
-      "segment": ""
-    },
-    "UG Investment Advisers Ltd": {
-      "platformId": "12500",
-      "hsId": "9306046268",
-      "segment": ""
-    },
-    "Dayah Capital": {
-      "platformId": "23267",
-      "hsId": "20333389657",
-      "segment": "Scale"
-    },
-    "UBS": {
-      "platformId": "5223",
-      "hsId": "35016918147",
-      "segment": ""
-    },
-    "East Bridge Capital Management": {
-      "platformId": "43331",
-      "hsId": "38950605649",
-      "segment": "Scale"
-    },
-    "Urban Standard Capital": {
-      "platformId": "6915",
-      "hsId": "7212871534",
+    "Axonic Capital": {
+      "platformId": "6089",
+      "hsId": "36964554346",
       "segment": "Enterprise"
     },
     "Nebari Holdings": {
@@ -20121,40 +20071,40 @@
       "hsId": "4772825122",
       "segment": "Enterprise"
     },
+    "Perast Capital Management": {
+      "platformId": "14235",
+      "hsId": "9928269953",
+      "segment": "Scale"
+    },
     "TT Capital Partners": {
       "platformId": "6359",
       "hsId": "6640917296",
+      "segment": "Enterprise"
+    },
+    "Coventry Structured Investments": {
+      "platformId": "16714",
+      "hsId": "23484236656",
+      "segment": "Scale"
+    },
+    "Curex Capital Advisors": {
+      "platformId": "44513",
+      "hsId": "49029650051",
+      "segment": "Scale"
+    },
+    "Ultimus": {
+      "platformId": "6398",
+      "hsId": "47355785030",
+      "segment": ""
+    },
+    "RevTek Capital": {
+      "platformId": "31306",
+      "hsId": "22194104966",
       "segment": "Enterprise"
     },
     "Blockstream Capital Partners": {
       "platformId": "40987",
       "hsId": "52360886788",
       "segment": "Enterprise"
-    },
-    "Altis Partners (Jersey) Limited": {
-      "platformId": "6877",
-      "hsId": "4426953634",
-      "segment": "Enterprise"
-    },
-    "Asia Alternatives": {
-      "platformId": "13000",
-      "hsId": "49241327955",
-      "segment": ""
-    },
-    "Liberty City Ventures": {
-      "platformId": "14423",
-      "hsId": "5392349527",
-      "segment": "Enterprise"
-    },
-    "EIG": {
-      "platformId": "43982",
-      "hsId": "19716073001",
-      "segment": "Enterprise"
-    },
-    "Section Partners": {
-      "platformId": "7188",
-      "hsId": "7652045852",
-      "segment": ""
     },
     "Bolder Group": {
       "platformId": "9517",
@@ -20166,19 +20116,34 @@
       "hsId": "17690735203",
       "segment": "Enterprise"
     },
-    "Coventry Structured Investments": {
-      "platformId": "16714",
-      "hsId": "23484236656",
+    "Dayah Capital": {
+      "platformId": "23267",
+      "hsId": "20333389657",
       "segment": "Scale"
+    },
+    "Section Partners": {
+      "platformId": "7188",
+      "hsId": "7652045852",
+      "segment": ""
+    },
+    "Asia Alternatives": {
+      "platformId": "13000",
+      "hsId": "49241327955",
+      "segment": ""
     },
     "Forvis Mazars": {
       "platformId": "40097",
       "hsId": "23755529018",
       "segment": ""
     },
-    "17Capital": {
-      "platformId": "21808",
-      "hsId": "37295677302",
+    "UG Investment Advisers Ltd": {
+      "platformId": "12500",
+      "hsId": "9306046268",
+      "segment": ""
+    },
+    "UBS": {
+      "platformId": "5223",
+      "hsId": "35016918147",
       "segment": ""
     },
     "MSCI": {
@@ -20191,39 +20156,54 @@
       "hsId": "25697443744",
       "segment": "Enterprise"
     },
+    "Buckley Capital Advisors LLC": {
+      "platformId": "2748",
+      "hsId": "4426928037",
+      "segment": "Enterprise"
+    },
+    "East Bridge Capital Management": {
+      "platformId": "43331",
+      "hsId": "38950605649",
+      "segment": "Scale"
+    },
+    "Altis Partners (Jersey) Limited": {
+      "platformId": "6877",
+      "hsId": "4426953634",
+      "segment": "Enterprise"
+    },
+    "Peakton Capital": {
+      "platformId": "43075",
+      "hsId": "39370822815",
+      "segment": ""
+    },
     "ACRE": {
       "platformId": "227",
       "hsId": "4230843931",
       "segment": "Enterprise"
     },
-    "RevTek Capital": {
-      "platformId": "31306",
-      "hsId": "22194104966",
+    "Liberty City Ventures": {
+      "platformId": "14423",
+      "hsId": "5392349527",
       "segment": "Enterprise"
     },
-    "Tapasya Investment Partners, LLC": {
-      "platformId": "44474",
-      "hsId": "50735600510",
-      "segment": ""
+    "Urban Standard Capital": {
+      "platformId": "6915",
+      "hsId": "7212871534",
+      "segment": "Enterprise"
     },
     "BitGo": {
       "platformId": "8445",
       "hsId": "38842647188",
       "segment": ""
     },
-    "Tikehau Capital": {
-      "platformId": "17257",
-      "hsId": "54361424226",
+    "Options IT": {
+      "platformId": "10945",
+      "hsId": "41128057503",
       "segment": ""
     },
-    "Radcliffe Capital Management LP": {
-      "platformId": "3034",
-      "hsId": "37561376597",
-      "segment": "Scale"
-    },
-    "Peakton Capital": {
-      "platformId": "43075",
-      "hsId": "39370822815",
+    "17Capital": {
+      "platformId": "21808",
+      "hsId": "37295677302",
       "segment": ""
     },
     "Petrus Advisers Ltd.": {
@@ -20231,224 +20211,69 @@
       "hsId": "35531476039",
       "segment": ""
     },
-    "Axonic Capital": {
-      "platformId": "6089",
-      "hsId": "36964554346",
-      "segment": "Enterprise"
-    },
-    "OpEff Technologies": {
-      "platformId": "43526",
-      "hsId": "46717825285",
+    "Tikehau Capital": {
+      "platformId": "17257",
+      "hsId": "54361424226",
       "segment": ""
     },
-    "VanEck": {
-      "platformId": "7566",
-      "hsId": "4426882259",
-      "segment": "Enterprise"
-    },
-    "Sculptor Capital Management": {
-      "platformId": "20998",
-      "hsId": "54358788666",
+    "Astia": {
+      "platformId": "4506",
+      "hsId": "5392407937",
       "segment": ""
     },
-    "SurgoCap Partners LP": {
-      "platformId": "21743",
-      "hsId": "30778997152",
+    "EIG": {
+      "platformId": "43982",
+      "hsId": "19716073001",
+      "segment": "Enterprise"
+    },
+    "Tapasya Investment Partners, LLC": {
+      "platformId": "44474",
+      "hsId": "50735600510",
       "segment": ""
     },
-    "Stonepeak": {
-      "platformId": "43743",
-      "hsId": "16400039195",
-      "segment": "Enterprise"
-    },
-    "iSAM": {
-      "platformId": "6316",
-      "hsId": "9034660934",
-      "segment": "Enterprise"
-    },
-    "AlphaSense": {
-      "platformId": "4986",
-      "hsId": "49184799629",
-      "segment": ""
-    },
-    "Chainalysis": {
-      "platformId": "8348",
-      "hsId": "30345728103",
-      "segment": ""
-    },
-    "LMCG Investments, LLC": {
-      "platformId": "488",
-      "hsId": "4231344043",
-      "segment": "Enterprise"
-    },
-    "Bycoff Group": {
-      "platformId": "23175",
-      "hsId": "9733214251",
-      "segment": "Enterprise"
-    },
-    "Keyframe Capital": {
-      "platformId": "40762",
-      "hsId": "39730799946",
+    "Radcliffe Capital Management LP": {
+      "platformId": "3034",
+      "hsId": "37561376597",
       "segment": "Scale"
     },
-    "XYSTON Capital Management": {
-      "platformId": "43975",
-      "hsId": "39445852318",
+    "LMR Partners": {
+      "platformId": "15909",
+      "hsId": "5801928111",
       "segment": "Enterprise"
-    },
-    "Waha Investment": {
-      "platformId": "15489",
-      "hsId": "4426950761",
-      "segment": "Enterprise"
-    },
-    "BitRock Capital": {
-      "platformId": "43832",
-      "hsId": "25125518896",
-      "segment": "Enterprise"
-    },
-    "Foresite Capital": {
-      "platformId": "8923",
-      "hsId": "36350832689",
-      "segment": ""
-    },
-    "VestedWorld": {
-      "platformId": "43836",
-      "hsId": "32933078569",
-      "segment": "Enterprise"
-    },
-    "Runway Growth Capital": {
-      "platformId": "87",
-      "hsId": "29630474338",
-      "segment": ""
-    },
-    "Akin Gump Strauss Hauer & Feld LLP": {
-      "platformId": "3139",
-      "hsId": "51090765126",
-      "segment": ""
-    },
-    "CBC Group": {
-      "platformId": "14748",
-      "hsId": "10950584893",
-      "segment": ""
     },
     "EDGE Markets Inc.": {
       "platformId": "44210",
       "hsId": "48895714825",
       "segment": ""
     },
-    "IXI Investments": {
-      "platformId": "43337",
-      "hsId": "4950081002",
+    "Greycroft": {
+      "platformId": "11190",
+      "hsId": "29900261501",
+      "segment": ""
+    },
+    "Waha Investment": {
+      "platformId": "15489",
+      "hsId": "4426950761",
       "segment": "Enterprise"
     },
-    "Dardanelles Capital": {
-      "platformId": "39424",
-      "hsId": "10580606826",
-      "segment": "Scale"
-    },
-    "Satori Capital": {
-      "platformId": "9420",
-      "hsId": "5130339697",
-      "segment": "Scale"
-    },
-    "Patria Investments": {
-      "platformId": "31296",
-      "hsId": "10167646330",
+    "XYSTON Capital Management": {
+      "platformId": "43975",
+      "hsId": "39445852318",
       "segment": "Enterprise"
-    },
-    "Donald Smith & Co.": {
-      "platformId": "20429",
-      "hsId": "4314892929",
-      "segment": "Enterprise"
-    },
-    "Hilltop Residential": {
-      "platformId": "593",
-      "hsId": "4231352328",
-      "segment": ""
-    },
-    "Elena Partners": {
-      "platformId": "42593",
-      "hsId": "31833659780",
-      "segment": "Scale"
-    },
-    "Squadra Ventures": {
-      "platformId": "11156",
-      "hsId": "9589908876",
-      "segment": "Scale"
-    },
-    "Jones Street": {
-      "platformId": "44273",
-      "hsId": "39467262497",
-      "segment": "Enterprise"
-    },
-    "McKinleyX Capital": {
-      "platformId": "17775",
-      "hsId": "52980629171",
-      "segment": ""
-    },
-    "IQ-EQ": {
-      "platformId": "7405",
-      "hsId": "7708416627",
-      "segment": ""
-    },
-    "Anchorage Digital": {
-      "platformId": "39900",
-      "hsId": "50619067990",
-      "segment": ""
-    },
-    "MERRILL LYNCH (SINGAPORE) PTE. LTD.": {
-      "platformId": "40327",
-      "hsId": "39552905019",
-      "segment": ""
-    },
-    "Maples Group": {
-      "platformId": "1035",
-      "hsId": "4581022286",
-      "segment": ""
-    },
-    "Tenzing Global Investors": {
-      "platformId": "19221",
-      "hsId": "35410814051",
-      "segment": ""
-    },
-    "Proskauer Rose": {
-      "platformId": "22816",
-      "hsId": "55593963449",
-      "segment": ""
-    },
-    "StoneX": {
-      "platformId": "41285",
-      "hsId": "38364877496",
-      "segment": ""
-    },
-    "Walkers": {
-      "platformId": "6176",
-      "hsId": "4426952138",
-      "segment": ""
     },
     "One River Asset Management": {
       "platformId": "19616",
       "hsId": "37315255606",
       "segment": "Enterprise"
     },
-    "Ennismore Fund Management Limited": {
-      "platformId": "20224",
-      "hsId": "9306229373",
-      "segment": ""
+    "Aurum Fund Management Ltd.": {
+      "platformId": "42779",
+      "hsId": "4426973327",
+      "segment": "Scale"
     },
-    "Kawa Capital Management": {
-      "platformId": "626",
-      "hsId": "4316191356",
-      "segment": "Enterprise"
-    },
-    "Andurand Capital": {
-      "platformId": "10263",
-      "hsId": "4426950794",
-      "segment": ""
-    },
-    "LMR Partners": {
-      "platformId": "15909",
-      "hsId": "5801928111",
+    "LMCG Investments, LLC": {
+      "platformId": "488",
+      "hsId": "4231344043",
       "segment": "Enterprise"
     },
     "Algoz Technologies Ltd.": {
@@ -20456,14 +20281,114 @@
       "hsId": "8110222128",
       "segment": "Scale"
     },
-    "Greycroft": {
-      "platformId": "11190",
-      "hsId": "29900261501",
+    "BitRock Capital": {
+      "platformId": "43832",
+      "hsId": "25125518896",
+      "segment": "Enterprise"
+    },
+    "IQ-EQ": {
+      "platformId": "7405",
+      "hsId": "7708416627",
       "segment": ""
     },
-    "U.S. Bank Global Fund Services": {
-      "platformId": "41176",
-      "hsId": "51621238279",
+    "Keyframe Capital": {
+      "platformId": "40762",
+      "hsId": "39730799946",
+      "segment": "Scale"
+    },
+    "Proskauer Rose": {
+      "platformId": "22816",
+      "hsId": "55593963449",
+      "segment": ""
+    },
+    "Dardanelles Capital": {
+      "platformId": "39424",
+      "hsId": "10580606826",
+      "segment": "Scale"
+    },
+    "Jones Street": {
+      "platformId": "44273",
+      "hsId": "39467262497",
+      "segment": "Enterprise"
+    },
+    "Akin Gump Strauss Hauer & Feld LLP": {
+      "platformId": "3139",
+      "hsId": "51090765126",
+      "segment": ""
+    },
+    "Tenzing Global Investors": {
+      "platformId": "19221",
+      "hsId": "35410814051",
+      "segment": ""
+    },
+    "Runway Growth Capital": {
+      "platformId": "87",
+      "hsId": "29630474338",
+      "segment": ""
+    },
+    "VanEck": {
+      "platformId": "7566",
+      "hsId": "4426882259",
+      "segment": "Enterprise"
+    },
+    "VestedWorld": {
+      "platformId": "43836",
+      "hsId": "32933078569",
+      "segment": "Enterprise"
+    },
+    "Anchorage Digital": {
+      "platformId": "39900",
+      "hsId": "50619067990",
+      "segment": ""
+    },
+    "Maples Group": {
+      "platformId": "1035",
+      "hsId": "4581022286",
+      "segment": ""
+    },
+    "CBC Group": {
+      "platformId": "14748",
+      "hsId": "10950584893",
+      "segment": ""
+    },
+    "iSAM": {
+      "platformId": "6316",
+      "hsId": "9034660934",
+      "segment": "Enterprise"
+    },
+    "Sculptor Capital Management": {
+      "platformId": "20998",
+      "hsId": "54358788666",
+      "segment": ""
+    },
+    "MERRILL LYNCH (SINGAPORE) PTE. LTD.": {
+      "platformId": "40327",
+      "hsId": "39552905019",
+      "segment": ""
+    },
+    "AlphaSense": {
+      "platformId": "4986",
+      "hsId": "49184799629",
+      "segment": ""
+    },
+    "Squadra Ventures": {
+      "platformId": "11156",
+      "hsId": "9589908876",
+      "segment": "Scale"
+    },
+    "Satori Capital": {
+      "platformId": "9420",
+      "hsId": "5130339697",
+      "segment": "Scale"
+    },
+    "Walkers": {
+      "platformId": "6176",
+      "hsId": "4426952138",
+      "segment": ""
+    },
+    "Foresite Capital": {
+      "platformId": "8923",
+      "hsId": "36350832689",
       "segment": ""
     },
     "Provenance": {
@@ -20471,19 +20396,119 @@
       "hsId": "20418923410",
       "segment": ""
     },
-    "Aurum Fund Management Ltd.": {
-      "platformId": "42779",
-      "hsId": "4426973327",
+    "Bycoff Group": {
+      "platformId": "23175",
+      "hsId": "9733214251",
+      "segment": "Enterprise"
+    },
+    "IXI Investments": {
+      "platformId": "43337",
+      "hsId": "4950081002",
+      "segment": "Enterprise"
+    },
+    "Donald Smith & Co.": {
+      "platformId": "20429",
+      "hsId": "4314892929",
+      "segment": "Enterprise"
+    },
+    "Elena Partners": {
+      "platformId": "42593",
+      "hsId": "31833659780",
       "segment": "Scale"
     },
-    "Constellation Asset Management": {
-      "platformId": "40472",
-      "hsId": "39300562595",
+    "Kawa Capital Management": {
+      "platformId": "626",
+      "hsId": "4316191356",
+      "segment": "Enterprise"
+    },
+    "StoneX": {
+      "platformId": "41285",
+      "hsId": "38364877496",
       "segment": ""
     },
-    "Porchester Capital": {
-      "platformId": "39767",
-      "hsId": "23524955760",
+    "Hilltop Residential": {
+      "platformId": "593",
+      "hsId": "4231352328",
+      "segment": ""
+    },
+    "Patria Investments": {
+      "platformId": "31296",
+      "hsId": "10167646330",
+      "segment": "Enterprise"
+    },
+    "Andurand Capital": {
+      "platformId": "10263",
+      "hsId": "4426950794",
+      "segment": ""
+    },
+    "Ennismore Fund Management Limited": {
+      "platformId": "20224",
+      "hsId": "9306229373",
+      "segment": ""
+    },
+    "U.S. Bank Global Fund Services": {
+      "platformId": "41176",
+      "hsId": "51621238279",
+      "segment": ""
+    },
+    "OpEff Technologies": {
+      "platformId": "43526",
+      "hsId": "46717825285",
+      "segment": ""
+    },
+    "SurgoCap Partners LP": {
+      "platformId": "21743",
+      "hsId": "30778997152",
+      "segment": ""
+    },
+    "McKinleyX Capital": {
+      "platformId": "17775",
+      "hsId": "52980629171",
+      "segment": ""
+    },
+    "Chainalysis": {
+      "platformId": "8348",
+      "hsId": "30345728103",
+      "segment": ""
+    },
+    "Stonepeak": {
+      "platformId": "43743",
+      "hsId": "16400039195",
+      "segment": "Enterprise"
+    },
+    "Clearwater Analytics": {
+      "platformId": "44218",
+      "hsId": "49318452064",
+      "segment": ""
+    },
+    "Woodson Capital": {
+      "platformId": "20808",
+      "hsId": "18002593699",
+      "segment": "Scale"
+    },
+    "Logista Advisors LLC": {
+      "platformId": "9127",
+      "hsId": "4426278789",
+      "segment": "Enterprise"
+    },
+    "1kx": {
+      "platformId": "44907",
+      "hsId": "8683498057",
+      "segment": ""
+    },
+    "SWS Partners": {
+      "platformId": "37493",
+      "hsId": "4734985608",
+      "segment": "Scale"
+    },
+    "Marex": {
+      "platformId": "2421",
+      "hsId": "54370676488",
+      "segment": ""
+    },
+    "Infinity Investment Partners": {
+      "platformId": "3954",
+      "hsId": "6259483743",
       "segment": ""
     },
     "M Science LLC": {
@@ -20491,15 +20516,10 @@
       "hsId": "48896595548",
       "segment": ""
     },
-    "Spring Lake Asset Management": {
-      "platformId": "14237",
-      "hsId": "10160074885",
+    "Willow Tree Credit Partners": {
+      "platformId": "19744",
+      "hsId": "54511252107",
       "segment": "Enterprise"
-    },
-    "10Dynamics": {
-      "platformId": "11920",
-      "hsId": "9709473191",
-      "segment": ""
     },
     "Clocktower Ventures": {
       "platformId": "4933",
@@ -20516,59 +20536,14 @@
       "hsId": "11057550694",
       "segment": ""
     },
-    "SWS Partners": {
-      "platformId": "37493",
-      "hsId": "4734985608",
+    "Taproot Management": {
+      "platformId": "42713",
+      "hsId": "36424491939",
       "segment": "Scale"
     },
-    "1kx": {
-      "platformId": "44907",
-      "hsId": "8683498057",
-      "segment": ""
-    },
-    "Colchis Capital": {
-      "platformId": "2308",
-      "hsId": "4316254496",
-      "segment": ""
-    },
-    "B.E. Blank & Company": {
-      "platformId": "12359",
-      "hsId": "43403019633",
-      "segment": "Enterprise"
-    },
-    "Grassi Advisors and Accountants": {
-      "platformId": "20553",
-      "hsId": "49741074759",
-      "segment": ""
-    },
-    "Sorengo Partners": {
-      "platformId": "21933",
-      "hsId": "17147775075",
-      "segment": "Scale"
-    },
-    "Infinity Investment Partners": {
-      "platformId": "3954",
-      "hsId": "6259483743",
-      "segment": ""
-    },
-    "Marex": {
-      "platformId": "2421",
-      "hsId": "54370676488",
-      "segment": ""
-    },
-    "BTG Pactual": {
-      "platformId": "41803",
-      "hsId": "31209893243",
-      "segment": ""
-    },
-    "StepStone Group": {
-      "platformId": "16461",
-      "hsId": "4426972367",
-      "segment": ""
-    },
-    "Privium Fund Management": {
-      "platformId": "8834",
-      "hsId": "4366854982",
+    "Variety Capital": {
+      "platformId": "9109",
+      "hsId": "53176775945",
       "segment": ""
     },
     "Impactable Group": {
@@ -20576,49 +20551,19 @@
       "hsId": "31749380405",
       "segment": ""
     },
-    "Heritage Capital Management Pte Ltd": {
-      "platformId": "12308",
-      "hsId": "9305938341",
-      "segment": ""
-    },
-    "Lingotto": {
-      "platformId": "19786",
-      "hsId": "31252938577",
-      "segment": ""
-    },
-    "Variety Capital": {
-      "platformId": "9109",
-      "hsId": "53176775945",
-      "segment": ""
-    },
-    "Taproot Management": {
-      "platformId": "42713",
-      "hsId": "36424491939",
-      "segment": "Scale"
-    },
-    "VWH Capital Management": {
-      "platformId": "1924",
-      "hsId": "4600361234",
-      "segment": ""
-    },
-    "R136 Ventures": {
-      "platformId": "43087",
-      "hsId": "19264192042",
+    "B.E. Blank & Company": {
+      "platformId": "12359",
+      "hsId": "43403019633",
       "segment": "Enterprise"
     },
-    "Securitize Capital": {
-      "platformId": "7349",
-      "hsId": "49241156688",
+    "Porchester Capital": {
+      "platformId": "39767",
+      "hsId": "23524955760",
       "segment": ""
     },
-    "GaoTeng Global Asset Management Limited": {
-      "platformId": "11563",
-      "hsId": "9305938338",
-      "segment": ""
-    },
-    "Clearwater Analytics": {
-      "platformId": "44218",
-      "hsId": "49318452064",
+    "Grassi Advisors and Accountants": {
+      "platformId": "20553",
+      "hsId": "49741074759",
       "segment": ""
     },
     "Balbec Capital LP": {
@@ -20626,34 +20571,124 @@
       "hsId": "54369781527",
       "segment": ""
     },
-    "Aegeri Capital": {
-      "platformId": "18343",
-      "hsId": "16367166527",
-      "segment": "Enterprise"
+    "Privium Fund Management": {
+      "platformId": "8834",
+      "hsId": "4366854982",
+      "segment": ""
+    },
+    "GaoTeng Global Asset Management Limited": {
+      "platformId": "11563",
+      "hsId": "9305938338",
+      "segment": ""
+    },
+    "Sorengo Partners": {
+      "platformId": "21933",
+      "hsId": "17147775075",
+      "segment": "Scale"
+    },
+    "Constellation Asset Management": {
+      "platformId": "40472",
+      "hsId": "39300562595",
+      "segment": ""
     },
     "AMFA Capital Management": {
       "platformId": "14231",
       "hsId": "10136558600",
       "segment": "Scale"
     },
-    "Skytale": {
-      "platformId": "44165",
-      "hsId": "46853396022",
+    "MVP Ventures": {
+      "platformId": "9919",
+      "hsId": "7643770153",
+      "segment": "Enterprise"
+    },
+    "VWH Capital Management": {
+      "platformId": "1924",
+      "hsId": "4600361234",
+      "segment": ""
+    },
+    "BTG Pactual": {
+      "platformId": "41803",
+      "hsId": "31209893243",
+      "segment": ""
+    },
+    "Jones Road Capital Management, L.P.": {
+      "platformId": "6382",
+      "hsId": "5981018970",
       "segment": "Scale"
+    },
+    "StepStone Group": {
+      "platformId": "16461",
+      "hsId": "4426972367",
+      "segment": ""
+    },
+    "10Dynamics": {
+      "platformId": "11920",
+      "hsId": "9709473191",
+      "segment": ""
+    },
+    "Lingotto": {
+      "platformId": "19786",
+      "hsId": "31252938577",
+      "segment": ""
+    },
+    "Heritage Capital Management Pte Ltd": {
+      "platformId": "12308",
+      "hsId": "9305938341",
+      "segment": ""
+    },
+    "Hebbia": {
+      "platformId": "41420",
+      "hsId": "49405048889",
+      "segment": ""
+    },
+    "R136 Ventures": {
+      "platformId": "43087",
+      "hsId": "19264192042",
+      "segment": "Enterprise"
+    },
+    "Aegeri Capital": {
+      "platformId": "18343",
+      "hsId": "16367166527",
+      "segment": "Enterprise"
+    },
+    "Colchis Capital": {
+      "platformId": "2308",
+      "hsId": "4316254496",
+      "segment": ""
     },
     "Revelstoke Capital Partners": {
       "platformId": "14613",
       "hsId": "10605918476",
       "segment": "Enterprise"
     },
-    "MVP Ventures": {
-      "platformId": "9919",
-      "hsId": "7643770153",
+    "Skytale": {
+      "platformId": "44165",
+      "hsId": "46853396022",
+      "segment": "Scale"
+    },
+    "ITE Management": {
+      "platformId": "14222",
+      "hsId": "4316137173",
       "segment": "Enterprise"
+    },
+    "Securitize Capital": {
+      "platformId": "7349",
+      "hsId": "49241156688",
+      "segment": ""
     },
     "Wolf Point Asset Management": {
       "platformId": "34623",
       "hsId": "9793728387",
+      "segment": ""
+    },
+    "Spring Lake Asset Management": {
+      "platformId": "14237",
+      "hsId": "10160074885",
+      "segment": "Enterprise"
+    },
+    "Osage University Partners": {
+      "platformId": "6000",
+      "hsId": "46664568993",
       "segment": ""
     },
     "Bowie Capital Management": {
@@ -20666,39 +20701,224 @@
       "hsId": "19716067674",
       "segment": "Scale"
     },
-    "Jones Road Capital Management, L.P.": {
-      "platformId": "6382",
-      "hsId": "5981018970",
-      "segment": "Scale"
-    },
-    "Logista Advisors LLC": {
-      "platformId": "9127",
-      "hsId": "4426278789",
-      "segment": "Enterprise"
-    },
-    "Osage University Partners": {
-      "platformId": "6000",
-      "hsId": "46664568993",
+    "McDermott Will & Schulte": {
+      "platformId": "41091",
+      "hsId": "27549382748",
       "segment": ""
     },
-    "Willow Tree Credit Partners": {
-      "platformId": "19744",
-      "hsId": "54511252107",
+    "M&G Investments": {
+      "platformId": "12346",
+      "hsId": "38351022656",
+      "segment": ""
+    },
+    "Clearlake Capital Group": {
+      "platformId": "12098",
+      "hsId": "54254290322",
       "segment": "Enterprise"
     },
-    "Woodson Capital": {
-      "platformId": "20808",
-      "hsId": "18002593699",
+    "Stavtar Solutions": {
+      "platformId": "43998",
+      "hsId": "53848185868",
+      "segment": ""
+    },
+    "Warburg Pincus": {
+      "platformId": "11742",
+      "hsId": "9266912914",
+      "segment": ""
+    },
+    "GreyMatter Capital": {
+      "platformId": "40745",
+      "hsId": "41134956350",
+      "segment": ""
+    },
+    "Three Fold Strategies": {
+      "platformId": "23142",
+      "hsId": "17641897076",
+      "segment": ""
+    },
+    "Temporis Capital": {
+      "platformId": "20292",
+      "hsId": "7262638966",
+      "segment": ""
+    },
+    "Winthrop & Weinstine": {
+      "platformId": "43692",
+      "hsId": "41744869208",
+      "segment": ""
+    },
+    "Swiss Re America Holding Corporation": {
+      "platformId": "19399",
+      "hsId": "4366734715",
+      "segment": "Enterprise"
+    },
+    "Platonic": {
+      "platformId": "40033",
+      "hsId": "40240759829",
+      "segment": ""
+    },
+    "Quantech Solution Partners": {
+      "platformId": "39590",
+      "hsId": "53849906841",
+      "segment": "Enterprise"
+    },
+    "FOVC": {
+      "platformId": "21185",
+      "hsId": "10513353338",
       "segment": "Scale"
     },
-    "ITE Management": {
-      "platformId": "14222",
-      "hsId": "4316137173",
+    "FIRSTavenue": {
+      "platformId": "14687",
+      "hsId": "37052409949",
+      "segment": ""
+    },
+    "JNE Partners LLP": {
+      "platformId": "43635",
+      "hsId": "6212342609",
       "segment": "Enterprise"
     },
-    "Hebbia": {
-      "platformId": "41420",
-      "hsId": "49405048889",
+    "Leadenhall Capital Partners": {
+      "platformId": "3218",
+      "hsId": "5827900486",
+      "segment": "Enterprise"
+    },
+    "Northwest Investment Management": {
+      "platformId": "43041",
+      "hsId": "40288583284",
+      "segment": ""
+    },
+    "Karl Kapital": {
+      "platformId": "19358",
+      "hsId": "29839279442",
+      "segment": "Enterprise"
+    },
+    "QUAD Investment Management": {
+      "platformId": "3482",
+      "hsId": "31181242539",
+      "segment": ""
+    },
+    "IFM Investors": {
+      "platformId": "12373",
+      "hsId": "44492470839",
+      "segment": "Enterprise"
+    },
+    "Madera Technology Partners": {
+      "platformId": "2699",
+      "hsId": "4426973436",
+      "segment": ""
+    },
+    "ARR Investment Partners": {
+      "platformId": "816",
+      "hsId": "4230815956",
+      "segment": "Enterprise"
+    },
+    "Pollen Street Capital": {
+      "platformId": "2834",
+      "hsId": "5408635931",
+      "segment": "Enterprise"
+    },
+    "Cortland Credit Group": {
+      "platformId": "14680",
+      "hsId": "32119786096",
+      "segment": ""
+    },
+    "Norm Ai": {
+      "platformId": "43580",
+      "hsId": "55866411392",
+      "segment": ""
+    },
+    "Propy": {
+      "platformId": "41516",
+      "hsId": "37564154460",
+      "segment": ""
+    },
+    "Farmland LP": {
+      "platformId": "38901",
+      "hsId": "36650781794",
+      "segment": "Scale"
+    },
+    "Tor Investment Management": {
+      "platformId": "377",
+      "hsId": "4231344032",
+      "segment": ""
+    },
+    "Greenbelt Capital Partners": {
+      "platformId": "40903",
+      "hsId": "50517785661",
+      "segment": ""
+    },
+    "Grow Alpha Asia Pte Ltd": {
+      "platformId": "11581",
+      "hsId": "10013486718",
+      "segment": ""
+    },
+    "Timberland Investment Resources, LLC": {
+      "platformId": "23185",
+      "hsId": "23470260509",
+      "segment": ""
+    },
+    "Envestnet Yodlee": {
+      "platformId": "5329",
+      "hsId": "40650546290",
+      "segment": ""
+    },
+    "STANLIB": {
+      "platformId": "1426",
+      "hsId": "4409077114",
+      "segment": ""
+    },
+    "Mubadala Capital": {
+      "platformId": "4561",
+      "hsId": "39517706123",
+      "segment": ""
+    },
+    "Select Equity Group": {
+      "platformId": "4134",
+      "hsId": "37231671438",
+      "segment": ""
+    },
+    "Masters Capital Management, LLC": {
+      "platformId": "2714",
+      "hsId": "5221175822",
+      "segment": "Enterprise"
+    },
+    "Alpha Financial Markets Consulting UK Limited": {
+      "platformId": "22234",
+      "hsId": "23445860654",
+      "segment": ""
+    },
+    "Verlinvest Asia": {
+      "platformId": "36678",
+      "hsId": "48619349039",
+      "segment": ""
+    },
+    "Alphahill Capital": {
+      "platformId": "31287",
+      "hsId": "10472980860",
+      "segment": "Enterprise"
+    },
+    "Moonfare": {
+      "platformId": "9753",
+      "hsId": "23481964608",
+      "segment": ""
+    },
+    "Hondius Capital Management": {
+      "platformId": "370",
+      "hsId": "4231329623",
+      "segment": ""
+    },
+    "Arini": {
+      "platformId": "6462",
+      "hsId": "34742929217",
+      "segment": "Enterprise"
+    },
+    "G Squared": {
+      "platformId": "40883",
+      "hsId": "33409318673",
+      "segment": "Enterprise"
+    },
+    "LexPro Research LLC": {
+      "platformId": "44701",
+      "hsId": "52501074320",
       "segment": ""
     },
     "CBRE Investment Management": {
@@ -20711,199 +20931,24 @@
       "hsId": "53848187228",
       "segment": ""
     },
-    "Temporis Capital": {
-      "platformId": "20292",
-      "hsId": "7262638966",
+    "Fourier Capital Management Limited": {
+      "platformId": "42297",
+      "hsId": "34232025007",
       "segment": ""
-    },
-    "Norm Ai": {
-      "platformId": "43580",
-      "hsId": "55866411392",
-      "segment": ""
-    },
-    "Three Fold Strategies": {
-      "platformId": "23142",
-      "hsId": "17641897076",
-      "segment": ""
-    },
-    "FOVC": {
-      "platformId": "21185",
-      "hsId": "10513353338",
-      "segment": "Scale"
-    },
-    "ARR Investment Partners": {
-      "platformId": "816",
-      "hsId": "4230815956",
-      "segment": "Enterprise"
-    },
-    "FIRSTavenue": {
-      "platformId": "14687",
-      "hsId": "37052409949",
-      "segment": ""
-    },
-    "Pollen Street Capital": {
-      "platformId": "2834",
-      "hsId": "5408635931",
-      "segment": "Enterprise"
-    },
-    "Platonic": {
-      "platformId": "40033",
-      "hsId": "40240759829",
-      "segment": ""
-    },
-    "Arini": {
-      "platformId": "6462",
-      "hsId": "34742929217",
-      "segment": "Enterprise"
-    },
-    "Karl Kapital": {
-      "platformId": "19358",
-      "hsId": "29839279442",
-      "segment": "Enterprise"
     },
     "325 Capital": {
       "platformId": "14230",
       "hsId": "5635010889",
       "segment": "Scale"
     },
-    "GreyMatter Capital": {
-      "platformId": "40745",
-      "hsId": "41134956350",
-      "segment": ""
-    },
-    "Cortland Credit Group": {
-      "platformId": "14680",
-      "hsId": "32119786096",
-      "segment": ""
-    },
-    "McDermott Will & Schulte": {
-      "platformId": "41091",
-      "hsId": "27549382748",
-      "segment": ""
-    },
-    "Winthrop & Weinstine": {
-      "platformId": "43692",
-      "hsId": "41744869208",
-      "segment": ""
-    },
-    "Propy": {
-      "platformId": "41516",
-      "hsId": "37564154460",
-      "segment": ""
-    },
-    "M&G Investments": {
-      "platformId": "12346",
-      "hsId": "38351022656",
-      "segment": ""
-    },
-    "Tor Investment Management": {
-      "platformId": "377",
-      "hsId": "4231344032",
-      "segment": ""
-    },
-    "Leadenhall Capital Partners": {
-      "platformId": "3218",
-      "hsId": "5827900486",
-      "segment": "Enterprise"
-    },
-    "Alphahill Capital": {
-      "platformId": "31287",
-      "hsId": "10472980860",
-      "segment": "Enterprise"
-    },
-    "Madera Technology Partners": {
-      "platformId": "2699",
-      "hsId": "4426973436",
-      "segment": ""
-    },
-    "Verlinvest Asia": {
-      "platformId": "36678",
-      "hsId": "48619349039",
-      "segment": ""
-    },
-    "QUAD Investment Management": {
-      "platformId": "3482",
-      "hsId": "31181242539",
-      "segment": ""
-    },
-    "Stavtar Solutions": {
-      "platformId": "43998",
-      "hsId": "53848185868",
-      "segment": ""
-    },
-    "Greenbelt Capital Partners": {
-      "platformId": "40903",
-      "hsId": "50517785661",
-      "segment": ""
-    },
-    "Warburg Pincus": {
-      "platformId": "11742",
-      "hsId": "9266912914",
-      "segment": ""
-    },
-    "Moonfare": {
-      "platformId": "9753",
-      "hsId": "23481964608",
-      "segment": ""
-    },
-    "Masters Capital Management, LLC": {
-      "platformId": "2714",
-      "hsId": "5221175822",
-      "segment": "Enterprise"
-    },
-    "Hondius Capital Management": {
-      "platformId": "370",
-      "hsId": "4231329623",
-      "segment": ""
-    },
     "Strategic Value Partners": {
       "platformId": "12496",
       "hsId": "54254107474",
       "segment": ""
     },
-    "Northwest Investment Management": {
-      "platformId": "43041",
-      "hsId": "40288583284",
-      "segment": ""
-    },
-    "Alpha Financial Markets Consulting UK Limited": {
-      "platformId": "22234",
-      "hsId": "23445860654",
-      "segment": ""
-    },
-    "IFM Investors": {
-      "platformId": "12373",
-      "hsId": "44492470839",
-      "segment": "Enterprise"
-    },
-    "JNE Partners LLP": {
-      "platformId": "43635",
-      "hsId": "6212342609",
-      "segment": "Enterprise"
-    },
     "Paloma Partners": {
       "platformId": "495",
       "hsId": "48494533991",
-      "segment": ""
-    },
-    "Swiss Re America Holding Corporation": {
-      "platformId": "19399",
-      "hsId": "4366734715",
-      "segment": "Enterprise"
-    },
-    "Farmland LP": {
-      "platformId": "38901",
-      "hsId": "36650781794",
-      "segment": "Scale"
-    },
-    "Envestnet Yodlee": {
-      "platformId": "5329",
-      "hsId": "40650546290",
-      "segment": ""
-    },
-    "Timberland Investment Resources, LLC": {
-      "platformId": "23185",
-      "hsId": "23470260509",
       "segment": ""
     },
     "TriVista Capital Inc.": {
@@ -20911,89 +20956,44 @@
       "hsId": "4231323068",
       "segment": ""
     },
-    "LexPro Research LLC": {
-      "platformId": "44701",
-      "hsId": "52501074320",
-      "segment": ""
-    },
-    "G Squared": {
-      "platformId": "40883",
-      "hsId": "33409318673",
+    "Metropolitan Partners Group": {
+      "platformId": "41937",
+      "hsId": "7692537345",
       "segment": "Enterprise"
     },
-    "Fourier Capital Management Limited": {
-      "platformId": "42297",
-      "hsId": "34232025007",
+    "Dynamo Software": {
+      "platformId": "2329",
+      "hsId": "54004292674",
       "segment": ""
     },
-    "Clearlake Capital Group": {
-      "platformId": "12098",
-      "hsId": "54254290322",
+    "IceCap Group": {
+      "platformId": "19886",
+      "hsId": "4950109584",
       "segment": "Enterprise"
-    },
-    "Quantech Solution Partners": {
-      "platformId": "39590",
-      "hsId": "53849906841",
-      "segment": "Enterprise"
-    },
-    "Mubadala Capital": {
-      "platformId": "4561",
-      "hsId": "39517706123",
-      "segment": ""
-    },
-    "STANLIB": {
-      "platformId": "1426",
-      "hsId": "4409077114",
-      "segment": ""
-    },
-    "Select Equity Group": {
-      "platformId": "4134",
-      "hsId": "37231671438",
-      "segment": ""
-    },
-    "Grow Alpha Asia Pte Ltd": {
-      "platformId": "11581",
-      "hsId": "10013486718",
-      "segment": ""
-    },
-    "Scenic Management": {
-      "platformId": "40957",
-      "hsId": "26541882761",
-      "segment": "Scale"
-    },
-    "Tribune Investment Group LP": {
-      "platformId": "41977",
-      "hsId": "54896137495",
-      "segment": ""
-    },
-    "Greiphyn Heights Asset Management LP": {
-      "platformId": "319",
-      "hsId": "4231326928",
-      "segment": ""
     },
     "Talaria Capital": {
       "platformId": "243",
       "hsId": "16208838496",
       "segment": "Enterprise"
     },
-    "Skematic": {
-      "platformId": "41895",
-      "hsId": "55592628262",
-      "segment": ""
-    },
-    "East X LLP": {
-      "platformId": "7377",
-      "hsId": "6631837495",
-      "segment": ""
-    },
-    "DLD Asset Management": {
-      "platformId": "19476",
-      "hsId": "15761327231",
-      "segment": "Scale"
-    },
     "Kayenta": {
       "platformId": "44702",
       "hsId": "54662977167",
+      "segment": ""
+    },
+    "Tall Trees Capital Management, LP": {
+      "platformId": "1383",
+      "hsId": "45264111158",
+      "segment": "Scale"
+    },
+    "CF Private Equity": {
+      "platformId": "8954",
+      "hsId": "12008514087",
+      "segment": "Scale"
+    },
+    "Skematic": {
+      "platformId": "41895",
+      "hsId": "55592628262",
       "segment": ""
     },
     "Carta": {
@@ -21001,39 +21001,14 @@
       "hsId": "44200264266",
       "segment": ""
     },
-    "Dynamo Software": {
-      "platformId": "2329",
-      "hsId": "54004292674",
-      "segment": ""
-    },
-    "Achieve Partners": {
-      "platformId": "812",
-      "hsId": "37315213682",
+    "DLD Asset Management": {
+      "platformId": "19476",
+      "hsId": "15761327231",
       "segment": "Scale"
     },
-    "Tall Trees Capital Management, LP": {
-      "platformId": "1383",
-      "hsId": "45264111158",
-      "segment": "Scale"
-    },
-    "Algonquin Capital": {
-      "platformId": "946",
-      "hsId": "8975630848",
-      "segment": ""
-    },
-    "Peakhill Capital": {
-      "platformId": "20940",
-      "hsId": "54361424241",
-      "segment": ""
-    },
-    "Ridgemont Equity Partners": {
-      "platformId": "19920",
-      "hsId": "17248545087",
-      "segment": "Enterprise"
-    },
-    "Mesarete Capital LLP": {
-      "platformId": "39544",
-      "hsId": "22048687879",
+    "Sundance Bay": {
+      "platformId": "14461",
+      "hsId": "4426972410",
       "segment": "Enterprise"
     },
     "Arrow Capital": {
@@ -21041,49 +21016,14 @@
       "hsId": "23957239710",
       "segment": ""
     },
-    "Winton": {
-      "platformId": "14221",
-      "hsId": "40121941578",
-      "segment": "Enterprise"
-    },
-    "Ara Partners": {
-      "platformId": "23292",
-      "hsId": "31399919983",
-      "segment": "Enterprise"
-    },
-    "RBC Global Asset Management": {
-      "platformId": "43542",
-      "hsId": "54375472509",
+    "Greiphyn Heights Asset Management LP": {
+      "platformId": "319",
+      "hsId": "4231326928",
       "segment": ""
     },
-    "Mycor Capital Management": {
-      "platformId": "39354",
-      "hsId": "17588748049",
-      "segment": ""
-    },
-    "Pelham Global Financials Ltd": {
-      "platformId": "317",
-      "hsId": "30093745073",
-      "segment": ""
-    },
-    "Wells Fargo Bank": {
-      "platformId": "31371",
-      "hsId": "51690639652",
-      "segment": ""
-    },
-    "Sundance Bay": {
-      "platformId": "14461",
-      "hsId": "4426972410",
-      "segment": "Enterprise"
-    },
-    "Two Creeks Capital Management": {
-      "platformId": "1430",
-      "hsId": "4488756252",
-      "segment": ""
-    },
-    "Grafton Street Partners": {
-      "platformId": "38777",
-      "hsId": "8605922330",
+    "East X LLP": {
+      "platformId": "7377",
+      "hsId": "6631837495",
       "segment": ""
     },
     "Invesco": {
@@ -21091,14 +21031,9 @@
       "hsId": "23476301371",
       "segment": ""
     },
-    "LBP AM": {
-      "platformId": "2090",
-      "hsId": "32166330034",
-      "segment": ""
-    },
-    "Leucadia Asset Management": {
-      "platformId": "1811",
-      "hsId": "54373926526",
+    "Pelham Global Financials Ltd": {
+      "platformId": "317",
+      "hsId": "30093745073",
       "segment": ""
     },
     "Brummer & Partners": {
@@ -21106,9 +21041,54 @@
       "hsId": "31039173641",
       "segment": ""
     },
-    "Whitefort Capital": {
-      "platformId": "19817",
-      "hsId": "10954200723",
+    "Leucadia Asset Management": {
+      "platformId": "1811",
+      "hsId": "54373926526",
+      "segment": ""
+    },
+    "Peakhill Capital": {
+      "platformId": "20940",
+      "hsId": "54361424241",
+      "segment": ""
+    },
+    "Achieve Partners": {
+      "platformId": "812",
+      "hsId": "37315213682",
+      "segment": "Scale"
+    },
+    "Scenic Management": {
+      "platformId": "40957",
+      "hsId": "26541882761",
+      "segment": "Scale"
+    },
+    "Ridgemont Equity Partners": {
+      "platformId": "19920",
+      "hsId": "17248545087",
+      "segment": "Enterprise"
+    },
+    "Mycor Capital Management": {
+      "platformId": "39354",
+      "hsId": "17588748049",
+      "segment": ""
+    },
+    "TrueBridge Capital Partners": {
+      "platformId": "119",
+      "hsId": "54839769430",
+      "segment": ""
+    },
+    "Winton": {
+      "platformId": "14221",
+      "hsId": "40121941578",
+      "segment": "Enterprise"
+    },
+    "Arpeggio Investment Management": {
+      "platformId": "21235",
+      "hsId": "31920873309",
+      "segment": "Scale"
+    },
+    "Crabel Capital Management": {
+      "platformId": "3539",
+      "hsId": "4426900381",
       "segment": "Enterprise"
     },
     "Vellichor Management LP": {
@@ -21116,20 +21096,70 @@
       "hsId": "23459988063",
       "segment": "Enterprise"
     },
-    "Crabel Capital Management": {
-      "platformId": "3539",
-      "hsId": "4426900381",
+    "Mesarete Capital LLP": {
+      "platformId": "39544",
+      "hsId": "22048687879",
       "segment": "Enterprise"
     },
-    "CF Private Equity": {
-      "platformId": "8954",
-      "hsId": "12008514087",
+    "TrustServe": {
+      "platformId": "8207",
+      "hsId": "8409394805",
+      "segment": ""
+    },
+    "RBC Global Asset Management": {
+      "platformId": "43542",
+      "hsId": "54375472509",
+      "segment": ""
+    },
+    "Ara Partners": {
+      "platformId": "23292",
+      "hsId": "31399919983",
+      "segment": "Enterprise"
+    },
+    "Whitefort Capital": {
+      "platformId": "19817",
+      "hsId": "10954200723",
+      "segment": "Enterprise"
+    },
+    "LBP AM": {
+      "platformId": "2090",
+      "hsId": "32166330034",
+      "segment": ""
+    },
+    "Wells Fargo Bank": {
+      "platformId": "31371",
+      "hsId": "51690639652",
+      "segment": ""
+    },
+    "Algonquin Capital": {
+      "platformId": "946",
+      "hsId": "8975630848",
+      "segment": ""
+    },
+    "Grafton Street Partners": {
+      "platformId": "38777",
+      "hsId": "8605922330",
+      "segment": ""
+    },
+    "Bayforest Capital Limited": {
+      "platformId": "39342",
+      "hsId": "54803299856",
+      "segment": ""
+    },
+    "5AM Ventures": {
+      "platformId": "44819",
+      "hsId": "22047556946",
       "segment": "Scale"
     },
-    "IceCap Group": {
-      "platformId": "19886",
-      "hsId": "4950109584",
-      "segment": "Enterprise"
+    "Tribune Investment Group LP": {
+      "platformId": "41977",
+      "hsId": "54896137495",
+      "segment": ""
+    },
+    "Two Creeks Capital Management": {
+      "platformId": "1430",
+      "hsId": "4488756252",
+      "segment": ""
     },
     "Ishara Investments": {
       "platformId": "19243",
@@ -21141,44 +21171,34 @@
       "hsId": "52881926578",
       "segment": ""
     },
-    "5AM Ventures": {
-      "platformId": "44819",
-      "hsId": "22047556946",
-      "segment": "Scale"
-    },
-    "Metropolitan Partners Group": {
-      "platformId": "41937",
-      "hsId": "7692537345",
-      "segment": "Enterprise"
-    },
-    "TrueBridge Capital Partners": {
-      "platformId": "119",
-      "hsId": "54839769430",
+    "Compass Rose Asset Management": {
+      "platformId": "11261",
+      "hsId": "9589776784",
       "segment": ""
     },
-    "Bayforest Capital Limited": {
-      "platformId": "39342",
-      "hsId": "54803299856",
+    "Athena Capital": {
+      "platformId": "42834",
+      "hsId": "46734825903",
       "segment": ""
     },
-    "Arpeggio Investment Management": {
-      "platformId": "21235",
-      "hsId": "31920873309",
-      "segment": "Scale"
-    },
-    "TrustServe": {
-      "platformId": "8207",
-      "hsId": "8409394805",
+    "H2O Asset Management": {
+      "platformId": "749",
+      "hsId": "19715989075",
       "segment": ""
     },
-    "DeepWork Capital": {
-      "platformId": "11994",
-      "hsId": "38347795303",
+    "Laurel Lake Advisors": {
+      "platformId": "44317",
+      "hsId": "49527554840",
       "segment": ""
     },
-    "aMoon": {
-      "platformId": "11442",
-      "hsId": "9368121928",
+    "Kikaku Management Lrd.": {
+      "platformId": "3421",
+      "hsId": "5937261697",
+      "segment": ""
+    },
+    "Ashley - Sales Test May": {
+      "platformId": "101987 ",
+      "hsId": "54711830662",
       "segment": ""
     },
     "Viewpoint Ventures": {
@@ -21186,24 +21206,9 @@
       "hsId": "18452604468",
       "segment": "Scale"
     },
-    "Drury": {
-      "platformId": "21350",
-      "hsId": "51621296226",
-      "segment": ""
-    },
-    "MYDA Advisors": {
-      "platformId": "3633",
-      "hsId": "6103097903",
-      "segment": "Enterprise"
-    },
-    "Voss Capital": {
-      "platformId": "6065",
-      "hsId": "30250073703",
-      "segment": ""
-    },
-    "PGIM": {
-      "platformId": "43151",
-      "hsId": "54350660483",
+    "BEX Capital": {
+      "platformId": "32951",
+      "hsId": "9807220906",
       "segment": ""
     },
     "LongRange Capital": {
@@ -21216,150 +21221,40 @@
       "hsId": "29664943024",
       "segment": "Enterprise"
     },
-    "Ashley - Sales Test May": {
-      "platformId": "101987 ",
-      "hsId": "54711830662",
-      "segment": ""
-    },
-    "BEX Capital": {
-      "platformId": "32951",
-      "hsId": "9807220906",
-      "segment": ""
-    },
-    "Ascenta Capital": {
-      "platformId": "20129",
-      "hsId": "17800118648",
-      "segment": "Scale"
-    },
-    "Blue Orca Capital": {
-      "platformId": "6345",
-      "hsId": "6806414491",
-      "segment": ""
-    },
-    "Arche Capital": {
-      "platformId": "20915",
-      "hsId": "18383142957",
-      "segment": ""
-    },
-    "RV Capital": {
-      "platformId": "42967",
-      "hsId": "38656356514",
-      "segment": ""
+    "MYDA Advisors": {
+      "platformId": "3633",
+      "hsId": "6103097903",
+      "segment": "Enterprise"
     },
     "Alphidence Capital Ltd": {
       "platformId": "9012",
       "hsId": "4943288498",
       "segment": "Scale"
     },
-    "AREX Capital Management, LP": {
-      "platformId": "3511",
-      "hsId": "53157976122",
-      "segment": ""
-    },
-    "Compass Rose Asset Management": {
-      "platformId": "11261",
-      "hsId": "9589776784",
-      "segment": ""
-    },
-    "H2O Asset Management": {
-      "platformId": "749",
-      "hsId": "19715989075",
-      "segment": ""
-    },
-    "Carbon Direct Capital": {
-      "platformId": "16377",
-      "hsId": "10071156000",
-      "segment": ""
-    },
-    "Transwestern": {
-      "platformId": "19084",
-      "hsId": "28549055392",
-      "segment": ""
-    },
-    "Kikaku Management Lrd.": {
-      "platformId": "3421",
-      "hsId": "5937261697",
-      "segment": ""
-    },
-    "Tempest": {
-      "platformId": "14395",
-      "hsId": "10087247459",
-      "segment": ""
-    },
-    "Amitis Capital": {
-      "platformId": "22212",
-      "hsId": "26686726274",
+    "Ascenta Capital": {
+      "platformId": "20129",
+      "hsId": "17800118648",
       "segment": "Scale"
+    },
+    "FINBACK INVESTMENT PARTNERS": {
+      "platformId": "15052",
+      "hsId": "31911883944",
+      "segment": ""
     },
     "TradeFlow Capital Management Pte Ltd": {
       "platformId": "3251",
       "hsId": "5827892044",
       "segment": ""
     },
-    "Federated Hermes": {
-      "platformId": "4086",
-      "hsId": "33405427052",
-      "segment": ""
-    },
-    "Laurel Lake Advisors": {
-      "platformId": "44317",
-      "hsId": "49527554840",
-      "segment": ""
-    },
-    "Alpha Wealth Funds": {
-      "platformId": "11107",
-      "hsId": "4316191367",
-      "segment": ""
-    },
-    "Challenger Solutions": {
-      "platformId": "43537",
-      "hsId": "39289464198",
-      "segment": "Enterprise"
-    },
-    "Caius Capital": {
-      "platformId": "14390",
-      "hsId": "4426183093",
-      "segment": ""
-    },
-    "Abra Capital Management LP": {
-      "platformId": "6922",
-      "hsId": "7300590244",
-      "segment": "Scale"
-    },
     "Cooper Creek Partners": {
       "platformId": "2708",
       "hsId": "5217300725",
       "segment": ""
     },
-    "alana test": {
-      "platformId": "42552",
-      "hsId": "35252474765",
-      "segment": ""
-    },
-    "Lytical Ventures": {
-      "platformId": "458",
-      "hsId": "4230698492",
-      "segment": ""
-    },
-    "Rogers Investment Advisors": {
-      "platformId": "6548",
-      "hsId": "31117974399",
-      "segment": ""
-    },
-    "Lateral Investment Management": {
-      "platformId": "12183",
-      "hsId": "4950057002",
+    "Amitis Capital": {
+      "platformId": "22212",
+      "hsId": "26686726274",
       "segment": "Scale"
-    },
-    "RedBird Capital": {
-      "platformId": "40613",
-      "hsId": "4774370017",
-      "segment": "Enterprise"
-    },
-    "Hillpointe": {
-      "platformId": "20123",
-      "hsId": "9834299226",
-      "segment": ""
     },
     "Ardian": {
       "platformId": "9413",
@@ -21371,14 +21266,34 @@
       "hsId": "23458751363",
       "segment": ""
     },
-    "FINBACK INVESTMENT PARTNERS": {
-      "platformId": "15052",
-      "hsId": "31911883944",
+    "Challenger Solutions": {
+      "platformId": "43537",
+      "hsId": "39289464198",
+      "segment": "Enterprise"
+    },
+    "PGIM": {
+      "platformId": "43151",
+      "hsId": "54350660483",
       "segment": ""
     },
-    "Stylus Capital": {
-      "platformId": "23131",
-      "hsId": "9305991793",
+    "aMoon": {
+      "platformId": "11442",
+      "hsId": "9368121928",
+      "segment": ""
+    },
+    "RedBird Capital": {
+      "platformId": "40613",
+      "hsId": "4774370017",
+      "segment": "Enterprise"
+    },
+    "Tempest": {
+      "platformId": "14395",
+      "hsId": "10087247459",
+      "segment": ""
+    },
+    "Federated Hermes": {
+      "platformId": "4086",
+      "hsId": "33405427052",
       "segment": ""
     },
     "Engine Capital": {
@@ -21386,9 +21301,124 @@
       "hsId": "4314892965",
       "segment": "Scale"
     },
-    "King Street Capital Management, L.P.": {
-      "platformId": "3359",
-      "hsId": "53145180320",
+    "Carbon Direct Capital": {
+      "platformId": "16377",
+      "hsId": "10071156000",
+      "segment": ""
+    },
+    "Hillpointe": {
+      "platformId": "20123",
+      "hsId": "9834299226",
+      "segment": ""
+    },
+    "Alpha Wealth Funds": {
+      "platformId": "11107",
+      "hsId": "4316191367",
+      "segment": ""
+    },
+    "Jupiter Asset Management": {
+      "platformId": "41001",
+      "hsId": "4618789747",
+      "segment": "Enterprise"
+    },
+    "Abra Capital Management LP": {
+      "platformId": "6922",
+      "hsId": "7300590244",
+      "segment": "Scale"
+    },
+    "Lateral Investment Management": {
+      "platformId": "12183",
+      "hsId": "4950057002",
+      "segment": "Scale"
+    },
+    "Rockhampton Management": {
+      "platformId": "6552",
+      "hsId": "7341252997",
+      "segment": "Enterprise"
+    },
+    "alana test": {
+      "platformId": "42552",
+      "hsId": "35252474765",
+      "segment": ""
+    },
+    "Societe Generale": {
+      "platformId": "5598",
+      "hsId": "35875568154",
+      "segment": ""
+    },
+    "Rogers Investment Advisors": {
+      "platformId": "6548",
+      "hsId": "31117974399",
+      "segment": ""
+    },
+    "Transwestern": {
+      "platformId": "19084",
+      "hsId": "28549055392",
+      "segment": ""
+    },
+    "Lytical Ventures": {
+      "platformId": "458",
+      "hsId": "4230698492",
+      "segment": ""
+    },
+    "Deviation Capital": {
+      "platformId": "43918",
+      "hsId": "8975729957",
+      "segment": "Enterprise"
+    },
+    "AREX Capital Management, LP": {
+      "platformId": "3511",
+      "hsId": "53157976122",
+      "segment": ""
+    },
+    "Voss Capital": {
+      "platformId": "6065",
+      "hsId": "30250073703",
+      "segment": ""
+    },
+    "Ava Labs": {
+      "platformId": "8272",
+      "hsId": "54446617189",
+      "segment": ""
+    },
+    "Caius Capital": {
+      "platformId": "14390",
+      "hsId": "4426183093",
+      "segment": ""
+    },
+    "Drury": {
+      "platformId": "21350",
+      "hsId": "51621296226",
+      "segment": ""
+    },
+    "Stylus Capital": {
+      "platformId": "23131",
+      "hsId": "9305991793",
+      "segment": ""
+    },
+    "Alliant Insurance Services": {
+      "platformId": "21011",
+      "hsId": "54711517028",
+      "segment": ""
+    },
+    "Springs Capital (Hong Kong) Ltd": {
+      "platformId": "11553",
+      "hsId": "4426966240",
+      "segment": "Enterprise"
+    },
+    "RV Capital": {
+      "platformId": "42967",
+      "hsId": "38656356514",
+      "segment": ""
+    },
+    "Arche Capital": {
+      "platformId": "20915",
+      "hsId": "18383142957",
+      "segment": ""
+    },
+    "Blue Orca Capital": {
+      "platformId": "6345",
+      "hsId": "6806414491",
       "segment": ""
     },
     "Practical Venture Capital": {
@@ -21396,14 +21426,24 @@
       "hsId": "15167149190",
       "segment": "Scale"
     },
-    "Jupiter Asset Management": {
-      "platformId": "41001",
-      "hsId": "4618789747",
-      "segment": "Enterprise"
+    "Gnomon Alpha LLC": {
+      "platformId": "3715",
+      "hsId": "6012629517",
+      "segment": "Scale"
     },
-    "Athena Capital": {
-      "platformId": "42834",
-      "hsId": "46734825903",
+    "Buffalo Thorn Capital Management": {
+      "platformId": "44842",
+      "hsId": "19194092377",
+      "segment": "Scale"
+    },
+    "King Street Capital Management, L.P.": {
+      "platformId": "3359",
+      "hsId": "53145180320",
+      "segment": ""
+    },
+    "DeepWork Capital": {
+      "platformId": "11994",
+      "hsId": "38347795303",
       "segment": ""
     },
     "Arc70 Capital": {
@@ -21416,74 +21456,9 @@
       "hsId": "39767426386",
       "segment": ""
     },
-    "Gnomon Alpha LLC": {
-      "platformId": "3715",
-      "hsId": "6012629517",
-      "segment": "Scale"
-    },
-    "Buffalo Thorn Capital Management": {
-      "platformId": "44842",
-      "hsId": "19194092377",
-      "segment": "Scale"
-    },
-    "Ava Labs": {
-      "platformId": "8272",
-      "hsId": "54446617189",
-      "segment": ""
-    },
-    "Societe Generale": {
-      "platformId": "5598",
-      "hsId": "35875568154",
-      "segment": ""
-    },
-    "Deviation Capital": {
-      "platformId": "43918",
-      "hsId": "8975729957",
-      "segment": "Enterprise"
-    },
-    "Rockhampton Management": {
-      "platformId": "6552",
-      "hsId": "7341252997",
-      "segment": "Enterprise"
-    },
-    "Alliant Insurance Services": {
-      "platformId": "21011",
-      "hsId": "54711517028",
-      "segment": ""
-    },
-    "Springs Capital (Hong Kong) Ltd": {
-      "platformId": "11553",
-      "hsId": "4426966240",
-      "segment": "Enterprise"
-    },
-    "Mercer": {
-      "platformId": "40611",
-      "hsId": "54370676506",
-      "segment": ""
-    },
-    "Pharos Capital": {
-      "platformId": "20628",
-      "hsId": "4427080513",
-      "segment": ""
-    },
-    "XAI Asset Management": {
-      "platformId": "18846",
-      "hsId": "8975663218",
-      "segment": "Scale"
-    },
-    "Pacific Way Capital Management LLC": {
-      "platformId": "44060",
-      "hsId": "47334296321",
-      "segment": ""
-    },
-    "Caygan Capital Ltd.": {
-      "platformId": "3990",
-      "hsId": "4316317642",
-      "segment": "Enterprise"
-    },
-    "Panga Capital": {
-      "platformId": "19889",
-      "hsId": "17772577945",
+    "Alvarez & Marsal": {
+      "platformId": "41786",
+      "hsId": "38746638446",
       "segment": ""
     },
     "Corre Partners Management, LLC": {
@@ -21491,129 +21466,9 @@
       "hsId": "33550103225",
       "segment": ""
     },
-    "Linse Capital": {
-      "platformId": "14464",
-      "hsId": "10355058304",
-      "segment": ""
-    },
-    "Lewis Brisbois": {
-      "platformId": "17921",
-      "hsId": "23485266991",
-      "segment": ""
-    },
-    "Alvarez & Marsal": {
-      "platformId": "41786",
-      "hsId": "38746638446",
-      "segment": ""
-    },
-    "New Mountain Capital": {
-      "platformId": "292",
-      "hsId": "8975724306",
-      "segment": ""
-    },
-    "Sentinel Dome Partners": {
-      "platformId": "2620",
-      "hsId": "4999005590",
-      "segment": ""
-    },
-    "Blantyre Capital Ltd": {
-      "platformId": "42844",
-      "hsId": "44444609634",
-      "segment": ""
-    },
-    "Bayview Asset Management": {
-      "platformId": "11682",
-      "hsId": "37010498657",
-      "segment": "Enterprise"
-    },
-    "Sturbridge Capital": {
-      "platformId": "8966",
-      "hsId": "23468725433",
-      "segment": ""
-    },
-    "Amansa Capital Pte": {
-      "platformId": "23128",
-      "hsId": "9306116194",
-      "segment": "Scale"
-    },
-    "Tolis Advisors": {
-      "platformId": "23237",
-      "hsId": "22068889092",
-      "segment": "Scale"
-    },
-    "PwC": {
-      "platformId": "12455",
-      "hsId": "4680703942",
-      "segment": ""
-    },
-    "Impactive Capital": {
-      "platformId": "1582",
-      "hsId": "4559229395",
-      "segment": "Enterprise"
-    },
     "Aqua Lake Capital": {
       "platformId": "42278",
       "hsId": "40121975938",
-      "segment": ""
-    },
-    "GAM Investments": {
-      "platformId": "22943",
-      "hsId": "36262513963",
-      "segment": ""
-    },
-    "Ruken Capital": {
-      "platformId": "44692",
-      "hsId": "52511832191",
-      "segment": ""
-    },
-    "Farallon Capital Management": {
-      "platformId": "4536",
-      "hsId": "32575246197",
-      "segment": ""
-    },
-    "Star Mountain Capital": {
-      "platformId": "20473",
-      "hsId": "10228949390",
-      "segment": "Enterprise"
-    },
-    "Growth Curve Capital": {
-      "platformId": "18661",
-      "hsId": "29859611812",
-      "segment": ""
-    },
-    "Blackstone Alternative Asset Management": {
-      "platformId": "1407",
-      "hsId": "38349332575",
-      "segment": ""
-    },
-    "Riposte Capital": {
-      "platformId": "43977",
-      "hsId": "9306116219",
-      "segment": "Scale"
-    },
-    "Moorstone": {
-      "platformId": "44473",
-      "hsId": "50735600525",
-      "segment": ""
-    },
-    "Blackford Capital": {
-      "platformId": "42843",
-      "hsId": "37647696507",
-      "segment": ""
-    },
-    "9823 Capital": {
-      "platformId": "22575",
-      "hsId": "19250240562",
-      "segment": "Scale"
-    },
-    "RPIA": {
-      "platformId": "974",
-      "hsId": "37000543123",
-      "segment": ""
-    },
-    "Shorecliff Asset Management Company LLC": {
-      "platformId": "43431",
-      "hsId": "41552148274",
       "segment": ""
     },
     "DIFC": {
@@ -21621,29 +21476,99 @@
       "hsId": "37182934666",
       "segment": ""
     },
-    "Goodman Capital": {
-      "platformId": "43930",
-      "hsId": "4426919797",
-      "segment": "Enterprise"
+    "Sentinel Dome Partners": {
+      "platformId": "2620",
+      "hsId": "4999005590",
+      "segment": ""
+    },
+    "Pacific Way Capital Management LLC": {
+      "platformId": "44060",
+      "hsId": "47334296321",
+      "segment": ""
+    },
+    "Shorecliff Asset Management Company LLC": {
+      "platformId": "43431",
+      "hsId": "41552148274",
+      "segment": ""
+    },
+    "9823 Capital": {
+      "platformId": "22575",
+      "hsId": "19250240562",
+      "segment": "Scale"
     },
     "EJF Capital LP": {
       "platformId": "494",
       "hsId": "40788663212",
       "segment": "Enterprise"
     },
-    "Trybe Capital Management LP": {
-      "platformId": "2721",
-      "hsId": "23468420215",
-      "segment": ""
-    },
     "1DP Investment Management Ltd": {
       "platformId": "42576",
       "hsId": "38253992745",
       "segment": "Enterprise"
     },
-    "Brighton Park Capital": {
-      "platformId": "150",
-      "hsId": "4230810444",
+    "Linse Capital": {
+      "platformId": "14464",
+      "hsId": "10355058304",
+      "segment": ""
+    },
+    "Amansa Capital Pte": {
+      "platformId": "23128",
+      "hsId": "9306116194",
+      "segment": "Scale"
+    },
+    "Blackstone Alternative Asset Management": {
+      "platformId": "1407",
+      "hsId": "38349332575",
+      "segment": ""
+    },
+    "PwC": {
+      "platformId": "12455",
+      "hsId": "4680703942",
+      "segment": ""
+    },
+    "Riposte Capital": {
+      "platformId": "43977",
+      "hsId": "9306116219",
+      "segment": "Scale"
+    },
+    "Bayview Asset Management": {
+      "platformId": "11682",
+      "hsId": "37010498657",
+      "segment": "Enterprise"
+    },
+    "Lewis Brisbois": {
+      "platformId": "17921",
+      "hsId": "23485266991",
+      "segment": ""
+    },
+    "GAM Investments": {
+      "platformId": "22943",
+      "hsId": "36262513963",
+      "segment": ""
+    },
+    "Tolis Advisors": {
+      "platformId": "23237",
+      "hsId": "22068889092",
+      "segment": "Scale"
+    },
+    "Farallon Capital Management": {
+      "platformId": "4536",
+      "hsId": "32575246197",
+      "segment": ""
+    },
+    "Ruken Capital": {
+      "platformId": "44692",
+      "hsId": "52511832191",
+      "segment": ""
+    },
+    "Blantyre Capital Ltd": {
+      "platformId": "42844",
+      "hsId": "44444609634",
+      "segment": ""
+    },
+    "Moorstone": {
+      "platformId": "44473",
+      "hsId": "50735600525",
       "segment": ""
     },
     "Soapstone Management, LP.": {
@@ -21651,9 +21576,34 @@
       "hsId": "10309987107",
       "segment": ""
     },
+    "Impactive Capital": {
+      "platformId": "1582",
+      "hsId": "4559229395",
+      "segment": "Enterprise"
+    },
+    "Growth Curve Capital": {
+      "platformId": "18661",
+      "hsId": "29859611812",
+      "segment": ""
+    },
     "MFA (Managed Funds Association)": {
       "platformId": "23246",
       "hsId": "39777232249",
+      "segment": ""
+    },
+    "Sturbridge Capital": {
+      "platformId": "8966",
+      "hsId": "23468725433",
+      "segment": ""
+    },
+    "New Mountain Capital": {
+      "platformId": "292",
+      "hsId": "8975724306",
+      "segment": ""
+    },
+    "Panga Capital": {
+      "platformId": "19889",
+      "hsId": "17772577945",
       "segment": ""
     },
     "SRO Capital": {
@@ -21661,74 +21611,74 @@
       "hsId": "18252549252",
       "segment": ""
     },
-    "B Capital": {
-      "platformId": "15124",
-      "hsId": "38351022645",
-      "segment": ""
-    },
-    "Worth Venture Partners": {
-      "platformId": "44149",
-      "hsId": "47566731157",
-      "segment": "Scale"
-    },
-    "Red Ember Capital": {
-      "platformId": "4073",
-      "hsId": "8359570325",
-      "segment": "Scale"
-    },
-    "Meritex": {
-      "platformId": "44289",
-      "hsId": "39368697197",
-      "segment": "Scale"
-    },
-    "Bain & Company": {
-      "platformId": "16786",
-      "hsId": "39522353331",
-      "segment": ""
-    },
-    "State Street Global Advisors SPDR": {
-      "platformId": "19306",
-      "hsId": "34991720866",
-      "segment": ""
-    },
-    "Marble Bar Asset Management": {
-      "platformId": "6413",
-      "hsId": "7075532916",
+    "Caygan Capital Ltd.": {
+      "platformId": "3990",
+      "hsId": "4316317642",
       "segment": "Enterprise"
     },
-    "Incline Investment Management": {
-      "platformId": "9212",
-      "hsId": "4316188488",
-      "segment": "Scale"
-    },
-    "Arcesium, LLC": {
-      "platformId": "2496",
-      "hsId": "34988420693",
-      "segment": ""
-    },
-    "BWCP, LP": {
-      "platformId": "758",
-      "hsId": "4231326931",
+    "Goodman Capital": {
+      "platformId": "43930",
+      "hsId": "4426919797",
       "segment": "Enterprise"
     },
-    "Alpha Compute Capital": {
-      "platformId": "44501",
-      "hsId": "49957827663",
-      "segment": "Scale"
-    },
-    "Shannon River Capital Management": {
-      "platformId": "43376",
-      "hsId": "4316316285",
-      "segment": "Enterprise"
-    },
-    "Golub Capital": {
-      "platformId": "67",
-      "hsId": "4231344036",
+    "Brighton Park Capital": {
+      "platformId": "150",
+      "hsId": "4230810444",
       "segment": ""
     },
-    "TCV": {
-      "platformId": "44943",
-      "hsId": "56048255584",
+    "Pharos Capital": {
+      "platformId": "20628",
+      "hsId": "4427080513",
+      "segment": ""
+    },
+    "Blackford Capital": {
+      "platformId": "42843",
+      "hsId": "37647696507",
+      "segment": ""
+    },
+    "Trybe Capital Management LP": {
+      "platformId": "2721",
+      "hsId": "23468420215",
+      "segment": ""
+    },
+    "Mercer": {
+      "platformId": "40611",
+      "hsId": "54370676506",
+      "segment": ""
+    },
+    "Star Mountain Capital": {
+      "platformId": "20473",
+      "hsId": "10228949390",
+      "segment": "Enterprise"
+    },
+    "XAI Asset Management": {
+      "platformId": "18846",
+      "hsId": "8975663218",
+      "segment": "Scale"
+    },
+    "RPIA": {
+      "platformId": "974",
+      "hsId": "37000543123",
+      "segment": ""
+    },
+    "AFBI LP": {
+      "platformId": "18660",
+      "hsId": "10212836195",
+      "segment": "Enterprise"
+    },
+    " Revelio Labs, Inc.": {
+      "platformId": "10580",
+      "hsId": "40213610344",
+      "segment": ""
+    },
+    "BPI France": {
+      "platformId": "42709",
+      "hsId": "36744188790",
+      "segment": ""
+    },
+    "Parus Finance": {
+      "platformId": "6822",
+      "hsId": "4426969991",
       "segment": ""
     },
     "Transformation Capital": {
@@ -21736,45 +21686,60 @@
       "hsId": "19716039294",
       "segment": "Enterprise"
     },
-    "Kyma Capital Limited": {
-      "platformId": "6157",
-      "hsId": "33702351977",
+    "NewVest": {
+      "platformId": "16265",
+      "hsId": "10130522651",
+      "segment": "Enterprise"
+    },
+    "Arcesium, LLC": {
+      "platformId": "2496",
+      "hsId": "34988420693",
+      "segment": ""
+    },
+    "Joele Frank": {
+      "platformId": "12282",
+      "hsId": "54366377331",
+      "segment": ""
+    },
+    "B Capital": {
+      "platformId": "15124",
+      "hsId": "38351022645",
+      "segment": ""
+    },
+    "Marble Bar Asset Management": {
+      "platformId": "6413",
+      "hsId": "7075532916",
+      "segment": "Enterprise"
+    },
+    "Bain & Company": {
+      "platformId": "16786",
+      "hsId": "39522353331",
+      "segment": ""
+    },
+    "Vesey Ventures": {
+      "platformId": "16963",
+      "hsId": "35141270439",
       "segment": "Scale"
     },
-    " Revelio Labs, Inc.": {
-      "platformId": "10580",
-      "hsId": "40213610344",
+    "Steadview Capital Management": {
+      "platformId": "14415",
+      "hsId": "9306137990",
       "segment": ""
     },
-    "MXC Global Management": {
-      "platformId": "21479",
-      "hsId": "23485266945",
+    "Red Ember Capital": {
+      "platformId": "4073",
+      "hsId": "8359570325",
+      "segment": "Scale"
+    },
+    "Duro Capital": {
+      "platformId": "1173",
+      "hsId": "38333285283",
       "segment": ""
     },
-    "LIM Advisors": {
-      "platformId": "952",
-      "hsId": "5157571797",
-      "segment": "Enterprise"
-    },
-    "BPI France": {
-      "platformId": "42709",
-      "hsId": "36744188790",
+    "Golub Capital": {
+      "platformId": "67",
+      "hsId": "4231344036",
       "segment": ""
-    },
-    "Centurion Asset Management Inc.": {
-      "platformId": "1468",
-      "hsId": "54662937353",
-      "segment": "Enterprise"
-    },
-    "Parus Finance": {
-      "platformId": "6822",
-      "hsId": "4426969991",
-      "segment": ""
-    },
-    "Millburn": {
-      "platformId": "6354",
-      "hsId": "55605095806",
-      "segment": "Enterprise"
     },
     "Vineyard Quant Capital": {
       "platformId": "43968",
@@ -21786,39 +21751,19 @@
       "hsId": "7310932384",
       "segment": "Enterprise"
     },
-    "GlassBead Capital Management": {
-      "platformId": "21546",
-      "hsId": "19716076582",
-      "segment": "Scale"
-    },
-    "Talos": {
-      "platformId": "8006",
-      "hsId": "52447783544",
+    "MXC Global Management": {
+      "platformId": "21479",
+      "hsId": "23485266945",
       "segment": ""
     },
-    "Luminous Asset Management": {
-      "platformId": "22908",
-      "hsId": "16209735999",
+    "Kyma Capital Limited": {
+      "platformId": "6157",
+      "hsId": "33702351977",
       "segment": "Scale"
     },
-    "Silver 8 Capital": {
-      "platformId": "10673",
-      "hsId": "9178186678",
-      "segment": "Scale"
-    },
-    "Steadview Capital Management": {
-      "platformId": "14415",
-      "hsId": "9306137990",
-      "segment": ""
-    },
-    "Harraden Circle Investments, LLC": {
-      "platformId": "398",
-      "hsId": "4231315607",
-      "segment": "Scale"
-    },
-    "Duro Capital": {
-      "platformId": "1173",
-      "hsId": "38333285283",
+    "Centre Lane Partners LLC": {
+      "platformId": "2409",
+      "hsId": "30436765345",
       "segment": ""
     },
     "Artisan Partners": {
@@ -21826,9 +21771,34 @@
       "hsId": "36417251591",
       "segment": "Enterprise"
     },
-    "Ascend": {
-      "platformId": "44810",
-      "hsId": "26934269785",
+    "Worth Venture Partners": {
+      "platformId": "44149",
+      "hsId": "47566731157",
+      "segment": "Scale"
+    },
+    "Harraden Circle Investments, LLC": {
+      "platformId": "398",
+      "hsId": "4231315607",
+      "segment": "Scale"
+    },
+    "Tribe Capital": {
+      "platformId": "44973",
+      "hsId": "55527437969",
+      "segment": ""
+    },
+    "Moonshots Capital": {
+      "platformId": "44048",
+      "hsId": "43142908163",
+      "segment": "Scale"
+    },
+    "TCV": {
+      "platformId": "44943",
+      "hsId": "56048255584",
+      "segment": ""
+    },
+    "Meritex": {
+      "platformId": "44289",
+      "hsId": "39368697197",
       "segment": "Scale"
     },
     "Emerald Creek Capital": {
@@ -21836,54 +21806,19 @@
       "hsId": "36964771618",
       "segment": "Scale"
     },
-    "Drawbridge": {
-      "platformId": "40559",
-      "hsId": "44331446289",
-      "segment": ""
-    },
-    "Vesey Ventures": {
-      "platformId": "16963",
-      "hsId": "35141270439",
+    "GlassBead Capital Management": {
+      "platformId": "21546",
+      "hsId": "19716076582",
       "segment": "Scale"
     },
-    "Park Square Capital": {
-      "platformId": "20039",
-      "hsId": "17383999633",
+    "Centurion Asset Management Inc.": {
+      "platformId": "1468",
+      "hsId": "54662937353",
       "segment": "Enterprise"
     },
-    "Centre Lane Partners LLC": {
-      "platformId": "2409",
-      "hsId": "30436765345",
-      "segment": ""
-    },
-    "Tribe Capital": {
-      "platformId": "44973",
-      "hsId": "55527437969",
-      "segment": ""
-    },
-    "Alpha Alternatives": {
-      "platformId": "22200",
-      "hsId": "55509194074",
-      "segment": "Enterprise"
-    },
-    "Moonshots Capital": {
-      "platformId": "44048",
-      "hsId": "43142908163",
-      "segment": "Scale"
-    },
-    "TerraCapital": {
-      "platformId": "3276",
-      "hsId": "5741501952",
-      "segment": "Enterprise"
-    },
-    "Manulife | CQS Investment Management": {
-      "platformId": "6071",
-      "hsId": "4426183907",
-      "segment": "Enterprise"
-    },
-    "AFBI LP": {
-      "platformId": "18660",
-      "hsId": "10212836195",
+    "LIM Advisors": {
+      "platformId": "952",
+      "hsId": "5157571797",
       "segment": "Enterprise"
     },
     "Sternlight Capital Partners LLP": {
@@ -21891,35 +21826,185 @@
       "hsId": "39162812073",
       "segment": ""
     },
-    "Joele Frank": {
-      "platformId": "12282",
-      "hsId": "54366377331",
+    "Incline Investment Management": {
+      "platformId": "9212",
+      "hsId": "4316188488",
+      "segment": "Scale"
+    },
+    "Silver 8 Capital": {
+      "platformId": "10673",
+      "hsId": "9178186678",
+      "segment": "Scale"
+    },
+    "Park Square Capital": {
+      "platformId": "20039",
+      "hsId": "17383999633",
+      "segment": "Enterprise"
+    },
+    "State Street Global Advisors SPDR": {
+      "platformId": "19306",
+      "hsId": "34991720866",
       "segment": ""
     },
-    "NewVest": {
-      "platformId": "16265",
-      "hsId": "10130522651",
-      "segment": "Enterprise"
+    "Ascend": {
+      "platformId": "44810",
+      "hsId": "26934269785",
+      "segment": "Scale"
     },
     "Tangible Investment Management": {
       "platformId": "497",
       "hsId": "4231355629",
       "segment": ""
     },
+    "BWCP, LP": {
+      "platformId": "758",
+      "hsId": "4231326931",
+      "segment": "Enterprise"
+    },
+    "Drawbridge": {
+      "platformId": "40559",
+      "hsId": "44331446289",
+      "segment": ""
+    },
+    "Shannon River Capital Management": {
+      "platformId": "43376",
+      "hsId": "4316316285",
+      "segment": "Enterprise"
+    },
+    "Luminous Asset Management": {
+      "platformId": "22908",
+      "hsId": "16209735999",
+      "segment": "Scale"
+    },
+    "Manulife | CQS Investment Management": {
+      "platformId": "6071",
+      "hsId": "4426183907",
+      "segment": "Enterprise"
+    },
+    "TerraCapital": {
+      "platformId": "3276",
+      "hsId": "5741501952",
+      "segment": "Enterprise"
+    },
     "Deep Tech Fund Advisors": {
       "platformId": "44490",
       "hsId": "45009722713",
       "segment": "Scale"
+    },
+    "Alpha Compute Capital": {
+      "platformId": "44501",
+      "hsId": "49957827663",
+      "segment": "Scale"
+    },
+    "Millburn": {
+      "platformId": "6354",
+      "hsId": "55605095806",
+      "segment": "Enterprise"
+    },
+    "Talos": {
+      "platformId": "8006",
+      "hsId": "52447783544",
+      "segment": ""
+    },
+    "Alpha Alternatives": {
+      "platformId": "22200",
+      "hsId": "55509194074",
+      "segment": "Enterprise"
+    },
+    "Tealrock Asset Management LLC": {
+      "platformId": "41283",
+      "hsId": "17099709761",
+      "segment": "Enterprise"
+    },
+    "ION Crossover Partners, Ltd.": {
+      "platformId": "40035",
+      "hsId": "23210349949",
+      "segment": "Enterprise"
+    },
+    "Candelo Capital": {
+      "platformId": "6180",
+      "hsId": "4949577633",
+      "segment": "Scale"
+    },
+    "Eversheds Sutherland": {
+      "platformId": "19606",
+      "hsId": "55354826577",
+      "segment": ""
+    },
+    "MidOcean Partners": {
+      "platformId": "3188",
+      "hsId": "4426971100",
+      "segment": "Enterprise"
+    },
+    "CoreCommodity Management": {
+      "platformId": "6103",
+      "hsId": "6631822671",
+      "segment": "Enterprise"
+    },
+    "Dilation Capital": {
+      "platformId": "4529",
+      "hsId": "6108688755",
+      "segment": "Scale"
+    },
+    "Thornburg": {
+      "platformId": "2383",
+      "hsId": "31407620175",
+      "segment": "Enterprise"
+    },
+    "Fincity.Tokyo": {
+      "platformId": "6788",
+      "hsId": "39659883630",
+      "segment": ""
+    },
+    "Informatic Capital": {
+      "platformId": "22868",
+      "hsId": "46499481913",
+      "segment": "Scale"
+    },
+    "Hivemind Capital": {
+      "platformId": "8398",
+      "hsId": "55605239665",
+      "segment": "Enterprise"
+    },
+    "Serengeti Asset Management": {
+      "platformId": "14551",
+      "hsId": "4426956717",
+      "segment": "Enterprise"
+    },
+    "Coinbase Asset Management": {
+      "platformId": "524",
+      "hsId": "4426960268",
+      "segment": "Enterprise"
+    },
+    "Palmer Square Capital Management": {
+      "platformId": "6218",
+      "hsId": "4950105583",
+      "segment": "Enterprise"
     },
     "III Capital Management": {
       "platformId": "31305",
       "hsId": "4316188611",
       "segment": "Enterprise"
     },
-    "Informatic Capital": {
-      "platformId": "22868",
-      "hsId": "46499481913",
-      "segment": "Scale"
+    "Monaco Asset Management": {
+      "platformId": "3607",
+      "hsId": "5991845983",
+      "segment": "Enterprise"
+    },
+    "Brookfield": {
+      "platformId": "19694",
+      "hsId": "52832017426",
+      "segment": "Enterprise"
+    },
+    "CapVest": {
+      "platformId": "23297",
+      "hsId": "31645250323",
+      "segment": ""
+    },
+    "Watchtower Advisors": {
+      "platformId": "42777",
+      "hsId": "37228714302",
+      "segment": ""
     },
     "Elkwater Capital": {
       "platformId": "40792",
@@ -21930,91 +22015,6 @@
       "platformId": "9214",
       "hsId": "4426967059",
       "segment": ""
-    },
-    "Palmer Square Capital Management": {
-      "platformId": "6218",
-      "hsId": "4950105583",
-      "segment": "Enterprise"
-    },
-    "Thornburg": {
-      "platformId": "2383",
-      "hsId": "31407620175",
-      "segment": "Enterprise"
-    },
-    "Watchtower Advisors": {
-      "platformId": "42777",
-      "hsId": "37228714302",
-      "segment": ""
-    },
-    "Candelo Capital": {
-      "platformId": "6180",
-      "hsId": "4949577633",
-      "segment": "Scale"
-    },
-    "CapVest": {
-      "platformId": "23297",
-      "hsId": "31645250323",
-      "segment": ""
-    },
-    "Coinbase Asset Management": {
-      "platformId": "524",
-      "hsId": "4426960268",
-      "segment": "Enterprise"
-    },
-    "Brookfield": {
-      "platformId": "19694",
-      "hsId": "52832017426",
-      "segment": "Enterprise"
-    },
-    "Hivemind Capital": {
-      "platformId": "8398",
-      "hsId": "55605239665",
-      "segment": "Enterprise"
-    },
-    "MidOcean Partners": {
-      "platformId": "3188",
-      "hsId": "4426971100",
-      "segment": "Enterprise"
-    },
-    "Fincity.Tokyo": {
-      "platformId": "6788",
-      "hsId": "39659883630",
-      "segment": ""
-    },
-    "CoreCommodity Management": {
-      "platformId": "6103",
-      "hsId": "6631822671",
-      "segment": "Enterprise"
-    },
-    "Eversheds Sutherland": {
-      "platformId": "19606",
-      "hsId": "55354826577",
-      "segment": ""
-    },
-    "ION Crossover Partners, Ltd.": {
-      "platformId": "40035",
-      "hsId": "23210349949",
-      "segment": "Enterprise"
-    },
-    "Monaco Asset Management": {
-      "platformId": "3607",
-      "hsId": "5991845983",
-      "segment": "Enterprise"
-    },
-    "Serengeti Asset Management": {
-      "platformId": "14551",
-      "hsId": "4426956717",
-      "segment": "Enterprise"
-    },
-    "Tealrock Asset Management LLC": {
-      "platformId": "41283",
-      "hsId": "17099709761",
-      "segment": "Enterprise"
-    },
-    "Dilation Capital": {
-      "platformId": "4529",
-      "hsId": "6108688755",
-      "segment": "Scale"
     },
     "11 Capital Partners": {
       "platformId": "624",
@@ -57530,6 +57530,11 @@
       "platformId": "44998",
       "hsId": "56104613491",
       "segment": ""
+    },
+    "Independent Reserve": {
+      "platformId": "45000",
+      "hsId": "56140997432",
+      "segment": ""
     }
   },
   "cadenceByPid": {
@@ -61491,7 +61496,7 @@
       "jul": "true",
       "aug": "",
       "sep": "",
-      "julNote": "Had call with Whitney - they love me",
+      "julNote": "",
       "augNote": "",
       "sepNote": ""
     },
@@ -74522,6 +74527,20 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-06-29",
+      "jul": "",
+      "aug": "",
+      "sep": "",
+      "julNote": "",
+      "augNote": "",
+      "sepNote": ""
+    },
+    "45000": {
+      "name": "Independent Reserve",
+      "hsId": "56140997432",
+      "accountManager": "",
+      "segment": "",
+      "category": "Service Provider",
+      "subscriptionEndDate": "2027-04-29",
       "jul": "",
       "aug": "",
       "sep": "",
