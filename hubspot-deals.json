@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-29T03:56:36.733Z",
-  "syncedAt": "2026-06-29T03:56:36.733Z",
+  "publishedAt": "2026-06-29T08:52:03.306Z",
+  "syncedAt": "2026-06-29T08:52:03.306Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,14 +20,14 @@
     ]
   },
   "counts": {
-    "deals": 1862,
-    "includedDeals": 883,
+    "deals": 1861,
+    "includedDeals": 882,
     "companies": 2762,
     "droppedNoCompany": 12,
     "droppedNoPid": 967,
     "perQuarter": {
       "Q1": 174,
-      "Q2": 84,
+      "Q2": 83,
       "Q3": 119,
       "Q4": 217,
       "Undated": 289
@@ -2826,7 +2826,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T19:25:44.507Z"
+        "hsLastModified": "2026-06-29T05:01:35.790Z"
       },
       {
         "pid": "498",
@@ -3800,25 +3800,6 @@
         "hsLastModified": "2026-06-26T07:10:23.311Z"
       },
       {
-        "pid": "3299",
-        "companyName": "Dellora Investments",
-        "dealName": "Platform Renewal: Dellora Investments",
-        "dealType": "Platform Renewal",
-        "amount": 19500,
-        "currency": "USD",
-        "stage": "Renewal",
-        "stageId": "12534077",
-        "pipeline": "Manager",
-        "pipelineId": "default",
-        "eventAttending": "",
-        "dealTerms": "",
-        "link": "https://app.hubspot.com/contacts/8013348/record/0-3/51113082025",
-        "ownerId": "83329594",
-        "ownerName": "James Thompson",
-        "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:33:12.375Z"
-      },
-      {
         "pid": "11525",
         "companyName": "HarbourView Equity Partners",
         "dealName": "HarbourView Equity Partners - Global Alts '26",
@@ -4006,7 +3987,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T19:56:47.026Z"
+        "hsLastModified": "2026-06-29T04:11:59.515Z"
       },
       {
         "pid": "6915",
@@ -4766,7 +4747,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-23T16:06:08.661Z"
+        "hsLastModified": "2026-06-29T04:12:41.471Z"
       },
       {
         "pid": "6836",
@@ -4937,7 +4918,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:10:43.015Z"
+        "hsLastModified": "2026-06-29T06:49:53.142Z"
       }
     ],
     "Q3": [
@@ -5072,7 +5053,7 @@
         "ownerId": "199469207",
         "ownerName": "Anne Iyer",
         "ownerActive": false,
-        "hsLastModified": "2026-06-11T14:51:08.466Z"
+        "hsLastModified": "2026-06-29T07:51:16.636Z"
       },
       {
         "pid": "80",
@@ -5870,7 +5851,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T03:31:29.501Z"
+        "hsLastModified": "2026-06-29T07:15:29.623Z"
       },
       {
         "pid": "43326",
@@ -6915,7 +6896,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-15T21:04:14.016Z"
+        "hsLastModified": "2026-06-29T05:01:14.395Z"
       },
       {
         "pid": "40165",
@@ -9368,7 +9349,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-17T15:32:33.742Z"
+        "hsLastModified": "2026-06-29T05:03:26.682Z"
       },
       {
         "pid": "21251",
@@ -11097,7 +11078,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-16T16:52:28.191Z"
+        "hsLastModified": "2026-06-29T05:02:10.059Z"
       },
       {
         "pid": "43968",
@@ -11536,7 +11517,7 @@
         "ownerId": "",
         "ownerName": "",
         "ownerActive": true,
-        "hsLastModified": "2026-05-19T17:46:24.071Z"
+        "hsLastModified": "2026-06-29T04:57:06.269Z"
       },
       {
         "pid": "22702",
@@ -12638,7 +12619,7 @@
         "ownerId": "1172082275",
         "ownerName": "Lauren Sharabi",
         "ownerActive": false,
-        "hsLastModified": "2026-06-18T19:18:06.216Z"
+        "hsLastModified": "2026-06-29T05:01:57.805Z"
       },
       {
         "pid": "11870",
@@ -14671,7 +14652,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:39.269Z"
+        "hsLastModified": "2026-06-29T05:00:19.272Z"
       },
       {
         "pid": "6176",
@@ -16823,10 +16804,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-29T03:56:36.733Z",
-    "Q2": "2026-06-29T03:56:36.733Z",
-    "Q3": "2026-06-29T03:56:36.733Z",
-    "Q4": "2026-06-29T03:56:36.733Z"
+    "Q1": "2026-06-29T08:52:03.306Z",
+    "Q2": "2026-06-29T08:52:03.306Z",
+    "Q3": "2026-06-29T08:52:03.306Z",
+    "Q4": "2026-06-29T08:52:03.306Z"
   },
   "owners": {
     "27231823": {
@@ -18063,11 +18044,6 @@
       "hsId": "23486038569",
       "segment": ""
     },
-    "Polus Capital Management": {
-      "platformId": "17210",
-      "hsId": "16180361228",
-      "segment": "Enterprise"
-    },
     "Trian Fund Management": {
       "platformId": "22702",
       "hsId": "4426964922",
@@ -18112,6 +18088,11 @@
       "platformId": "20465",
       "hsId": "23474412437",
       "segment": ""
+    },
+    "Polus Capital Management": {
+      "platformId": "17210",
+      "hsId": "16180361228",
+      "segment": "Enterprise"
     },
     "Talpion Fund Management": {
       "platformId": "1805",
@@ -18813,11 +18794,6 @@
       "hsId": "36407792723",
       "segment": "Enterprise"
     },
-    "Matterhorn Capital Partners": {
-      "platformId": "9180",
-      "hsId": "6392989048",
-      "segment": "Enterprise"
-    },
     "Gen II Fund Services": {
       "platformId": "2425",
       "hsId": "36370812514",
@@ -18852,6 +18828,11 @@
       "platformId": "19948",
       "hsId": "7632533258",
       "segment": "Scale"
+    },
+    "Matterhorn Capital Partners": {
+      "platformId": "9180",
+      "hsId": "6392989048",
+      "segment": "Enterprise"
     },
     "Ardsley Partners": {
       "platformId": "3628",
@@ -19143,6 +19124,11 @@
       "hsId": "35042141309",
       "segment": ""
     },
+    "Ares Management": {
+      "platformId": "3537",
+      "hsId": "40121941858",
+      "segment": ""
+    },
     "Nipun Capital, L.P.": {
       "platformId": "18",
       "hsId": "4426970020",
@@ -19201,11 +19187,6 @@
     "Grand Alliance Asset Management Limited": {
       "platformId": "1996",
       "hsId": "41915222294",
-      "segment": ""
-    },
-    "Ares Management": {
-      "platformId": "3537",
-      "hsId": "40121941858",
       "segment": ""
     },
     "Tobin Capital Group": {
@@ -19542,11 +19523,6 @@
       "platformId": "3255",
       "hsId": "4372681340",
       "segment": ""
-    },
-    "Dellora Investments": {
-      "platformId": "3299",
-      "hsId": "4950060787",
-      "segment": "Enterprise"
     },
     "K&L GATES LLP": {
       "platformId": "1037",
@@ -20048,6 +20024,11 @@
       "hsId": "4426928037",
       "segment": "Enterprise"
     },
+    "Axonic Capital": {
+      "platformId": "6089",
+      "hsId": "36964554346",
+      "segment": "Enterprise"
+    },
     "Ultimus": {
       "platformId": "41169",
       "hsId": "46904294934",
@@ -20118,6 +20099,11 @@
       "hsId": "38950605649",
       "segment": "Scale"
     },
+    "Coventry Structured Investments": {
+      "platformId": "16714",
+      "hsId": "23484236656",
+      "segment": "Scale"
+    },
     "UBS": {
       "platformId": "5223",
       "hsId": "35016918147",
@@ -20143,20 +20129,10 @@
       "hsId": "5392349527",
       "segment": "Enterprise"
     },
-    "Axonic Capital": {
-      "platformId": "6089",
-      "hsId": "36964554346",
-      "segment": "Enterprise"
-    },
     "Urban Standard Capital": {
       "platformId": "6915",
       "hsId": "7212871534",
       "segment": "Enterprise"
-    },
-    "Coventry Structured Investments": {
-      "platformId": "16714",
-      "hsId": "23484236656",
-      "segment": "Scale"
     },
     "BitGo": {
       "platformId": "8445",
@@ -20222,6 +20198,11 @@
       "platformId": "488",
       "hsId": "4231344043",
       "segment": "Enterprise"
+    },
+    "Squadra Ventures": {
+      "platformId": "11156",
+      "hsId": "9589908876",
+      "segment": "Scale"
     },
     "Algoz Technologies Ltd.": {
       "platformId": "14438",
@@ -20378,11 +20359,6 @@
       "hsId": "10167646330",
       "segment": "Enterprise"
     },
-    "Squadra Ventures": {
-      "platformId": "11156",
-      "hsId": "9589908876",
-      "segment": "Scale"
-    },
     "Andurand Capital": {
       "platformId": "10263",
       "hsId": "4426950794",
@@ -20432,6 +20408,11 @@
       "platformId": "43743",
       "hsId": "16400039195",
       "segment": "Enterprise"
+    },
+    "Stavtar Solutions": {
+      "platformId": "43998",
+      "hsId": "53848185868",
+      "segment": ""
     },
     "StepStone Group": {
       "platformId": "4260",
@@ -20673,14 +20654,14 @@
       "hsId": "54254290322",
       "segment": "Enterprise"
     },
-    "Stavtar Solutions": {
-      "platformId": "43998",
-      "hsId": "53848185868",
-      "segment": ""
-    },
     "GreyMatter Capital": {
       "platformId": "40745",
       "hsId": "41134956350",
+      "segment": ""
+    },
+    "Three Fold Strategies": {
+      "platformId": "23142",
+      "hsId": "17641897076",
       "segment": ""
     },
     "Temporis Capital": {
@@ -20938,11 +20919,6 @@
       "hsId": "54662977167",
       "segment": ""
     },
-    "Three Fold Strategies": {
-      "platformId": "23142",
-      "hsId": "17641897076",
-      "segment": ""
-    },
     "Tall Trees Capital Management, LP": {
       "platformId": "1383",
       "hsId": "45264111158",
@@ -21047,6 +21023,11 @@
       "platformId": "21235",
       "hsId": "31920873309",
       "segment": "Scale"
+    },
+    "Crabel Capital Management": {
+      "platformId": "3539",
+      "hsId": "4426900381",
+      "segment": "Enterprise"
     },
     "Vellichor Management LP": {
       "platformId": "20751",
@@ -21242,11 +21223,6 @@
       "platformId": "4086",
       "hsId": "33405427052",
       "segment": ""
-    },
-    "Crabel Capital Management": {
-      "platformId": "3539",
-      "hsId": "4426900381",
-      "segment": "Enterprise"
     },
     "RedBird Capital": {
       "platformId": "40613",
@@ -21578,6 +21554,11 @@
       "hsId": "4316317642",
       "segment": "Enterprise"
     },
+    "9823 Capital": {
+      "platformId": "22575",
+      "hsId": "19250240562",
+      "segment": "Scale"
+    },
     "Brighton Park Capital": {
       "platformId": "150",
       "hsId": "4230810444",
@@ -21738,6 +21719,11 @@
       "hsId": "4231315607",
       "segment": "Scale"
     },
+    "Millburn": {
+      "platformId": "6354",
+      "hsId": "55605095806",
+      "segment": "Enterprise"
+    },
     "Tribe Capital": {
       "platformId": "11202",
       "hsId": "7438526529",
@@ -21758,6 +21744,11 @@
       "hsId": "45009722713",
       "segment": "Scale"
     },
+    "Emerald Creek Capital": {
+      "platformId": "765",
+      "hsId": "36964771618",
+      "segment": "Scale"
+    },
     "Manulife | CQS Investment Management": {
       "platformId": "6071",
       "hsId": "4426183907",
@@ -21767,16 +21758,6 @@
       "platformId": "2409",
       "hsId": "30436765345",
       "segment": ""
-    },
-    "Millburn": {
-      "platformId": "6354",
-      "hsId": "55605095806",
-      "segment": "Enterprise"
-    },
-    "Emerald Creek Capital": {
-      "platformId": "765",
-      "hsId": "36964771618",
-      "segment": "Scale"
     },
     "Luminous Asset Management": {
       "platformId": "22908",
@@ -21827,11 +21808,6 @@
       "platformId": "497",
       "hsId": "4231355629",
       "segment": ""
-    },
-    "9823 Capital": {
-      "platformId": "22575",
-      "hsId": "19250240562",
-      "segment": "Scale"
     },
     "BWCP, LP": {
       "platformId": "758",
@@ -21893,6 +21869,11 @@
       "hsId": "55354826577",
       "segment": ""
     },
+    "Monaco Asset Management": {
+      "platformId": "3607",
+      "hsId": "5991845983",
+      "segment": "Enterprise"
+    },
     "Palmer Square Capital Management": {
       "platformId": "6218",
       "hsId": "4950105583",
@@ -21948,11 +21929,6 @@
       "hsId": "31645250323",
       "segment": ""
     },
-    "Monaco Asset Management": {
-      "platformId": "3607",
-      "hsId": "5991845983",
-      "segment": "Enterprise"
-    },
     "Watchtower Advisors": {
       "platformId": "42777",
       "hsId": "37228714302",
@@ -21991,6 +21967,11 @@
     "Argosy Private Equity": {
       "platformId": "791",
       "hsId": "29626819721",
+      "segment": "Scale"
+    },
+    "Ascender Capital": {
+      "platformId": "22976",
+      "hsId": "9306046236",
       "segment": "Scale"
     },
     "Avante Capital Partners": {
@@ -33586,6 +33567,16 @@
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2026-08-30",
+      "jul": "",
+      "aug": "",
+      "sep": ""
+    },
+    "22976": {
+      "name": "Ascender Capital",
+      "accountManager": "Support iConnections",
+      "segment": "Scale",
+      "category": "Manager",
+      "subscriptionEndDate": "2026-06-30",
       "jul": "",
       "aug": "",
       "sep": ""
