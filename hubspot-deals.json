@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-29T22:03:49.115Z",
-  "syncedAt": "2026-06-29T22:03:49.115Z",
+  "publishedAt": "2026-06-29T23:32:03.000Z",
+  "syncedAt": "2026-06-29T23:32:03.000Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -4690,7 +4690,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T14:09:55.521Z"
+        "hsLastModified": "2026-06-29T23:27:47.151Z"
       },
       {
         "pid": "16265",
@@ -16728,10 +16728,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-29T22:03:49.115Z",
-    "Q2": "2026-06-29T22:03:49.115Z",
-    "Q3": "2026-06-29T22:03:49.115Z",
-    "Q4": "2026-06-29T22:03:49.115Z"
+    "Q1": "2026-06-29T23:32:03.000Z",
+    "Q2": "2026-06-29T23:32:03.000Z",
+    "Q3": "2026-06-29T23:32:03.000Z",
+    "Q4": "2026-06-29T23:32:03.000Z"
   },
   "owners": {
     "27231823": {
@@ -18510,12 +18510,6 @@
       "segment": "Scale",
       "csmNotes": ""
     },
-    "iconnections": {
-      "platformId": "1",
-      "hsId": "4310506310",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Hyla Fund Management": {
       "platformId": "22391",
       "hsId": "39555798638",
@@ -18537,6 +18531,12 @@
     "Newlight Partners": {
       "platformId": "16244",
       "hsId": "30484498493",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "iconnections": {
+      "platformId": "1",
+      "hsId": "4310506310",
       "segment": "",
       "csmNotes": ""
     },
@@ -22350,6 +22350,12 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "Ascend": {
+      "platformId": "44810",
+      "hsId": "26934269785",
+      "segment": "Scale",
+      "csmNotes": "He's very happy so far"
+    },
     "Transformation Capital": {
       "platformId": "40278",
       "hsId": "19716039294",
@@ -22403,12 +22409,6 @@
       "hsId": "38351022645",
       "segment": "",
       "csmNotes": ""
-    },
-    "Ascend": {
-      "platformId": "44810",
-      "hsId": "26934269785",
-      "segment": "Scale",
-      "csmNotes": "He's very happy so far"
     },
     "AFBI LP": {
       "platformId": "18660",
