@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-28T23:59:35.038Z",
-  "syncedAt": "2026-06-28T23:59:35.038Z",
+  "publishedAt": "2026-06-29T03:56:36.733Z",
+  "syncedAt": "2026-06-29T03:56:36.733Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -22,7 +22,7 @@
   "counts": {
     "deals": 1862,
     "includedDeals": 883,
-    "companies": 2799,
+    "companies": 2762,
     "droppedNoCompany": 12,
     "droppedNoPid": 967,
     "perQuarter": {
@@ -2218,7 +2218,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:18:00.102Z"
+        "hsLastModified": "2026-06-29T00:08:57.291Z"
       },
       {
         "pid": "6529",
@@ -2294,7 +2294,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T14:37:51.771Z"
+        "hsLastModified": "2026-06-29T00:18:05.128Z"
       },
       {
         "pid": "3167",
@@ -4253,7 +4253,7 @@
         "ownerId": "88047280",
         "ownerName": "Olivia Juliano",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:39.579Z"
+        "hsLastModified": "2026-06-29T00:14:59.312Z"
       },
       {
         "pid": "41937",
@@ -4842,7 +4842,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:11:35.790Z"
+        "hsLastModified": "2026-06-29T03:46:12.576Z"
       },
       {
         "pid": "9214",
@@ -5718,7 +5718,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:58.383Z"
+        "hsLastModified": "2026-06-29T00:11:55.075Z"
       },
       {
         "pid": "11881",
@@ -5870,7 +5870,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:11:36.692Z"
+        "hsLastModified": "2026-06-29T03:31:29.501Z"
       },
       {
         "pid": "43326",
@@ -7525,7 +7525,7 @@
         "ownerId": "",
         "ownerName": "",
         "ownerActive": true,
-        "hsLastModified": "2026-05-22T17:41:17.597Z"
+        "hsLastModified": "2026-06-29T00:15:58.833Z"
       },
       {
         "pid": "2227",
@@ -8893,7 +8893,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T20:25:12.931Z"
+        "hsLastModified": "2026-06-29T01:15:30.284Z"
       },
       {
         "pid": "12500",
@@ -9596,7 +9596,7 @@
         "ownerId": "429309794",
         "ownerName": "Ian Rzeszowski",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T14:36:03.798Z"
+        "hsLastModified": "2026-06-29T00:13:48.731Z"
       },
       {
         "pid": "20152",
@@ -11764,7 +11764,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:14.844Z"
+        "hsLastModified": "2026-06-29T00:13:22.518Z"
       },
       {
         "pid": "6538",
@@ -13246,7 +13246,7 @@
         "ownerId": "1172082275",
         "ownerName": "Lauren Sharabi",
         "ownerActive": false,
-        "hsLastModified": "2026-06-11T22:05:12.693Z"
+        "hsLastModified": "2026-06-29T00:13:36.867Z"
       },
       {
         "pid": "20656",
@@ -13493,7 +13493,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-19T12:18:37.810Z"
+        "hsLastModified": "2026-06-29T00:13:29.421Z"
       },
       {
         "pid": "41913",
@@ -13854,7 +13854,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:35.283Z"
+        "hsLastModified": "2026-06-29T00:11:41.717Z"
       },
       {
         "pid": "40646",
@@ -14044,7 +14044,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:34.863Z"
+        "hsLastModified": "2026-06-29T00:11:42.615Z"
       },
       {
         "pid": "4506",
@@ -14519,7 +14519,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-21T20:04:12.252Z"
+        "hsLastModified": "2026-06-29T00:11:26.072Z"
       },
       {
         "pid": "17183",
@@ -14690,7 +14690,7 @@
         "ownerId": "1172082275",
         "ownerName": "Lauren Sharabi",
         "ownerActive": false,
-        "hsLastModified": "2026-06-18T14:32:29.357Z"
+        "hsLastModified": "2026-06-29T00:10:39.962Z"
       },
       {
         "pid": "21743",
@@ -14804,7 +14804,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-17T03:03:06.155Z"
+        "hsLastModified": "2026-06-29T00:16:24.312Z"
       },
       {
         "pid": "36678",
@@ -15621,7 +15621,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-12T13:47:52.576Z"
+        "hsLastModified": "2026-06-29T00:14:36.560Z"
       },
       {
         "pid": "42834",
@@ -16533,7 +16533,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T14:38:30.667Z"
+        "hsLastModified": "2026-06-29T00:16:25.930Z"
       },
       {
         "pid": "2496",
@@ -16823,10 +16823,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-28T23:59:35.038Z",
-    "Q2": "2026-06-28T23:59:35.038Z",
-    "Q3": "2026-06-28T23:59:35.038Z",
-    "Q4": "2026-06-28T23:59:35.038Z"
+    "Q1": "2026-06-29T03:56:36.733Z",
+    "Q2": "2026-06-29T03:56:36.733Z",
+    "Q3": "2026-06-29T03:56:36.733Z",
+    "Q4": "2026-06-29T03:56:36.733Z"
   },
   "owners": {
     "27231823": {
@@ -19398,6 +19398,11 @@
       "hsId": "47585515848",
       "segment": ""
     },
+    "Lexington Capital Management LP": {
+      "platformId": "6878",
+      "hsId": "4426909636",
+      "segment": "Scale"
+    },
     "FalconX": {
       "platformId": "5164",
       "hsId": "46684729661",
@@ -19413,11 +19418,6 @@
       "hsId": "9753527558",
       "segment": "Scale"
     },
-    "Dellora Investments": {
-      "platformId": "3299",
-      "hsId": "4950060787",
-      "segment": "Enterprise"
-    },
     "TriNet": {
       "platformId": "2479",
       "hsId": "53119759400",
@@ -19427,11 +19427,6 @@
       "platformId": "1050",
       "hsId": "39215958936",
       "segment": ""
-    },
-    "Lexington Capital Management LP": {
-      "platformId": "6878",
-      "hsId": "4426909636",
-      "segment": "Scale"
     },
     "EisnerAmper": {
       "platformId": "2858",
@@ -19547,6 +19542,11 @@
       "platformId": "3255",
       "hsId": "4372681340",
       "segment": ""
+    },
+    "Dellora Investments": {
+      "platformId": "3299",
+      "hsId": "4950060787",
+      "segment": "Enterprise"
     },
     "K&L GATES LLP": {
       "platformId": "1037",
@@ -20128,11 +20128,6 @@
       "hsId": "52360886788",
       "segment": "Enterprise"
     },
-    "Coventry Structured Investments": {
-      "platformId": "16714",
-      "hsId": "23484236656",
-      "segment": "Scale"
-    },
     "TT Capital Partners": {
       "platformId": "6359",
       "hsId": "6640917296",
@@ -20148,10 +20143,20 @@
       "hsId": "5392349527",
       "segment": "Enterprise"
     },
+    "Axonic Capital": {
+      "platformId": "6089",
+      "hsId": "36964554346",
+      "segment": "Enterprise"
+    },
     "Urban Standard Capital": {
       "platformId": "6915",
       "hsId": "7212871534",
       "segment": "Enterprise"
+    },
+    "Coventry Structured Investments": {
+      "platformId": "16714",
+      "hsId": "23484236656",
+      "segment": "Scale"
     },
     "BitGo": {
       "platformId": "8445",
@@ -20181,11 +20186,6 @@
     "EIG": {
       "platformId": "43982",
       "hsId": "19716073001",
-      "segment": "Enterprise"
-    },
-    "Axonic Capital": {
-      "platformId": "6089",
-      "hsId": "36964554346",
       "segment": "Enterprise"
     },
     "Tapasya Investment Partners, LLC": {
@@ -20353,11 +20353,6 @@
       "hsId": "53883992465",
       "segment": "Enterprise"
     },
-    "Squadra Ventures": {
-      "platformId": "11156",
-      "hsId": "9589908876",
-      "segment": "Scale"
-    },
     "Proskauer Rose": {
       "platformId": "22816",
       "hsId": "55593963449",
@@ -20382,6 +20377,11 @@
       "platformId": "31296",
       "hsId": "10167646330",
       "segment": "Enterprise"
+    },
+    "Squadra Ventures": {
+      "platformId": "11156",
+      "hsId": "9589908876",
+      "segment": "Scale"
     },
     "Andurand Capital": {
       "platformId": "10263",
@@ -21708,11 +21708,6 @@
       "hsId": "26934269785",
       "segment": "Scale"
     },
-    "Emerald Creek Capital": {
-      "platformId": "765",
-      "hsId": "36964771618",
-      "segment": "Scale"
-    },
     "Park Square Capital": {
       "platformId": "20039",
       "hsId": "17383999633",
@@ -21732,11 +21727,6 @@
       "platformId": "6157",
       "hsId": "33702351977",
       "segment": "Scale"
-    },
-    "Millburn": {
-      "platformId": "6354",
-      "hsId": "55605095806",
-      "segment": "Enterprise"
     },
     "Artisan Partners": {
       "platformId": "1549",
@@ -21778,6 +21768,16 @@
       "hsId": "30436765345",
       "segment": ""
     },
+    "Millburn": {
+      "platformId": "6354",
+      "hsId": "55605095806",
+      "segment": "Enterprise"
+    },
+    "Emerald Creek Capital": {
+      "platformId": "765",
+      "hsId": "36964771618",
+      "segment": "Scale"
+    },
     "Luminous Asset Management": {
       "platformId": "22908",
       "hsId": "16209735999",
@@ -21796,6 +21796,11 @@
     "Centurion Asset Management Inc.": {
       "platformId": "1468",
       "hsId": "54662937353",
+      "segment": "Enterprise"
+    },
+    "LIM Advisors": {
+      "platformId": "952",
+      "hsId": "5157571797",
       "segment": "Enterprise"
     },
     "Sternlight Capital Partners LLP": {
@@ -21817,11 +21822,6 @@
       "platformId": "19306",
       "hsId": "34991720866",
       "segment": ""
-    },
-    "LIM Advisors": {
-      "platformId": "952",
-      "hsId": "5157571797",
-      "segment": "Enterprise"
     },
     "Tangible Investment Management": {
       "platformId": "497",
@@ -21973,11 +21973,6 @@
       "hsId": "4231326932",
       "segment": "Enterprise"
     },
-    "Alta Fox Capital Management, LLC": {
-      "platformId": "347",
-      "hsId": "4230810434",
-      "segment": "Scale"
-    },
     "Ancora Alternatives": {
       "platformId": "3066",
       "hsId": "5688435472",
@@ -22071,11 +22066,6 @@
     "David Capital Partners, LLC": {
       "platformId": "360",
       "hsId": "4231352312",
-      "segment": "Enterprise"
-    },
-    "Edge Capital Investment Management, Ltd": {
-      "platformId": "53",
-      "hsId": "4231312526",
       "segment": "Enterprise"
     },
     "Equinox Partners": {
@@ -22178,11 +22168,6 @@
       "hsId": "4230698489",
       "segment": "Enterprise"
     },
-    "Marnell Management LLC": {
-      "platformId": "429",
-      "hsId": "4230810438",
-      "segment": "Enterprise"
-    },
     "Marcho Partners": {
       "platformId": "164",
       "hsId": "4231344033",
@@ -22228,16 +22213,6 @@
       "hsId": "4231315611",
       "segment": "Scale"
     },
-    "Old Orchard Capital Management": {
-      "platformId": "162",
-      "hsId": "4231330942",
-      "segment": "Enterprise"
-    },
-    "One68 Global Capital": {
-      "platformId": "607",
-      "hsId": "4231342366",
-      "segment": "Enterprise"
-    },
     "Prentice Capital Management": {
       "platformId": "22561",
       "hsId": "52944579876",
@@ -22266,11 +22241,6 @@
     "RichBrook Advisors, LP": {
       "platformId": "754",
       "hsId": "4230799202",
-      "segment": "Enterprise"
-    },
-    "RJA Asset Management": {
-      "platformId": "484",
-      "hsId": "4231332375",
       "segment": "Enterprise"
     },
     "Robocap Asset Management Ltd": {
@@ -22678,11 +22648,6 @@
       "hsId": "37057816977",
       "segment": "Enterprise"
     },
-    "Meson Quantitative Management LLC": {
-      "platformId": "23146",
-      "hsId": "4316192468",
-      "segment": "Scale"
-    },
     "Metacapital Management": {
       "platformId": "31304",
       "hsId": "9304748808",
@@ -22701,16 +22666,6 @@
     "BDT & MSD Partners": {
       "platformId": "13539",
       "hsId": "40806173568",
-      "segment": "Enterprise"
-    },
-    "Nantahala Capital Management, LLC": {
-      "platformId": "23145",
-      "hsId": "4316200256",
-      "segment": "Scale"
-    },
-    "NewSpring Capital": {
-      "platformId": "23198",
-      "hsId": "4426955768",
       "segment": "Enterprise"
     },
     "Numerai": {
@@ -22806,11 +22761,6 @@
     "Schultze Asset Management LP": {
       "platformId": "9958",
       "hsId": "4426927951",
-      "segment": "Enterprise"
-    },
-    "Scopia Capital Management LP": {
-      "platformId": "9215",
-      "hsId": "4426950842",
       "segment": "Enterprise"
     },
     "Schroders Investment Management Limited": {
@@ -23018,11 +22968,6 @@
       "hsId": "51031989944",
       "segment": "Enterprise"
     },
-    "Audax Private Debt": {
-      "platformId": "42559",
-      "hsId": "35581375801",
-      "segment": "Enterprise"
-    },
     "CohnReznick LLP": {
       "platformId": "2466",
       "hsId": "49011589479",
@@ -23092,11 +23037,6 @@
       "platformId": "3574",
       "hsId": "4426919794",
       "segment": "Scale"
-    },
-    "Upper90 Capital Management": {
-      "platformId": "21579",
-      "hsId": "4426182974",
-      "segment": "Enterprise"
     },
     "Promeritum Investment Management LLP": {
       "platformId": "5183",
@@ -23358,11 +23298,6 @@
       "hsId": "4836449264",
       "segment": "Enterprise"
     },
-    "Hill Fort Capital": {
-      "platformId": "2345",
-      "hsId": "34466846768",
-      "segment": "Enterprise"
-    },
     "ADM Investor Services, Inc": {
       "platformId": "6002",
       "hsId": "50787887500",
@@ -23521,11 +23456,6 @@
     "MiddleGround Capital": {
       "platformId": "42934",
       "hsId": "39337862763",
-      "segment": "Enterprise"
-    },
-    "Bayberry Capital Partners LP": {
-      "platformId": "17185",
-      "hsId": "32146461804",
       "segment": "Enterprise"
     },
     "Mighty Capital": {
@@ -23863,11 +23793,6 @@
       "hsId": "35405753090",
       "segment": "Scale"
     },
-    "Universa Investments LP": {
-      "platformId": "4612",
-      "hsId": "6640587803",
-      "segment": "Enterprise"
-    },
     "Partners for Growth": {
       "platformId": "42788",
       "hsId": "6653766420",
@@ -23882,11 +23807,6 @@
       "platformId": "4193",
       "hsId": "6744787378",
       "segment": "Enterprise"
-    },
-    "Signia Capital": {
-      "platformId": "6898",
-      "hsId": "6753954373",
-      "segment": "Scale"
     },
     "Apis Capital Advisors, LLC": {
       "platformId": "21017",
@@ -24238,11 +24158,6 @@
       "hsId": "7988705701",
       "segment": "Enterprise"
     },
-    "QA Capital LLC": {
-      "platformId": "7395",
-      "hsId": "8137606245",
-      "segment": "Scale"
-    },
     "Marathon Resource Advisors": {
       "platformId": "8241",
       "hsId": "9486301464",
@@ -24256,11 +24171,6 @@
     "Polen Capital Management LLC": {
       "platformId": "11131",
       "hsId": "8177089357",
-      "segment": "Enterprise"
-    },
-    "ParaFi Capital": {
-      "platformId": "23132",
-      "hsId": "39162805791",
       "segment": "Enterprise"
     },
     "Thrive": {
@@ -24396,11 +24306,6 @@
     "CI INVESTMENTS": {
       "platformId": "39520",
       "hsId": "46664747559",
-      "segment": "Enterprise"
-    },
-    "Acer Tree Investment Management LLP": {
-      "platformId": "9222",
-      "hsId": "8964795027",
       "segment": "Enterprise"
     },
     "Andromeda Capital Management": {
@@ -25028,11 +24933,6 @@
       "hsId": "16097253939",
       "segment": "Enterprise"
     },
-    "Remara": {
-      "platformId": "42634",
-      "hsId": "16209808463",
-      "segment": "Enterprise"
-    },
     "Infini Capital Management Limited": {
       "platformId": "22345",
       "hsId": "16209768854",
@@ -25072,11 +24972,6 @@
       "platformId": "44772",
       "hsId": "16209787418",
       "segment": "Scale"
-    },
-    "Portal Asset Management": {
-      "platformId": "42505",
-      "hsId": "16209817254",
-      "segment": "Enterprise"
     },
     "LongHash Ventures": {
       "platformId": "42633",
@@ -25318,11 +25213,6 @@
       "hsId": "18438982709",
       "segment": "Scale"
     },
-    "Divisadero Street Capital": {
-      "platformId": "20431",
-      "hsId": "18464813318",
-      "segment": "Enterprise"
-    },
     "Encounter Capital": {
       "platformId": "44392",
       "hsId": "18523983690",
@@ -25528,11 +25418,6 @@
       "hsId": "19714657833",
       "segment": "Enterprise"
     },
-    "Ufenau Capital Partners": {
-      "platformId": "31298",
-      "hsId": "19716160636",
-      "segment": "Enterprise"
-    },
     "True": {
       "platformId": "44373",
       "hsId": "19720601687",
@@ -25571,11 +25456,6 @@
     "Hanover Square Partners, LLC": {
       "platformId": "43788",
       "hsId": "54596798093",
-      "segment": ""
-    },
-    "Tephra Digital": {
-      "platformId": "42269",
-      "hsId": "54349269163",
       "segment": ""
     },
     "Dunamis Asset Management": {
@@ -25618,16 +25498,6 @@
       "hsId": "44952558940",
       "segment": "Scale"
     },
-    "HighPark Capital": {
-      "platformId": "23133",
-      "hsId": "21162827896",
-      "segment": "Scale"
-    },
-    "Starfire Ventures": {
-      "platformId": "44198",
-      "hsId": "50796185251",
-      "segment": ""
-    },
     "Bamboo Hill Capital Management": {
       "platformId": "43798",
       "hsId": "21577663646",
@@ -25651,11 +25521,6 @@
     "Red Opal Capital S.a.r.l.": {
       "platformId": "43683",
       "hsId": "22172843419",
-      "segment": "Enterprise"
-    },
-    "Meditation Capital Management": {
-      "platformId": "42592",
-      "hsId": "22221752632",
       "segment": "Enterprise"
     },
     "Ardent": {
@@ -25708,11 +25573,6 @@
       "hsId": "50164962323",
       "segment": "Scale"
     },
-    "Landrock LP": {
-      "platformId": "41955",
-      "hsId": "22266602323",
-      "segment": "Enterprise"
-    },
     "Torose Equities": {
       "platformId": "44374",
       "hsId": "22266588007",
@@ -25753,19 +25613,9 @@
       "hsId": "22767652518",
       "segment": "Enterprise"
     },
-    "Lakeview Investment Group & Trading": {
-      "platformId": "42405",
-      "hsId": "22892396671",
-      "segment": "Enterprise"
-    },
     "Swiss Asia Financial Services": {
       "platformId": "43158",
       "hsId": "23411359045",
-      "segment": "Enterprise"
-    },
-    "Snoboll Capital": {
-      "platformId": "42557",
-      "hsId": "23457178718",
       "segment": "Enterprise"
     },
     "Anomaly": {
@@ -25967,11 +25817,6 @@
       "platformId": "40999",
       "hsId": "26541874517",
       "segment": "Enterprise"
-    },
-    "R&V Management": {
-      "platformId": "42537",
-      "hsId": "26546861439",
-      "segment": "Scale"
     },
     "Kineticos": {
       "platformId": "41172",
@@ -26193,11 +26038,6 @@
       "hsId": "54003124809",
       "segment": "Scale"
     },
-    "Setia Partners Limited": {
-      "platformId": "42560",
-      "hsId": "31077628816",
-      "segment": "Scale"
-    },
     "Saraza Management": {
       "platformId": "43909",
       "hsId": "44107444825",
@@ -26263,11 +26103,6 @@
       "hsId": "35889071510",
       "segment": "Scale"
     },
-    "Unicorn Asset Management": {
-      "platformId": "42536",
-      "hsId": "33212699520",
-      "segment": "Enterprise"
-    },
     "Camber Credit": {
       "platformId": "43517",
       "hsId": "36407797314",
@@ -26287,11 +26122,6 @@
       "platformId": "44715",
       "hsId": "53462636132",
       "segment": "Scale"
-    },
-    "ICG Advisors": {
-      "platformId": "42209",
-      "hsId": "33614183353",
-      "segment": ""
     },
     "Aspen Global Management": {
       "platformId": "43173",
@@ -26338,11 +26168,6 @@
       "hsId": "35059280744",
       "segment": "Enterprise"
     },
-    "Phasic LLC": {
-      "platformId": "42604",
-      "hsId": "35128087562",
-      "segment": "Enterprise"
-    },
     "The Bainbridge Companies": {
       "platformId": "42994",
       "hsId": "48896396895",
@@ -26356,11 +26181,6 @@
     "Woven Asset Management": {
       "platformId": "42551",
       "hsId": "40788957224",
-      "segment": "Enterprise"
-    },
-    "Two68 Global Capital": {
-      "platformId": "42567",
-      "hsId": "35423629638",
       "segment": "Enterprise"
     },
     "CM Capital Partners": {
@@ -26788,11 +26608,6 @@
       "hsId": "47814212009",
       "segment": "Scale"
     },
-    "Northwell Health Equity Partners": {
-      "platformId": "44141",
-      "hsId": "48102190169",
-      "segment": "Enterprise"
-    },
     "UW Realty Company": {
       "platformId": "44901",
       "hsId": "48274701839",
@@ -27103,6 +26918,11 @@
       "hsId": "54361424265",
       "segment": ""
     },
+    "Tephra Digital": {
+      "platformId": "42269",
+      "hsId": "54349269163",
+      "segment": ""
+    },
     "Vistra Fund Solutions": {
       "platformId": "43991",
       "hsId": "54373927788",
@@ -27230,16 +27050,6 @@
       "aug": "",
       "sep": ""
     },
-    "53": {
-      "name": "Edge Capital Investment Management, Ltd",
-      "accountManager": "Juwan Pryce",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "62": {
       "name": "Westbeck Capital",
       "accountManager": "Helen Ramsay",
@@ -27326,16 +27136,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-07-31",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "162": {
-      "name": "Old Orchard Capital Management",
-      "accountManager": "Courtney Krieg",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -27530,16 +27330,6 @@
       "aug": "",
       "sep": ""
     },
-    "347": {
-      "name": "Alta Fox Capital Management, LLC",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "360": {
       "name": "David Capital Partners, LLC",
       "accountManager": "Sunny Unger",
@@ -27620,16 +27410,6 @@
       "aug": "",
       "sep": ""
     },
-    "429": {
-      "name": "Marnell Management LLC",
-      "accountManager": "Juwan Pryce",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "431": {
       "name": "Galaxy",
       "accountManager": "Joe Romanoff",
@@ -27686,16 +27466,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-07-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "484": {
-      "name": "RJA Asset Management",
-      "accountManager": "Lucy Garber",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -27836,16 +27606,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-04-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "607": {
-      "name": "One68 Global Capital",
-      "accountManager": "Christina Chumak",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -28036,16 +27796,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-05-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "765": {
-      "name": "Emerald Creek Capital",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -28370,16 +28120,6 @@
       "aug": "",
       "sep": ""
     },
-    "1549": {
-      "name": "Artisan Partners",
-      "accountManager": "Joe Romanoff",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "1557": {
       "name": "ZAIS Group",
       "accountManager": "Courtney Krieg",
@@ -28566,16 +28306,6 @@
       "segment": "",
       "category": "Service Provider",
       "subscriptionEndDate": "2027-05-17",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "2345": {
-      "name": "Hill Fort Capital",
-      "accountManager": "Helen Ramsay",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -28926,16 +28656,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-08-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "3299": {
-      "name": "Dellora Investments",
-      "accountManager": "Kristan Hester",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -29480,16 +29200,6 @@
       "aug": "",
       "sep": ""
     },
-    "4612": {
-      "name": "Universa Investments LP",
-      "accountManager": "Christina Chumak",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "4986": {
       "name": "AlphaSense",
       "accountManager": "",
@@ -29940,16 +29650,6 @@
       "aug": "",
       "sep": ""
     },
-    "6354": {
-      "name": "Millburn",
-      "accountManager": "Christina Chumak",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "6363": {
       "name": "Masterworks",
       "accountManager": "Juwan Pryce",
@@ -30320,16 +30020,6 @@
       "aug": "",
       "sep": ""
     },
-    "6898": {
-      "name": "Signia Capital",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "6899": {
       "name": "Jefferies Credit Partners",
       "accountManager": "Joe Romanoff",
@@ -30566,16 +30256,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-03-31",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "7395": {
-      "name": "QA Capital LLC",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -30870,16 +30550,6 @@
       "aug": "",
       "sep": ""
     },
-    "9215": {
-      "name": "Scopia Capital Management LP",
-      "accountManager": "Lucy Garber",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "9217": {
       "name": "Del Gatto Finance Group",
       "accountManager": "Christina Chumak",
@@ -30906,16 +30576,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "9222": {
-      "name": "Acer Tree Investment Management LLP",
-      "accountManager": "Helen Ramsay",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -31316,16 +30976,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-09-28",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "11156": {
-      "name": "Squadra Ventures",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -32320,26 +31970,6 @@
       "aug": "",
       "sep": ""
     },
-    "16662": {
-      "name": "Quartus Capital Partners LLC",
-      "accountManager": "Alex Cherecwich",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "16714": {
-      "name": "Coventry Structured Investments",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "16794": {
       "name": "Monarch Alternative Capital LP",
       "accountManager": "Alex Cherecwich",
@@ -32456,16 +32086,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "17185": {
-      "name": "Bayberry Capital Partners LP",
-      "accountManager": "Courtney Krieg",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -32666,16 +32286,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-08-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "18669": {
-      "name": "Citrin Cooperman & Company LLP",
-      "accountManager": "Emilie Welch",
-      "segment": "",
-      "category": "Service Provider",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -33450,16 +33060,6 @@
       "aug": "",
       "sep": ""
     },
-    "20431": {
-      "name": "Divisadero Street Capital",
-      "accountManager": "Christina Chumak",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "20435": {
       "name": "ARKHOUSE",
       "accountManager": "Support iConnections",
@@ -33720,16 +33320,6 @@
       "aug": "",
       "sep": ""
     },
-    "21579": {
-      "name": "Upper90 Capital Management",
-      "accountManager": "Lucy Garber",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "21684": {
       "name": "Grassi Advisors",
       "accountManager": "",
@@ -33890,16 +33480,6 @@
       "aug": "",
       "sep": ""
     },
-    "22217": {
-      "name": "Tephra Digital",
-      "accountManager": "Christina Chumak",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "22289": {
       "name": "Scarcity Partners",
       "accountManager": "Andreas Santikos",
@@ -34030,46 +33610,6 @@
       "aug": "",
       "sep": ""
     },
-    "23132": {
-      "name": "ParaFi Capital",
-      "accountManager": "Christina Chumak",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "23133": {
-      "name": "HighPark Capital",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "23145": {
-      "name": "Nantahala Capital Management, LLC",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "23146": {
-      "name": "Meson Quantitative Management LLC",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "23172": {
       "name": "Quantica Capital AG",
       "accountManager": "Helen Ramsay",
@@ -34106,16 +33646,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-06-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "23198": {
-      "name": "NewSpring Capital",
-      "accountManager": "Courtney Krieg",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -34206,16 +33736,6 @@
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2026-08-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "31298": {
-      "name": "Ufenau Capital Partners",
-      "accountManager": "Helen Ramsay",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -35460,16 +34980,6 @@
       "aug": "",
       "sep": ""
     },
-    "41955": {
-      "name": "Landrock LP",
-      "accountManager": "Lucy Garber",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "41956": {
       "name": "Barrett Capital Group",
       "accountManager": "Courtney Krieg",
@@ -35530,32 +35040,12 @@
       "aug": "",
       "sep": ""
     },
-    "42209": {
-      "name": "ICG Advisors",
-      "accountManager": "Joe Romanoff",
-      "segment": "",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "42269": {
       "name": "Tephra Digital",
       "accountManager": "Christina Chumak",
       "segment": "",
       "category": "Manager",
       "subscriptionEndDate": "2026-06-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "42405": {
-      "name": "Lakeview Investment Group & Trading",
-      "accountManager": "Lucy Garber",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -35580,16 +35070,6 @@
       "aug": "",
       "sep": ""
     },
-    "42505": {
-      "name": "Portal Asset Management",
-      "accountManager": "Andreas Santikos",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "42519": {
       "name": "Ap3x Capital",
       "accountManager": "Andreas Santikos",
@@ -35610,26 +35090,6 @@
       "aug": "",
       "sep": ""
     },
-    "42536": {
-      "name": "Unicorn Asset Management",
-      "accountManager": "Helen Ramsay",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "42537": {
-      "name": "R&V Management",
-      "accountManager": "Support iConnections",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "42540": {
       "name": "ADAPT Investment Managers",
       "accountManager": "Helen Ramsay",
@@ -35646,46 +35106,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-11-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "42557": {
-      "name": "Snoboll Capital",
-      "accountManager": "Sunny Unger",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "42559": {
-      "name": "Audax Private Debt",
-      "accountManager": "Alex Cherecwich",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "42560": {
-      "name": "Setia Partners Limited",
-      "accountManager": "Jovin Lee",
-      "segment": "Scale",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "42567": {
-      "name": "Two68 Global Capital",
-      "accountManager": "Christina Chumak",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -35740,16 +35160,6 @@
       "aug": "",
       "sep": ""
     },
-    "42592": {
-      "name": "Meditation Capital Management",
-      "accountManager": "Juwan Pryce",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "42593": {
       "name": "Elena Partners",
       "accountManager": "Phoebe Willoughby",
@@ -35770,16 +35180,6 @@
       "aug": "",
       "sep": ""
     },
-    "42604": {
-      "name": "Phasic LLC",
-      "accountManager": "Juwan Pryce",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "42612": {
       "name": "ARC Financial",
       "accountManager": "Alex Cherecwich",
@@ -35796,16 +35196,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-07-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "42634": {
-      "name": "Remara",
-      "accountManager": "Andreas Santikos",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
@@ -37830,16 +37220,6 @@
       "aug": "",
       "sep": ""
     },
-    "44141": {
-      "name": "Northwell Health Equity Partners",
-      "accountManager": "Kristan Hester",
-      "segment": "Enterprise",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
     "44142": {
       "name": "IFA Capital Management",
       "accountManager": "Support iConnections",
@@ -38106,16 +37486,6 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-12-30",
-      "jul": "",
-      "aug": "",
-      "sep": ""
-    },
-    "44198": {
-      "name": "Starfire Ventures",
-      "accountManager": "Kristan Hester",
-      "segment": "",
-      "category": "Manager",
-      "subscriptionEndDate": "2026-06-29",
       "jul": "",
       "aug": "",
       "sep": ""
