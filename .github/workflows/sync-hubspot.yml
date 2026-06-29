@@ -46,16 +46,27 @@ jobs:
           fi
           git add hubspot-deals.json
           git commit -m "chore(sync): update hubspot-deals.json"
-          # Retry push with rebase if main moved while the sync was running
-          # (race between this workflow and any manual push). Up to 5 tries.
+          # Retry push on race. The previous rebase strategy hit conflicts
+          # when two chore(sync) commits touched the same file — sync data
+          # is generated, so a content conflict is never meaningful. New
+          # strategy: on failure, soft-reset our commit onto fresh main and
+          # re-commit the freshly-synced file. The newest sync always wins.
           for i in 1 2 3 4 5; do
             if git push; then
               echo "Push succeeded on attempt $i"
               exit 0
             fi
-            echo "Push attempt $i failed — rebasing onto fresh main and retrying…"
-            git fetch origin main
-            git rebase origin/main || { echo "Rebase failed — aborting."; git rebase --abort; exit 1; }
+            echo "Push attempt $i failed — replaying sync commit on fresh main…"
+            if ! git fetch origin main; then echo "Fetch failed."; exit 1; fi
+            # Move HEAD to fresh main without touching the working tree.
+            # Our just-synced hubspot-deals.json is preserved; git sees it
+            # as a staged diff vs origin/main.
+            if ! git reset --soft origin/main; then echo "Reset failed."; exit 1; fi
+            if git diff --cached --quiet; then
+              echo "Synced data already matches fresh main — nothing to push."
+              exit 0
+            fi
+            git commit -m "chore(sync): update hubspot-deals.json"
           done
           echo "All push attempts failed."
           exit 1
