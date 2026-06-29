@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-29T08:52:03.306Z",
-  "syncedAt": "2026-06-29T08:52:03.306Z",
+  "publishedAt": "2026-06-29T12:56:13.271Z",
+  "syncedAt": "2026-06-29T12:56:13.271Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -2883,7 +2883,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-15T21:04:02.746Z"
+        "hsLastModified": "2026-06-29T09:52:16.160Z"
       },
       {
         "pid": "875",
@@ -3987,7 +3987,7 @@
         "ownerId": "2124806754",
         "ownerName": "Jake Delaney",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T04:11:59.515Z"
+        "hsLastModified": "2026-06-29T12:23:16.766Z"
       },
       {
         "pid": "6915",
@@ -4082,7 +4082,7 @@
         "ownerId": "886965083",
         "ownerName": "Phoebe Willoughby",
         "ownerActive": true,
-        "hsLastModified": "2026-06-12T16:32:40.237Z"
+        "hsLastModified": "2026-06-29T09:48:39.878Z"
       },
       {
         "pid": "488",
@@ -4899,7 +4899,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:56:11.962Z"
+        "hsLastModified": "2026-06-29T11:40:21.299Z"
       },
       {
         "pid": "3607",
@@ -5053,7 +5053,7 @@
         "ownerId": "199469207",
         "ownerName": "Anne Iyer",
         "ownerActive": false,
-        "hsLastModified": "2026-06-29T07:51:16.636Z"
+        "hsLastModified": "2026-06-29T08:52:22.335Z"
       },
       {
         "pid": "80",
@@ -5775,7 +5775,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:33:13.214Z"
+        "hsLastModified": "2026-06-29T12:41:38.012Z"
       },
       {
         "pid": "43228",
@@ -5851,7 +5851,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T07:15:29.623Z"
+        "hsLastModified": "2026-06-29T12:51:48.891Z"
       },
       {
         "pid": "43326",
@@ -6136,7 +6136,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:12:50.156Z"
+        "hsLastModified": "2026-06-29T11:38:36.281Z"
       },
       {
         "pid": "9919",
@@ -6212,7 +6212,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:58.669Z"
+        "hsLastModified": "2026-06-29T12:03:18.425Z"
       },
       {
         "pid": "18343",
@@ -6250,7 +6250,7 @@
         "ownerId": "88047280",
         "ownerName": "Olivia Juliano",
         "ownerActive": true,
-        "hsLastModified": "2026-06-16T15:07:37.855Z"
+        "hsLastModified": "2026-06-29T09:49:50.512Z"
       },
       {
         "pid": "378",
@@ -6675,19 +6675,19 @@
         "companyName": "1DP Investment Management Ltd",
         "dealName": "1DP Investment Management Ltd - Renewal",
         "dealType": "Platform Renewal",
-        "amount": 45500,
+        "amount": 49500,
         "currency": "USD",
         "stage": "Invoice sent/Verbal Commitment",
         "stageId": "contractsent",
         "pipeline": "Manager",
         "pipelineId": "default",
-        "eventAttending": "",
-        "dealTerms": "",
+        "eventAttending": "Global Alts Asia 2026;Global Alts EUR 2027;Global Alts Miami '27;Global Alts NY 2027",
+        "dealTerms": "Terms: 1-Year Deal;Booth Type: Rotating Global Alts;Booth Type: Rotating SiC New York;GA Asia (2) Rotating Booth;EUR 2 passes (rotating);Upgrade: Additional Pass SiC Asia",
         "link": "https://app.hubspot.com/contacts/8013348/record/0-3/60254169477",
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:18:00.040Z"
+        "hsLastModified": "2026-06-29T12:52:24.169Z"
       },
       {
         "pid": "31303",
@@ -6725,7 +6725,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T00:07:46.825Z"
+        "hsLastModified": "2026-06-29T09:50:39.229Z"
       },
       {
         "pid": "22212",
@@ -6777,12 +6777,12 @@
         "pipeline": "Manager",
         "pipelineId": "default",
         "eventAttending": "Global Alts Miami '27",
-        "dealTerms": "Terms: 1-Year Deal;Booth Type: Standard",
+        "dealTerms": "Terms: 1-Year Deal;Booth Type: Standard;Upgrade: Booth Branding Global Alts",
         "link": "https://app.hubspot.com/contacts/8013348/record/0-3/60487509880",
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:59.731Z"
+        "hsLastModified": "2026-06-29T12:12:25.157Z"
       },
       {
         "pid": "23174",
@@ -6839,7 +6839,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:36:11.426Z"
+        "hsLastModified": "2026-06-29T12:47:12.134Z"
       },
       {
         "pid": "3276",
@@ -6934,7 +6934,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T18:55:04.368Z"
+        "hsLastModified": "2026-06-29T11:40:35.456Z"
       },
       {
         "pid": "6413",
@@ -9311,7 +9311,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T18:11:07.892Z"
+        "hsLastModified": "2026-06-29T11:31:56.111Z"
       },
       {
         "pid": "14207",
@@ -9615,7 +9615,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T12:03:22.753Z"
+        "hsLastModified": "2026-06-29T12:09:15.407Z"
       },
       {
         "pid": "40327",
@@ -10489,7 +10489,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-18T00:03:40.085Z"
+        "hsLastModified": "2026-06-29T09:53:33.619Z"
       },
       {
         "pid": "6552",
@@ -13607,7 +13607,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-16T16:55:53.562Z"
+        "hsLastModified": "2026-06-29T09:51:46.809Z"
       },
       {
         "pid": "19363",
@@ -14196,7 +14196,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:14:04.388Z"
+        "hsLastModified": "2026-06-29T12:07:31.671Z"
       },
       {
         "pid": "17775",
@@ -16343,7 +16343,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-19T00:06:54.615Z"
+        "hsLastModified": "2026-06-29T09:52:13.334Z"
       },
       {
         "pid": "749",
@@ -16552,7 +16552,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T21:53:00.521Z"
+        "hsLastModified": "2026-06-29T09:51:46.809Z"
       },
       {
         "pid": "19306",
@@ -16804,10 +16804,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-29T08:52:03.306Z",
-    "Q2": "2026-06-29T08:52:03.306Z",
-    "Q3": "2026-06-29T08:52:03.306Z",
-    "Q4": "2026-06-29T08:52:03.306Z"
+    "Q1": "2026-06-29T12:56:13.271Z",
+    "Q2": "2026-06-29T12:56:13.271Z",
+    "Q3": "2026-06-29T12:56:13.271Z",
+    "Q4": "2026-06-29T12:56:13.271Z"
   },
   "owners": {
     "27231823": {
@@ -17999,6 +17999,11 @@
       "hsId": "23480738100",
       "segment": ""
     },
+    "Vitra Capital": {
+      "platformId": "20436",
+      "hsId": "23475186690",
+      "segment": ""
+    },
     "NAV Fund Services": {
       "platformId": "4279",
       "hsId": "35013378826",
@@ -18017,11 +18022,6 @@
     "Citrin Cooperman & Company LLP": {
       "platformId": "18669",
       "hsId": "39900985384",
-      "segment": ""
-    },
-    "Vitra Capital": {
-      "platformId": "20436",
-      "hsId": "23475186690",
       "segment": ""
     },
     "GWM Group": {
@@ -18374,6 +18374,11 @@
       "hsId": "47339417933",
       "segment": ""
     },
+    "Taurus Wealth Advisors": {
+      "platformId": "21518",
+      "hsId": "43697750793",
+      "segment": ""
+    },
     "Jefferies": {
       "platformId": "912",
       "hsId": "50788017450",
@@ -18428,11 +18433,6 @@
       "platformId": "20784",
       "hsId": "4316342876",
       "segment": "Scale"
-    },
-    "Taurus Wealth Advisors": {
-      "platformId": "21518",
-      "hsId": "43697750793",
-      "segment": ""
     },
     "TIme Family Office": {
       "platformId": "21816",
@@ -18729,6 +18729,11 @@
       "hsId": "23480230048",
       "segment": ""
     },
+    "GoldenTree Asset Management": {
+      "platformId": "598",
+      "hsId": "36407792723",
+      "segment": "Enterprise"
+    },
     "Telesto": {
       "platformId": "22368",
       "hsId": "23486660529",
@@ -18788,11 +18793,6 @@
       "platformId": "6150",
       "hsId": "5801782542",
       "segment": ""
-    },
-    "GoldenTree Asset Management": {
-      "platformId": "598",
-      "hsId": "36407792723",
-      "segment": "Enterprise"
     },
     "Gen II Fund Services": {
       "platformId": "2425",
@@ -19729,6 +19729,11 @@
       "hsId": "56048400002",
       "segment": ""
     },
+    "Lone Pine Capital": {
+      "platformId": "1191",
+      "hsId": "38656411763",
+      "segment": "Enterprise"
+    },
     "WHG Asset Management": {
       "platformId": "22923",
       "hsId": "18395499662",
@@ -19783,11 +19788,6 @@
       "platformId": "1157",
       "hsId": "38737702149",
       "segment": ""
-    },
-    "Lone Pine Capital": {
-      "platformId": "1191",
-      "hsId": "38656411763",
-      "segment": "Enterprise"
     },
     "Pana LCE": {
       "platformId": "1552",
@@ -19934,6 +19934,11 @@
       "hsId": "10912295307",
       "segment": "Scale"
     },
+    "Cliffwater": {
+      "platformId": "4697",
+      "hsId": "23458593805",
+      "segment": ""
+    },
     "Polar Asset Management Partners": {
       "platformId": "449",
       "hsId": "38331736934",
@@ -19989,20 +19994,10 @@
       "hsId": "39540097608",
       "segment": "Enterprise"
     },
-    "Cliffwater": {
-      "platformId": "4697",
-      "hsId": "23458593805",
-      "segment": ""
-    },
     "Nebari Holdings": {
       "platformId": "6377",
       "hsId": "4772825122",
       "segment": "Enterprise"
-    },
-    "Options IT": {
-      "platformId": "10945",
-      "hsId": "41128057503",
-      "segment": ""
     },
     "Perast Capital Management": {
       "platformId": "14235",
@@ -20024,15 +20019,15 @@
       "hsId": "4426928037",
       "segment": "Enterprise"
     },
-    "Axonic Capital": {
-      "platformId": "6089",
-      "hsId": "36964554346",
-      "segment": "Enterprise"
-    },
     "Ultimus": {
       "platformId": "41169",
       "hsId": "46904294934",
       "segment": ""
+    },
+    "Axonic Capital": {
+      "platformId": "6089",
+      "hsId": "36964554346",
+      "segment": "Enterprise"
     },
     "RevTek Capital": {
       "platformId": "31306",
@@ -20109,11 +20104,6 @@
       "hsId": "35016918147",
       "segment": ""
     },
-    "Blockstream Capital Partners": {
-      "platformId": "40987",
-      "hsId": "52360886788",
-      "segment": "Enterprise"
-    },
     "TT Capital Partners": {
       "platformId": "6359",
       "hsId": "6640917296",
@@ -20134,9 +20124,19 @@
       "hsId": "7212871534",
       "segment": "Enterprise"
     },
+    "Blockstream Capital Partners": {
+      "platformId": "40987",
+      "hsId": "52360886788",
+      "segment": "Enterprise"
+    },
     "BitGo": {
       "platformId": "8445",
       "hsId": "38842647188",
+      "segment": ""
+    },
+    "Options IT": {
+      "platformId": "10945",
+      "hsId": "41128057503",
       "segment": ""
     },
     "17Capital": {
@@ -20189,6 +20189,11 @@
       "hsId": "37315255606",
       "segment": "Enterprise"
     },
+    "XYSTON Capital Management": {
+      "platformId": "43975",
+      "hsId": "39445852318",
+      "segment": "Enterprise"
+    },
     "Aurum Fund Management Ltd.": {
       "platformId": "42779",
       "hsId": "4426973327",
@@ -20198,11 +20203,6 @@
       "platformId": "488",
       "hsId": "4231344043",
       "segment": "Enterprise"
-    },
-    "Squadra Ventures": {
-      "platformId": "11156",
-      "hsId": "9589908876",
-      "segment": "Scale"
     },
     "Algoz Technologies Ltd.": {
       "platformId": "14438",
@@ -20334,6 +20334,11 @@
       "hsId": "53883992465",
       "segment": "Enterprise"
     },
+    "Squadra Ventures": {
+      "platformId": "11156",
+      "hsId": "9589908876",
+      "segment": "Scale"
+    },
     "Proskauer Rose": {
       "platformId": "22816",
       "hsId": "55593963449",
@@ -20373,11 +20378,6 @@
       "platformId": "20224",
       "hsId": "9306229373",
       "segment": ""
-    },
-    "XYSTON Capital Management": {
-      "platformId": "43975",
-      "hsId": "39445852318",
-      "segment": "Enterprise"
     },
     "U.S. Bank Global Fund Services": {
       "platformId": "41176",
@@ -20454,11 +20454,6 @@
       "hsId": "49318452064",
       "segment": ""
     },
-    "Woodson Capital": {
-      "platformId": "20808",
-      "hsId": "18002593699",
-      "segment": "Scale"
-    },
     "ClearSky": {
       "platformId": "20599",
       "hsId": "11057550694",
@@ -20518,6 +20513,11 @@
       "platformId": "40472",
       "hsId": "39300562595",
       "segment": ""
+    },
+    "Woodson Capital": {
+      "platformId": "20808",
+      "hsId": "18002593699",
+      "segment": "Scale"
     },
     "RC Capital": {
       "platformId": "41688",
@@ -20809,6 +20809,11 @@
       "hsId": "5221175822",
       "segment": "Enterprise"
     },
+    "Carey Olsen": {
+      "platformId": "40879",
+      "hsId": "37746532915",
+      "segment": ""
+    },
     "Alpha Financial Markets Consulting UK Limited": {
       "platformId": "22234",
       "hsId": "23445860654",
@@ -20887,11 +20892,6 @@
     "TriVista Capital Inc.": {
       "platformId": "235",
       "hsId": "4231323068",
-      "segment": ""
-    },
-    "Carey Olsen": {
-      "platformId": "40879",
-      "hsId": "37746532915",
       "segment": ""
     },
     "Skematic": {
@@ -21479,10 +21479,10 @@
       "hsId": "52511832191",
       "segment": ""
     },
-    "Mercer": {
-      "platformId": "4952",
-      "hsId": "55461669999",
-      "segment": ""
+    "1DP Investment Management Ltd": {
+      "platformId": "42576",
+      "hsId": "38253992745",
+      "segment": "Enterprise"
     },
     "Blantyre Capital Ltd": {
       "platformId": "42844",
@@ -21544,11 +21544,6 @@
       "hsId": "33550103225",
       "segment": ""
     },
-    "1DP Investment Management Ltd": {
-      "platformId": "42576",
-      "hsId": "38253992745",
-      "segment": "Enterprise"
-    },
     "Caygan Capital Ltd.": {
       "platformId": "3990",
       "hsId": "4316317642",
@@ -21577,6 +21572,11 @@
     "Trybe Capital Management LP": {
       "platformId": "2721",
       "hsId": "23468420215",
+      "segment": ""
+    },
+    "Mercer": {
+      "platformId": "4952",
+      "hsId": "55461669999",
       "segment": ""
     },
     "Star Mountain Capital": {
