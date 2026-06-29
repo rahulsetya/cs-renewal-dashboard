@@ -43,8 +43,9 @@ const COMPANY_PROPS = [
   'subscription_end_date', 'category',
   // Q3 cadence flags (Yes/No per month). Drive the Cadence tab's Q3 column.
   'july_2026_call_complete', 'august_2026_call_complete', 'september_2026_call_complete',
-  // Free-text notes logged alongside each Q3 touchpoint.
-  'july_2026_call_notes', 'august_2026_call_notes', 'september_2026_call_notes'
+  // Single dashboard-wide notes field. Replaces the engagement tracker's
+  // per-row notes column for every CS Goals view.
+  'csm_notes'
 ];
 
 // Cadence HS-eligible categories. The HubSpot `category` enumeration uses
@@ -313,9 +314,7 @@ async function main() {
       jul: c.properties.july_2026_call_complete || '',
       aug: c.properties.august_2026_call_complete || '',
       sep: c.properties.september_2026_call_complete || '',
-      julNote: c.properties.july_2026_call_notes || '',
-      augNote: c.properties.august_2026_call_notes || '',
-      sepNote: c.properties.september_2026_call_notes || ''
+      csmNotes: c.properties.csm_notes || ''
     };
   });
   // Cadence HS eligibility test — same shape as the HubSpot search filter so
@@ -415,7 +414,12 @@ async function main() {
       companies.forEach(c => {
         const name = c.properties.name || '';
         const pid = c.properties.platform_companyid || '';
-        if (name && pid) idx[name] = { platformId: pid, hsId: c.id, segment: c.properties.account_segment || '' };
+        if (name && pid) idx[name] = {
+          platformId: pid,
+          hsId: c.id,
+          segment: c.properties.account_segment || '',
+          csmNotes: c.properties.csm_notes || ''
+        };
       });
       return idx;
     })(),
@@ -439,9 +443,7 @@ async function main() {
           jul: c.jul,
           aug: c.aug,
           sep: c.sep,
-          julNote: c.julNote,
-          augNote: c.augNote,
-          sepNote: c.sepNote
+          csmNotes: c.csmNotes
         };
       });
       return idx;
