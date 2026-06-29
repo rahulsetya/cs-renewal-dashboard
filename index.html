@@ -7563,13 +7563,18 @@ function _cadMultiMonthCount(cData,mo){
 // Resolve the cell value the cadence table should show for (CSM, month).
 // Off → engagement-tracker "yes" count. On + audit loaded → real HubSpot
 // volume summed across the CSM's accounts.
-// Map a cadence-tab month column (e.g. "Jul 2026") to the matching HubSpot
-// call_complete property key ('jul'/'aug'/'sep'). Returns null for any other
-// month — those still come from the engagement tracker. Only matches 2026
-// columns since the HS properties are year-specific.
+// Map a cadence-tab month column (e.g. "Jul", "Jul 2026") to the matching
+// HubSpot call_complete property key ('jul'/'aug'/'sep'). Returns null for
+// any other month — those still come from the engagement tracker. The HS
+// properties are pinned to 2026, so this is year-gated to today's calendar
+// year; if the column carries an explicit year, that wins (e.g. viewing
+// "Jul 2025" in a future build wouldn't accidentally hit the 2026 flag).
 function _cadHSMonthKey(mo){
   const s=String(mo||'').toLowerCase();
-  if(!s.includes('2026'))return null;
+  // Reject any explicit non-2026 year tag.
+  if(/20\d{2}/.test(s)&&!s.includes('2026'))return null;
+  // If no year tag in the column, only treat as HS-eligible during 2026.
+  if(!/20\d{2}/.test(s)&&new Date().getFullYear()!==2026)return null;
   if(s.includes('jul'))return 'jul';
   if(s.includes('aug'))return 'aug';
   if(s.includes('sep'))return 'sep';
