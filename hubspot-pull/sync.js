@@ -428,6 +428,7 @@ async function main() {
         if (!_isCadenceEligible(c)) return;
         idx[c.platformId] = {
           name: c.name,
+          hsId: c.hsId,                                     // For deep-link to the HubSpot record
           accountManager: c.accountManagerName,
           segment: c.accountSegment,
           category: c.category,

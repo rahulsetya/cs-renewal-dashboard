@@ -9903,7 +9903,24 @@ function _cadBodyHTML(rid,csmName){
   const month=_cadFilt.hasOwnProperty(rid)?_cadFilt[rid]:null;
   const cData=cd.csm[csmName];
   const visCols=_cadVisibleCols();
-  let accts=month?(cData.months[month]?.accts||[]):[...(cData.allAccts||[])];
+  // For Q3 2026 HS months the "marked Y" axis comes from HubSpot's
+  // call_complete bool flag, not the ET tracker — so the drilldown's
+  // account list has to source from _offCadenceByPid too. Walks the CSM's
+  // ET book and includes any account whose pid maps to an HS entry with
+  // the month flag set to Yes/true.
+  const _hsKeyForMonth=month?_cadHSMonthKey(month):null;
+  const _useHSAccts=!!(_hsKeyForMonth&&_cadHSReady());
+  let accts;
+  if(_useHSAccts){
+    accts=(cData.allAccts||[]).filter(a=>{
+      const pid=String(a.platformId||'').trim();
+      if(!pid)return false;
+      const hs=_offCadenceByPid[pid];
+      return hs&&_cadHSIsYes(hs[_hsKeyForMonth]);
+    });
+  }else{
+    accts=month?(cData.months[month]?.accts||[]):[...(cData.allAccts||[])];
+  }
   const sort=_cadSort[rid]||{col:'se',dir:1};
   const isYCall=(a,c)=>String((a.calls&&a.calls[c])||'').trim().toLowerCase().startsWith('y');
   // HubSpot lookup — returns null when no audit data is loaded so the cell
@@ -9945,8 +9962,29 @@ function _cadBodyHTML(rid,csmName){
     return 0;
   });
   const sa=col=>{const s=_cadSort[rid];return s&&s.col===col?(s.dir===1?'↑':'↓'):'<span style="opacity:.3">↕</span>';};
-  const label=month?`${month} — accounts with call`:'All accounts in engagement tracker';
-  const colSpan=visCols.length+7;
+  const label=month
+    ?(_useHSAccts?`${month} — accounts marked "Yes" in HubSpot`:`${month} — accounts with call`)
+    :'All accounts in engagement tracker';
+  // colSpan = account + HubSpot + visCols + sub end + risk = 4 + visCols.
+  const colSpan=visCols.length+4;
+  // HubSpot portal id (iConnections) — same constant the Offers tab links
+  // use to build deal-record deep links. Companies are object 0-2.
+  const _HS_PORTAL='8013348';
+  // Resolve an ET account row to its HubSpot company hsId so the drilldown
+  // can deep-link to the record. Two sources: _offCadenceByPid (the auto-
+  // synced cadence directory) and _offCompaniesByName (built from the
+  // same sync's `companies` block). Falls back to the platform ID alone.
+  const _hsLinkFor=a=>{
+    const pid=String(a.platformId||'').trim();
+    let hsId='';
+    if(pid&&_offCadenceByPid[pid]&&_offCadenceByPid[pid].hsId)hsId=_offCadenceByPid[pid].hsId;
+    if(!hsId){
+      const lookup=_offCompaniesByName[_offNormName(a.acct||'')];
+      if(lookup&&lookup.hsId)hsId=lookup.hsId;
+    }
+    if(!hsId)return'<span style="color:var(--dim);opacity:.4">—</span>';
+    return `<a href="https://app.hubspot.com/contacts/${_HS_PORTAL}/record/0-2/${hsId}" target="_blank" rel="noopener" title="Open in HubSpot" style="color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--borderL);font-family:var(--mono);font-size:11px">↗ HubSpot</a>`;
+  };
   // Inline legend — only visible when audit data is loaded so unaudited
   // mode keeps its original look.
   const legend=auditLoaded?`<div style="font-size:10px;color:var(--dim);padding:0 16px 6px;line-height:1.5"><strong style="color:var(--text)">Verification:</strong> <span style="color:var(--green);font-weight:700">✓</span> verified in HubSpot · <span style="color:var(--red);font-weight:700">✓</span> not verified in HubSpot · <span style="color:var(--dim)">—</span> no call logged · <em style="opacity:.7">date next to ✓ = last meeting · ×N = number of meetings</em></div>`:'';
@@ -9956,10 +9994,7 @@ function _cadBodyHTML(rid,csmName){
     <div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">
       <thead><tr style="background:rgba(255,255,255,.04)">
         <th style="text-align:left;padding:5px 16px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','acct')">Account ${sa('acct')}</th>
-        <th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','addCredits')">Add 15 Credits ${sa('addCredits')}</th>
-        <th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','miaBooth')">MIA Booth Selection ${sa('miaBooth')}</th>
-        <th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','outdated')">Outdated Fund Perf ${sa('outdated')}</th>
-        <th style="text-align:center;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','gvPromo')">GV Promo ${sa('gvPromo')}</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--dim);white-space:nowrap">HubSpot</th>
         ${visCols.map(c=>`<th style="text-align:left;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','${c}')">${c} ${sa(c)}</th>`).join('')}
         <th style="text-align:left;padding:5px 8px;color:var(--dim);cursor:pointer;white-space:nowrap" onclick="_cadSortFn('${rid}','${csmName.replace(/'/g,"\\'")}','se')">Sub End ${sa('se')}</th>
         <th style="text-align:center;padding:5px 8px;color:var(--dim)">Risk</th>
@@ -9975,10 +10010,7 @@ function _cadBodyHTML(rid,csmName){
           :`<td style="padding:4px 16px;color:var(--text)">${acctLabel}</td>`;
         return`<tr style="border-top:1px solid rgba(255,255,255,.05)">
           ${acctCell}
-          <td style="text-align:center;padding:4px 8px">${_yesCell(a.addCredits)}</td>
-          <td style="text-align:center;padding:4px 8px">${_yesCell(a.miaBooth)}</td>
-          <td style="text-align:center;padding:4px 8px">${_yesCell(a.outdated)}</td>
-          <td style="text-align:center;padding:4px 8px">${_yesCell(a.gvPromo)}</td>
+          <td style="text-align:center;padding:4px 8px">${_hsLinkFor(a)}</td>
           ${visCols.map(c=>{
             const isY=isYCall(a,c);
             // Five-state cell render:
