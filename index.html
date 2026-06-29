@@ -12677,6 +12677,16 @@ function rCadenceHS(){
     });
   }
   const hsRosterAvail=Object.keys(_offCadenceByPid||{}).length>0;
+  // Compute audit aggregation up front so cellFor (below) can read it. Order
+  // matters: the previous version declared _hsAudit AFTER cellFor referenced
+  // it, hitting the temporal dead zone and blanking the whole tab. Wrapped
+  // in try/catch so any bug in audit aggregation can't take the table down.
+  const _auditLoaded=!!(_cadAuditData&&_cadAuditData.bucket);
+  let _hsAudit=null;
+  if(_auditLoaded){
+    try{_hsAudit=_cadHSAuditCompute();}
+    catch(e){console.warn('Cadence HS audit compute failed:',e);_hsAudit=null;}
+  }
   // Selected quarter → which monthly columns to render. Reuses _QM_LC so the
   // header labels stay consistent with the original Cadence tab.
   const qMonths={Q1:['Jan','Feb','Mar'],Q2:['Apr','May','Jun'],Q3:['Jul','Aug','Sep'],Q4:['Oct','Nov','Dec']};
@@ -12737,18 +12747,8 @@ function rCadenceHS(){
   // Row roster — keep CSM order from CSM[]. Each row carries pool tag from c.seg.
   const _roster=(typeof CSM!=='undefined'&&CSM.length)?CSM:[];
   const _hasData=cd&&cd.cols&&cd.cols.length;
-  // Audit data shared with the original Cadence tab. _cadAuditPromptImport
-  // and _cadPublishToTeam are the same functions that tab uses, so importing
-  // a HubSpot meeting export here populates the audit data everywhere.
-  // Wrapped in try/catch so a bug in audit aggregation can never blank the
-  // whole tab — the main cadence table still renders, the audit panel just
-  // disappears with a warning console log.
-  const _auditLoaded=!!(_cadAuditData&&_cadAuditData.bucket);
-  let _hsAudit=null;
-  if(_auditLoaded){
-    try{_hsAudit=_cadHSAuditCompute();}
-    catch(e){console.warn('Cadence HS audit compute failed:',e);_hsAudit=null;}
-  }
+  // _hsAudit / _auditLoaded were already computed up top so cellFor could
+  // read them safely (see the comment above the declaration).
   // Source badge mirroring the original Cadence's LOCAL / PUBLISHED / BAKED
   // chip so the user knows whether they're looking at their own upload or
   // a team-published baseline.
