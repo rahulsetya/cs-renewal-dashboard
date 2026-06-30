@@ -10092,7 +10092,25 @@ function _cadBodyHTML(rid,csmName){
                 }
               }
             }
-            return`<td style="text-align:left;padding:4px 8px;white-space:nowrap" title="${title}">${cellHTML}</td>`;
+            // Per-month note hover. _offCadenceByPid carries julNote /
+            // augNote / sepNote on each company; when present, append a
+            // small 📝 next to the ✓. Tooltip-only — no inline preview
+            // text.
+            let _hsNoteIcon='';
+            (function(){
+              const hsKey=_cadHSMonthKey(c);
+              if(!hsKey||!_cadHSReady())return;
+              const pid=String(a.platformId||'').trim();
+              if(!pid)return;
+              const hs=_offCadenceByPid[pid];
+              const n=hs?(hs[hsKey+'Note']||''):'';
+              if(!n)return;
+              const t=String(n).replace(/\s+/g,' ').trim()
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+              _hsNoteIcon=` <span title="${t}" style="cursor:help;color:var(--accent);font-size:11px;opacity:.85;margin-left:4px">📝</span>`;
+            })();
+            return`<td style="text-align:left;padding:4px 8px;white-space:nowrap" title="${title}">${cellHTML}${_hsNoteIcon}</td>`;
           }).join('')}
           <td style="padding:4px 8px;color:var(--dim);font-size:10px">${fmtSE(a.se)}</td>
           <td style="text-align:center;padding:4px 8px">${a.rsk?'<span style="color:var(--red);font-weight:600">⚠</span>':'<span style="color:var(--dim)">—</span>'}</td>
