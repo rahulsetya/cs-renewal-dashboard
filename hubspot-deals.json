@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-30T06:36:48.994Z",
-  "syncedAt": "2026-06-30T06:36:48.994Z",
+  "publishedAt": "2026-06-30T10:24:12.233Z",
+  "syncedAt": "2026-06-30T10:24:12.233Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -4804,7 +4804,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T18:27:50.219Z"
+        "hsLastModified": "2026-06-30T09:07:18.862Z"
       },
       {
         "pid": "9214",
@@ -5015,7 +5015,7 @@
         "ownerId": "199469207",
         "ownerName": "Anne Iyer",
         "ownerActive": false,
-        "hsLastModified": "2026-06-29T08:52:22.335Z"
+        "hsLastModified": "2026-06-30T08:17:16.352Z"
       },
       {
         "pid": "80",
@@ -6649,7 +6649,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T19:57:58.888Z"
+        "hsLastModified": "2026-06-30T09:58:22.307Z"
       },
       {
         "pid": "31303",
@@ -6934,7 +6934,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-22T21:00:54.846Z"
+        "hsLastModified": "2026-06-30T07:34:16.232Z"
       },
       {
         "pid": "6157",
@@ -8589,7 +8589,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T20:48:17.501Z"
+        "hsLastModified": "2026-06-30T09:25:49.630Z"
       },
       {
         "pid": "44014",
@@ -11745,7 +11745,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T04:01:57.290Z"
+        "hsLastModified": "2026-06-30T10:04:22.559Z"
       },
       {
         "pid": "11220",
@@ -11840,7 +11840,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T08:03:48.946Z"
+        "hsLastModified": "2026-06-30T08:45:04.191Z"
       },
       {
         "pid": "19216",
@@ -13930,7 +13930,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T19:22:24.558Z"
+        "hsLastModified": "2026-06-30T09:40:21.771Z"
       },
       {
         "pid": "42878",
@@ -16728,10 +16728,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-30T06:36:48.994Z",
-    "Q2": "2026-06-30T06:36:48.994Z",
-    "Q3": "2026-06-30T06:36:48.994Z",
-    "Q4": "2026-06-30T06:36:48.994Z"
+    "Q1": "2026-06-30T10:24:12.233Z",
+    "Q2": "2026-06-30T10:24:12.233Z",
+    "Q3": "2026-06-30T10:24:12.233Z",
+    "Q4": "2026-06-30T10:24:12.233Z"
   },
   "owners": {
     "27231823": {
@@ -17850,6 +17850,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "ISV": {
+      "platformId": "4217",
+      "hsId": "6661978771",
+      "segment": "Enterprise",
+      "csmNotes": "Most likely not renewing at renewal time. Each conference has had decreasing ROI for them. Venture Fund hit by venture issues"
+    },
     "TPG NEXT": {
       "platformId": "20418",
       "hsId": "23486966375",
@@ -17910,12 +17916,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Archive Capital": {
-      "platformId": "20444",
-      "hsId": "23483465138",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Prime Quadrant": {
       "platformId": "11716",
       "hsId": "38982875933",
@@ -17939,12 +17939,6 @@
       "hsId": "4426960238",
       "segment": "Scale",
       "csmNotes": ""
-    },
-    "ISV": {
-      "platformId": "4217",
-      "hsId": "6661978771",
-      "segment": "Enterprise",
-      "csmNotes": "Most likely not renewing at renewal time. Each conference has had decreasing ROI for them. Venture Fund hit by venture issues"
     },
     "NovaQuest Capital Management": {
       "platformId": "11626",
@@ -18048,6 +18042,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Archive Capital": {
+      "platformId": "20444",
+      "hsId": "23483465138",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Quadrant Capital Advisors": {
       "platformId": "20499",
       "hsId": "39659138148",
@@ -18059,6 +18059,12 @@
       "hsId": "23486814545",
       "segment": "",
       "csmNotes": ""
+    },
+    "Polus Capital Management": {
+      "platformId": "17210",
+      "hsId": "16180361228",
+      "segment": "Enterprise",
+      "csmNotes": "emailed 5/19"
     },
     "Glide Capital": {
       "platformId": "6933",
@@ -18257,12 +18263,6 @@
       "hsId": "47547531088",
       "segment": "",
       "csmNotes": ""
-    },
-    "Polus Capital Management": {
-      "platformId": "17210",
-      "hsId": "16180361228",
-      "segment": "Enterprise",
-      "csmNotes": "emailed 5/19"
     },
     "Vitra Capital": {
       "platformId": "20436",
@@ -18840,6 +18840,12 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "Oliver Wyman": {
+      "platformId": "17680",
+      "hsId": "33558528560",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Princeville Capital": {
       "platformId": "40876",
       "hsId": "31378415879",
@@ -18942,6 +18948,12 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "Serone Capital Management": {
+      "platformId": "1103",
+      "hsId": "4426955765",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "VI Asset Management": {
       "platformId": "3456",
       "hsId": "37010515793",
@@ -18975,12 +18987,6 @@
     "Pzena Investment Management": {
       "platformId": "10552",
       "hsId": "30364493697",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
-    "Serone Capital Management": {
-      "platformId": "1103",
-      "hsId": "4426955765",
       "segment": "Enterprise",
       "csmNotes": ""
     },
@@ -19049,12 +19055,6 @@
       "hsId": "4316254334",
       "segment": "Enterprise",
       "csmNotes": "Global Multi-year deal"
-    },
-    "Oliver Wyman": {
-      "platformId": "17680",
-      "hsId": "33558528560",
-      "segment": "",
-      "csmNotes": ""
     },
     "Quartus Capital Partners LLC": {
       "platformId": "16662",
@@ -19854,12 +19854,6 @@
       "segment": "Scale",
       "csmNotes": ""
     },
-    "BNP Paribas Asset Management Alts": {
-      "platformId": "20310",
-      "hsId": "53465913868",
-      "segment": "Enterprise",
-      "csmNotes": "Called to discuss RS meeting booked and recently added LPs 5/14"
-    },
     "Jive Investments": {
       "platformId": "19969",
       "hsId": "17379685017",
@@ -19895,6 +19889,12 @@
       "hsId": "4230815954",
       "segment": "",
       "csmNotes": ""
+    },
+    "BNP Paribas Asset Management Alts": {
+      "platformId": "20310",
+      "hsId": "53465913868",
+      "segment": "Enterprise",
+      "csmNotes": "Called to discuss RS meeting booked and recently added LPs 5/14"
     },
     "Tribeca Investment Partners": {
       "platformId": "572",
@@ -20232,16 +20232,16 @@
       "segment": "Scale",
       "csmNotes": ""
     },
-    "ALTUS Private Capital": {
-      "platformId": "41381",
-      "hsId": "28635736653",
-      "segment": "Scale",
-      "csmNotes": ""
-    },
     "Polar Asset Management Partners": {
       "platformId": "43717",
       "hsId": "42049140603",
       "segment": "",
+      "csmNotes": ""
+    },
+    "ALTUS Private Capital": {
+      "platformId": "41381",
+      "hsId": "28635736653",
+      "segment": "Scale",
       "csmNotes": ""
     },
     "Anagram Capital": {
@@ -22038,15 +22038,15 @@
       "segment": "",
       "csmNotes": ""
     },
-    "1DP Investment Management Ltd": {
-      "platformId": "42576",
-      "hsId": "38253992745",
-      "segment": "Enterprise",
-      "csmNotes": "email Sam"
-    },
     "Blantyre Capital Ltd": {
       "platformId": "42844",
       "hsId": "44444609634",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Corre Partners Management, LLC": {
+      "platformId": "2693",
+      "hsId": "33550103225",
       "segment": "",
       "csmNotes": ""
     },
@@ -22101,12 +22101,6 @@
     "New Mountain Capital": {
       "platformId": "292",
       "hsId": "8975724306",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Corre Partners Management, LLC": {
-      "platformId": "2693",
-      "hsId": "33550103225",
       "segment": "",
       "csmNotes": ""
     },
@@ -22206,6 +22200,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "1DP Investment Management Ltd": {
+      "platformId": "42576",
+      "hsId": "38253992745",
+      "segment": "Enterprise",
+      "csmNotes": "email Sam"
+    },
     "DIFC": {
       "platformId": "14599",
       "hsId": "37182934666",
@@ -22260,6 +22260,18 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Marble Bar Asset Management": {
+      "platformId": "6413",
+      "hsId": "7075532916",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Talos": {
+      "platformId": "8006",
+      "hsId": "52447783544",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Centurion Asset Management Inc.": {
       "platformId": "1468",
       "hsId": "54662937353",
@@ -22269,12 +22281,6 @@
     "Sternlight Capital Partners LLP": {
       "platformId": "18848",
       "hsId": "39162812073",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Talos": {
-      "platformId": "8006",
-      "hsId": "52447783544",
       "segment": "",
       "csmNotes": ""
     },
@@ -22332,12 +22338,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "LIM Advisors": {
-      "platformId": "952",
-      "hsId": "5157571797",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "Emerald Creek Capital": {
       "platformId": "765",
       "hsId": "36964771618",
@@ -22386,16 +22386,16 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "LIM Advisors": {
+      "platformId": "952",
+      "hsId": "5157571797",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "Kyma Capital Limited": {
       "platformId": "6157",
       "hsId": "33702351977",
       "segment": "Scale",
-      "csmNotes": ""
-    },
-    "TCV": {
-      "platformId": "44943",
-      "hsId": "56048255584",
-      "segment": "",
       "csmNotes": ""
     },
     "Harraden Circle Investments, LLC": {
@@ -22420,12 +22420,6 @@
       "platformId": "6822",
       "hsId": "4426969991",
       "segment": "",
-      "csmNotes": ""
-    },
-    "Marble Bar Asset Management": {
-      "platformId": "6413",
-      "hsId": "7075532916",
-      "segment": "Enterprise",
       "csmNotes": ""
     },
     "B Capital": {
@@ -22499,6 +22493,12 @@
       "hsId": "4231326931",
       "segment": "Enterprise",
       "csmNotes": "About to sign 3 year multi-event deal"
+    },
+    "TCV": {
+      "platformId": "44943",
+      "hsId": "56048255584",
+      "segment": "",
+      "csmNotes": ""
     },
     "Joele Frank": {
       "platformId": "12282",
@@ -63393,7 +63393,7 @@
     "Worth Venture Partners": {
       "platformId": "44149",
       "hsId": "47566731157",
-      "segment": "Scale",
+      "segment": "Enterprise",
       "csmNotes": ""
     },
     "Birchview Capital": {
@@ -67502,7 +67502,7 @@
       "accountManager": "Helen Ramsay",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2028-05-30",
+      "subscriptionEndDate": "2028-05-31",
       "jul": "",
       "aug": "",
       "sep": "",
@@ -67742,7 +67742,7 @@
       "accountManager": "Alex Cherecwich",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-10-30",
+      "subscriptionEndDate": "2027-10-31",
       "jul": "",
       "aug": "",
       "sep": "",
@@ -71366,7 +71366,7 @@
       "accountManager": "Support iConnections",
       "segment": "Scale",
       "category": "Manager",
-      "subscriptionEndDate": "2027-12-30",
+      "subscriptionEndDate": "2027-12-31",
       "jul": "",
       "aug": "",
       "sep": "",
@@ -74258,7 +74258,7 @@
       "accountManager": "Courtney Krieg",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-11-29",
+      "subscriptionEndDate": "2027-11-30",
       "jul": "",
       "aug": "",
       "sep": "",
@@ -74378,7 +74378,7 @@
       "accountManager": "Helen Ramsay",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-12-30",
+      "subscriptionEndDate": "2027-12-31",
       "jul": "",
       "aug": "",
       "sep": "",
@@ -77592,9 +77592,9 @@
       "name": "Worth Venture Partners",
       "hsId": "47566731157",
       "accountManager": "Courtney Krieg",
-      "segment": "Scale",
+      "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-12-30",
+      "subscriptionEndDate": "2027-12-31",
       "jul": "",
       "aug": "",
       "sep": "",
@@ -79046,7 +79046,7 @@
       "accountManager": "Support iConnections",
       "segment": "Scale",
       "category": "Manager",
-      "subscriptionEndDate": "2028-01-30",
+      "subscriptionEndDate": "2028-01-31",
       "jul": "",
       "aug": "",
       "sep": "",
