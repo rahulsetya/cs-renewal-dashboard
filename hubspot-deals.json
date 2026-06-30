@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-30T22:47:52.491Z",
-  "syncedAt": "2026-06-30T22:47:52.491Z",
+  "publishedAt": "2026-06-30T23:57:40.253Z",
+  "syncedAt": "2026-06-30T23:57:40.253Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -4405,7 +4405,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T22:03:50.913Z"
+        "hsLastModified": "2026-06-30T23:31:19.651Z"
       },
       {
         "pid": "5598",
@@ -4481,7 +4481,7 @@
         "ownerId": "2073816592",
         "ownerName": "Ashley Moss",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T19:55:24.761Z"
+        "hsLastModified": "2026-06-30T23:32:33.289Z"
       },
       {
         "pid": "23128",
@@ -8513,7 +8513,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:15:15.416Z"
+        "hsLastModified": "2026-06-30T23:32:58.098Z"
       },
       {
         "pid": "2694",
@@ -16609,7 +16609,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T16:02:33.693Z"
+        "hsLastModified": "2026-06-30T23:38:11.560Z"
       },
       {
         "pid": "11202",
@@ -16766,10 +16766,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-30T22:47:52.491Z",
-    "Q2": "2026-06-30T22:47:52.491Z",
-    "Q3": "2026-06-30T22:47:52.491Z",
-    "Q4": "2026-06-30T22:47:52.491Z"
+    "Q1": "2026-06-30T23:57:40.253Z",
+    "Q2": "2026-06-30T23:57:40.253Z",
+    "Q3": "2026-06-30T23:57:40.253Z",
+    "Q4": "2026-06-30T23:57:40.253Z"
   },
   "owners": {
     "27231823": {
@@ -20030,12 +20030,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Lone Pine Capital": {
-      "platformId": "22087",
-      "hsId": "54349730196",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Caspian Capital LP": {
       "platformId": "10410",
       "hsId": "7806528672",
@@ -20189,6 +20183,12 @@
     "Stifel Venture Bank": {
       "platformId": "40646",
       "hsId": "50163334303",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Lone Pine Capital": {
+      "platformId": "22087",
+      "hsId": "54349730196",
       "segment": "",
       "csmNotes": ""
     },
@@ -21812,12 +21812,6 @@
       "segment": "Scale",
       "csmNotes": ""
     },
-    "Carbon Direct Capital": {
-      "platformId": "16377",
-      "hsId": "10071156000",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Societe Generale": {
       "platformId": "5598",
       "hsId": "35875568154",
@@ -21918,6 +21912,12 @@
       "platformId": "3633",
       "hsId": "6103097903",
       "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Carbon Direct Capital": {
+      "platformId": "16377",
+      "hsId": "10071156000",
+      "segment": "",
       "csmNotes": ""
     },
     "Buffalo Thorn Capital Management": {
@@ -22346,12 +22346,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "Golub Capital": {
-      "platformId": "67",
-      "hsId": "4231344036",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Joele Frank": {
       "platformId": "12282",
       "hsId": "54366377331",
@@ -22428,6 +22422,12 @@
       "platformId": "6157",
       "hsId": "33702351977",
       "segment": "Scale",
+      "csmNotes": ""
+    },
+    "Golub Capital": {
+      "platformId": "67",
+      "hsId": "4231344036",
+      "segment": "",
       "csmNotes": ""
     },
     "Tribe Capital": {
