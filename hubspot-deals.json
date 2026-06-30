@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-30T21:12:03.307Z",
-  "syncedAt": "2026-06-30T21:12:03.307Z",
+  "publishedAt": "2026-06-30T22:47:52.491Z",
+  "syncedAt": "2026-06-30T22:47:52.491Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,16 +20,16 @@
     ]
   },
   "counts": {
-    "deals": 1863,
+    "deals": 1864,
     "includedDeals": 880,
-    "companies": 9175,
+    "companies": 9176,
     "droppedNoCompany": 12,
-    "droppedNoPid": 971,
+    "droppedNoPid": 972,
     "perQuarter": {
       "Q1": 172,
-      "Q2": 83,
+      "Q2": 84,
       "Q3": 122,
-      "Q4": 213,
+      "Q4": 212,
       "Undated": 290
     }
   },
@@ -2712,7 +2712,7 @@
         "ownerId": "1172082275",
         "ownerName": "Lauren Sharabi",
         "ownerActive": false,
-        "hsLastModified": "2026-06-30T20:50:07.530Z"
+        "hsLastModified": "2026-06-30T21:50:14.097Z"
       },
       {
         "pid": "44210",
@@ -3016,7 +3016,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T19:42:45.443Z"
+        "hsLastModified": "2026-06-30T21:48:53.993Z"
       },
       {
         "pid": "1383",
@@ -4405,7 +4405,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T20:22:57.384Z"
+        "hsLastModified": "2026-06-30T22:03:50.913Z"
       },
       {
         "pid": "5598",
@@ -4805,6 +4805,25 @@
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
         "hsLastModified": "2026-06-30T17:25:08.287Z"
+      },
+      {
+        "pid": "6180",
+        "companyName": "Candelo Capital",
+        "dealName": "Candelo Capital - New Deal (Established)(Clearstreet)",
+        "dealType": "New Platform Subscription",
+        "amount": 16500,
+        "currency": "USD",
+        "stage": "Proposal Negotiation (40% - 70%)",
+        "stageId": "1144568138",
+        "pipeline": "Manager",
+        "pipelineId": "default",
+        "eventAttending": "Global Alts EUR 2027;Global Alts Asia 2026",
+        "dealTerms": "Terms: 1-Year Deal;GA Asia (1) Rotating Booth;EUR 1 pass (rotating)",
+        "link": "https://app.hubspot.com/contacts/8013348/record/0-3/61625546676",
+        "ownerId": "83329594",
+        "ownerName": "James Thompson",
+        "ownerActive": true,
+        "hsLastModified": "2026-06-30T17:42:23.149Z"
       },
       {
         "pid": "9214",
@@ -6991,7 +7010,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T21:01:42.221Z"
+        "hsLastModified": "2026-06-30T21:58:20.319Z"
       },
       {
         "pid": "8398",
@@ -10926,7 +10945,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:10:45.236Z"
+        "hsLastModified": "2026-06-30T21:33:08.724Z"
       },
       {
         "pid": "40327",
@@ -11212,25 +11231,6 @@
         "ownerName": "Jake Delaney",
         "ownerActive": true,
         "hsLastModified": "2026-06-30T19:29:52.337Z"
-      },
-      {
-        "pid": "6180",
-        "companyName": "Candelo Capital",
-        "dealName": "Candelo Capital - New Deal (Established)(Clearstreet)",
-        "dealType": "New Platform Subscription",
-        "amount": 16500,
-        "currency": "USD",
-        "stage": "Proposal Negotiation (40% - 70%)",
-        "stageId": "1144568138",
-        "pipeline": "Manager",
-        "pipelineId": "default",
-        "eventAttending": "Global Alts EUR 2027;Global Alts Asia 2026",
-        "dealTerms": "Terms: 1-Year Deal;GA Asia (1) Rotating Booth;EUR 1 pass (rotating)",
-        "link": "https://app.hubspot.com/contacts/8013348/record/0-3/61625546676",
-        "ownerId": "83329594",
-        "ownerName": "James Thompson",
-        "ownerActive": true,
-        "hsLastModified": "2026-06-30T17:42:23.149Z"
       },
       {
         "pid": "1091",
@@ -16766,10 +16766,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-30T21:12:03.307Z",
-    "Q2": "2026-06-30T21:12:03.307Z",
-    "Q3": "2026-06-30T21:12:03.307Z",
-    "Q4": "2026-06-30T21:12:03.307Z"
+    "Q1": "2026-06-30T22:47:52.491Z",
+    "Q2": "2026-06-30T22:47:52.491Z",
+    "Q3": "2026-06-30T22:47:52.491Z",
+    "Q4": "2026-06-30T22:47:52.491Z"
   },
   "owners": {
     "27231823": {
@@ -21476,6 +21476,12 @@
       "segment": "Scale",
       "csmNotes": "not responsive sent 5 emails and called"
     },
+    "Mycor Capital Management": {
+      "platformId": "39354",
+      "hsId": "17588748049",
+      "segment": "",
+      "csmNotes": ""
+    },
     "CF Private Equity": {
       "platformId": "8954",
       "hsId": "12008514087",
@@ -21686,12 +21692,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "Mycor Capital Management": {
-      "platformId": "39354",
-      "hsId": "17588748049",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Sundance Bay": {
       "platformId": "14461",
       "hsId": "4426972410",
@@ -21725,12 +21725,6 @@
     "Lytical Ventures": {
       "platformId": "458",
       "hsId": "4230698492",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Carbon Direct Capital": {
-      "platformId": "16377",
-      "hsId": "10071156000",
       "segment": "",
       "csmNotes": ""
     },
@@ -21816,6 +21810,12 @@
       "platformId": "6345",
       "hsId": "6806414491",
       "segment": "Scale",
+      "csmNotes": ""
+    },
+    "Carbon Direct Capital": {
+      "platformId": "16377",
+      "hsId": "10071156000",
+      "segment": "",
       "csmNotes": ""
     },
     "Societe Generale": {
@@ -22094,18 +22094,6 @@
       "segment": "Enterprise",
       "csmNotes": "Potential early renewal but boss is annoyed that they paid for dedicated booth for NY and it is now a rotated booth"
     },
-    "Growth Curve Capital": {
-      "platformId": "18661",
-      "hsId": "29859611812",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "DIFC": {
-      "platformId": "14599",
-      "hsId": "37182934666",
-      "segment": "",
-      "csmNotes": ""
-    },
     "XAI Asset Management": {
       "platformId": "18846",
       "hsId": "8975663218",
@@ -22142,6 +22130,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Growth Curve Capital": {
+      "platformId": "18661",
+      "hsId": "29859611812",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Shorecliff Asset Management Company LLC": {
       "platformId": "43431",
       "hsId": "41552148274",
@@ -22158,6 +22152,12 @@
       "platformId": "3276",
       "hsId": "5741501952",
       "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "DIFC": {
+      "platformId": "14599",
+      "hsId": "37182934666",
+      "segment": "",
       "csmNotes": ""
     },
     "PwC": {
@@ -22586,12 +22586,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "Serengeti Asset Management": {
-      "platformId": "14551",
-      "hsId": "4426956717",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "Brevan Howard": {
       "platformId": "11786",
       "hsId": "38394525317",
@@ -22634,12 +22628,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "Candelo Capital": {
-      "platformId": "6180",
-      "hsId": "4949577633",
-      "segment": "Scale",
-      "csmNotes": ""
-    },
     "CapVest": {
       "platformId": "23297",
       "hsId": "31645250323",
@@ -22656,6 +22644,12 @@
       "platformId": "6788",
       "hsId": "39659883630",
       "segment": "",
+      "csmNotes": ""
+    },
+    "Candelo Capital": {
+      "platformId": "6180",
+      "hsId": "4949577633",
+      "segment": "Scale",
       "csmNotes": ""
     },
     "Eversheds Sutherland": {
@@ -22697,6 +22691,12 @@
     "GCM Grosvenor": {
       "platformId": "1091",
       "hsId": "56243355995",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Serengeti Asset Management": {
+      "platformId": "14551",
+      "hsId": "4426956717",
       "segment": "Enterprise",
       "csmNotes": ""
     },
@@ -69266,6 +69266,21 @@
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2026-09-29",
+      "jul": "",
+      "aug": "",
+      "sep": "",
+      "julNote": "",
+      "augNote": "",
+      "sepNote": "",
+      "csmNotes": ""
+    },
+    "6180": {
+      "name": "Candelo Capital",
+      "hsId": "4949577633",
+      "accountManager": "Mario Giron",
+      "segment": "Scale",
+      "category": "Manager",
+      "subscriptionEndDate": "2027-06-30",
       "jul": "",
       "aug": "",
       "sep": "",
