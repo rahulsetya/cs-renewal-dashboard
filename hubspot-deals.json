@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-30T10:24:12.233Z",
-  "syncedAt": "2026-06-30T10:24:12.233Z",
+  "publishedAt": "2026-06-30T12:27:56.633Z",
+  "syncedAt": "2026-06-30T12:27:56.633Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -2769,7 +2769,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T16:33:23.781Z"
+        "hsLastModified": "2026-06-30T10:27:52.432Z"
       },
       {
         "pid": "11581",
@@ -4424,7 +4424,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T21:14:33.476Z"
+        "hsLastModified": "2026-06-30T12:27:21.818Z"
       },
       {
         "pid": "5598",
@@ -5756,7 +5756,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T01:27:17.027Z"
+        "hsLastModified": "2026-06-30T10:35:50.757Z"
       },
       {
         "pid": "4448",
@@ -6098,7 +6098,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T17:42:25.857Z"
+        "hsLastModified": "2026-06-30T11:52:24.907Z"
       },
       {
         "pid": "9919",
@@ -6915,7 +6915,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T19:10:35.728Z"
+        "hsLastModified": "2026-06-30T11:32:12.814Z"
       },
       {
         "pid": "6413",
@@ -7067,7 +7067,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T01:04:38.881Z"
+        "hsLastModified": "2026-06-30T12:00:23.085Z"
       },
       {
         "pid": "6788",
@@ -7143,7 +7143,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T18:28:09.364Z"
+        "hsLastModified": "2026-06-30T11:59:57.575Z"
       },
       {
         "pid": "80",
@@ -8589,7 +8589,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T09:25:49.630Z"
+        "hsLastModified": "2026-06-30T10:49:25.696Z"
       },
       {
         "pid": "44014",
@@ -9653,7 +9653,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T12:09:15.407Z"
+        "hsLastModified": "2026-06-30T12:05:23.494Z"
       },
       {
         "pid": "40327",
@@ -10964,7 +10964,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:12:52.511Z"
+        "hsLastModified": "2026-06-30T12:05:39.584Z"
       },
       {
         "pid": "14727",
@@ -13550,7 +13550,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T09:51:46.809Z"
+        "hsLastModified": "2026-06-30T12:15:11.660Z"
       },
       {
         "pid": "19363",
@@ -13930,7 +13930,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T09:40:21.771Z"
+        "hsLastModified": "2026-06-30T10:41:25.721Z"
       },
       {
         "pid": "42878",
@@ -16704,7 +16704,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T21:45:38.513Z"
+        "hsLastModified": "2026-06-30T11:46:20.489Z"
       },
       {
         "pid": "19606",
@@ -16728,10 +16728,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-30T10:24:12.233Z",
-    "Q2": "2026-06-30T10:24:12.233Z",
-    "Q3": "2026-06-30T10:24:12.233Z",
-    "Q4": "2026-06-30T10:24:12.233Z"
+    "Q1": "2026-06-30T12:27:56.633Z",
+    "Q2": "2026-06-30T12:27:56.633Z",
+    "Q3": "2026-06-30T12:27:56.633Z",
+    "Q4": "2026-06-30T12:27:56.633Z"
   },
   "owners": {
     "27231823": {
@@ -18450,12 +18450,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Aequim Alternative Investments": {
-      "platformId": "19265",
-      "hsId": "5801914380",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Truist": {
       "platformId": "5058",
       "hsId": "6904069205",
@@ -18621,6 +18615,12 @@
     "Pension Protection Fund": {
       "platformId": "19790",
       "hsId": "39747786012",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Aequim Alternative Investments": {
+      "platformId": "19265",
+      "hsId": "5801914380",
       "segment": "",
       "csmNotes": ""
     },
@@ -18846,6 +18846,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Serone Capital Management": {
+      "platformId": "1103",
+      "hsId": "4426955765",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "Princeville Capital": {
       "platformId": "40876",
       "hsId": "31378415879",
@@ -18945,12 +18951,6 @@
     "Pemberton Asset Management": {
       "platformId": "14727",
       "hsId": "37229414266",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
-    "Serone Capital Management": {
-      "platformId": "1103",
-      "hsId": "4426955765",
       "segment": "Enterprise",
       "csmNotes": ""
     },
@@ -19830,6 +19830,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "BNP Paribas Asset Management Alts": {
+      "platformId": "20310",
+      "hsId": "53465913868",
+      "segment": "Enterprise",
+      "csmNotes": "Called to discuss RS meeting booked and recently added LPs 5/14"
+    },
     "Tower Research Capital Europe": {
       "platformId": "21963",
       "hsId": "7448931665",
@@ -19889,12 +19895,6 @@
       "hsId": "4230815954",
       "segment": "",
       "csmNotes": ""
-    },
-    "BNP Paribas Asset Management Alts": {
-      "platformId": "20310",
-      "hsId": "53465913868",
-      "segment": "Enterprise",
-      "csmNotes": "Called to discuss RS meeting booked and recently added LPs 5/14"
     },
     "Tribeca Investment Partners": {
       "platformId": "572",
@@ -19986,6 +19986,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Aries Media Ventures": {
+      "platformId": "42829",
+      "hsId": "37647696549",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Milbank": {
       "platformId": "41913",
       "hsId": "45779140678",
@@ -20019,12 +20025,6 @@
     "Lone Pine Capital": {
       "platformId": "22087",
       "hsId": "54349730196",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Aries Media Ventures": {
-      "platformId": "42829",
-      "hsId": "37647696549",
       "segment": "",
       "csmNotes": ""
     },
@@ -20226,12 +20226,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Fremen Capital": {
-      "platformId": "43228",
-      "hsId": "39352239638",
-      "segment": "Scale",
-      "csmNotes": ""
-    },
     "Polar Asset Management Partners": {
       "platformId": "43717",
       "hsId": "42049140603",
@@ -20267,12 +20261,6 @@
       "hsId": "48759662080",
       "segment": "",
       "csmNotes": ""
-    },
-    "Delta Accumulation, LLC": {
-      "platformId": "42401",
-      "hsId": "20103983441",
-      "segment": "Enterprise",
-      "csmNotes": "Ghosting outreach, emailoing again 5/12"
     },
     "Calibrate Partners": {
       "platformId": "17200",
@@ -20316,6 +20304,12 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "Delta Accumulation, LLC": {
+      "platformId": "42401",
+      "hsId": "20103983441",
+      "segment": "Enterprise",
+      "csmNotes": "Ghosting outreach, emailoing again 5/12"
+    },
     "Impact Growth Capital": {
       "platformId": "41384",
       "hsId": "28300858980",
@@ -20343,6 +20337,12 @@
     "Burnt Island Ventures": {
       "platformId": "43084",
       "hsId": "18255397430",
+      "segment": "Scale",
+      "csmNotes": ""
+    },
+    "Fremen Capital": {
+      "platformId": "43228",
+      "hsId": "39352239638",
       "segment": "Scale",
       "csmNotes": ""
     },
@@ -20598,6 +20598,12 @@
       "segment": "Scale",
       "csmNotes": ""
     },
+    "XYSTON Capital Management": {
+      "platformId": "43975",
+      "hsId": "39445852318",
+      "segment": "Enterprise",
+      "csmNotes": "only responds to pay when convenient for him. on-site perk expires Friday 5/29"
+    },
     "Satori Capital": {
       "platformId": "9420",
       "hsId": "5130339697",
@@ -20640,11 +20646,11 @@
       "segment": "",
       "csmNotes": ""
     },
-    "XYSTON Capital Management": {
-      "platformId": "43975",
-      "hsId": "39445852318",
-      "segment": "Enterprise",
-      "csmNotes": "only responds to pay when convenient for him. on-site perk expires Friday 5/29"
+    "Sculptor Capital Management": {
+      "platformId": "20998",
+      "hsId": "54358788666",
+      "segment": "",
+      "csmNotes": ""
     },
     "Foresite Capital": {
       "platformId": "8923",
@@ -20745,12 +20751,6 @@
     "OpEff Technologies": {
       "platformId": "43526",
       "hsId": "46717825285",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Sculptor Capital Management": {
-      "platformId": "20998",
-      "hsId": "54358788666",
       "segment": "",
       "csmNotes": ""
     },
@@ -21708,12 +21708,6 @@
       "segment": "Scale",
       "csmNotes": ""
     },
-    "Carbon Direct Capital": {
-      "platformId": "16377",
-      "hsId": "10071156000",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Rogers Investment Advisors": {
       "platformId": "6548",
       "hsId": "31117974399",
@@ -21987,6 +21981,12 @@
     "Tempest": {
       "platformId": "14395",
       "hsId": "10087247459",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Carbon Direct Capital": {
+      "platformId": "16377",
+      "hsId": "10071156000",
       "segment": "",
       "csmNotes": ""
     },
@@ -22566,18 +22566,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "CapVest": {
-      "platformId": "23297",
-      "hsId": "31645250323",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Dilation Capital": {
-      "platformId": "4529",
-      "hsId": "6108688755",
-      "segment": "Scale",
-      "csmNotes": ""
-    },
     "Watchtower Advisors": {
       "platformId": "42777",
       "hsId": "37228714302",
@@ -22608,10 +22596,22 @@
       "segment": "Scale",
       "csmNotes": ""
     },
+    "Dilation Capital": {
+      "platformId": "4529",
+      "hsId": "6108688755",
+      "segment": "Scale",
+      "csmNotes": ""
+    },
     "Espresso Capital": {
       "platformId": "3197",
       "hsId": "30345681734",
       "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "CapVest": {
+      "platformId": "23297",
+      "hsId": "31645250323",
+      "segment": "",
       "csmNotes": ""
     },
     "Tealrock Asset Management LLC": {
@@ -22623,6 +22623,12 @@
     "Thornburg": {
       "platformId": "2383",
       "hsId": "31407620175",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "III Capital Management": {
+      "platformId": "31305",
+      "hsId": "4316188611",
       "segment": "Enterprise",
       "csmNotes": ""
     },
@@ -22655,12 +22661,6 @@
       "hsId": "6631822671",
       "segment": "Enterprise",
       "csmNotes": "Been unresponsive to jake and i. plan is to break for a few weeks and attack in june"
-    },
-    "III Capital Management": {
-      "platformId": "31305",
-      "hsId": "4316188611",
-      "segment": "Enterprise",
-      "csmNotes": ""
     },
     "Candelo Capital": {
       "platformId": "6180",
@@ -72734,7 +72734,7 @@
       "accountManager": "Phoebe Willoughby",
       "segment": "Scale",
       "category": "Manager",
-      "subscriptionEndDate": "2026-09-29",
+      "subscriptionEndDate": "2027-09-29",
       "jul": "",
       "aug": "",
       "sep": "",
