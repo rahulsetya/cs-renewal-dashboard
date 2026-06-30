@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-30T02:09:22.043Z",
-  "syncedAt": "2026-06-30T02:09:22.043Z",
+  "publishedAt": "2026-06-30T06:36:48.994Z",
+  "syncedAt": "2026-06-30T06:36:48.994Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,11 +20,11 @@
     ]
   },
   "counts": {
-    "deals": 1858,
+    "deals": 1859,
     "includedDeals": 878,
-    "companies": 9151,
+    "companies": 9152,
     "droppedNoCompany": 12,
-    "droppedNoPid": 968,
+    "droppedNoPid": 969,
     "perQuarter": {
       "Q1": 173,
       "Q2": 82,
@@ -5699,7 +5699,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T01:09:05.816Z"
+        "hsLastModified": "2026-06-30T02:18:56.992Z"
       },
       {
         "pid": "10410",
@@ -6155,7 +6155,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T00:09:42.890Z"
+        "hsLastModified": "2026-06-30T04:50:57.508Z"
       },
       {
         "pid": "20808",
@@ -7029,7 +7029,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T00:08:07.462Z"
+        "hsLastModified": "2026-06-30T06:31:30.690Z"
       },
       {
         "pid": "8398",
@@ -8912,7 +8912,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T01:29:58.872Z"
+        "hsLastModified": "2026-06-30T03:23:46.898Z"
       },
       {
         "pid": "12500",
@@ -11154,7 +11154,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-26T20:27:03.886Z"
+        "hsLastModified": "2026-06-30T02:36:15.274Z"
       },
       {
         "pid": "3188",
@@ -11745,7 +11745,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:10:49.008Z"
+        "hsLastModified": "2026-06-30T04:01:57.290Z"
       },
       {
         "pid": "11220",
@@ -16728,10 +16728,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-30T02:09:22.043Z",
-    "Q2": "2026-06-30T02:09:22.043Z",
-    "Q3": "2026-06-30T02:09:22.043Z",
-    "Q4": "2026-06-30T02:09:22.043Z"
+    "Q1": "2026-06-30T06:36:48.994Z",
+    "Q2": "2026-06-30T06:36:48.994Z",
+    "Q3": "2026-06-30T06:36:48.994Z",
+    "Q4": "2026-06-30T06:36:48.994Z"
   },
   "owners": {
     "27231823": {
@@ -18900,12 +18900,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Oliver Wyman": {
-      "platformId": "17680",
-      "hsId": "33558528560",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Scotiabank": {
       "platformId": "41727",
       "hsId": "30761170968",
@@ -19055,6 +19049,12 @@
       "hsId": "4316254334",
       "segment": "Enterprise",
       "csmNotes": "Global Multi-year deal"
+    },
+    "Oliver Wyman": {
+      "platformId": "17680",
+      "hsId": "33558528560",
+      "segment": "",
+      "csmNotes": ""
     },
     "Quartus Capital Partners LLC": {
       "platformId": "16662",
@@ -19896,6 +19896,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Tribeca Investment Partners": {
+      "platformId": "572",
+      "hsId": "35525472675",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "Advaita Capital": {
       "platformId": "11126",
       "hsId": "23481811736",
@@ -19966,12 +19972,6 @@
       "platformId": "5684",
       "hsId": "54349576478",
       "segment": "",
-      "csmNotes": ""
-    },
-    "Tribeca Investment Partners": {
-      "platformId": "572",
-      "hsId": "35525472675",
-      "segment": "Enterprise",
       "csmNotes": ""
     },
     "Anchin Block & Anchin": {
@@ -20394,6 +20394,12 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "Coventry Structured Investments": {
+      "platformId": "16714",
+      "hsId": "23484236656",
+      "segment": "Scale",
+      "csmNotes": "Followed up 3/5, 3/24, 5/12, and 5/18 - No Response. Chosen For Roadshow week on 5/11"
+    },
     "Urban Standard Capital": {
       "platformId": "6915",
       "hsId": "7212871534",
@@ -20483,12 +20489,6 @@
       "hsId": "52360886788",
       "segment": "Enterprise",
       "csmNotes": ""
-    },
-    "Coventry Structured Investments": {
-      "platformId": "16714",
-      "hsId": "23484236656",
-      "segment": "Scale",
-      "csmNotes": "Followed up 3/5, 3/24, 5/12, and 5/18 - No Response. Chosen For Roadshow week on 5/11"
     },
     "UG Investment Advisers Ltd": {
       "platformId": "12500",
@@ -20604,12 +20604,6 @@
       "segment": "Scale",
       "csmNotes": ""
     },
-    "IXI Investments": {
-      "platformId": "43337",
-      "hsId": "4950081002",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "Donald Smith & Co.": {
       "platformId": "20429",
       "hsId": "4314892929",
@@ -20699,12 +20693,6 @@
       "hsId": "10167646330",
       "segment": "Enterprise",
       "csmNotes": ""
-    },
-    "Squadra Ventures": {
-      "platformId": "11156",
-      "hsId": "9589908876",
-      "segment": "Scale",
-      "csmNotes": "Invoice Sent. Just waiting on Payment."
     },
     "Dardanelles Capital": {
       "platformId": "39424",
@@ -20832,11 +20820,23 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "IXI Investments": {
+      "platformId": "43337",
+      "hsId": "4950081002",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "VanEck": {
       "platformId": "7566",
       "hsId": "4426882259",
       "segment": "Enterprise",
       "csmNotes": ""
+    },
+    "Squadra Ventures": {
+      "platformId": "11156",
+      "hsId": "9589908876",
+      "segment": "Scale",
+      "csmNotes": "Invoice Sent. Just waiting on Payment."
     },
     "Proskauer Rose": {
       "platformId": "22816",
@@ -22260,12 +22260,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "ION Crossover Partners, Ltd.": {
-      "platformId": "40035",
-      "hsId": "23210349949",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "Centurion Asset Management Inc.": {
       "platformId": "1468",
       "hsId": "54662937353",
@@ -22277,12 +22271,6 @@
       "hsId": "39162812073",
       "segment": "",
       "csmNotes": ""
-    },
-    "Millburn": {
-      "platformId": "6354",
-      "hsId": "55605095806",
-      "segment": "Enterprise",
-      "csmNotes": "Call scheduled this week"
     },
     "Talos": {
       "platformId": "8006",
@@ -22338,11 +22326,29 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "ION Fund Management Ltd. ": {
+      "platformId": "6836",
+      "hsId": "7310932384",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "LIM Advisors": {
       "platformId": "952",
       "hsId": "5157571797",
       "segment": "Enterprise",
       "csmNotes": ""
+    },
+    "Emerald Creek Capital": {
+      "platformId": "765",
+      "hsId": "36964771618",
+      "segment": "Scale",
+      "csmNotes": "Call Scheduled 6/16"
+    },
+    "Millburn": {
+      "platformId": "6354",
+      "hsId": "55605095806",
+      "segment": "Enterprise",
+      "csmNotes": "Call scheduled this week"
     },
     "Silver 8 Capital": {
       "platformId": "10673",
@@ -22365,6 +22371,12 @@
     "Transformation Capital": {
       "platformId": "40278",
       "hsId": "19716039294",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "ION Crossover Partners, Ltd.": {
+      "platformId": "40035",
+      "hsId": "23210349949",
       "segment": "Enterprise",
       "csmNotes": ""
     },
@@ -22482,12 +22494,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "ION Fund Management Ltd. ": {
-      "platformId": "6836",
-      "hsId": "7310932384",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "BWCP, LP": {
       "platformId": "758",
       "hsId": "4231326931",
@@ -22511,12 +22517,6 @@
       "hsId": "4316188488",
       "segment": "Scale",
       "csmNotes": ""
-    },
-    "Emerald Creek Capital": {
-      "platformId": "765",
-      "hsId": "36964771618",
-      "segment": "Scale",
-      "csmNotes": "Call Scheduled 6/16"
     },
     "Red Ember Capital": {
       "platformId": "4073",
@@ -39178,7 +39178,7 @@
       "platformId": "19826",
       "hsId": "15811246902",
       "segment": "Enterprise",
-      "csmNotes": ""
+      "csmNotes": "This is a test Rahul. You trained me too well so building my own flows"
     },
     "Noksha Capital": {
       "platformId": "40802",
@@ -72099,10 +72099,10 @@
       "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2027-10-31",
-      "jul": "",
+      "jul": "true",
       "aug": "",
       "sep": "",
-      "csmNotes": ""
+      "csmNotes": "This is a test Rahul. You trained me too well so building my own flows"
     },
     "19852": {
       "name": "Numerai",
