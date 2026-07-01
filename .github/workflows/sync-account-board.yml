@@ -10,6 +10,9 @@ on:
     - cron: '*/15 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write      # Needed on first run to commit .slack-canvas-id back
+
 concurrency:
   group: sync-account-board
   cancel-in-progress: false
@@ -30,3 +33,24 @@ jobs:
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: node hubspot-pull/sync-account-board.js
+
+      - name: Commit canvas ID on first run
+        run: |
+          if [ -z "$(git status --porcelain hubspot-pull/.slack-canvas-id)" ]; then
+            echo "No canvas ID change — skipping commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hubspot-pull/.slack-canvas-id
+          git commit -m "chore(sync): bootstrap Slack canvas ID"
+          # Same soft-reset retry the HubSpot sync uses — sidesteps races.
+          for i in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            echo "Push attempt $i failed — replaying on fresh main…"
+            git fetch origin main
+            git reset --soft origin/main
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "chore(sync): bootstrap Slack canvas ID"
+          done
+          exit 1

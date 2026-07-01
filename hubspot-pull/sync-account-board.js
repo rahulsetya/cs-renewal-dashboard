@@ -14,13 +14,21 @@
  *   The bot must be a member of the channel or conversations.history 4xxs.
  */
 
+const fs = require('fs');
+const path = require('path');
+
 const TOKEN = process.env.SLACK_BOT_TOKEN;
 if (!TOKEN) { console.error('ERROR: SLACK_BOT_TOKEN env var not set.'); process.exit(1); }
 
 const CHANNEL = 'C0BD52FM8JW';       // #scale-account-creation
-const BOT_ID  = 'B0B2U74MTV1';       // HubSpot Slack app
-const CANVAS  = 'F0BEMNYGBLH';       // Contract → Account Creation Board
+const BOT_ID  = 'B0B2U74MTV1';       // HubSpot Slack app (posts the source msgs)
 const WORKSPACE = 'iconnectionsworkspace';
+// Slack canvases are owned by whoever created them; only the owner (or a
+// workspace admin) can edit a standalone canvas. That means the bot must
+// create its own canvas. We store the bot-owned canvas id in a small file
+// beside this script and commit it back so the next run finds it.
+const CANVAS_ID_FILE = path.join(__dirname, '.slack-canvas-id');
+const CANVAS_TITLE = 'Contract → Account Creation Board';
 const SIGNED_MARKER = 'has signed their contract';
 const STALE_SECS = 24 * 3600;
 
@@ -50,8 +58,45 @@ function fmtAge(secs) {
   return `${d}d ${h}h ago`;
 }
 
+function readCanvasId() {
+  try { return fs.readFileSync(CANVAS_ID_FILE, 'utf8').trim() || null; }
+  catch (e) { return null; }
+}
+function saveCanvasId(id) {
+  fs.writeFileSync(CANVAS_ID_FILE, id + '\n');
+}
+// Post a small breadcrumb in the channel so people know the new bot-owned
+// canvas is the one to watch. Only fires the first time we bootstrap.
+async function announceNewCanvas(canvasId) {
+  const url = `https://${WORKSPACE}.slack.com/docs/T014SDVS3PD/${canvasId}`;
+  try {
+    await slack('chat.postMessage', {
+      channel: CHANNEL,
+      text: `📋 The live Contract → Account Creation board is here: ${url} — refreshes every 15 minutes. React on any HubSpot signed-contract post with :eyes: to claim it and :white_check_mark: when done.`
+    });
+  } catch (e) { console.warn('Could not post canvas announcement:', e.message); }
+}
+
+async function ensureCanvas() {
+  let id = readCanvasId();
+  if (id) return id;
+  console.log('No stored canvas ID — creating a bot-owned canvas…');
+  const seed = `# ${CANVAS_TITLE}\n\n_Initializing… full board will populate on the next run._`;
+  const j = await slack('canvases.create', {
+    title: CANVAS_TITLE,
+    document_content: { type: 'markdown', markdown: seed }
+  });
+  id = j.canvas_id;
+  saveCanvasId(id);
+  console.log('Created canvas', id);
+  await announceNewCanvas(id);
+  return id;
+}
+
 async function main() {
   const now = Math.floor(Date.now() / 1000);
+
+  const CANVAS = await ensureCanvas();
 
   console.log('Reading channel history…');
   const hist = await slack('conversations.history', { channel: CHANNEL, limit: 100 });
