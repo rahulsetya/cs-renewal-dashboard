@@ -93,6 +93,25 @@ async function ensureCanvas() {
   return id;
 }
 
+// Cache users.info lookups so we call the API once per unique claimer per
+// run. Returns the shortest useful display string: display_name → real_name
+// → name → the raw ID. If users:read scope is missing the lookup returns
+// null and we fall back to the raw ID surrounded by <>.
+const _userCache = {};
+async function resolveUser(uid) {
+  if (!uid) return '';
+  if (_userCache[uid] !== undefined) return _userCache[uid];
+  try {
+    const j = await slack('users.info', { user: uid });
+    const p = j.user && j.user.profile;
+    const name = (p && (p.display_name || p.real_name)) || (j.user && j.user.name) || '';
+    return _userCache[uid] = (name || uid);
+  } catch (e) {
+    console.warn(`users.info failed for ${uid}: ${e.message}`);
+    return _userCache[uid] = uid;
+  }
+}
+
 async function main() {
   const now = Math.floor(Date.now() / 1000);
 
@@ -144,14 +163,19 @@ async function main() {
     const flag = i.age >= STALE_SECS ? ':rotating_light: ' : '';
     return `|${flag}${escCell(i.account)}|${escCell(i.dealType)}|${fmtAge(i.age)}|[open](${i.permalink})|`;
   };
-  // In-progress rows also show WHO added :eyes: — Slack's <@U...> syntax
-  // renders as a user chip in canvases. Multiple claimers = comma-joined.
+  // In-progress rows also show WHO added :eyes:. <@U...> mentions don't
+  // render as chips inside canvas table cells, so resolve display names via
+  // users.info and render plain text. Multiple claimers → comma-joined.
+  // Pre-resolve every unique claimer once so the row renderer stays sync.
+  const uniqueClaimers = [...new Set(inProg.flatMap(i => i.eyesUsers || []))];
+  const claimerNames = {};
+  for (const u of uniqueClaimers) claimerNames[u] = await resolveUser(u);
   const rowMdInProg = (i) => {
     const flag = i.age >= STALE_SECS ? ':rotating_light: ' : '';
     const claimed = (i.eyesUsers && i.eyesUsers.length)
-      ? i.eyesUsers.map(u => `<@${u}>`).join(', ')
+      ? i.eyesUsers.map(u => claimerNames[u] || u).join(', ')
       : '_(unknown)_';
-    return `|${flag}${escCell(i.account)}|${escCell(i.dealType)}|${claimed}|${fmtAge(i.age)}|[open](${i.permalink})|`;
+    return `|${flag}${escCell(i.account)}|${escCell(i.dealType)}|${escCell(claimed)}|${fmtAge(i.age)}|[open](${i.permalink})|`;
   };
 
   // Slack canvases.edit rejects the ![](slack_date:...) and ![](#channel) embeds
