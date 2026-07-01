@@ -11822,7 +11822,22 @@ function _offCurrentQ(){const m=(new Date()).getMonth();return'Q'+(Math.floor(m/
 // pipelineMode: 'manager' (GP — ACCTS joined to Manager-pipeline deals by pid)
 // or 'sp' (Service Provider — SP_ACCTS joined to SP-pipeline deals by company
 // name, since the SP source sheet has no platformId).
-let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:[],sortCol:'seRM',sortDir:'asc',pipelineMode:'manager'};
+let _offState={q:_offCurrentQ(),search:'',segFilter:'',stageFilter:[],sortCol:'seRM',sortDir:'asc',pipelineMode:'manager',mismatchOnly:false};
+// Sub-end mismatch predicate: true when the HubSpot date is present AND
+// its YYYY-MM differs from the source date's YYYY-MM. Also true when
+// the source is missing but HS has one (mismatch of coverage). Used by
+// the "Sub End mismatch" filter on both Offers sub-modes.
+function _offSubEndMismatch(srcSE,hsSE){
+  const s=String(srcSE||'').trim(),h=String(hsSE||'').trim();
+  if(!h)return false;                    // no HS date → not a mismatch we can flag
+  const hm=h.match(/^(\d{4})-(\d{2})/);
+  if(!hm)return false;
+  if(!s)return true;                     // HS present, source missing → mismatch
+  const sm=s.match(/^(\d{4})-(\d{2})/);
+  if(!sm)return true;                    // HS parseable, source not → mismatch
+  return hm[1]!==sm[1]||hm[2]!==sm[2];
+}
+function _offToggleMismatch(){_offState.mismatchOnly=!_offState.mismatchOnly;rOffers();}
 // ── Per-quarter HubSpot deals upload (password-gated) ──
 // Shape: _offDealsByQ = { Q1: [ {pid, dealName, dealType, amount, currency,
 //   stage, eventAttending, dealTerms, link} ], Q2: [...], ... }
@@ -12154,7 +12169,7 @@ function _offSetMode(m){
   _offState.pipelineMode=m;
   // Reset in-quarter filters that mean different things across modes —
   // segment/stage option sets differ between GP and SP rows.
-  _offState.search='';_offState.segFilter='';_offState.stageFilter=[];
+  _offState.search='';_offState.segFilter='';_offState.stageFilter=[];_offState.mismatchOnly=false;
   rOffers();
 }
 // Multi-select stage toggle. Click a stage chip to add/remove it from the
@@ -12166,7 +12181,7 @@ function _offToggleStage(s){
   _offState.stageFilter=cur;
   rOffers();
 }
-function _offClear(){_offState.search='';_offState.segFilter='';_offState.stageFilter=[];rOffers();}
+function _offClear(){_offState.search='';_offState.segFilter='';_offState.stageFilter=[];_offState.mismatchOnly=false;rOffers();}
 // Mode toggle bar — shared chrome rendered at the top of both GP and SP
 // branches. Highlights the active pipeline.
 function _offModeToggleHTML(){
@@ -12252,9 +12267,19 @@ function rOffers(){
   const stageOpts=[...new Set(qBase.map(a=>a.stage).filter(Boolean))].sort();
   const searchQ=String(_offState.search||'').toLowerCase().trim();
   const _stageSel=Array.isArray(_offState.stageFilter)?_offState.stageFilter:[];
+  // Resolver used both by the mismatch predicate below and by the cell
+  // render further down. Declared inline here so the row filter can call
+  // it without pulling the whole render prelude up.
+  const _hsSubEndForRow=(pid)=>{
+    const k=String(pid||'').trim();if(!k)return'';
+    if(_offCadenceByPid[k]&&_offCadenceByPid[k].subscriptionEndDate)return _offCadenceByPid[k].subscriptionEndDate;
+    if(_offCompaniesByPid[k]&&_offCompaniesByPid[k].subscriptionEndDate)return _offCompaniesByPid[k].subscriptionEndDate;
+    return'';
+  };
   let rows=qBase.filter(a=>{
     if(_offState.segFilter&&a.seg!==_offState.segFilter)return false;
     if(_stageSel.length&&!_stageSel.includes(a.stage))return false;
+    if(_offState.mismatchOnly&&!_offSubEndMismatch(a.seRM||a.se,_hsSubEndForRow(a.platformId)))return false;
     if(searchQ){
       const bag=(a.n+' '+(a.csRep||'')+' '+(a.ae||'')+' '+(a.platformId||'')+' '+(a.stage||'')+' '+(a.seg||'')).toLowerCase();
       if(!bag.includes(searchQ))return false;
@@ -12372,7 +12397,7 @@ function rOffers(){
   // visible when the count is being narrowed.
   const baseInp=`background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit`;
   const baseInpAct=`background:#1e3a5f;border:1px solid #3b82f6;color:#dbeafe;border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;font-weight:600`;
-  const anyInQuarterFilter=!!(_offState.search||_offState.segFilter||_stageSel.length);
+  const anyInQuarterFilter=!!(_offState.search||_offState.segFilter||_stageSel.length||_offState.mismatchOnly);
   // Stage chips — click to toggle in/out of the selected set. Active chip =
   // solid accent fill + white text; inactive chip = transparent + dim text +
   // matching border. Empty selection = show all stages.
@@ -12384,12 +12409,14 @@ function rOffers(){
     const esc=String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');
     return `<button onclick="_offToggleStage('${esc}')" style="background:${bg};color:${col};border:1px solid ${bd};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:${on?'600':'500'};cursor:pointer;font-family:inherit;white-space:nowrap" title="Click to toggle. Multiple stages can be on at once.">${on?'✓ ':''}${s}</button>`;
   }).join(''):'';
+  const _misOn=!!_offState.mismatchOnly;
   const filterControls=`
     <input type="text" placeholder="Search account / CSM / Platform ID…" value="${(_offState.search||'').replace(/"/g,'&quot;')}" oninput="_offSetF('search',this.value)" style="${_offState.search?baseInpAct:baseInp};min-width:220px">
     <select onchange="_offSetF('segFilter',this.value)" style="${_offState.segFilter?baseInpAct:baseInp}">
       <option value="">All Segments</option>
       ${segOpts.map(s=>`<option value="${s.replace(/"/g,'&quot;')}"${_offState.segFilter===s?' selected':''}>${s}</option>`).join('')}
     </select>
+    <button onclick="_offToggleMismatch()" title="Show only rows where HubSpot's subscription end date is missing OR its month/year differs from the Renewal Master date" style="background:${_misOn?'#7c2d12':'transparent'};color:${_misOn?'#fed7aa':'var(--muted)'};border:1px solid ${_misOn?'#fb923c':'var(--border)'};padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${_misOn?'✓ ':''}Sub End mismatch (HS)</button>
     ${anyInQuarterFilter?`<button onclick="_offClear()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear filters</button>`:''}
   `;
   // Stage row sits below the main filter row so a long list of stage chips
@@ -12562,9 +12589,26 @@ function _rOffersSP(el){
     if(selQ==='Undated')return!(a.q==='Q1'||a.q==='Q2'||a.q==='Q3'||a.q==='Q4');
     return a.q===selQ;
   });
-  // Apply search filter.
+  // Apply search + mismatch filter. Inline pid + HS sub-end lookups so
+  // the mismatch predicate doesn't need the later _pidFor / _hsSubEndFor
+  // (declared further down in this function).
   const searchQ=String(_offState.search||'').toLowerCase().trim();
+  const _pidForFilter=a=>{
+    if(a&&a.platformId)return String(a.platformId).trim();
+    if(typeof _offLookupPid==='function')return _offLookupPid(a&&a.n);
+    return'';
+  };
+  const _hsSEForFilter=pid=>{
+    const k=String(pid||'').trim();if(!k)return'';
+    if(_offCadenceByPid[k]&&_offCadenceByPid[k].subscriptionEndDate)return _offCadenceByPid[k].subscriptionEndDate;
+    if(_offCompaniesByPid[k]&&_offCompaniesByPid[k].subscriptionEndDate)return _offCompaniesByPid[k].subscriptionEndDate;
+    return'';
+  };
   let rows=qBase.filter(a=>{
+    if(_offState.mismatchOnly){
+      const pid=_pidForFilter(a);
+      if(!_offSubEndMismatch(a.se,_hsSEForFilter(pid)))return false;
+    }
     if(!searchQ)return true;
     const bag=(a.n+' '+(a.owner||'')+' '+(a.ae||'')+' '+(a.stage||'')).toLowerCase();
     return bag.includes(searchQ);
@@ -12625,9 +12669,11 @@ function _rOffersSP(el){
   // Filter input.
   const baseInp=`background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit`;
   const baseInpAct=`background:#3f1d2e;border:1px solid var(--rose);color:#fee2e2;border-radius:6px;padding:6px 10px;font-size:12px;font-family:inherit;font-weight:600`;
+  const _misOnSP=!!_offState.mismatchOnly;
   const filterControls=`
     <input type="text" placeholder="Search account / owner / stage…" value="${(_offState.search||'').replace(/"/g,'&quot;')}" oninput="_offSetF('search',this.value)" style="${_offState.search?baseInpAct:baseInp};min-width:260px">
-    ${_offState.search?`<button onclick="_offClear()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
+    <button onclick="_offToggleMismatch()" title="Show only rows where HubSpot's subscription end date is missing OR its month/year differs from the source date" style="background:${_misOnSP?'#7c2d12':'transparent'};color:${_misOnSP?'#fed7aa':'var(--muted)'};border:1px solid ${_misOnSP?'#fb923c':'var(--border)'};padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">${_misOnSP?'✓ ':''}Sub End mismatch (HS)</button>
+    ${(_offState.search||_misOnSP)?`<button onclick="_offClear()" style="background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">✕ Clear</button>`:''}
   `;
   // Status / stage cell color helpers.
   const stColor=s=>s==='won'?'var(--green)':s==='churned'?'var(--red)':'var(--amber)';
