@@ -104,10 +104,15 @@ async function resolveUser(uid) {
   try {
     const j = await slack('users.info', { user: uid });
     const p = j.user && j.user.profile;
-    const name = (p && (p.display_name || p.real_name)) || (j.user && j.user.name) || '';
-    return _userCache[uid] = (name || uid);
+    const displayName = p && p.display_name;
+    const realName    = p && p.real_name;
+    const userName    = j.user && j.user.name;
+    const resolved    = displayName || realName || userName || '';
+    // Always log so we can diagnose empty-name / wrong-name issues from CI.
+    console.log(`resolveUser ${uid} → display="${displayName || ''}" real="${realName || ''}" name="${userName || ''}" → "${resolved || uid}"`);
+    return _userCache[uid] = (resolved || uid);
   } catch (e) {
-    console.warn(`users.info failed for ${uid}: ${e.message}`);
+    console.warn(`users.info FAILED for ${uid}: ${e.message}`);
     return _userCache[uid] = uid;
   }
 }
