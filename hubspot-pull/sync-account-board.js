@@ -136,7 +136,11 @@ async function main() {
     return `|${flag}${escCell(i.account)}|${escCell(i.dealType)}|${fmtAge(i.age)}|[open](${i.permalink})|`;
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Slack canvases.edit rejects the ![](slack_date:...) and ![](#channel) embeds
+  // that the create tool accepts, so use plain-text alternatives everywhere.
+  const nowD = new Date();
+  const today = nowD.toISOString().slice(0, 10);
+  const ts = nowD.toISOString().slice(11, 16) + ' UTC';
 
   const unclaimedSection = unclaimed.length
     ? `*No reactions yet. Someone claim it with :eyes:.*
@@ -162,9 +166,9 @@ ${doneRecent.slice(0, 10).map(i => `- ${escCell(i.account)} — ${escCell(i.deal
 
   const md = `# Contract → Account Creation Board
 
-Auto-updated every 15 minutes from the HubSpot bot posts in this channel. React on the original message with :eyes: when you're working on it, then :white_check_mark: when the account is created.
+Auto-updated every 15 minutes from the HubSpot bot posts in #scale-account-creation. React on the original message with :eyes: when you're working on it, then :white_check_mark: when the account is created.
 
-Last update: ![](slack_date:${today})
+*Last update: ${today} · ${ts}*
 
 **Legend** · :eyes: in progress · :white_check_mark: done · :rotating_light: stale > 24h with no update.
 
@@ -180,7 +184,7 @@ ${doneSection}
 
 # How this works
 
-- The HubSpot bot posts to ![](#${CHANNEL}) whenever a contract is signed.
+- The HubSpot bot posts to #scale-account-creation whenever a contract is signed.
 - React with :eyes: to claim it, :white_check_mark: when the account is created.
 - This canvas is refreshed automatically every 15 minutes by a GitHub Actions job — no manual action needed.
 - Rows flagged :rotating_light: have been sitting unclaimed OR in-progress for more than 24 hours.
