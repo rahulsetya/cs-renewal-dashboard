@@ -110,10 +110,15 @@ async function main() {
       // HubSpot bot sometimes leaves this empty — fall back to "(unnamed)".
       const acctRaw = idx > 0 ? text.slice(0, idx).trim() : '';
       const account = acctRaw || '(unnamed)';
-      // Deal type = first non-empty line after the marker.
+      // Deal type = first meaningful line after the marker. The Slack text
+      // slices as "…has signed their contract." + \n + "Platform Renewal"
+      // + \n + events. Trim leading periods first so ".find(Boolean)" doesn't
+      // grab the trailing period from the marker sentence.
       const after = text.slice(idx + SIGNED_MARKER.length);
-      const dealType = (after.split(/\n/).map(s => s.trim()).find(Boolean) || '')
-        .replace(/^\.\s*/, ''); // strip leading period that sometimes ends the marker
+      const dealType = after
+        .split(/\n/)
+        .map(s => s.replace(/^\.+\s*/, '').trim())
+        .find(s => s && !/^[.,;:!\-–—]+$/.test(s)) || '';
       const ts = m.ts;
       const permalink = `https://${WORKSPACE}.slack.com/archives/${CHANNEL}/p${ts.replace('.', '')}`;
       const reactions = new Set((m.reactions || []).map(r => r.name));
