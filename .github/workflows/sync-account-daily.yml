@@ -1,0 +1,47 @@
+name: Account Creation Daily Messages
+
+# Two daily posts in #scale-account-creation:
+#   • 9am ET  → morning catchup listing anything unclaimed / in-progress
+#     from previous days, with the :eyes: claimer @-mentioned
+#   • 5pm ET  → daily recap with counts (done today / in progress / unclaimed)
+#
+# Cron fires twice for each slot (EDT + EST UTC offsets); the script
+# infers the mode from the current ET hour and exits cleanly if neither
+# matches, so we never double-post.
+
+on:
+  schedule:
+    # 9am ET: 13:00 UTC (EDT, Mar–Nov) OR 14:00 UTC (EST, Nov–Mar).
+    - cron: '0 13 * * *'
+    - cron: '0 14 * * *'
+    # 5pm ET: 21:00 UTC (EDT) OR 22:00 UTC (EST).
+    - cron: '0 21 * * *'
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Force mode (recap or overdue)'
+        required: false
+        default: 'recap'
+        type: choice
+        options:
+          - recap
+          - overdue
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Post daily message
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          MODE: ${{ github.event.inputs.mode }}
+        run: node hubspot-pull/sync-account-daily.js
