@@ -180,9 +180,11 @@ async function main() {
 
   // Slack canvases.edit rejects the ![](slack_date:...) and ![](#channel) embeds
   // that the create tool accepts, so use plain-text alternatives everywhere.
+  // Render the timestamp in Eastern time (auto-DST via IANA zone) 12h format.
   const nowD = new Date();
-  const today = nowD.toISOString().slice(0, 10);
-  const ts = nowD.toISOString().slice(11, 16) + ' UTC';
+  const TZ = 'America/New_York';
+  const today = nowD.toLocaleDateString('en-CA', { timeZone: TZ }); // YYYY-MM-DD
+  const ts = nowD.toLocaleTimeString('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }) + ' ET';
 
   const unclaimedSection = unclaimed.length
     ? `*No reactions yet. Someone claim it with :eyes:.*
