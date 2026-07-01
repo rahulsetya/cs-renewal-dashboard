@@ -93,28 +93,47 @@ async function ensureCanvas() {
   return id;
 }
 
-// Cache users.info lookups so we call the API once per unique claimer per
-// run. Returns the shortest useful display string: display_name → real_name
-// → name → the raw ID. If users:read scope is missing the lookup returns
-// null and we fall back to the raw ID surrounded by <>.
-const _userCache = {};
-async function resolveUser(uid) {
-  if (!uid) return '';
-  if (_userCache[uid] !== undefined) return _userCache[uid];
+// User directory: single users.list call up front caches every workspace
+// member. Turns out users.info hits `user_not_found` on this workspace for
+// legit users (probably an Enterprise Grid quirk where reaction IDs are
+// scoped differently than users.info lookups). users.list uses the same
+// users:read scope but returns everyone in one shot and side-steps the
+// per-ID lookup weirdness.
+let _userMap = null;
+async function loadUserMap() {
+  if (_userMap) return _userMap;
+  _userMap = {};
+  let cursor = '';
+  let calls = 0;
   try {
-    const j = await slack('users.info', { user: uid });
-    const p = j.user && j.user.profile;
-    const displayName = p && p.display_name;
-    const realName    = p && p.real_name;
-    const userName    = j.user && j.user.name;
-    const resolved    = displayName || realName || userName || '';
-    // Always log so we can diagnose empty-name / wrong-name issues from CI.
-    console.log(`resolveUser ${uid} → display="${displayName || ''}" real="${realName || ''}" name="${userName || ''}" → "${resolved || uid}"`);
-    return _userCache[uid] = (resolved || uid);
+    do {
+      calls++;
+      const j = await slack('users.list', { limit: 200, cursor: cursor || undefined });
+      (j.members || []).forEach(u => {
+        const p = u.profile || {};
+        const name = p.display_name || p.real_name || u.name || u.id;
+        _userMap[u.id] = name;
+      });
+      cursor = (j.response_metadata && j.response_metadata.next_cursor) || '';
+    } while (cursor && calls < 20);
+    console.log(`users.list cached ${Object.keys(_userMap).length} members (${calls} call${calls === 1 ? '' : 's'})`);
   } catch (e) {
-    console.warn(`users.info FAILED for ${uid}: ${e.message}`);
-    return _userCache[uid] = uid;
+    console.warn(`users.list FAILED: ${e.message} — Claimed by column will show raw IDs.`);
   }
+  return _userMap;
+}
+function resolveUser(uid) {
+  if (!uid) return '';
+  const name = _userMap && _userMap[uid];
+  if (name) return name;
+  // Not in the workspace list — most likely an Enterprise Grid cross-workspace
+  // user. Log once so we know which IDs aren't resolvable, then fall back to
+  // the raw ID.
+  if (_userMap && !_userMap[uid + '_logged']) {
+    console.log(`resolveUser: no directory entry for ${uid}`);
+    _userMap[uid + '_logged'] = true;
+  }
+  return uid;
 }
 
 async function main() {
@@ -170,15 +189,13 @@ async function main() {
   };
   // In-progress rows also show WHO added :eyes:. <@U...> mentions don't
   // render as chips inside canvas table cells, so resolve display names via
-  // users.info and render plain text. Multiple claimers → comma-joined.
-  // Pre-resolve every unique claimer once so the row renderer stays sync.
-  const uniqueClaimers = [...new Set(inProg.flatMap(i => i.eyesUsers || []))];
-  const claimerNames = {};
-  for (const u of uniqueClaimers) claimerNames[u] = await resolveUser(u);
+  // users.list and render plain text. Multiple claimers → comma-joined.
+  // Load the workspace directory once; resolveUser then does O(1) lookups.
+  if (inProg.length) await loadUserMap();
   const rowMdInProg = (i) => {
     const flag = i.age >= STALE_SECS ? ':rotating_light: ' : '';
     const claimed = (i.eyesUsers && i.eyesUsers.length)
-      ? i.eyesUsers.map(u => claimerNames[u] || u).join(', ')
+      ? i.eyesUsers.map(u => resolveUser(u)).join(', ')
       : '_(unknown)_';
     return `|${flag}${escCell(i.account)}|${escCell(i.dealType)}|${escCell(claimed)}|${fmtAge(i.age)}|[open](${i.permalink})|`;
   };
