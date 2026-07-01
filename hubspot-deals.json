@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-07-01T21:56:40.328Z",
-  "syncedAt": "2026-07-01T21:56:40.328Z",
+  "publishedAt": "2026-07-01T23:04:10.498Z",
+  "syncedAt": "2026-07-01T23:04:10.498Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -16785,10 +16785,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-07-01T21:56:40.328Z",
-    "Q2": "2026-07-01T21:56:40.328Z",
-    "Q3": "2026-07-01T21:56:40.328Z",
-    "Q4": "2026-07-01T21:56:40.328Z"
+    "Q1": "2026-07-01T23:04:10.498Z",
+    "Q2": "2026-07-01T23:04:10.498Z",
+    "Q3": "2026-07-01T23:04:10.498Z",
+    "Q4": "2026-07-01T23:04:10.498Z"
   },
   "owners": {
     "27231823": {
@@ -17093,7 +17093,7 @@
     },
     "83732188": {
       "name": "jkirchner@iconnections.io",
-      "isActive": true
+      "isActive": false
     },
     "84504560": {
       "name": "Douglas Melchior",
@@ -17101,7 +17101,7 @@
     },
     "84743206": {
       "name": "pwong@iconnections.io",
-      "isActive": true
+      "isActive": false
     },
     "85578427": {
       "name": "Adelle Drake",
@@ -17109,7 +17109,7 @@
     },
     "85813454": {
       "name": "Courtney Walsh",
-      "isActive": true
+      "isActive": false
     },
     "85813509": {
       "name": "Selina Peikert Shearer",
@@ -21218,13 +21218,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "Proskauer Rose": {
-      "platformId": "22816",
-      "hsId": "55593963449",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
     "U.S. Bank Global Fund Services": {
       "platformId": "41176",
       "hsId": "51621238279",
@@ -21329,6 +21322,13 @@
       "segment": "Scale",
       "subscriptionEndDate": "2026-06-29",
       "csmNotes": "Invoice Sent. Just waiting on Payment."
+    },
+    "Proskauer Rose": {
+      "platformId": "22816",
+      "hsId": "55593963449",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
     },
     "VanEck": {
       "platformId": "7566",
@@ -23241,13 +23241,6 @@
       "subscriptionEndDate": "2040-07-30",
       "csmNotes": ""
     },
-    "Golub Capital": {
-      "platformId": "67",
-      "hsId": "4231344036",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
     "Hivemind Capital": {
       "platformId": "8398",
       "hsId": "55605239665",
@@ -23381,6 +23374,13 @@
       "subscriptionEndDate": "2027-04-29",
       "csmNotes": "He's very happy so far"
     },
+    "Golub Capital": {
+      "platformId": "67",
+      "hsId": "4231344036",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
     "Millburn": {
       "platformId": "6354",
       "hsId": "55605095806",
@@ -23444,6 +23444,13 @@
       "subscriptionEndDate": "2026-05-30",
       "csmNotes": ""
     },
+    "Captona": {
+      "platformId": "790",
+      "hsId": "30638657320",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
     "CapVest": {
       "platformId": "23297",
       "hsId": "31645250323",
@@ -23482,13 +23489,6 @@
     "Arbor Ventures": {
       "platformId": "1970",
       "hsId": "56399973200",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
-    "Captona": {
-      "platformId": "790",
-      "hsId": "30638657320",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -34998,7 +34998,7 @@
       "platformId": "42788",
       "hsId": "6653766420",
       "segment": "Enterprise",
-      "subscriptionEndDate": "2027-08-31",
+      "subscriptionEndDate": "2028-09-30",
       "csmNotes": ""
     },
     "Glenview Capital Management, LLC": {
@@ -86306,7 +86306,7 @@
       "accountManager": "Juwan Pryce",
       "segment": "Enterprise",
       "category": "Manager",
-      "subscriptionEndDate": "2027-08-31",
+      "subscriptionEndDate": "2028-09-30",
       "jul": "",
       "aug": "",
       "sep": "",
