@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-07-01T20:21:20.083Z",
-  "syncedAt": "2026-07-01T20:21:20.083Z",
+  "publishedAt": "2026-07-01T21:56:40.328Z",
+  "syncedAt": "2026-07-01T21:56:40.328Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,17 +20,17 @@
     ]
   },
   "counts": {
-    "deals": 1864,
-    "includedDeals": 880,
-    "companies": 9180,
+    "deals": 1868,
+    "includedDeals": 881,
+    "companies": 9182,
     "droppedNoCompany": 12,
-    "droppedNoPid": 972,
+    "droppedNoPid": 975,
     "perQuarter": {
       "Q1": 172,
       "Q2": 85,
       "Q3": 119,
       "Q4": 212,
-      "Undated": 292
+      "Undated": 293
     }
   },
   "quarters": {
@@ -4804,7 +4804,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T17:25:08.287Z"
+        "hsLastModified": "2026-07-01T21:18:34.523Z"
       },
       {
         "pid": "6180",
@@ -4823,7 +4823,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T19:41:28.633Z"
+        "hsLastModified": "2026-07-01T20:42:30.962Z"
       },
       {
         "pid": "9214",
@@ -5395,7 +5395,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T19:28:16.762Z"
+        "hsLastModified": "2026-07-01T20:32:01.587Z"
       },
       {
         "pid": "8285",
@@ -7143,7 +7143,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T18:21:11.351Z"
+        "hsLastModified": "2026-07-01T20:30:37.102Z"
       },
       {
         "pid": "11786",
@@ -10850,7 +10850,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T18:30:51.578Z"
+        "hsLastModified": "2026-07-01T21:42:36.229Z"
       },
       {
         "pid": "4952",
@@ -16666,7 +16666,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T12:57:35.010Z"
+        "hsLastModified": "2026-07-01T21:22:16.772Z"
       },
       {
         "pid": "19606",
@@ -16762,14 +16762,33 @@
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
         "hsLastModified": "2026-07-01T17:54:06.428Z"
+      },
+      {
+        "pid": "790",
+        "companyName": "Captona",
+        "dealName": "Captona - New Deal (Established)",
+        "dealType": "New Platform Subscription",
+        "amount": 29500,
+        "currency": "USD",
+        "stage": "Proposal Negotiation (40% - 70%)",
+        "stageId": "1144568138",
+        "pipeline": "Manager",
+        "pipelineId": "default",
+        "eventAttending": "Global Alts Miami '27;Global Alts NY 2027",
+        "dealTerms": "Terms: 1-Year Deal;GA NY (1) Rotating Booth;GA Miami (1) Rotating Booth",
+        "link": "https://app.hubspot.com/contacts/8013348/record/0-3/62045133233",
+        "ownerId": "83329594",
+        "ownerName": "James Thompson",
+        "ownerActive": true,
+        "hsLastModified": "2026-07-01T21:54:59.015Z"
       }
     ]
   },
   "uploads": {
-    "Q1": "2026-07-01T20:21:20.083Z",
-    "Q2": "2026-07-01T20:21:20.083Z",
-    "Q3": "2026-07-01T20:21:20.083Z",
-    "Q4": "2026-07-01T20:21:20.083Z"
+    "Q1": "2026-07-01T21:56:40.328Z",
+    "Q2": "2026-07-01T21:56:40.328Z",
+    "Q3": "2026-07-01T21:56:40.328Z",
+    "Q4": "2026-07-01T21:56:40.328Z"
   },
   "owners": {
     "27231823": {
@@ -18539,13 +18558,6 @@
       "subscriptionEndDate": "2025-01-26",
       "csmNotes": ""
     },
-    "iconnections": {
-      "platformId": "1",
-      "hsId": "4310506310",
-      "segment": "",
-      "subscriptionEndDate": "2050-02-28",
-      "csmNotes": ""
-    },
     "GIODELL": {
       "platformId": "20791",
       "hsId": "18323509084",
@@ -18621,6 +18633,13 @@
       "hsId": "5801914380",
       "segment": "",
       "subscriptionEndDate": "2025-06-29",
+      "csmNotes": ""
+    },
+    "iconnections": {
+      "platformId": "1",
+      "hsId": "4310506310",
+      "segment": "",
+      "subscriptionEndDate": "2050-02-28",
       "csmNotes": ""
     },
     "The Mannsion Group": {
@@ -19764,13 +19783,6 @@
       "subscriptionEndDate": "2026-07-30",
       "csmNotes": ""
     },
-    "Pantera Capital": {
-      "platformId": "5032",
-      "hsId": "36407794609",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2027-05-29",
-      "csmNotes": ""
-    },
     "Lhava": {
       "platformId": "43731",
       "hsId": "42145627668",
@@ -19832,6 +19844,13 @@
       "hsId": "5801790491",
       "segment": "Enterprise",
       "subscriptionEndDate": "2026-11-28",
+      "csmNotes": ""
+    },
+    "Pantera Capital": {
+      "platformId": "5032",
+      "hsId": "36407794609",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2027-05-29",
       "csmNotes": ""
     },
     "Stonehaven": {
@@ -20002,6 +20021,13 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
+    "Chicago Atlantic Advisers, LLC": {
+      "platformId": "3972",
+      "hsId": "4426972356",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2026-10-30",
+      "csmNotes": ""
+    },
     "FundFire": {
       "platformId": "2917",
       "hsId": "48898750569",
@@ -20168,13 +20194,6 @@
       "hsId": "39089928243",
       "segment": "",
       "subscriptionEndDate": "2026-02-26",
-      "csmNotes": ""
-    },
-    "Chicago Atlantic Advisers, LLC": {
-      "platformId": "3972",
-      "hsId": "4426972356",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2026-10-30",
       "csmNotes": ""
     },
     "K&L GATES LLP": {
@@ -20513,13 +20532,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "Lone Pine Capital": {
-      "platformId": "22087",
-      "hsId": "54349730196",
-      "segment": "",
-      "subscriptionEndDate": "2025-12-31",
-      "csmNotes": ""
-    },
     "Langham Hall": {
       "platformId": "41790",
       "hsId": "37182941776",
@@ -20603,6 +20615,13 @@
       "segment": "Enterprise",
       "subscriptionEndDate": "2026-10-30",
       "csmNotes": "emailed 2x"
+    },
+    "Lone Pine Capital": {
+      "platformId": "22087",
+      "hsId": "54349730196",
+      "segment": "",
+      "subscriptionEndDate": "2025-12-31",
+      "csmNotes": ""
     },
     "Pana LCE": {
       "platformId": "1552",
@@ -21045,13 +21064,6 @@
       "subscriptionEndDate": "2026-09-28",
       "csmNotes": ""
     },
-    "Proskauer Rose": {
-      "platformId": "22816",
-      "hsId": "55593963449",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
     "IQ-EQ": {
       "platformId": "7405",
       "hsId": "7708416627",
@@ -21202,6 +21214,13 @@
     "OpEff Technologies": {
       "platformId": "43526",
       "hsId": "46717825285",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "Proskauer Rose": {
+      "platformId": "22816",
+      "hsId": "55593963449",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -21451,13 +21470,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "StepStone Group": {
-      "platformId": "16461",
-      "hsId": "4426972367",
-      "segment": "",
-      "subscriptionEndDate": "2024-04-29",
-      "csmNotes": ""
-    },
     "Revelstoke Capital Partners": {
       "platformId": "14613",
       "hsId": "10605918476",
@@ -21610,6 +21622,13 @@
       "hsId": "5981018970",
       "segment": "Scale",
       "subscriptionEndDate": "2025-09-29",
+      "csmNotes": ""
+    },
+    "StepStone Group": {
+      "platformId": "16461",
+      "hsId": "4426972367",
+      "segment": "",
+      "subscriptionEndDate": "2024-04-29",
       "csmNotes": ""
     },
     "GaoTeng Global Asset Management Limited": {
@@ -22123,6 +22142,13 @@
       "subscriptionEndDate": "2027-02-27",
       "csmNotes": ""
     },
+    "Skematic": {
+      "platformId": "41895",
+      "hsId": "55592628262",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
     "LBP AM": {
       "platformId": "2090",
       "hsId": "32166330034",
@@ -22301,13 +22327,6 @@
     "Kayenta": {
       "platformId": "44702",
       "hsId": "54662977167",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
-    "Skematic": {
-      "platformId": "41895",
-      "hsId": "55592628262",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -22774,13 +22793,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "Star Mountain Capital": {
-      "platformId": "20473",
-      "hsId": "10228949390",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2026-12-30",
-      "csmNotes": ""
-    },
     "Riposte Capital": {
       "platformId": "43977",
       "hsId": "9306116219",
@@ -22898,6 +22910,13 @@
       "hsId": "37182934666",
       "segment": "",
       "subscriptionEndDate": "2026-10-29",
+      "csmNotes": ""
+    },
+    "Star Mountain Capital": {
+      "platformId": "20473",
+      "hsId": "10228949390",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2026-12-30",
       "csmNotes": ""
     },
     "PwC": {
@@ -23390,13 +23409,6 @@
       "subscriptionEndDate": "2027-02-19",
       "csmNotes": ""
     },
-    "SEI Investments": {
-      "platformId": "18508",
-      "hsId": "23484390550",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
     "Brevan Howard": {
       "platformId": "11786",
       "hsId": "38394525317",
@@ -23470,6 +23482,20 @@
     "Arbor Ventures": {
       "platformId": "1970",
       "hsId": "56399973200",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "Captona": {
+      "platformId": "790",
+      "hsId": "30638657320",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "SEI Investments": {
+      "platformId": "18508",
+      "hsId": "23484390550",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -24102,13 +24128,6 @@
       "hsId": "4231332379",
       "segment": "",
       "subscriptionEndDate": "2023-05-30",
-      "csmNotes": ""
-    },
-    "Captona": {
-      "platformId": "790",
-      "hsId": "30638657320",
-      "segment": "",
-      "subscriptionEndDate": "",
       "csmNotes": ""
     },
     "Castle Ridge Asset Management": {
