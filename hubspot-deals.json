@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-07-01T02:54:14.102Z",
-  "syncedAt": "2026-07-01T02:54:14.102Z",
+  "publishedAt": "2026-07-01T07:03:15.157Z",
+  "syncedAt": "2026-07-01T07:03:15.157Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -6155,7 +6155,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T04:50:57.508Z"
+        "hsLastModified": "2026-07-01T05:55:57.587Z"
       },
       {
         "pid": "20808",
@@ -9349,7 +9349,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T20:55:34.524Z"
+        "hsLastModified": "2026-07-01T05:27:51.309Z"
       },
       {
         "pid": "14207",
@@ -13721,7 +13721,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-17T14:50:06.155Z"
+        "hsLastModified": "2026-07-01T06:57:46.891Z"
       },
       {
         "pid": "11844",
@@ -16766,10 +16766,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-07-01T02:54:14.102Z",
-    "Q2": "2026-07-01T02:54:14.102Z",
-    "Q3": "2026-07-01T02:54:14.102Z",
-    "Q4": "2026-07-01T02:54:14.102Z"
+    "Q1": "2026-07-01T07:03:15.157Z",
+    "Q2": "2026-07-01T07:03:15.157Z",
+    "Q3": "2026-07-01T07:03:15.157Z",
+    "Q4": "2026-07-01T07:03:15.157Z"
   },
   "owners": {
     "27231823": {
@@ -18014,6 +18014,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Singapore Management University": {
+      "platformId": "20446",
+      "hsId": "23470258511",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Accolade Partners": {
       "platformId": "39382",
       "hsId": "38086872700",
@@ -18272,12 +18278,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Singapore Management University": {
-      "platformId": "20446",
-      "hsId": "23470258511",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Brightwood Capital Advisors": {
       "platformId": "14207",
       "hsId": "39730798649",
@@ -18347,12 +18347,6 @@
     "Holden Family Offices": {
       "platformId": "20668",
       "hsId": "18658129456",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Taurus Wealth Advisors": {
-      "platformId": "21518",
-      "hsId": "43697750793",
       "segment": "",
       "csmNotes": ""
     },
@@ -18434,12 +18428,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Stenham Asset Management": {
-      "platformId": "745",
-      "hsId": "4426872953",
-      "segment": "",
-      "csmNotes": ""
-    },
     "Newlight Partners": {
       "platformId": "16244",
       "hsId": "30484498493",
@@ -18509,6 +18497,12 @@
     "LAB Quantitative Strategies, LLC": {
       "platformId": "20591",
       "hsId": "23474412463",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Taurus Wealth Advisors": {
+      "platformId": "21518",
+      "hsId": "43697750793",
       "segment": "",
       "csmNotes": ""
     },
@@ -18821,6 +18815,12 @@
     "BTIG LLC": {
       "platformId": "80",
       "hsId": "50251185846",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Stenham Asset Management": {
+      "platformId": "745",
+      "hsId": "4426872953",
       "segment": "",
       "csmNotes": ""
     },
@@ -19970,6 +19970,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Torchlight Investors": {
+      "platformId": "40963",
+      "hsId": "53211310684",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Overbay Capital Partners": {
       "platformId": "35035",
       "hsId": "19715936364",
@@ -19985,12 +19991,6 @@
     "Tower Research Capital Europe": {
       "platformId": "21963",
       "hsId": "7448931665",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "Torchlight Investors": {
-      "platformId": "40963",
-      "hsId": "53211310684",
       "segment": "",
       "csmNotes": ""
     },
@@ -20045,6 +20045,12 @@
     "Golden Eagle Strategies": {
       "platformId": "2559",
       "hsId": "28880304719",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Lone Pine Capital": {
+      "platformId": "22087",
+      "hsId": "54349730196",
       "segment": "",
       "csmNotes": ""
     },
@@ -20209,12 +20215,6 @@
       "hsId": "33405413457",
       "segment": "Enterprise",
       "csmNotes": "emailed 2x"
-    },
-    "Lone Pine Capital": {
-      "platformId": "22087",
-      "hsId": "54349730196",
-      "segment": "",
-      "csmNotes": ""
     },
     "Pana LCE": {
       "platformId": "1552",
@@ -22082,6 +22082,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Mercer": {
+      "platformId": "40611",
+      "hsId": "54370676506",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Bayview Asset Management": {
       "platformId": "11682",
       "hsId": "37010498657",
@@ -22142,12 +22148,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Corre Partners Management, LLC": {
-      "platformId": "2693",
-      "hsId": "33550103225",
-      "segment": "",
-      "csmNotes": ""
-    },
     "TerraCapital": {
       "platformId": "3276",
       "hsId": "5741501952",
@@ -22199,6 +22199,12 @@
     "Trybe Capital Management LP": {
       "platformId": "2721",
       "hsId": "23468420215",
+      "segment": "",
+      "csmNotes": ""
+    },
+    "Corre Partners Management, LLC": {
+      "platformId": "2693",
+      "hsId": "33550103225",
       "segment": "",
       "csmNotes": ""
     },
@@ -22272,12 +22278,6 @@
       "platformId": "23237",
       "hsId": "22068889092",
       "segment": "Scale",
-      "csmNotes": ""
-    },
-    "Mercer": {
-      "platformId": "40611",
-      "hsId": "54370676506",
-      "segment": "",
       "csmNotes": ""
     },
     "1DP Investment Management Ltd": {
@@ -22592,6 +22592,12 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "Brookfield": {
+      "platformId": "19694",
+      "hsId": "52832017426",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "Informatic Capital": {
       "platformId": "22868",
       "hsId": "46499481913",
@@ -22613,12 +22619,6 @@
     "III Capital Management": {
       "platformId": "31305",
       "hsId": "4316188611",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
-    "Brookfield": {
-      "platformId": "19694",
-      "hsId": "52832017426",
       "segment": "Enterprise",
       "csmNotes": ""
     },
