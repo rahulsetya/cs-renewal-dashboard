@@ -12429,11 +12429,21 @@ function rOffers(){
       </tr>`).join('')}</tbody></table>`;
     return `<tr><td colspan="10" style="padding:0;background:rgba(0,0,0,.18);border-left:3px solid var(--accent)"><div style="padding:6px 14px 10px 38px">${inner}</div></td></tr>`;
   };
+  // Resolver: subscription_end_date from HubSpot for the given platform ID.
+  // Checks cadenceByPid (Fund Manager / Service Provider set) first, then
+  // the broader companies-by-pid directory. Returns '' when nothing matches.
+  const _hsSubEndFor=(pid)=>{
+    const k=String(pid||'').trim();if(!k)return'';
+    if(_offCadenceByPid[k]&&_offCadenceByPid[k].subscriptionEndDate)return _offCadenceByPid[k].subscriptionEndDate;
+    if(_offCompaniesByPid[k]&&_offCompaniesByPid[k].subscriptionEndDate)return _offCompaniesByPid[k].subscriptionEndDate;
+    return'';
+  };
   const tableHTML=`<div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1080px;table-layout:fixed">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1160px;table-layout:fixed">
       <colgroup>
         <col style="width:46px">
         <col style="width:175px">
+        <col style="width:92px">
         <col style="width:92px">
         <col style="width:130px">
         <col style="width:138px">
@@ -12447,6 +12457,7 @@ function rOffers(){
         <th style="${stTh}"></th>
         <th style="${stTh};text-align:left" onclick="_offSort('n')">Account ${_offArr('n')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('seRM')">Sub End ${_offArr('seRM')}</th>
+        <th style="${stTh};text-align:left" title="Subscription end date from the HubSpot company record">Sub End (HS)</th>
         <th style="${stTh};text-align:left" onclick="_offSort('csRep')">CSM ${_offArr('csRep')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('ae')">Sales Owner ${_offArr('ae')}</th>
         <th style="${stTh};text-align:left" onclick="_offSort('platformId')">Platform ID ${_offArr('platformId')}</th>
@@ -12464,10 +12475,12 @@ function rOffers(){
           const chev=hasDeals
             ?`<span onclick="_offToggleRow('${pidK.replace(/'/g,"\\'")}')" title="${ds.length} HubSpot deal${ds.length===1?'':'s'} — click to ${open?'collapse':'expand'}" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:4px;user-select:none;padding:0 2px"><span style="display:inline-block;min-width:10px;text-align:center">${open?'▾':'▸'}</span><span style="font-size:10px;font-weight:600;background:rgba(59,130,246,.15);color:var(--accent);padding:1px 6px;border-radius:8px">${ds.length}</span></span>`
             :'<span style="color:var(--dim);opacity:.35">—</span>';
+          const _hsSE=_hsSubEndFor(a.platformId);
           return`<tr>
           <td style="${stTd};text-align:center;padding:5px 6px">${chev}</td>
           <td style="${stTd};color:var(--text);font-weight:500">${_hsAcctLink(a.platformId,a.n,a.n||'—')}</td>
           <td style="${stTd};color:var(--muted)">${_offFmtDate(a.seRM||a.se)}</td>
+          <td style="${stTd};color:${_hsSE?'var(--accent)':'var(--dim)'}">${_hsSE?_offFmtDate(_hsSE):'<span style=\"opacity:.4\">—</span>'}</td>
           <td style="${stTd};color:var(--muted)">${a.csRep||'—'}</td>
           <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
           <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${a.platformId||'—'}</td>
@@ -12624,9 +12637,10 @@ function _rOffersSP(el){
   // Deal sub-row — same layout as GP, rose-tinted for SP. Emits a complete
   // hidden <tr id="${subId}" ...> that the chevron's onclick toggles via
   // display:none/'' — same pattern the GP retention drilldown uses.
-  // colspan matches the visible columns: chev + 8 data columns (Account,
-  // Platform ID, Sub End, Sales Owner, AE, 2025 Rev, Status, Stage).
-  const _colspan=9;
+  // colspan matches the visible columns: chev + 9 data columns (Account,
+  // Platform ID, Sub End, Sub End (HS), Sales Owner, AE, 2025 Rev, Status,
+  // Stage).
+  const _colspan=10;
   const dealSubRow=(subId,deals)=>{
     if(!deals||!deals.length)return'';
     const inner=`<table style="width:100%;border-collapse:collapse;font-size:11px;margin:4px 0">
@@ -12653,16 +12667,27 @@ function _rOffersSP(el){
   const totRev=rows.reduce((s,a)=>s+(a.rev||0),0);
   // Same colspan bump as the SP Retention drilldown (8 → 9) since we now
   // surface Platform ID inline. The deal sub-row picks up the new value.
+  // Resolver: subscription_end_date from HubSpot for the given platform ID.
+  // Same logic as the Manager-mode Offers resolver — checks cadenceByPid
+  // first (Fund Manager / Service Provider set) then the broader
+  // companies-by-pid directory. Returns '' when nothing matches.
+  const _hsSubEndFor=(pid)=>{
+    const k=String(pid||'').trim();if(!k)return'';
+    if(_offCadenceByPid[k]&&_offCadenceByPid[k].subscriptionEndDate)return _offCadenceByPid[k].subscriptionEndDate;
+    if(_offCompaniesByPid[k]&&_offCompaniesByPid[k].subscriptionEndDate)return _offCompaniesByPid[k].subscriptionEndDate;
+    return'';
+  };
   const tableHTML=rows.length?`<div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:960px;table-layout:fixed">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:1040px;table-layout:fixed">
       <colgroup>
-        <col style="width:46px"><col style="width:230px"><col style="width:80px"><col style="width:120px"><col style="width:130px"><col style="width:110px"><col style="width:90px"><col style="width:80px"><col style="width:170px">
+        <col style="width:46px"><col style="width:230px"><col style="width:80px"><col style="width:110px"><col style="width:110px"><col style="width:130px"><col style="width:110px"><col style="width:90px"><col style="width:80px"><col style="width:170px">
       </colgroup>
       <thead><tr>
         <th style="${stTh}"></th>
         <th style="${stTh}">Account</th>
         <th style="${stTh}">Platform ID</th>
         <th style="${stTh}">Sub End</th>
+        <th style="${stTh}" title="Subscription end date from the HubSpot company record">Sub End (HS)</th>
         <th style="${stTh}">Sales Owner</th>
         <th style="${stTh}">AE</th>
         <th style="${stTh};text-align:right">2025 Rev</th>
@@ -12677,11 +12702,13 @@ function _rOffersSP(el){
         const chev=hasDeals
           ?`<span onclick="(function(){var n=document.getElementById('${subId}');if(!n)return;n.style.display=n.style.display==='none'?'':'none';})()" title="${ds.length} HubSpot deal${ds.length===1?'':'s'} — click to expand" style="cursor:pointer;color:var(--rose);font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:4px;user-select:none;padding:0 2px"><span style="display:inline-block;min-width:10px;text-align:center">▸</span><span style="font-size:10px;font-weight:600;background:rgba(244,63,94,.15);color:var(--rose);padding:1px 6px;border-radius:8px">${ds.length}</span></span>`
           :'<span style="color:var(--dim);opacity:.35">—</span>';
+        const _hsSE=_hsSubEndFor(pid);
         return`<tr>
           <td style="${stTd};text-align:center;padding:5px 6px">${chev}</td>
           <td style="${stTd};color:var(--text);font-weight:500">${_hsAcctLink(pid,a.n,a.n||'—')}</td>
           <td style="${stTd};color:var(--dim);font-family:var(--mono);font-size:10px">${pid||'<span style=\"opacity:.4\">—</span>'}</td>
           <td style="${stTd};color:var(--muted)">${_offFmtDate(a.se)}</td>
+          <td style="${stTd};color:${_hsSE?'var(--rose)':'var(--dim)'}">${_hsSE?_offFmtDate(_hsSE):'<span style=\"opacity:.4\">—</span>'}</td>
           <td style="${stTd};color:var(--muted)">${a.owner||'—'}</td>
           <td style="${stTd};color:var(--muted)">${a.ae||'—'}</td>
           <td style="${stTd};text-align:right;font-family:var(--mono)">${a.rev?fmt(a.rev):'—'}</td>

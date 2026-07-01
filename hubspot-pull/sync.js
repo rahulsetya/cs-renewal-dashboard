@@ -424,6 +424,7 @@ async function main() {
           platformId: pid,
           hsId: c.id,
           segment: c.properties.account_segment || '',
+          subscriptionEndDate: c.properties.subscription_end_date || '',
           csmNotes: c.properties.csm_notes || ''
         };
       });
