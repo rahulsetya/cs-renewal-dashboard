@@ -121,12 +121,16 @@ async function main() {
         .find(s => s && !/^[.,;:!\-–—]+$/.test(s)) || '';
       const ts = m.ts;
       const permalink = `https://${WORKSPACE}.slack.com/archives/${CHANNEL}/p${ts.replace('.', '')}`;
-      const reactions = new Set((m.reactions || []).map(r => r.name));
+      const rxArr = m.reactions || [];
+      const reactions = new Set(rxArr.map(r => r.name));
+      // For in-progress rows we want to attribute the :eyes: to whoever added
+      // it. Slack returns each reaction's user array; keep it for the row.
+      const eyesUsers = ((rxArr.find(r => r.name === 'eyes') || {}).users) || [];
       let status = 'unclaimed';
       if (reactions.has('white_check_mark')) status = 'done';
       else if (reactions.has('eyes')) status = 'in_progress';
       const age = now - parseFloat(ts);
-      return { account, dealType, ts, permalink, status, age };
+      return { account, dealType, ts, permalink, status, age, eyesUsers };
     });
 
   // Sort tables oldest-first so the most stale float to the top.
@@ -139,6 +143,15 @@ async function main() {
   const rowMd = (i) => {
     const flag = i.age >= STALE_SECS ? ':rotating_light: ' : '';
     return `|${flag}${escCell(i.account)}|${escCell(i.dealType)}|${fmtAge(i.age)}|[open](${i.permalink})|`;
+  };
+  // In-progress rows also show WHO added :eyes: — Slack's <@U...> syntax
+  // renders as a user chip in canvases. Multiple claimers = comma-joined.
+  const rowMdInProg = (i) => {
+    const flag = i.age >= STALE_SECS ? ':rotating_light: ' : '';
+    const claimed = (i.eyesUsers && i.eyesUsers.length)
+      ? i.eyesUsers.map(u => `<@${u}>`).join(', ')
+      : '_(unknown)_';
+    return `|${flag}${escCell(i.account)}|${escCell(i.dealType)}|${claimed}|${fmtAge(i.age)}|[open](${i.permalink})|`;
   };
 
   // Slack canvases.edit rejects the ![](slack_date:...) and ![](#channel) embeds
@@ -158,9 +171,9 @@ ${unclaimed.map(rowMd).join('\n')}`
   const inProgSection = inProg.length
     ? `*Claimed by :eyes: — not yet completed.*
 
-|Account|Deal Type|Posted|Link|
-|---|---|---|---|
-${inProg.map(rowMd).join('\n')}`
+|Account|Deal Type|Claimed by|Posted|Link|
+|---|---|---|---|---|
+${inProg.map(rowMdInProg).join('\n')}`
     : '*Nothing in flight right now.*';
 
   const doneSection = doneRecent.length
