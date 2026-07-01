@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-06-30T23:57:40.253Z",
-  "syncedAt": "2026-06-30T23:57:40.253Z",
+  "publishedAt": "2026-07-01T02:54:14.102Z",
+  "syncedAt": "2026-07-01T02:54:14.102Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -20,11 +20,11 @@
     ]
   },
   "counts": {
-    "deals": 1864,
+    "deals": 1863,
     "includedDeals": 880,
-    "companies": 9176,
+    "companies": 9175,
     "droppedNoCompany": 12,
-    "droppedNoPid": 972,
+    "droppedNoPid": 971,
     "perQuarter": {
       "Q1": 172,
       "Q2": 84,
@@ -1990,7 +1990,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T14:58:08.551Z"
+        "hsLastModified": "2026-07-01T01:12:47.573Z"
       },
       {
         "pid": "40747",
@@ -2104,7 +2104,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-23T16:06:11.783Z"
+        "hsLastModified": "2026-07-01T00:08:34.422Z"
       },
       {
         "pid": "10137",
@@ -2845,7 +2845,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T09:52:16.160Z"
+        "hsLastModified": "2026-07-01T00:08:34.422Z"
       },
       {
         "pid": "875",
@@ -4405,7 +4405,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T23:31:19.651Z"
+        "hsLastModified": "2026-07-01T00:32:21.733Z"
       },
       {
         "pid": "5598",
@@ -6801,7 +6801,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T12:47:12.134Z"
+        "hsLastModified": "2026-07-01T00:08:34.422Z"
       },
       {
         "pid": "3276",
@@ -6820,7 +6820,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T18:13:09.439Z"
+        "hsLastModified": "2026-06-30T23:57:27.500Z"
       },
       {
         "pid": "22908",
@@ -6915,7 +6915,7 @@
         "ownerId": "91486543",
         "ownerName": "Earl Blasi",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T07:34:16.232Z"
+        "hsLastModified": "2026-07-01T00:08:34.422Z"
       },
       {
         "pid": "6157",
@@ -7029,7 +7029,7 @@
         "ownerId": "147600024",
         "ownerName": "Sebastian Tanner",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T14:58:23.090Z"
+        "hsLastModified": "2026-07-01T00:08:34.422Z"
       },
       {
         "pid": "31305",
@@ -8437,7 +8437,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-25T14:17:58.727Z"
+        "hsLastModified": "2026-07-01T00:08:34.422Z"
       },
       {
         "pid": "2858",
@@ -10736,7 +10736,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T16:00:01.029Z"
+        "hsLastModified": "2026-07-01T01:44:45.675Z"
       },
       {
         "pid": "43930",
@@ -12543,7 +12543,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-24T11:47:11.969Z"
+        "hsLastModified": "2026-07-01T00:08:34.422Z"
       },
       {
         "pid": "11523",
@@ -12790,7 +12790,7 @@
         "ownerId": "49482242",
         "ownerName": "Rob Tappero",
         "ownerActive": true,
-        "hsLastModified": "2026-06-23T16:06:08.508Z"
+        "hsLastModified": "2026-07-01T00:08:34.422Z"
       },
       {
         "pid": "8916",
@@ -16609,7 +16609,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-30T23:38:11.560Z"
+        "hsLastModified": "2026-07-01T00:39:00.472Z"
       },
       {
         "pid": "11202",
@@ -16766,10 +16766,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-06-30T23:57:40.253Z",
-    "Q2": "2026-06-30T23:57:40.253Z",
-    "Q3": "2026-06-30T23:57:40.253Z",
-    "Q4": "2026-06-30T23:57:40.253Z"
+    "Q1": "2026-07-01T02:54:14.102Z",
+    "Q2": "2026-07-01T02:54:14.102Z",
+    "Q3": "2026-07-01T02:54:14.102Z",
+    "Q4": "2026-07-01T02:54:14.102Z"
   },
   "owners": {
     "27231823": {
@@ -18458,6 +18458,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "iconnections": {
+      "platformId": "1",
+      "hsId": "4310506310",
+      "segment": "",
+      "csmNotes": ""
+    },
     "Lafayette College Endowment": {
       "platformId": "31822",
       "hsId": "55534905630",
@@ -18467,12 +18473,6 @@
     "Hyla Fund Management": {
       "platformId": "22391",
       "hsId": "39555798638",
-      "segment": "",
-      "csmNotes": ""
-    },
-    "iconnections": {
-      "platformId": "1",
-      "hsId": "4310506310",
       "segment": "",
       "csmNotes": ""
     },
@@ -18950,12 +18950,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "RD Legal Funding, LLC": {
-      "platformId": "14896",
-      "hsId": "4426970052",
-      "segment": "Enterprise",
-      "csmNotes": ""
-    },
     "Algoquant.io": {
       "platformId": "22431",
       "hsId": "49186902046",
@@ -18995,6 +18989,12 @@
     "Rock Springs Capital": {
       "platformId": "21802",
       "hsId": "36615804688",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "RD Legal Funding, LLC": {
+      "platformId": "14896",
+      "hsId": "4426970052",
       "segment": "Enterprise",
       "csmNotes": ""
     },
@@ -19046,12 +19046,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Quartus Capital Partners LLC": {
-      "platformId": "16662",
-      "hsId": "4426956619",
-      "segment": "Enterprise",
-      "csmNotes": "3 year global deal, no risk"
-    },
     "VI Asset Management": {
       "platformId": "3456",
       "hsId": "37010515793",
@@ -19093,6 +19087,12 @@
       "hsId": "23484852394",
       "segment": "",
       "csmNotes": ""
+    },
+    "Quartus Capital Partners LLC": {
+      "platformId": "16662",
+      "hsId": "4426956619",
+      "segment": "Enterprise",
+      "csmNotes": "3 year global deal, no risk"
     },
     "Nasdaq eVestment": {
       "platformId": "41024",
@@ -19454,6 +19454,12 @@
       "segment": "",
       "csmNotes": ""
     },
+    "Coromandel Capital": {
+      "platformId": "14673",
+      "hsId": "42791127565",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "Private Liquidity Partners": {
       "platformId": "42957",
       "hsId": "37673114923",
@@ -19542,12 +19548,6 @@
       "platformId": "4478",
       "hsId": "5801893795",
       "segment": "",
-      "csmNotes": ""
-    },
-    "Coromandel Capital": {
-      "platformId": "14673",
-      "hsId": "42791127565",
-      "segment": "Enterprise",
       "csmNotes": ""
     },
     "Romspen": {
@@ -19664,6 +19664,12 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
+    "Chicago Atlantic Advisers, LLC": {
+      "platformId": "3972",
+      "hsId": "4426972356",
+      "segment": "Enterprise",
+      "csmNotes": ""
+    },
     "Leon Capital": {
       "platformId": "39795",
       "hsId": "34534837312",
@@ -19704,12 +19710,6 @@
       "platformId": "43190",
       "hsId": "55461756302",
       "segment": "",
-      "csmNotes": ""
-    },
-    "Chicago Atlantic Advisers, LLC": {
-      "platformId": "3972",
-      "hsId": "4426972356",
-      "segment": "Enterprise",
       "csmNotes": ""
     },
     "FundFire": {
@@ -20186,12 +20186,6 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Lone Pine Capital": {
-      "platformId": "22087",
-      "hsId": "54349730196",
-      "segment": "",
-      "csmNotes": ""
-    },
     "WHG Asset Management": {
       "platformId": "22923",
       "hsId": "18395499662",
@@ -20215,6 +20209,12 @@
       "hsId": "33405413457",
       "segment": "Enterprise",
       "csmNotes": "emailed 2x"
+    },
+    "Lone Pine Capital": {
+      "platformId": "22087",
+      "hsId": "54349730196",
+      "segment": "",
+      "csmNotes": ""
     },
     "Pana LCE": {
       "platformId": "1552",
@@ -20250,12 +20250,6 @@
       "platformId": "7791",
       "hsId": "48759662080",
       "segment": "",
-      "csmNotes": ""
-    },
-    "Fremen Capital": {
-      "platformId": "43228",
-      "hsId": "39352239638",
-      "segment": "Scale",
       "csmNotes": ""
     },
     "PL Capital": {
@@ -20370,6 +20364,12 @@
       "platformId": "17200",
       "hsId": "6568829242",
       "segment": "",
+      "csmNotes": ""
+    },
+    "Fremen Capital": {
+      "platformId": "43228",
+      "hsId": "39352239638",
+      "segment": "Scale",
       "csmNotes": ""
     },
     "Middle Street Partners": {
@@ -20648,12 +20648,6 @@
       "segment": "Enterprise",
       "csmNotes": ""
     },
-    "Algoz Technologies Ltd.": {
-      "platformId": "14438",
-      "hsId": "8110222128",
-      "segment": "Scale",
-      "csmNotes": ""
-    },
     "Walkers": {
       "platformId": "6176",
       "hsId": "4426952138",
@@ -20814,6 +20808,12 @@
       "platformId": "15489",
       "hsId": "4426950761",
       "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Algoz Technologies Ltd.": {
+      "platformId": "14438",
+      "hsId": "8110222128",
+      "segment": "Scale",
       "csmNotes": ""
     },
     "Runway Growth Capital": {
@@ -22376,16 +22376,16 @@
       "segment": "",
       "csmNotes": ""
     },
-    "Talos": {
-      "platformId": "8006",
-      "hsId": "52447783544",
-      "segment": "",
-      "csmNotes": ""
-    },
     "LIM Advisors": {
       "platformId": "952",
       "hsId": "5157571797",
       "segment": "Enterprise",
+      "csmNotes": ""
+    },
+    "Talos": {
+      "platformId": "8006",
+      "hsId": "52447783544",
+      "segment": "",
       "csmNotes": ""
     },
     "Alpha Compute Capital": {
@@ -30612,7 +30612,7 @@
       "platformId": "6487",
       "hsId": "31607433264",
       "segment": "Enterprise",
-      "csmNotes": ""
+      "csmNotes": "going to renew. looking at miami sponsorship with possible asia 26"
     },
     "Technology Opportunity Partners": {
       "platformId": "6287",
@@ -69722,7 +69722,7 @@
       "julNote": "",
       "augNote": "",
       "sepNote": "",
-      "csmNotes": ""
+      "csmNotes": "going to renew. looking at miami sponsorship with possible asia 26"
     },
     "6492": {
       "name": "DCM Systematic SA",
