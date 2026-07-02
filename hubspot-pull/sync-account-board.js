@@ -29,6 +29,12 @@ const WORKSPACE = 'iconnectionsworkspace';
 // create its own canvas. We store the bot-owned canvas id in a small file
 // beside this script and commit it back so the next run finds it.
 const CANVAS_ID_FILE = path.join(__dirname, '.slack-canvas-id');
+// Slack conversations.history doesn't return per-reaction timestamps, so we
+// can't tell WHEN someone added the ✅. Track first-seen completions in a
+// small file (message_ts → unix secs first seen as done). "Completed today"
+// then means "first-seen-as-done ≥ today ET midnight", which correctly
+// captures ✅ added today on older HubSpot posts.
+const COMPLETED_SEEN_FILE = path.join(__dirname, '.slack-completed-seen.json');
 const CANVAS_TITLE = 'Contract → Account Creation Board';
 const SIGNED_MARKER = 'has signed their contract';
 const STALE_SECS = 24 * 3600;
@@ -65,6 +71,22 @@ function readCanvasId() {
 }
 function saveCanvasId(id) {
   fs.writeFileSync(CANVAS_ID_FILE, id + '\n');
+}
+// Load / save the first-seen-completed map. Prunes entries older than 30
+// days on load so the file stays tiny. Returns {} on any read error.
+function loadCompletedSeen() {
+  try {
+    const j = JSON.parse(fs.readFileSync(COMPLETED_SEEN_FILE, 'utf8'));
+    const cutoff = Math.floor(Date.now() / 1000) - 30 * 86400;
+    for (const k of Object.keys(j)) if (j[k] < cutoff) delete j[k];
+    return j;
+  } catch (e) { return {}; }
+}
+function saveCompletedSeen(map) {
+  const keys = Object.keys(map).sort();
+  const sorted = {};
+  keys.forEach(k => sorted[k] = map[k]);
+  fs.writeFileSync(COMPLETED_SEEN_FILE, JSON.stringify(sorted, null, 2) + '\n');
 }
 // Post a small breadcrumb in the channel so people know the new bot-owned
 // canvas is the one to watch. Only fires the first time we bootstrap.
@@ -270,12 +292,29 @@ async function main() {
   // Sort tables oldest-first so the most stale float to the top.
   const unclaimed = items.filter(i => i.status === 'unclaimed').sort((a, b) => a.age - b.age).reverse();
   const inProg    = items.filter(i => i.status === 'in_progress').sort((a, b) => a.age - b.age).reverse();
-  // Done: newest first. Recently Completed = anything posted since today's
-  // ET midnight that got ✅. Same-day scope so the section shows a day's
-  // throughput, not a rolling 24-hour window that can span two calendar days.
-  const done       = items.filter(i => i.status === 'done').sort((a, b) => a.age - b.age);
+  const done      = items.filter(i => i.status === 'done').sort((a, b) => a.age - b.age);
+
+  // First-seen-completed tracker. Each done item gets a "we first saw this
+  // as ✅ at time X" stamp. On first run for a given item, X = now. Lets
+  // us build "Completed Today" from the actual ✅-added time rather than
+  // the HubSpot message post time (which loses items ✅'d today on older
+  // messages, e.g. an overnight post ✅'d in the morning).
+  const nowSecs = Math.floor(Date.now() / 1000);
   const todayStart = todayETStartSecs();
-  const doneToday  = done.filter(i => parseFloat(i.ts) >= todayStart);
+  const completedSeen = loadCompletedSeen();
+  let completedSeenChanged = false;
+  done.forEach(i => {
+    if (!completedSeen[i.ts]) {
+      completedSeen[i.ts] = nowSecs;
+      completedSeenChanged = true;
+    }
+  });
+  if (completedSeenChanged) saveCompletedSeen(completedSeen);
+
+  const doneToday = done.filter(i => {
+    const seenAt = completedSeen[i.ts] || parseFloat(i.ts);
+    return seenAt >= todayStart;
+  });
 
   // Missing-wires check. For each ✅-marked account, break the name into
   // distinctive tokens (dropping "Capital", "Partners", "LLC", etc.) and

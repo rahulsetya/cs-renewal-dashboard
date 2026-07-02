@@ -36,23 +36,28 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: node hubspot-pull/sync-account-board.js
 
-      - name: Commit canvas ID on first run
+      - name: Commit state files if changed
         run: |
-          if [ -z "$(git status --porcelain hubspot-pull/.slack-canvas-id)" ]; then
-            echo "No canvas ID change — skipping commit."
+          # Files the sync script may update:
+          #   hubspot-pull/.slack-canvas-id         — set once on first run
+          #   hubspot-pull/.slack-completed-seen.json — grows as new ✅s appear
+          STATE_FILES="hubspot-pull/.slack-canvas-id hubspot-pull/.slack-completed-seen.json"
+          if [ -z "$(git status --porcelain $STATE_FILES)" ]; then
+            echo "No state file changes — skipping commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add hubspot-pull/.slack-canvas-id
-          git commit -m "chore(sync): bootstrap Slack canvas ID"
-          # Same soft-reset retry the HubSpot sync uses — sidesteps races.
+          git add $STATE_FILES
+          git commit -m "chore(sync): update Slack account-board state"
+          # Same soft-reset retry the HubSpot sync uses — sidesteps races
+          # with the /15-min cron and any manual pushes hitting main.
           for i in 1 2 3 4 5; do
             if git push; then exit 0; fi
             echo "Push attempt $i failed — replaying on fresh main…"
             git fetch origin main
             git reset --soft origin/main
             if git diff --cached --quiet; then exit 0; fi
-            git commit -m "chore(sync): bootstrap Slack canvas ID"
+            git commit -m "chore(sync): update Slack account-board state"
           done
           exit 1
