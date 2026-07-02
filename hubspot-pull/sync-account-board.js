@@ -197,12 +197,22 @@ async function main() {
       // For in-progress rows we want to attribute the :eyes: to whoever added
       // it. Slack returns each reaction's user array; keep it for the row.
       const eyesUsers = ((rxArr.find(r => r.name === 'eyes') || {}).users) || [];
+      // A :x: reaction voids the message — treat as canceled and drop from
+      // every tracking bucket (unclaimed / in progress / done / missing wires).
+      const voided = reactions.has('x');
       let status = 'unclaimed';
       if (reactions.has('white_check_mark')) status = 'done';
       else if (reactions.has('eyes')) status = 'in_progress';
       const age = now - parseFloat(ts);
-      return { account, dealType, ts, permalink, status, age, eyesUsers };
-    });
+      return { account, dealType, ts, permalink, status, age, eyesUsers, voided };
+    })
+    .filter(i => !i.voided);
+  const voidedCount = ((hist.messages || []).filter(m =>
+    m.bot_id === BOT_ID
+    && (m.text || '').includes(SIGNED_MARKER)
+    && ((m.reactions || []).some(r => r.name === 'x'))
+  )).length;
+  if (voidedCount) console.log(`Skipping ${voidedCount} :x:-voided item${voidedCount === 1 ? '' : 's'}.`);
 
   // Sort tables oldest-first so the most stale float to the top.
   const unclaimed = items.filter(i => i.status === 'unclaimed').sort((a, b) => a.age - b.age).reverse();
@@ -238,11 +248,12 @@ async function main() {
     const flag = i.age >= STALE_SECS ? ':rotating_light: ' : '';
     return `|${flag}${escCell(i.account)}|${escCell(i.dealType)}|${fmtAge(i.age)}|[open](${i.permalink})|`;
   };
-  // In-progress rows also show WHO added :eyes:. <@U...> mentions don't
-  // render as chips inside canvas table cells, so resolve display names via
-  // users.list and render plain text. Multiple claimers → comma-joined.
-  // Load the workspace directory once; resolveUser then does O(1) lookups.
-  if (inProg.length) await loadUserMap();
+  // In-progress rows AND missing-wires rows both attribute :eyes: to
+  // whoever added it. <@U...> mentions don't render as chips inside canvas
+  // table cells, so resolve display names via users.list and render plain
+  // text. Multiple claimers → comma-joined. Load the workspace directory
+  // once; resolveUser then does O(1) lookups.
+  if (inProg.length || missingWires.length) await loadUserMap();
   const rowMdInProg = (i) => {
     const flag = i.age >= STALE_SECS ? ':rotating_light: ' : '';
     const claimed = (i.eyesUsers && i.eyesUsers.length)
@@ -291,9 +302,14 @@ ${doneRecent.slice(0, 10).map(i => `- ${escCell(i.account)} — ${escCell(i.deal
     : missingWires.length
       ? `*${missingWires.length} account${missingWires.length === 1 ? '' : 's'} marked complete but no matching post found in #cs-wires-onboarding (last 14 days).*
 
-|Account|Deal Type|Completed|Link|
-|---|---|---|---|
-${missingWires.map(i => `|${escCell(i.account)}|${escCell(i.dealType)}|${fmtAge(i.age)}|[open](${i.permalink})|`).join('\n')}`
+|Account|Deal Type|Claimed by|Completed|Link|
+|---|---|---|---|---|
+${missingWires.map(i => {
+  const claimed = (i.eyesUsers && i.eyesUsers.length)
+    ? i.eyesUsers.map(u => resolveUser(u)).join(', ')
+    : '_(unknown)_';
+  return `|${escCell(i.account)}|${escCell(i.dealType)}|${escCell(claimed)}|${fmtAge(i.age)}|[open](${i.permalink})|`;
+}).join('\n')}`
       : '*Nothing missing — every completed account has a matching wires post.*';
 
   const md = `# Contract → Account Creation Board
