@@ -179,6 +179,19 @@ function wiresPostMatchesAccount(account, wiresNormText) {
   return toks.every(t => wiresNormText.includes(t));
 }
 
+// Unix seconds for the start of "today" in ET. Used to scope the Recently
+// Completed section to today's throughput. DST-safe via IANA zone.
+function todayETStartSecs() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(now);
+  const p = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type, x.value]));
+  const secsIntoDay = (parseInt(p.hour, 10) || 0) * 3600 + (parseInt(p.minute, 10) || 0) * 60 + (parseInt(p.second, 10) || 0);
+  return Math.floor(now.getTime() / 1000) - secsIntoDay;
+}
+
 // Pull the wires-channel corpus. Fails gracefully — if the bot isn't in the
 // channel or lacks groups:history, return null and the missing-wires section
 // renders with a "can't check" placeholder instead of breaking the whole run.
@@ -187,6 +200,7 @@ async function fetchWiresCorpus() {
     const j = await slack('conversations.history', { channel: WIRES_CHANNEL, limit: 200 });
     const msgs = (j.messages || []).map(m => ({
       normText: normStr(m.text || ''),
+      tsRaw: m.ts,                    // raw "1234567.890123" for building permalinks
       ts: parseFloat(m.ts),
       user: m.user || ''
     }));
@@ -256,9 +270,12 @@ async function main() {
   // Sort tables oldest-first so the most stale float to the top.
   const unclaimed = items.filter(i => i.status === 'unclaimed').sort((a, b) => a.age - b.age).reverse();
   const inProg    = items.filter(i => i.status === 'in_progress').sort((a, b) => a.age - b.age).reverse();
-  // Done: newest first, only last 24h shown as recent completions.
-  const done      = items.filter(i => i.status === 'done').sort((a, b) => a.age - b.age);
-  const doneRecent = done.filter(i => i.age < STALE_SECS);
+  // Done: newest first. Recently Completed = anything posted since today's
+  // ET midnight that got ✅. Same-day scope so the section shows a day's
+  // throughput, not a rolling 24-hour window that can span two calendar days.
+  const done       = items.filter(i => i.status === 'done').sort((a, b) => a.age - b.age);
+  const todayStart = todayETStartSecs();
+  const doneToday  = done.filter(i => parseFloat(i.ts) >= todayStart);
 
   // Missing-wires check. For each ✅-marked account, break the name into
   // distinctive tokens (dropping "Capital", "Partners", "LLC", etc.) and
@@ -322,11 +339,30 @@ ${unclaimed.map(rowMd).join('\n')}`
 ${inProg.map(rowMdInProg).join('\n')}`
     : '*Nothing in flight right now.*';
 
-  const doneSection = doneRecent.length
-    ? `${doneRecent.length} completed in the last 24 hours${doneRecent.length > 10 ? ' — showing 10 newest' : ''}.
+  // Wires-post lookup per done row. Returns the matching wires message or
+  // null. Uses the same token matcher the missing-wires check runs on.
+  const findWiresMatch = (account) => {
+    if (!wiresCorpus) return null;
+    return wiresCorpus.find(m => wiresPostMatchesAccount(account, m.normText)) || null;
+  };
+  const wiresPermalink = (m) =>
+    `https://${WORKSPACE}.slack.com/archives/${WIRES_CHANNEL}/p${String(m.tsRaw || '').replace('.', '')}`;
 
-${doneRecent.slice(0, 10).map(i => `- ${escCell(i.account)} — ${escCell(i.dealType)} — completed ${fmtAge(i.age)}`).join('\n')}`
-    : '*No completions in the last 24 hours.*';
+  const doneSection = doneToday.length
+    ? `*${doneToday.length} completed today (since ET midnight).*
+
+|Account|Deal Type|Completed|HubSpot msg|Wires post|
+|---|---|---|---|---|
+${doneToday.map(i => {
+  const wm = findWiresMatch(i.account);
+  const wiresCell = wm
+    ? `[open](${wiresPermalink(wm)})`
+    : (i.wiresOverride
+        ? '_marked posted (:money_with_wings:)_'
+        : (wiresCorpus ? '_no match found_' : '_wires channel unreadable_'));
+  return `|${escCell(i.account)}|${escCell(i.dealType)}|${fmtAge(i.age)}|[open](${i.permalink})|${wiresCell}|`;
+}).join('\n')}`
+    : '*No completions yet today.*';
 
   // Missing-wires block. Three states:
   //   1. Wires corpus unavailable (bot not invited or missing scope) →
@@ -373,12 +409,12 @@ ${unclaimedSection}
 # :eyes: In Progress (${inProg.length})
 ${inProgSection}
 
-# :white_check_mark: Recently Completed (last 24h)
-
-${doneSection}
-
 # :warning: Completed but not posted to #cs-wires-onboarding${missingWires.length ? ` (${missingWires.length})` : ''}
 ${missingWiresSection}
+
+# :white_check_mark: Completed Today (${doneToday.length})
+
+${doneSection}
 
 # How this works
 
