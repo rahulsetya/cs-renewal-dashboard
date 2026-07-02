@@ -350,11 +350,22 @@ ${missingWires.map(i => {
 
   const md = `# Contract → Account Creation Board
 
-Auto-updated every 15 minutes from the HubSpot bot posts in #scale-account-creation. React on the original message with :eyes: when you're working on it, then :white_check_mark: when the account is created.
+Auto-updated every 15 minutes from the HubSpot bot posts in #scale-account-creation. Everything below is driven by the reactions people add to those source messages.
 
 *Last update: ${today} · ${ts}*
 
-**Legend** · :eyes: in progress · :white_check_mark: done · :rotating_light: stale > 24h with no update.
+# Reactions — how this board is driven
+
+React on the original HubSpot signed-contract message in #scale-account-creation. The board rebuilds from those reactions on the next refresh.
+
+|Reaction|Meaning|Effect|
+|---|---|---|
+|:eyes:|Claim it — you're taking this one|Row moves from Unclaimed → In Progress, tags you as the owner|
+|:white_check_mark:|Account creation complete|Row moves to Recently Completed, kicks off the wires-post check|
+|:money_with_wings:|"Wires post exists — matcher missed it"|Row drops off the missing-wires section (manual override for false positives)|
+|:x:|Void this row entirely|Row disappears from every section (use when the HubSpot post shouldn't have fired at all)|
+
+Rows flagged :rotating_light: have been sitting in the same state for more than 24 hours.
 
 # :rotating_light: Unclaimed (${unclaimed.length})
 ${unclaimedSection}
@@ -372,12 +383,9 @@ ${missingWiresSection}
 # How this works
 
 - The HubSpot bot posts to #scale-account-creation whenever a contract is signed.
-- React with :eyes: to claim it, :white_check_mark: when the account is created.
-- After :white_check_mark:, the CSM posts the contract terms in #cs-wires-onboarding. This board scans that channel for a matching post (by account name) — anything missing shows up in the section above.
-- If a wires post exists but the matcher missed it (nickname / abbreviation), add :money_with_wings: to the HubSpot message to manually mark it as posted — the row drops off the missing list.
-- React with :x: to void a message entirely — it disappears from every section (use for HubSpot posts that shouldn't have fired at all).
-- This canvas is refreshed automatically every 15 minutes by a GitHub Actions job — no manual action needed.
-- Rows flagged :rotating_light: have been sitting unclaimed OR in-progress for more than 24 hours.
+- People add reactions on those source messages (see the Reactions table above).
+- After :white_check_mark:, the CSM posts the contract terms in #cs-wires-onboarding. This board scans that channel for a matching post (by account name) — anything missing shows up in the "Completed but not posted…" section.
+- Refreshes automatically every 15 minutes via GitHub Actions.
 `;
 
   console.log('Updating canvas…');
