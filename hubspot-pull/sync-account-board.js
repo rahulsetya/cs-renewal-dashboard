@@ -139,10 +139,45 @@ function resolveUser(uid) {
 
 // Normalize a company name for substring matching. Lowercase, alphanumeric
 // only. So "Corbin Capital Partners" → "corbincapitalpartners" and a wires
-// post saying "Corbin Capital $50k wire in" normalizes to "corbincapital…"
-// which contains the account-name prefix. We match on either direction so
-// short-form mentions ("Corbin") still count against the full name.
+// post saying "Corbin Capital $50k wire in" normalizes to "corbincapital…".
 function normStr(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); }
+
+// Generic tokens to strip from an account name before matching — these
+// appear on so many companies that requiring them causes false positives
+// (a wires post saying "Corbin Capital" would miss because "partners" isn't
+// there). Match against tokens BEFORE further concatenation.
+const GENERIC_TOKENS = new Set([
+  'the','and','of','a','an',
+  // legal suffixes
+  'llc','lp','llp','ltd','inc','corp','co','plc','pty','sarl','gmbh','sa','ag','bv','nv','oy',
+  // finance descriptors
+  'capital','partners','partner','management','managers','investments','investment',
+  'fund','funds','group','advisors','advisers','advisory','asset','assets',
+  'global','holdings','holding','ventures','venture','equity','trust','bank',
+  'company','international','financial','services','securities','markets',
+  'family','office','multi'
+]);
+
+// Split an account name into distinctive tokens for matching. Keeps tokens
+// ≥ 3 characters that aren't in GENERIC_TOKENS. If nothing distinctive
+// remains (rare — pure-generic names like "Global Capital Partners"), fall
+// back to the raw first ≥3-char token so we still have something to match.
+function accountTokens(account) {
+  const raw = String(account || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const distinctive = raw.filter(t => t.length >= 3 && !GENERIC_TOKENS.has(t));
+  if (distinctive.length) return distinctive;
+  return raw.filter(t => t.length >= 3).slice(0, 1);
+}
+
+// True when EVERY distinctive token from the account name appears inside
+// the normalized wires-message text. Requiring "all" keeps false positives
+// low (a stray "capital" in the wires channel doesn't accidentally match
+// three different accounts).
+function wiresPostMatchesAccount(account, wiresNormText) {
+  const toks = accountTokens(account);
+  if (!toks.length) return false;
+  return toks.every(t => wiresNormText.includes(t));
+}
 
 // Pull the wires-channel corpus. Fails gracefully — if the bot isn't in the
 // channel or lacks groups:history, return null and the missing-wires section
@@ -221,24 +256,20 @@ async function main() {
   const done      = items.filter(i => i.status === 'done').sort((a, b) => a.age - b.age);
   const doneRecent = done.filter(i => i.age < STALE_SECS);
 
-  // Missing-wires check. For each ✅-marked account (that actually has a
-  // name — skip the anonymous "(unnamed)" HubSpot posts), look for any
-  // message in the wires corpus whose normalized text contains the
-  // normalized account name (or vice versa for short mentions like
-  // "Corbin" that should match "Corbin Capital"). Anything with no match
-  // gets flagged. Also only surface completions from the last 14 days —
-  // we don't want to warn on ancient posts that predate the wires channel.
+  // Missing-wires check. For each ✅-marked account, break the name into
+  // distinctive tokens (dropping "Capital", "Partners", "LLC", etc.) and
+  // require ALL of them to appear in some wires post. That way a wires
+  // post saying "Corbin Capital $50k wire" still counts as a match for
+  // "Corbin Capital Partners" — the token "corbin" is present and there
+  // are no missing anchors. Only checks completions from the last 14 days
+  // so ancient posts that pre-date the wires channel don't get flagged.
   const MISSING_WIRES_WINDOW = 14 * 86400;
   const missingWires = [];
   if (wiresCorpus) {
     done.forEach(i => {
       if (i.age > MISSING_WIRES_WINDOW) return;
       if (i.account === '(unnamed)') return;
-      const key = normStr(i.account);
-      if (!key || key.length < 4) return;              // too short to match reliably
-      const hit = wiresCorpus.some(m =>
-        m.normText.includes(key) || key.includes(m.normText.slice(0, Math.min(m.normText.length, 40)))
-      );
+      const hit = wiresCorpus.some(m => wiresPostMatchesAccount(i.account, m.normText));
       if (!hit) missingWires.push(i);
     });
   }
