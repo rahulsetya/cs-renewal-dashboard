@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-07-02T01:29:55.888Z",
-  "syncedAt": "2026-07-02T01:29:55.888Z",
+  "publishedAt": "2026-07-02T05:31:56.366Z",
+  "syncedAt": "2026-07-02T05:31:56.366Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -10413,7 +10413,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T18:28:10.278Z"
+        "hsLastModified": "2026-07-02T05:29:05.163Z"
       },
       {
         "pid": "40613",
@@ -10869,7 +10869,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T13:34:52.080Z"
+        "hsLastModified": "2026-07-02T03:09:49.997Z"
       },
       {
         "pid": "14599",
@@ -16785,10 +16785,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-07-02T01:29:55.888Z",
-    "Q2": "2026-07-02T01:29:55.888Z",
-    "Q3": "2026-07-02T01:29:55.888Z",
-    "Q4": "2026-07-02T01:29:55.888Z"
+    "Q1": "2026-07-02T05:31:56.366Z",
+    "Q2": "2026-07-02T05:31:56.366Z",
+    "Q3": "2026-07-02T05:31:56.366Z",
+    "Q4": "2026-07-02T05:31:56.366Z"
   },
   "owners": {
     "27231823": {
@@ -18642,13 +18642,6 @@
       "subscriptionEndDate": "2025-06-29",
       "csmNotes": ""
     },
-    "iconnections": {
-      "platformId": "1",
-      "hsId": "4310506310",
-      "segment": "",
-      "subscriptionEndDate": "2050-02-28",
-      "csmNotes": ""
-    },
     "The Mannsion Group": {
       "platformId": "7323",
       "hsId": "28965483777",
@@ -18927,6 +18920,13 @@
       "hsId": "23479615323",
       "segment": "",
       "subscriptionEndDate": "2025-01-15",
+      "csmNotes": ""
+    },
+    "iconnections": {
+      "platformId": "1",
+      "hsId": "4310506310",
+      "segment": "",
+      "subscriptionEndDate": "2050-02-28",
       "csmNotes": ""
     },
     "Wealth Enhancement Group": {
@@ -20021,6 +20021,13 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
+    "Lexington Capital Management LP": {
+      "platformId": "6878",
+      "hsId": "4426909636",
+      "segment": "Scale",
+      "subscriptionEndDate": "2027-09-29",
+      "csmNotes": "Signed onsite"
+    },
     "Chicago Atlantic Advisers, LLC": {
       "platformId": "3972",
       "hsId": "4426972356",
@@ -20118,13 +20125,6 @@
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
-    },
-    "Lexington Capital Management LP": {
-      "platformId": "6878",
-      "hsId": "4426909636",
-      "segment": "Scale",
-      "subscriptionEndDate": "2027-09-29",
-      "csmNotes": "Signed onsite"
     },
     "Verdis Investment Management": {
       "platformId": "1589",
@@ -21477,6 +21477,13 @@
       "subscriptionEndDate": "2026-12-30",
       "csmNotes": ""
     },
+    "SWS Partners": {
+      "platformId": "37493",
+      "hsId": "4734985608",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2026-12-30",
+      "csmNotes": "sub ends in June 2027. 11 meetings at Miami 26. low-touch, hard to get ahold of"
+    },
     "Securitize Capital": {
       "platformId": "7349",
       "hsId": "49241156688",
@@ -21546,13 +21553,6 @@
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
-    },
-    "SWS Partners": {
-      "platformId": "37493",
-      "hsId": "4734985608",
-      "segment": "Scale",
-      "subscriptionEndDate": "2026-12-30",
-      "csmNotes": "sub ends in June 2027. 11 meetings at Miami 26. low-touch, hard to get ahold of"
     },
     "AMFA Capital Management": {
       "platformId": "14231",
@@ -21890,13 +21890,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "RBC Global Asset Management": {
-      "platformId": "43542",
-      "hsId": "54375472509",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
     "Karl Kapital": {
       "platformId": "19358",
       "hsId": "29839279442",
@@ -21942,6 +21935,13 @@
     "Warburg Pincus": {
       "platformId": "11742",
       "hsId": "9266912914",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "RBC Global Asset Management": {
+      "platformId": "43542",
+      "hsId": "54375472509",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -22212,13 +22212,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "Springs Capital (Hong Kong) Ltd": {
-      "platformId": "11553",
-      "hsId": "4426966240",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2025-11-29",
-      "csmNotes": ""
-    },
     "Arc70 Capital": {
       "platformId": "19127",
       "hsId": "16983513623",
@@ -22357,6 +22350,13 @@
       "hsId": "16208838496",
       "segment": "Enterprise",
       "subscriptionEndDate": "2025-09-29",
+      "csmNotes": ""
+    },
+    "Springs Capital (Hong Kong) Ltd": {
+      "platformId": "11553",
+      "hsId": "4426966240",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2025-11-29",
       "csmNotes": ""
     },
     "Sundance Bay": {
@@ -22786,13 +22786,6 @@
       "subscriptionEndDate": "2022-02-11",
       "csmNotes": ""
     },
-    "Mercer": {
-      "platformId": "40611",
-      "hsId": "54370676506",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
     "Riposte Capital": {
       "platformId": "43977",
       "hsId": "9306116219",
@@ -22894,6 +22887,13 @@
     "Shorecliff Asset Management Company LLC": {
       "platformId": "43431",
       "hsId": "41552148274",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "Mercer": {
+      "platformId": "40611",
+      "hsId": "54370676506",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -23178,13 +23178,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "Talos": {
-      "platformId": "8006",
-      "hsId": "52447783544",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
     "Transformation Capital": {
       "platformId": "40278",
       "hsId": "19716039294",
@@ -23309,6 +23302,13 @@
       "hsId": "23210349949",
       "segment": "Enterprise",
       "subscriptionEndDate": "2026-09-29",
+      "csmNotes": ""
+    },
+    "Talos": {
+      "platformId": "8006",
+      "hsId": "52447783544",
+      "segment": "",
+      "subscriptionEndDate": "",
       "csmNotes": ""
     },
     "B Capital": {
@@ -38763,7 +38763,7 @@
     "Room40 Capital": {
       "platformId": "7836",
       "hsId": "8706097672",
-      "segment": "Scale",
+      "segment": "Enterprise",
       "subscriptionEndDate": "2026-09-29",
       "csmNotes": "Steve has close relationship with Katy so will handle"
     },
@@ -45287,7 +45287,7 @@
     "Ananym Capital Management": {
       "platformId": "40728",
       "hsId": "30109373472",
-      "segment": "Scale",
+      "segment": "Enterprise",
       "subscriptionEndDate": "2026-09-29",
       "csmNotes": ""
     },
@@ -78519,7 +78519,7 @@
       "name": "Room40 Capital",
       "hsId": "8706097672",
       "accountManager": "Lucy Garber",
-      "segment": "Scale",
+      "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-09-29",
       "jul": "",
@@ -83814,7 +83814,7 @@
       "name": "SWS Partners",
       "hsId": "4734985608",
       "accountManager": "Lucy Garber",
-      "segment": "Scale",
+      "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-12-30",
       "jul": "",
@@ -84699,7 +84699,7 @@
       "name": "Ananym Capital Management",
       "hsId": "30109373472",
       "accountManager": "Alex Cherecwich",
-      "segment": "Scale",
+      "segment": "Enterprise",
       "category": "Manager",
       "subscriptionEndDate": "2026-09-29",
       "jul": "",
