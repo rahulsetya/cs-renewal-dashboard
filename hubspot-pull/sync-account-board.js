@@ -21,6 +21,7 @@ const TOKEN = process.env.SLACK_BOT_TOKEN;
 if (!TOKEN) { console.error('ERROR: SLACK_BOT_TOKEN env var not set.'); process.exit(1); }
 
 const CHANNEL = 'C0BD52FM8JW';       // #scale-account-creation
+const WIRES_CHANNEL = 'C0B3ASC5K5X'; // #cs-wires-onboarding (private)
 const BOT_ID  = 'B0B2U74MTV1';       // HubSpot Slack app (posts the source msgs)
 const WORKSPACE = 'iconnectionsworkspace';
 // Slack canvases are owned by whoever created them; only the owner (or a
@@ -136,6 +137,32 @@ function resolveUser(uid) {
   return uid;
 }
 
+// Normalize a company name for substring matching. Lowercase, alphanumeric
+// only. So "Corbin Capital Partners" → "corbincapitalpartners" and a wires
+// post saying "Corbin Capital $50k wire in" normalizes to "corbincapital…"
+// which contains the account-name prefix. We match on either direction so
+// short-form mentions ("Corbin") still count against the full name.
+function normStr(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); }
+
+// Pull the wires-channel corpus. Fails gracefully — if the bot isn't in the
+// channel or lacks groups:history, return null and the missing-wires section
+// renders with a "can't check" placeholder instead of breaking the whole run.
+async function fetchWiresCorpus() {
+  try {
+    const j = await slack('conversations.history', { channel: WIRES_CHANNEL, limit: 200 });
+    const msgs = (j.messages || []).map(m => ({
+      normText: normStr(m.text || ''),
+      ts: parseFloat(m.ts),
+      user: m.user || ''
+    }));
+    console.log(`Wires channel: ${msgs.length} messages loaded.`);
+    return msgs;
+  } catch (e) {
+    console.warn(`Wires channel read FAILED: ${e.message}`);
+    return null;
+  }
+}
+
 async function main() {
   const now = Math.floor(Date.now() / 1000);
 
@@ -143,6 +170,7 @@ async function main() {
 
   console.log('Reading channel history…');
   const hist = await slack('conversations.history', { channel: CHANNEL, limit: 100 });
+  const wiresCorpus = await fetchWiresCorpus();
 
   const items = (hist.messages || [])
     .filter(m => m.bot_id === BOT_ID && (m.text || '').includes(SIGNED_MARKER))
@@ -182,6 +210,29 @@ async function main() {
   // Done: newest first, only last 24h shown as recent completions.
   const done      = items.filter(i => i.status === 'done').sort((a, b) => a.age - b.age);
   const doneRecent = done.filter(i => i.age < STALE_SECS);
+
+  // Missing-wires check. For each ✅-marked account (that actually has a
+  // name — skip the anonymous "(unnamed)" HubSpot posts), look for any
+  // message in the wires corpus whose normalized text contains the
+  // normalized account name (or vice versa for short mentions like
+  // "Corbin" that should match "Corbin Capital"). Anything with no match
+  // gets flagged. Also only surface completions from the last 14 days —
+  // we don't want to warn on ancient posts that predate the wires channel.
+  const MISSING_WIRES_WINDOW = 14 * 86400;
+  const missingWires = [];
+  if (wiresCorpus) {
+    done.forEach(i => {
+      if (i.age > MISSING_WIRES_WINDOW) return;
+      if (i.account === '(unnamed)') return;
+      const key = normStr(i.account);
+      if (!key || key.length < 4) return;              // too short to match reliably
+      const hit = wiresCorpus.some(m =>
+        m.normText.includes(key) || key.includes(m.normText.slice(0, Math.min(m.normText.length, 40)))
+      );
+      if (!hit) missingWires.push(i);
+    });
+  }
+  missingWires.sort((a, b) => b.age - a.age); // oldest-first (largest age first)
 
   const rowMd = (i) => {
     const flag = i.age >= STALE_SECS ? ':rotating_light: ' : '';
@@ -230,6 +281,21 @@ ${inProg.map(rowMdInProg).join('\n')}`
 ${doneRecent.slice(0, 10).map(i => `- ${escCell(i.account)} — ${escCell(i.dealType)} — completed ${fmtAge(i.age)}`).join('\n')}`
     : '*No completions in the last 24 hours.*';
 
+  // Missing-wires block. Three states:
+  //   1. Wires corpus unavailable (bot not invited or missing scope) →
+  //      placeholder tells you how to fix it.
+  //   2. Corpus loaded, zero missing → celebratory line.
+  //   3. Corpus loaded, N missing → table of the accounts to chase.
+  const missingWiresSection = !wiresCorpus
+    ? `_Bot can't read #cs-wires-onboarding yet — invite it with \`/invite @Account Creation Board Bot\` in that channel and add the \`groups:history\` scope so this check can run._`
+    : missingWires.length
+      ? `*${missingWires.length} account${missingWires.length === 1 ? '' : 's'} marked complete but no matching post found in #cs-wires-onboarding (last 14 days).*
+
+|Account|Deal Type|Completed|Link|
+|---|---|---|---|
+${missingWires.map(i => `|${escCell(i.account)}|${escCell(i.dealType)}|${fmtAge(i.age)}|[open](${i.permalink})|`).join('\n')}`
+      : '*Nothing missing — every completed account has a matching wires post.*';
+
   const md = `# Contract → Account Creation Board
 
 Auto-updated every 15 minutes from the HubSpot bot posts in #scale-account-creation. React on the original message with :eyes: when you're working on it, then :white_check_mark: when the account is created.
@@ -248,10 +314,14 @@ ${inProgSection}
 
 ${doneSection}
 
+# :warning: Completed but not posted to #cs-wires-onboarding${missingWires.length ? ` (${missingWires.length})` : ''}
+${missingWiresSection}
+
 # How this works
 
 - The HubSpot bot posts to #scale-account-creation whenever a contract is signed.
 - React with :eyes: to claim it, :white_check_mark: when the account is created.
+- After :white_check_mark:, the CSM posts the contract terms in #cs-wires-onboarding. This board scans that channel for a matching post (by account name) — anything missing shows up in the section above.
 - This canvas is refreshed automatically every 15 minutes by a GitHub Actions job — no manual action needed.
 - Rows flagged :rotating_light: have been sitting unclaimed OR in-progress for more than 24 hours.
 `;
