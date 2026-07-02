@@ -235,11 +235,15 @@ async function main() {
       // A :x: reaction voids the message — treat as canceled and drop from
       // every tracking bucket (unclaimed / in progress / done / missing wires).
       const voided = reactions.has('x');
+      // A :money_with_wings: reaction is a MANUAL "wires post exists,
+      // matcher just missed it" override. Item stays in every other bucket
+      // but is excluded from the missing-wires check.
+      const wiresOverride = reactions.has('money_with_wings');
       let status = 'unclaimed';
       if (reactions.has('white_check_mark')) status = 'done';
       else if (reactions.has('eyes')) status = 'in_progress';
       const age = now - parseFloat(ts);
-      return { account, dealType, ts, permalink, status, age, eyesUsers, voided };
+      return { account, dealType, ts, permalink, status, age, eyesUsers, voided, wiresOverride };
     })
     .filter(i => !i.voided);
   const voidedCount = ((hist.messages || []).filter(m =>
@@ -269,6 +273,7 @@ async function main() {
     done.forEach(i => {
       if (i.age > MISSING_WIRES_WINDOW) return;
       if (i.account === '(unnamed)') return;
+      if (i.wiresOverride) return;                       // manual :money_with_wings: override
       const hit = wiresCorpus.some(m => wiresPostMatchesAccount(i.account, m.normText));
       if (!hit) missingWires.push(i);
     });
@@ -331,7 +336,7 @@ ${doneRecent.slice(0, 10).map(i => `- ${escCell(i.account)} — ${escCell(i.deal
   const missingWiresSection = !wiresCorpus
     ? `_Bot can't read #cs-wires-onboarding yet — invite it with \`/invite @Account Creation Board Bot\` in that channel and add the \`groups:history\` scope so this check can run._`
     : missingWires.length
-      ? `*${missingWires.length} account${missingWires.length === 1 ? '' : 's'} marked complete but no matching post found in #cs-wires-onboarding (last 14 days).*
+      ? `*${missingWires.length} account${missingWires.length === 1 ? '' : 's'} marked complete but no matching post found in #cs-wires-onboarding (last 14 days).* If one of these was actually posted, add :money_with_wings: to the HubSpot message and it will drop off the list on the next refresh.
 
 |Account|Deal Type|Claimed by|Completed|Link|
 |---|---|---|---|---|
@@ -369,6 +374,8 @@ ${missingWiresSection}
 - The HubSpot bot posts to #scale-account-creation whenever a contract is signed.
 - React with :eyes: to claim it, :white_check_mark: when the account is created.
 - After :white_check_mark:, the CSM posts the contract terms in #cs-wires-onboarding. This board scans that channel for a matching post (by account name) — anything missing shows up in the section above.
+- If a wires post exists but the matcher missed it (nickname / abbreviation), add :money_with_wings: to the HubSpot message to manually mark it as posted — the row drops off the missing list.
+- React with :x: to void a message entirely — it disappears from every section (use for HubSpot posts that shouldn't have fired at all).
 - This canvas is refreshed automatically every 15 minutes by a GitHub Actions job — no manual action needed.
 - Rows flagged :rotating_light: have been sitting unclaimed OR in-progress for more than 24 hours.
 `;
