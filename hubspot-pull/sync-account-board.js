@@ -433,7 +433,7 @@ ${doneSection}
     }]
   });
 
-  console.log(`Updated ${CANVAS} — Unclaimed: ${unclaimed.length}, In Progress: ${inProg.length}, Done (24h): ${doneRecent.length}`);
+  console.log(`Updated ${CANVAS} — Unclaimed: ${unclaimed.length}, In Progress: ${inProg.length}, Done today: ${doneToday.length}, Missing wires: ${missingWires.length}`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
