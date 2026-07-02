@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-07-01T23:04:10.498Z",
-  "syncedAt": "2026-07-01T23:04:10.498Z",
+  "publishedAt": "2026-07-02T01:29:55.888Z",
+  "syncedAt": "2026-07-02T01:29:55.888Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -2845,7 +2845,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T00:08:34.422Z"
+        "hsLastModified": "2026-07-02T00:04:47.418Z"
       },
       {
         "pid": "875",
@@ -4500,7 +4500,7 @@
         "ownerId": "89320400",
         "ownerName": "Marc Hershan",
         "ownerActive": true,
-        "hsLastModified": "2026-06-27T18:55:10.992Z"
+        "hsLastModified": "2026-07-02T00:04:47.418Z"
       },
       {
         "pid": "101987 ",
@@ -6725,7 +6725,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-11T14:51:41.880Z"
+        "hsLastModified": "2026-07-02T00:04:47.418Z"
       },
       {
         "pid": "23237",
@@ -10717,7 +10717,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-06-12T18:25:13.406Z"
+        "hsLastModified": "2026-07-02T00:04:47.418Z"
       },
       {
         "pid": "14464",
@@ -10755,7 +10755,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T14:34:47.342Z"
+        "hsLastModified": "2026-07-02T00:04:47.418Z"
       },
       {
         "pid": "3990",
@@ -10850,7 +10850,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T21:42:36.229Z"
+        "hsLastModified": "2026-07-02T00:09:19.893Z"
       },
       {
         "pid": "4952",
@@ -16039,7 +16039,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-06-19T00:06:33.848Z"
+        "hsLastModified": "2026-07-02T00:04:47.418Z"
       },
       {
         "pid": "20628",
@@ -16191,7 +16191,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-06-28T19:27:39.127Z"
+        "hsLastModified": "2026-07-02T00:04:47.418Z"
       },
       {
         "pid": "2693",
@@ -16785,10 +16785,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-07-01T23:04:10.498Z",
-    "Q2": "2026-07-01T23:04:10.498Z",
-    "Q3": "2026-07-01T23:04:10.498Z",
-    "Q4": "2026-07-01T23:04:10.498Z"
+    "Q1": "2026-07-02T01:29:55.888Z",
+    "Q2": "2026-07-02T01:29:55.888Z",
+    "Q3": "2026-07-02T01:29:55.888Z",
+    "Q4": "2026-07-02T01:29:55.888Z"
   },
   "owners": {
     "27231823": {
@@ -18579,6 +18579,13 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
+    "Taurus Wealth Advisors": {
+      "platformId": "21518",
+      "hsId": "43697750793",
+      "segment": "",
+      "subscriptionEndDate": "2040-12-26",
+      "csmNotes": ""
+    },
     "Reshape Wealth": {
       "platformId": "21083",
       "hsId": "23448399023",
@@ -18815,13 +18822,6 @@
       "hsId": "31776230542",
       "segment": "",
       "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
-    "Taurus Wealth Advisors": {
-      "platformId": "21518",
-      "hsId": "43697750793",
-      "segment": "",
-      "subscriptionEndDate": "2040-12-26",
       "csmNotes": ""
     },
     "GoalVest Advisory": {
@@ -20280,6 +20280,13 @@
       "subscriptionEndDate": "2024-05-30",
       "csmNotes": ""
     },
+    "BNP Paribas Asset Management Alts": {
+      "platformId": "20310",
+      "hsId": "53465913868",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2027-12-31",
+      "csmNotes": "Called to discuss RS meeting booked and recently added LPs 5/14"
+    },
     "Triton": {
       "platformId": "21675",
       "hsId": "39616932633",
@@ -20371,13 +20378,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "BNP Paribas Asset Management Alts": {
-      "platformId": "20310",
-      "hsId": "53465913868",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2027-12-31",
-      "csmNotes": "Called to discuss RS meeting booked and recently added LPs 5/14"
-    },
     "Copper": {
       "platformId": "9206",
       "hsId": "23479613468",
@@ -20390,6 +20390,13 @@
       "hsId": "35016893963",
       "segment": "",
       "subscriptionEndDate": "2025-08-30",
+      "csmNotes": ""
+    },
+    "Lone Pine Capital": {
+      "platformId": "22087",
+      "hsId": "54349730196",
+      "segment": "",
+      "subscriptionEndDate": "2025-12-31",
       "csmNotes": ""
     },
     "MPEP Luxembourg Management": {
@@ -20615,13 +20622,6 @@
       "segment": "Enterprise",
       "subscriptionEndDate": "2026-10-30",
       "csmNotes": "emailed 2x"
-    },
-    "Lone Pine Capital": {
-      "platformId": "22087",
-      "hsId": "54349730196",
-      "segment": "",
-      "subscriptionEndDate": "2025-12-31",
-      "csmNotes": ""
     },
     "Pana LCE": {
       "platformId": "1552",
