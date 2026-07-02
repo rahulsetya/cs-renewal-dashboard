@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-07-02T05:31:56.366Z",
-  "syncedAt": "2026-07-02T05:31:56.366Z",
+  "publishedAt": "2026-07-02T08:40:39.970Z",
+  "syncedAt": "2026-07-02T08:40:39.970Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -10413,7 +10413,7 @@
         "ownerId": "1170688120",
         "ownerName": "Edwin Ang",
         "ownerActive": true,
-        "hsLastModified": "2026-07-02T05:29:05.163Z"
+        "hsLastModified": "2026-07-02T06:30:09.804Z"
       },
       {
         "pid": "40613",
@@ -10869,7 +10869,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-07-02T03:09:49.997Z"
+        "hsLastModified": "2026-07-02T07:32:37.638Z"
       },
       {
         "pid": "14599",
@@ -16785,10 +16785,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-07-02T05:31:56.366Z",
-    "Q2": "2026-07-02T05:31:56.366Z",
-    "Q3": "2026-07-02T05:31:56.366Z",
-    "Q4": "2026-07-02T05:31:56.366Z"
+    "Q1": "2026-07-02T08:40:39.970Z",
+    "Q2": "2026-07-02T08:40:39.970Z",
+    "Q3": "2026-07-02T08:40:39.970Z",
+    "Q4": "2026-07-02T08:40:39.970Z"
   },
   "owners": {
     "27231823": {
@@ -18922,13 +18922,6 @@
       "subscriptionEndDate": "2025-01-15",
       "csmNotes": ""
     },
-    "iconnections": {
-      "platformId": "1",
-      "hsId": "4310506310",
-      "segment": "",
-      "subscriptionEndDate": "2050-02-28",
-      "csmNotes": ""
-    },
     "Wealth Enhancement Group": {
       "platformId": "5310",
       "hsId": "22512143726",
@@ -18983,6 +18976,13 @@
       "hsId": "23486347611",
       "segment": "",
       "subscriptionEndDate": "2025-01-09",
+      "csmNotes": ""
+    },
+    "iconnections": {
+      "platformId": "1",
+      "hsId": "4310506310",
+      "segment": "",
+      "subscriptionEndDate": "2050-02-28",
       "csmNotes": ""
     },
     "Oaktree Capital Management": {
@@ -19468,13 +19468,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "Ventura Capital": {
-      "platformId": "21263",
-      "hsId": "37010503529",
-      "segment": "",
-      "subscriptionEndDate": "2025-02-27",
-      "csmNotes": ""
-    },
     "EnTrust Global": {
       "platformId": "17220",
       "hsId": "23470724182",
@@ -19697,6 +19690,13 @@
       "hsId": "39162810158",
       "segment": "",
       "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "Ventura Capital": {
+      "platformId": "21263",
+      "hsId": "37010503529",
+      "segment": "",
+      "subscriptionEndDate": "2025-02-27",
       "csmNotes": ""
     },
     "Paul Hastings LLP": {
@@ -22352,13 +22352,6 @@
       "subscriptionEndDate": "2025-09-29",
       "csmNotes": ""
     },
-    "Springs Capital (Hong Kong) Ltd": {
-      "platformId": "11553",
-      "hsId": "4426966240",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2025-11-29",
-      "csmNotes": ""
-    },
     "Sundance Bay": {
       "platformId": "14461",
       "hsId": "4426972410",
@@ -22378,6 +22371,13 @@
       "hsId": "26541882761",
       "segment": "Scale",
       "subscriptionEndDate": "2025-12-30",
+      "csmNotes": ""
+    },
+    "Springs Capital (Hong Kong) Ltd": {
+      "platformId": "11553",
+      "hsId": "4426966240",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2025-11-29",
       "csmNotes": ""
     },
     "aMoon": {
@@ -22828,6 +22828,13 @@
       "subscriptionEndDate": "2027-01-29",
       "csmNotes": ""
     },
+    "Mercer": {
+      "platformId": "40611",
+      "hsId": "54370676506",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
     "XAI Asset Management": {
       "platformId": "18846",
       "hsId": "8975663218",
@@ -22887,13 +22894,6 @@
     "Shorecliff Asset Management Company LLC": {
       "platformId": "43431",
       "hsId": "41552148274",
-      "segment": "",
-      "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
-    "Mercer": {
-      "platformId": "40611",
-      "hsId": "54370676506",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -23185,6 +23185,13 @@
       "subscriptionEndDate": "2026-12-30",
       "csmNotes": ""
     },
+    "TCV": {
+      "platformId": "44943",
+      "hsId": "56048255584",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
     "Tangible Investment Management": {
       "platformId": "497",
       "hsId": "4231355629",
@@ -23316,13 +23323,6 @@
       "hsId": "38351022645",
       "segment": "",
       "subscriptionEndDate": "2024-11-30",
-      "csmNotes": ""
-    },
-    "TCV": {
-      "platformId": "44943",
-      "hsId": "56048255584",
-      "segment": "",
-      "subscriptionEndDate": "",
       "csmNotes": ""
     },
     "Moonshots Capital": {
