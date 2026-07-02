@@ -10,13 +10,10 @@ name: Account Creation Daily Messages
 # matches, so we never double-post.
 
 on:
-  schedule:
-    # 9am ET: 13:00 UTC (EDT, Mar–Nov) OR 14:00 UTC (EST, Nov–Mar).
-    - cron: '0 13 * * *'
-    - cron: '0 14 * * *'
-    # 5pm ET: 21:00 UTC (EDT) OR 22:00 UTC (EST).
-    - cron: '0 21 * * *'
-    - cron: '0 22 * * *'
+  # Scheduling is handled by two cron-job.org pingers (5pm ET recap, 9am ET
+  # overdue) that hit workflow_dispatch with the right `mode` input. GitHub's
+  # built-in cron is disabled here to avoid duplicate posts when the two
+  # schedulers race. Manual dispatch from the Actions UI still works.
   workflow_dispatch:
     inputs:
       mode:

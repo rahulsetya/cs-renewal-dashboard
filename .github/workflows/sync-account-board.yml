@@ -6,8 +6,10 @@ name: Sync Account Creation Board
 # contract never sits invisible for long.
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'
+  # Scheduling is handled by an external cron-job.org pinger that hits the
+  # workflow_dispatch endpoint every 15 min — GitHub's built-in schedule
+  # drifts by hours, so we disable it here to avoid the two firing in
+  # parallel. Manual runs from the Actions UI still work.
   workflow_dispatch:
 
 permissions:
