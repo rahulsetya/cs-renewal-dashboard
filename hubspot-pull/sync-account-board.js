@@ -380,8 +380,12 @@ ${inProg.map(rowMdInProg).join('\n')}`
 
   // Wires-post lookup per done row. Returns the matching wires message or
   // null. Uses the same token matcher the missing-wires check runs on.
+  // Skip "(unnamed)" — the account-name placeholder should never match
+  // anything, and "unnamed" as a literal token would false-positive against
+  // wires posts that use "Unnamed event" as their own placeholder.
   const findWiresMatch = (account) => {
     if (!wiresCorpus) return null;
+    if (account === '(unnamed)') return null;
     return wiresCorpus.find(m => wiresPostMatchesAccount(account, m.normText)) || null;
   };
   const wiresPermalink = (m) =>
