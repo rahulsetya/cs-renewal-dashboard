@@ -1,6 +1,6 @@
 {
-  "publishedAt": "2026-07-02T11:25:54.603Z",
-  "syncedAt": "2026-07-02T11:25:54.603Z",
+  "publishedAt": "2026-07-02T13:14:48.836Z",
+  "syncedAt": "2026-07-02T13:14:48.836Z",
   "source": "hubspot-auto-sync",
   "filters": {
     "pipelineIds": [
@@ -22,7 +22,7 @@
   "counts": {
     "deals": 1868,
     "includedDeals": 882,
-    "companies": 9181,
+    "companies": 9182,
     "droppedNoCompany": 12,
     "droppedNoPid": 974,
     "perQuarter": {
@@ -2522,7 +2522,7 @@
         "ownerId": "2027525679",
         "ownerName": "Steven Reichard",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T18:30:53.025Z"
+        "hsLastModified": "2026-07-02T13:05:49.579Z"
       },
       {
         "pid": "15909",
@@ -4690,7 +4690,7 @@
         "ownerId": "83329594",
         "ownerName": "James Thompson",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T13:01:18.447Z"
+        "hsLastModified": "2026-07-02T13:02:18.657Z"
       },
       {
         "pid": "16265",
@@ -5756,7 +5756,7 @@
         "ownerId": "2013056422",
         "ownerName": "David Johnson",
         "ownerActive": true,
-        "hsLastModified": "2026-06-29T13:42:40.630Z"
+        "hsLastModified": "2026-07-02T12:15:33.760Z"
       },
       {
         "pid": "43228",
@@ -9178,7 +9178,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T14:23:39.392Z"
+        "hsLastModified": "2026-07-02T12:00:48.852Z"
       },
       {
         "pid": "1103",
@@ -9615,7 +9615,7 @@
         "ownerId": "551672479",
         "ownerName": "Juliet (Bergman) Simon",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T12:06:36.832Z"
+        "hsLastModified": "2026-07-02T12:12:20.335Z"
       },
       {
         "pid": "40327",
@@ -10869,7 +10869,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-07-02T07:32:37.638Z"
+        "hsLastModified": "2026-07-02T13:13:58.303Z"
       },
       {
         "pid": "14599",
@@ -14101,7 +14101,7 @@
         "ownerId": "938914620",
         "ownerName": "David Xuereb",
         "ownerActive": true,
-        "hsLastModified": "2026-07-01T18:23:33.329Z"
+        "hsLastModified": "2026-07-02T12:07:59.460Z"
       },
       {
         "pid": "17775",
@@ -16804,10 +16804,10 @@
     ]
   },
   "uploads": {
-    "Q1": "2026-07-02T11:25:54.603Z",
-    "Q2": "2026-07-02T11:25:54.603Z",
-    "Q3": "2026-07-02T11:25:54.603Z",
-    "Q4": "2026-07-02T11:25:54.603Z"
+    "Q1": "2026-07-02T13:14:48.836Z",
+    "Q2": "2026-07-02T13:14:48.836Z",
+    "Q3": "2026-07-02T13:14:48.836Z",
+    "Q4": "2026-07-02T13:14:48.836Z"
   },
   "owners": {
     "27231823": {
@@ -19550,13 +19550,6 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
-    "Ventura Capital": {
-      "platformId": "21263",
-      "hsId": "37010503529",
-      "segment": "",
-      "subscriptionEndDate": "2025-02-27",
-      "csmNotes": ""
-    },
     "Machina Capital": {
       "platformId": "12387",
       "hsId": "35042141309",
@@ -19569,13 +19562,6 @@
       "hsId": "23486966180",
       "segment": "",
       "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
-    "Grand Alliance Asset Management Limited": {
-      "platformId": "1996",
-      "hsId": "41915222294",
-      "segment": "",
-      "subscriptionEndDate": "2023-10-30",
       "csmNotes": ""
     },
     "Maxim Group": {
@@ -19606,6 +19592,13 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
+    "Ventura Capital": {
+      "platformId": "21263",
+      "hsId": "37010503529",
+      "segment": "",
+      "subscriptionEndDate": "2025-02-27",
+      "csmNotes": ""
+    },
     "Shrewsbury River Capital": {
       "platformId": "42176",
       "hsId": "32698866313",
@@ -19618,6 +19611,13 @@
       "hsId": "4426970020",
       "segment": "",
       "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "Grand Alliance Asset Management Limited": {
+      "platformId": "1996",
+      "hsId": "41915222294",
+      "segment": "",
+      "subscriptionEndDate": "2023-10-30",
       "csmNotes": ""
     },
     "3Spoke Capital": {
@@ -19865,6 +19865,13 @@
       "subscriptionEndDate": "2026-11-28",
       "csmNotes": ""
     },
+    "Panagram": {
+      "platformId": "9611",
+      "hsId": "9011814694",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2025-09-29",
+      "csmNotes": ""
+    },
     "Pantera Capital": {
       "platformId": "5032",
       "hsId": "36407794609",
@@ -19947,13 +19954,6 @@
       "hsId": "41550197509",
       "segment": "",
       "subscriptionEndDate": "",
-      "csmNotes": ""
-    },
-    "Panagram": {
-      "platformId": "9611",
-      "hsId": "9011814694",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2025-09-29",
       "csmNotes": ""
     },
     "S CUBE Capital Ltd": {
@@ -20761,13 +20761,6 @@
       "subscriptionEndDate": "2026-11-29",
       "csmNotes": ""
     },
-    "Cliffwater": {
-      "platformId": "4697",
-      "hsId": "23458593805",
-      "segment": "",
-      "subscriptionEndDate": "2039-07-07",
-      "csmNotes": ""
-    },
     "Principal Asset Management": {
       "platformId": "695",
       "hsId": "53141131323",
@@ -20780,6 +20773,13 @@
       "hsId": "46919412815",
       "segment": "",
       "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "Cliffwater": {
+      "platformId": "4697",
+      "hsId": "23458593805",
+      "segment": "",
+      "subscriptionEndDate": "2039-07-07",
       "csmNotes": ""
     },
     "PREQIN": {
@@ -20943,6 +20943,13 @@
       "subscriptionEndDate": "2026-11-29",
       "csmNotes": ""
     },
+    "BitGo": {
+      "platformId": "8445",
+      "hsId": "38842647188",
+      "segment": "",
+      "subscriptionEndDate": "2027-03-30",
+      "csmNotes": ""
+    },
     "Provenance": {
       "platformId": "22321",
       "hsId": "20418923410",
@@ -20976,13 +20983,6 @@
       "hsId": "52360886788",
       "segment": "Enterprise",
       "subscriptionEndDate": "2026-12-29",
-      "csmNotes": ""
-    },
-    "BitGo": {
-      "platformId": "8445",
-      "hsId": "38842647188",
-      "segment": "",
-      "subscriptionEndDate": "2027-03-30",
       "csmNotes": ""
     },
     "Tikehau Capital": {
@@ -21181,13 +21181,6 @@
       "subscriptionEndDate": "2026-11-29",
       "csmNotes": ""
     },
-    "Jones Street": {
-      "platformId": "44273",
-      "hsId": "39467262497",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2026-12-30",
-      "csmNotes": ""
-    },
     "Dardanelles Capital": {
       "platformId": "39424",
       "hsId": "10580606826",
@@ -21244,6 +21237,13 @@
       "subscriptionEndDate": "",
       "csmNotes": ""
     },
+    "Jones Street": {
+      "platformId": "44273",
+      "hsId": "39467262497",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2026-12-30",
+      "csmNotes": ""
+    },
     "Stonepeak": {
       "platformId": "43743",
       "hsId": "16400039195",
@@ -21286,13 +21286,6 @@
       "subscriptionEndDate": "2027-03-30",
       "csmNotes": ""
     },
-    "XYSTON Capital Management": {
-      "platformId": "43975",
-      "hsId": "39445852318",
-      "segment": "Enterprise",
-      "subscriptionEndDate": "2026-11-29",
-      "csmNotes": "only responds to pay when convenient for him. on-site perk expires Friday 5/29"
-    },
     "One River Asset Management": {
       "platformId": "19616",
       "hsId": "37315255606",
@@ -21320,6 +21313,13 @@
       "segment": "Enterprise",
       "subscriptionEndDate": "2027-04-29",
       "csmNotes": ""
+    },
+    "XYSTON Capital Management": {
+      "platformId": "43975",
+      "hsId": "39445852318",
+      "segment": "Enterprise",
+      "subscriptionEndDate": "2026-11-29",
+      "csmNotes": "only responds to pay when convenient for him. on-site perk expires Friday 5/29"
     },
     "Satori Capital": {
       "platformId": "9420",
@@ -22819,9 +22819,9 @@
       "subscriptionEndDate": "2027-05-30",
       "csmNotes": ""
     },
-    "GAM Investments": {
-      "platformId": "22943",
-      "hsId": "36262513963",
+    "Mercer": {
+      "platformId": "40611",
+      "hsId": "54370676506",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -22845,13 +22845,6 @@
       "hsId": "39777232249",
       "segment": "",
       "subscriptionEndDate": "2027-01-29",
-      "csmNotes": ""
-    },
-    "Mercer": {
-      "platformId": "40611",
-      "hsId": "54370676506",
-      "segment": "",
-      "subscriptionEndDate": "",
       "csmNotes": ""
     },
     "XAI Asset Management": {
@@ -23004,6 +22997,13 @@
     "New Mountain Capital": {
       "platformId": "292",
       "hsId": "8975724306",
+      "segment": "",
+      "subscriptionEndDate": "",
+      "csmNotes": ""
+    },
+    "GAM Investments": {
+      "platformId": "22943",
+      "hsId": "36262513963",
       "segment": "",
       "subscriptionEndDate": "",
       "csmNotes": ""
@@ -23302,6 +23302,13 @@
       "subscriptionEndDate": "2026-10-29",
       "csmNotes": ""
     },
+    "Ascend": {
+      "platformId": "44810",
+      "hsId": "26934269785",
+      "segment": "Scale",
+      "subscriptionEndDate": "2027-04-29",
+      "csmNotes": "He's very happy so far"
+    },
     "Red Ember Capital": {
       "platformId": "4073",
       "hsId": "8359570325",
@@ -23385,13 +23392,6 @@
       "segment": "Enterprise",
       "subscriptionEndDate": "2027-05-31",
       "csmNotes": "Waiting on payment. AM in contact"
-    },
-    "Ascend": {
-      "platformId": "44810",
-      "hsId": "26934269785",
-      "segment": "Scale",
-      "subscriptionEndDate": "2027-04-29",
-      "csmNotes": "He's very happy so far"
     },
     "Golub Capital": {
       "platformId": "67",
@@ -44209,6 +44209,13 @@
       "hsId": "17734241355",
       "segment": "Enterprise",
       "subscriptionEndDate": "2026-04-29",
+      "csmNotes": ""
+    },
+    "Kronos Research": {
+      "platformId": "45035",
+      "hsId": "17753271588",
+      "segment": "Scale",
+      "subscriptionEndDate": "2027-07-30",
       "csmNotes": ""
     },
     "Rockhill Capital & Investments": {
@@ -75312,7 +75319,7 @@
     "1975": {
       "name": "BioRock Ventures",
       "hsId": "54446550410",
-      "accountManager": "Mario Giron",
+      "accountManager": "Olivia Juliano",
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2027-06-29",
@@ -91921,6 +91928,21 @@
       "segment": "Scale",
       "category": "Manager",
       "subscriptionEndDate": "2027-06-29",
+      "jul": "",
+      "aug": "",
+      "sep": "",
+      "julNote": "",
+      "augNote": "",
+      "sepNote": "",
+      "csmNotes": ""
+    },
+    "45035": {
+      "name": "Kronos Research",
+      "hsId": "17753271588",
+      "accountManager": "Mario Giron",
+      "segment": "Scale",
+      "category": "Manager",
+      "subscriptionEndDate": "2027-07-30",
       "jul": "",
       "aug": "",
       "sep": "",
