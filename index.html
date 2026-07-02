@@ -7053,6 +7053,141 @@ function _cadTabClicked(){
   }
 }
 
+// Public quarter export. Two sheets:
+//   • Achievement — pool-level breakdown mirroring the Cadence Achievement
+//     Calculator card (Ent+Strategic, Scale, SPs) plus a grand total.
+//   • By CSM × Month — one row per CSM with monthly counts across the
+//     selected quarter, quarter total, and % of that CSM's pool full goal.
+// Reflects whatever the visible table shows — includes LP when the "Include
+// LP in % & gap" toggle is on, includes HubSpot Q3 sourcing when hydrated,
+// and multi-calls when that toggle is on.
+function _exportCadenceQuarterXLSX(){
+  const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
+  if(!cd||!cd.csm){alert('No cadence data loaded.');return;}
+  const XLSX=(window.parent&&window.parent.XLSX)||window.XLSX;
+  if(!XLSX){alert('Excel library not loaded yet. Try again in a moment.');return;}
+  const visCols=_cadVisibleCols();
+  if(!visCols.length){alert(`No columns visible for ${selCadQ}. Load engagement tracker first.`);return;}
+  const roster=(typeof CSM!=='undefined'&&CSM.length)?CSM:Object.keys(cd.csm).map(n=>({n,seg:'',t:''}));
+  const _calcIncludeLP=!!(_cadIncludeLP&&_cadLPData);
+  const _nM=visCols.length;
+  // Same pool definitions as the achievement calculator card.
+  const pools=[
+    {label:'ENT + STRATEGIC',filter:c=>c.t!=='SP'&&(c.seg==='Enterprise'||c.seg==='Strategic'),callsPerAcct:_nM,denomLbl:`accts × ${_nM}`},
+    {label:'SCALE',           filter:c=>c.t!=='SP'&&c.seg==='Scale',                              callsPerAcct:2,   denomLbl:'accts × 2'},
+    {label:'SPs',             filter:c=>c.t==='SP',                                               callsPerAcct:1,   denomLbl:'accts × 1'}
+  ];
+  // Per-CSM row totals, so both sheets stay consistent.
+  const csmStats=roster.map(c=>{
+    const cData=cd.csm[c.n]||{total:0,months:{}};
+    const book=cData.total||c.a||0;
+    const perMonth=visCols.map(m=>_cadCellCount(cData,m)+(_calcIncludeLP?_cadLPCount(c.n,m):0));
+    const qTot=perMonth.reduce((s,v)=>s+v,0);
+    let poolLabel='',callsPerAcct=1;
+    for(const p of pools){if(p.filter(c)){poolLabel=p.label;callsPerAcct=p.callsPerAcct;break;}}
+    const full=Math.ceil(book*callsPerAcct);
+    const qPct=full>0?qTot/full:0;
+    return {csm:c.n,pool:poolLabel,seg:c.seg||'',book,perMonth,qTot,full,qPct};
+  });
+
+  // Sheet 1 · Achievement (pool-level)
+  const achHead=['Pool','CSMs','Accts','Full Goal','Floor (50%)','Calls to Date','% of Full','% of Floor','Denominator'];
+  const achRows=[achHead];
+  let gA=0,gC=0,gCsms=0;
+  pools.forEach(p=>{
+    const inPool=roster.filter(p.filter);
+    let tA=0,tC=0;
+    inPool.forEach(c=>{
+      const s=csmStats.find(x=>x.csm===c.n);
+      if(!s)return;
+      tA+=s.book;
+      tC+=s.qTot;
+    });
+    const full=Math.ceil(tA*p.callsPerAcct);
+    const floor=Math.ceil(full/2);
+    const pctFull =full>0 ? tC/full  : 0;
+    const pctFloor=floor>0? tC/floor : 0;
+    achRows.push([p.label,inPool.length,tA,full,floor,tC,pctFull,pctFloor,p.denomLbl]);
+    gA+=tA;gC+=tC;gCsms+=inPool.length;
+  });
+  // Grand total row. Full goal for the grand total is the sum of pool fulls
+  // — poolwise multipliers differ, so we recompute correctly.
+  const grandFull=pools.reduce((s,p)=>{
+    const inPool=roster.filter(p.filter);
+    const tA=inPool.reduce((a,c)=>a+((csmStats.find(x=>x.csm===c.n)||{}).book||0),0);
+    return s+Math.ceil(tA*p.callsPerAcct);
+  },0);
+  const grandFloor=Math.ceil(grandFull/2);
+  achRows.push([
+    'TOTAL',gCsms,gA,grandFull,grandFloor,gC,
+    grandFull>0?gC/grandFull:0,
+    grandFloor>0?gC/grandFloor:0,
+    'weighted by pool'
+  ]);
+
+  // Sheet 2 · By CSM × Month
+  const byHead=['CSM','Pool','Book',...visCols,`${selCadQ} Total`,`${selCadQ} % of Full`,'Full Goal'];
+  const byRows=[byHead];
+  pools.forEach(p=>{
+    const inPool=csmStats.filter(s=>s.pool===p.label);
+    if(!inPool.length)return;
+    inPool.forEach(s=>{
+      byRows.push([s.csm,s.pool,s.book,...s.perMonth,s.qTot,s.qPct,s.full]);
+    });
+    // Pool subtotal
+    const sub={book:0,perMonth:visCols.map(()=>0),qTot:0,full:0};
+    inPool.forEach(s=>{sub.book+=s.book;s.perMonth.forEach((v,i)=>sub.perMonth[i]+=v);sub.qTot+=s.qTot;sub.full+=s.full;});
+    byRows.push([`  ${p.label} SUBTOTAL`,p.label,sub.book,...sub.perMonth,sub.qTot,sub.full>0?sub.qTot/sub.full:0,sub.full]);
+    byRows.push([]);
+  });
+
+  // Sheet 3 · About
+  const now=new Date();
+  const nowStr=now.toLocaleString();
+  const metaRows=[
+    ['CS Renewal — Cadence Quarter Export'],
+    ['Quarter',selCadQ+' '+now.getFullYear()],
+    ['Months',visCols.join(', ')],
+    ['Generated',nowStr],
+    ['Include LP in totals',_calcIncludeLP?'YES':'NO'],
+    ['Multi-calls per firm',_cadMultiCalls?'YES':'NO'],
+    ['Source','Engagement Tracker + HubSpot Q3 flags (when hydrated)'],
+    [],
+    ['Denominators'],
+    ['  Enterprise + Strategic',`accts × ${_nM} (every acct every visible month)`],
+    ['  Scale','accts × 2 (bi-monthly)'],
+    ['  SPs','accts × 1 (once per quarter)'],
+    ['Floor is 50% of full goal for each pool.']
+  ];
+
+  const wb=XLSX.utils.book_new();
+  const wsAch=XLSX.utils.aoa_to_sheet(achRows);
+  // Format % columns (indices 6 and 7)
+  const rngA=XLSX.utils.decode_range(wsAch['!ref']);
+  for(let r=1;r<=rngA.e.r;r++){
+    for(const col of [6,7]){
+      const ref=XLSX.utils.encode_cell({c:col,r});
+      if(wsAch[ref]&&typeof wsAch[ref].v==='number'){wsAch[ref].t='n';wsAch[ref].z='0.0%';}
+    }
+  }
+  wsAch['!cols']=[{wch:20},{wch:8},{wch:9},{wch:12},{wch:12},{wch:14},{wch:11},{wch:11},{wch:22}];
+  const wsBy=XLSX.utils.aoa_to_sheet(byRows);
+  // Format % column (last-but-one) in the by-CSM sheet
+  const pctColIdx=3+visCols.length+1;  // CSM,Pool,Book, months..., QTotal, Q%
+  const rngB=XLSX.utils.decode_range(wsBy['!ref']);
+  for(let r=1;r<=rngB.e.r;r++){
+    const ref=XLSX.utils.encode_cell({c:pctColIdx,r});
+    if(wsBy[ref]&&typeof wsBy[ref].v==='number'){wsBy[ref].t='n';wsBy[ref].z='0.0%';}
+  }
+  wsBy['!cols']=[{wch:24},{wch:20},{wch:8},...visCols.map(()=>({wch:10})),{wch:12},{wch:12},{wch:12}];
+  const wsMeta=XLSX.utils.aoa_to_sheet(metaRows);
+  wsMeta['!cols']=[{wch:32},{wch:50}];
+  XLSX.utils.book_append_sheet(wb,wsAch,'Achievement');
+  XLSX.utils.book_append_sheet(wb,wsBy,'By CSM × Month');
+  XLSX.utils.book_append_sheet(wb,wsMeta,'About');
+  const yyyymmdd=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  XLSX.writeFile(wb,`cadence-${selCadQ}-${yyyymmdd}.xlsx`);
+}
 function _exportCadenceXLSX(){
   const cd=typeof CADENCE_DATA!=='undefined'?CADENCE_DATA:null;
   if(!cd||!cd.cols||!cd.cols.length){alert('No cadence data loaded.');return;}
@@ -10182,7 +10317,8 @@ function rCadence(){
       ${_cadCurMoIsOverride?`<span style="font-size:10px;color:var(--amber);font-weight:700;background:var(--amberG);border:1px solid rgba(245,158,11,.4);padding:3px 8px;border-radius:10px" title="The +N to 50% badges and Export button are pinned to ${_cadCurMo}, not the live month (${_cadLiveMo}).">📌 pinned to ${_cadCurMo}</span>`:''}
       ${_cadLPData?`<label onclick="_toggleCadIncludeLP()" title="When ON, percentages and the +N-to-50% gap badge count GP + LP combined. Big numbers in cells stay GP — only the % math changes." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadIncludeLP?'#fb923c':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:5px 10px;border:1px solid ${_cadIncludeLP?'#fb923c':'var(--border)'};border-radius:6px;background:${_cadIncludeLP?'rgba(251,146,60,.08)':'transparent'};margin-left:6px"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_cadIncludeLP?'#fb923c':'var(--dim)'};border-radius:3px;background:${_cadIncludeLP?'#fb923c':'transparent'};color:#0a0e1a;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadIncludeLP?'✓':''}</span>Include LP in % &amp; gap</label>`:''}
       ${(_cadAuditData||_cadSPAuditData)?`<label onclick="_toggleCadMultiCalls()" title="When ON, each cell counts every HubSpot meeting (not just 1 per firm) — so a firm with 3 meetings in a month contributes 3. Manually ✓ Verified rows (Zoom calls etc. not in HubSpot) count as 1 when HubSpot has no record for that firm/month. When OFF, mirrors the engagement tracker (1 per firm per month)." style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${_cadMultiCalls?'#22d3ee':'var(--dim)'};font-weight:600;cursor:pointer;user-select:none;padding:5px 10px;border:1px solid ${_cadMultiCalls?'#22d3ee':'var(--border)'};border-radius:6px;background:${_cadMultiCalls?'rgba(34,211,238,.08)':'transparent'}"><span style="display:inline-block;width:13px;height:13px;border:1.5px solid ${_cadMultiCalls?'#22d3ee':'var(--dim)'};border-radius:3px;background:${_cadMultiCalls?'#22d3ee':'transparent'};color:#0a0e1a;font-size:10px;line-height:11px;text-align:center;font-weight:900">${_cadMultiCalls?'✓':''}</span>Include multiple calls w/ same firm</label>`:''}
-      ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="margin-left:auto;background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
+      <button onclick="_exportCadenceQuarterXLSX()" style="margin-left:auto;background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export the Cadence Achievement Calculator (pool-level) + per-CSM monthly breakdown for ${selCadQ}. Reflects your current LP / multi-calls toggle state.">⬇ Export ${selCadQ} (.xlsx)</button>
+      ${_cadExportUnlocked?`<button onclick="_exportCadenceXLSX()" style="background:#065f46;color:#d1fae5;border:1px solid #10b981;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Export current month call counts + accounts per CSM">⬇ Export ${_cadCurMo} (.xlsx)</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadAuditPromptImport()" style="background:#1e3a8a;color:#dbeafe;border:1px solid #3b82f6;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot meeting export (.xlsx) — password protected">⬆ Import GP HubSpot${_cadAuditData?' ✓':''}</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadSPPromptImport()" style="background:#7f1d3a;color:#fecdd3;border:1px solid #f43f5e;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import SP HubSpot meeting export (.xlsx) — reads the second tab of the workbook">⬆ Import SP HubSpot${_cadSPAuditData?' ✓':''}</button>`:''}
       ${_cadExportUnlocked?`<button onclick="_cadLPImport()" style="background:#7c2d12;color:#fed7aa;border:1px solid #fb923c;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" title="Import HubSpot LP meeting export (.xlsx) — adds an LP column next to each month">⬆ Import LP HubSpot${_cadLPData?' ✓':''}</button>`:''}
